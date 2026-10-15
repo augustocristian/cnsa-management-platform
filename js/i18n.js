@@ -1,0 +1,124 @@
+// Internacionalización ligera: es | en | it. Sin dependencias.
+// Los valores guardados en Excel/Sheet (categorías, estados, tipos, roles) siguen en español:
+// las traducciones son sólo de visualización (tCat, tEstado, tTipo, tRol, tNav).
+import es from './locales/es.js';
+import en from './locales/en.js';
+import it from './locales/it.js';
+
+export const LANGS = [
+  { code: 'es', label: 'Español' },
+  { code: 'en', label: 'English' },
+  { code: 'it', label: 'Italiano' }
+];
+export const LANG_KEY = 'cnl:lang';
+const DICTS = { es, en, it };
+const INTL = { es: 'es-ES', en: 'en-GB', it: 'it-IT' };
+const listeners = new Set();
+
+const ls = {
+  get(k) { try { return localStorage.getItem(k); } catch (e) { return null; } },
+  set(k, v) { try { localStorage.setItem(k, v); } catch (e) { /* ignorar */ } }
+};
+const valid = (c) => LANGS.some((l) => l.code === c);
+
+function detect() {
+  const saved = ls.get(LANG_KEY);
+  if (valid(saved)) return saved;
+  const nav = (typeof navigator !== 'undefined' && (navigator.languages?.[0] || navigator.language)) || '';
+  const short = String(nav).toLowerCase().slice(0, 2);
+  return valid(short) ? short : 'es';
+}
+
+let lang = detect();
+function applyDocLang() {
+  if (typeof document !== 'undefined' && document.documentElement) document.documentElement.lang = lang;
+}
+applyDocLang();
+
+export function getLang() { return lang; }
+
+export function setLang(code, { persist = true } = {}) {
+  if (!valid(code)) code = 'es';
+  const changed = code !== lang;
+  lang = code;
+  if (persist) ls.set(LANG_KEY, code);
+  applyDocLang();
+  if (changed) listeners.forEach((fn) => { try { fn(lang); } catch (e) { console.error(e); } });
+  return lang;
+}
+
+// Devuelve una función para cancelar la suscripción.
+export function onLangChange(fn) {
+  listeners.add(fn);
+  return () => listeners.delete(fn);
+}
+
+// t('clave', {nombre: 'x'}) -> idioma actual -> es -> la propia clave
+export function t(key, vars) {
+  let s = DICTS[lang]?.[key];
+  if (s == null || s === '') s = DICTS.es[key];
+  if (s == null || s === '') return key;
+  if (!vars) return s;
+  return s.replace(/\{(\w+)\}/g, (m, k) => (vars[k] != null ? String(vars[k]) : m));
+}
+
+export function hasKey(key) { return key in DICTS.es; }
+
+// --- Valores internos (español) -> texto visible ---
+const norm = (v) => String(v ?? '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().trim().replace(/\s+/g, '-');
+function tVal(ns, value) {
+  if (value == null || value === '') return '';
+  const key = `${ns}.${norm(value)}`;
+  return hasKey(key) ? t(key) : String(value);
+}
+export const tCat = (v) => tVal('cat', v);
+export const tEstado = (v) => tVal('estado', v);
+export const tTipo = (v) => tVal('tipo', v);
+export const tRol = (v) => tVal('rol', v);
+export const tNav = (v) => tVal('nav', v);
+
+// --- Intl por idioma ---
+export const locale = () => INTL[lang];
+
+function toDate(d) {
+  if (d instanceof Date) return d;
+  if (typeof d === 'string' && /^\d{4}-\d{2}-\d{2}/.test(d)) {
+    const [y, m, dd] = d.slice(0, 10).split('-').map(Number);
+    return new Date(y, m - 1, dd);
+  }
+  return new Date(d);
+}
+
+// tDate(d) -> 15/10/2026 ; tDate(d,'long') -> "jueves, 15 de octubre de 2026" (según idioma)
+export function tDate(d, mode) {
+  if (d === '' || d == null) return '';
+  const x = toDate(d);
+  if (isNaN(x)) return String(d);
+  const opts = mode === 'long'
+    ? { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' }
+    : { day: '2-digit', month: '2-digit', year: 'numeric' };
+  return new Intl.DateTimeFormat(locale(), opts).format(x);
+}
+
+export function tNum(n, opts) {
+  const x = Number(n);
+  if (!isFinite(x)) return String(n ?? '');
+  return new Intl.NumberFormat(locale(), opts).format(x);
+}
+
+// <select> de idioma para la cabecera.
+export function langSelect() {
+  const sel = document.createElement('select');
+  sel.className = 'lang-select';
+  sel.setAttribute('aria-label', t('lang.etiqueta'));
+  for (const l of LANGS) {
+    const o = document.createElement('option');
+    o.value = l.code;
+    o.textContent = l.label;
+    o.selected = l.code === lang;
+    sel.appendChild(o);
+  }
+  sel.addEventListener('change', () => setLang(sel.value));
+  onLangChange((c) => { sel.value = c; sel.setAttribute('aria-label', t('lang.etiqueta')); });
+  return sel;
+}
