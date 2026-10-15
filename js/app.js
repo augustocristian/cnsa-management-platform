@@ -353,6 +353,11 @@ async function start() {
       h('button', { class: 'btn', onclick: doLogout }, 'Salir'));
     return;
   }
+  // Primer arranque en modo local: cargar datos de ejemplo
+  if (localMode && !store.list('Nadadores').length && !lsGet('cnl:seeded')) {
+    store.seedDemo();
+    lsSet('cnl:seeded', '1');
+  }
   auth.setDemoRole?.(null);
   realRole = auth.role();
   renderShell();

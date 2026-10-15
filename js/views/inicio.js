@@ -20,7 +20,7 @@ function injectStyle() {
   s.textContent = `
   .ini-banner{display:flex;align-items:center;justify-content:space-between;gap:12px;background:linear-gradient(135deg,#1a73e8,#4a9af5);color:#fff;border-radius:16px;padding:20px 24px;margin-bottom:16px;overflow:hidden}
   .ini-banner h1{margin:0 0 4px;font-size:1.6rem}
-  .ini-banner p{margin:0;opacity:.9;text-transform:capitalize}
+  .ini-banner p{margin:0;opacity:.9}
   .ini-banner svg{width:150px;height:70px;flex:none}
   .ini-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:16px}
   .ini-wide{grid-column:1/-1}
@@ -124,8 +124,10 @@ export async function render(container, params, ctx) {
   const cargas = store.list('Cargas').filter((c) => semana.includes(String(c.fecha).slice(0, 10)));
   const porDia = semana.map((f) => cargas.filter((c) => String(c.fecha).slice(0, 10) === f).reduce((a, c) => a + num(c.metros), 0));
   const objetivos = store.list('ObjetivosCarga');
-  const minTot = objetivos.reduce((a, o) => a + num(o.minSemanalM), 0);
-  const maxTot = objetivos.reduce((a, o) => a + num(o.maxSemanalM), 0);
+  // Los objetivos son metros semanales por nadador: se escalan por los nadadores con carga esta semana
+  const nNad = Math.max(1, new Set(cargas.map((c) => c.nadadorId)).size);
+  const minTot = objetivos.reduce((a, o) => a + num(o.minSemanalM), 0) * nNad;
+  const maxTot = objetivos.reduce((a, o) => a + num(o.maxSemanalM), 0) * nNad;
 
   // Banner
   const banner = h('div', { class: 'ini-banner' },
@@ -150,7 +152,7 @@ export async function render(container, params, ctx) {
   let nAlert = 0;
   for (const o of objetivos) {
     const real = cargas.filter((c) => c.tipo === o.tipo).reduce((a, c) => a + num(c.metros), 0);
-    const mn = num(o.minSemanalM), mx = num(o.maxSemanalM);
+    const mn = num(o.minSemanalM) * nNad, mx = num(o.maxSemanalM) * nNad;
     let cls = '', txt = '';
     if (mx && real > mx) { cls = 'ini-up'; txt = `Por encima (+${fmtM(real - mx)} m)`; }
     else if (mn && real < mn) { cls = 'ini-down'; txt = `Por debajo (−${fmtM(mn - real)} m)`; }
