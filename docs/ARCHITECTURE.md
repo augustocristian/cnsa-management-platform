@@ -46,3 +46,16 @@ admin: todo. entrenador: todo excepto usuarios/club. nadador: sólo `mi-espacio`
 ## Reglas
 - No tocar ficheros de otros agentes. No ejecutar comandos git (commitea el orquestador).
 - Código sencillo y comentado lo mínimo. Escapar siempre texto de usuario (usar `h()`/textContent, nunca innerHTML con datos).
+
+## Diseño objetivo (mockup del usuario) — ACTUALIZA el contrato anterior
+Aspecto: claro, azul (#1a73e8 aprox.) sobre blanco, tarjetas con bordes redondeados y sombra suave, tipografía limpia (system-ui). Cabecera: logo + nombre del club (grande, azul oscuro) + lema ("Pequeño gran club", azul) | caja "Rol actual: Entrenador" | campana con contador de avisos | botón salir. Lateral izquierdo (escritorio; barra inferior en móvil) con: Inicio, Nadadores, Grupos, Entrenamientos, Asistencia, Cargas, Marcas, Bañador, Comunicaciones, Configuración, y abajo un recuadro "Cambiar a rol" (vista demo de Entrenador/Nadador). Pie: "© 2025 Club Natación Lugones | lema".
+Inicio: banner "¡Bienvenido, <Rol>!" con fecha larga y nadador SVG; tarjetas: Acceso rápido (4 atajos), Control de cargas semanal del club (gráfico de líneas SVG: realizado vs objetivo mínimo/máximo, Lun–Dom, metros), Alertas de cargas (zona por encima/por debajo del objetivo), Próxima sesión (día, hora, grupo, piscina, volumen objetivo, enfoque), Asistencia hoy (donut SVG: asistieron/faltaron/sin confirmar), Comunicaciones recientes.
+Cambios de esquema:
+- Club: + `lema`. Entrenamientos: + `piscina`, `volumenMin`, `volumenMax`, `enfoque`.
+- Cargas: + `tipo` (Aeróbico, Velocidad, Piernas, Técnica, Fuerza).
+- Nueva hoja **ObjetivosCarga**: id, tipo, minSemanalM, maxSemanalM.
+- Nueva hoja **Banador** (entrega de bañador/equipación): id, nadadorId, talla, estado (`pendiente`|`entregado`), fecha, notas.
+- Vista nueva `banador`; vista `grupos` (CRUD de Grupos, nadadores por grupo).
+- Módulos de vista: inicio, nadadores, grupos, entrenamientos, asistencia, cargas, marcas, banador, comunicaciones, club, mi-espacio.
+- `auth.role()` puede sobreescribirse con `auth.setDemoRole(rol)` (sólo vista, para el selector "Cambiar a rol").
+- Sin gráficos de librerías externas: SVG propio.
