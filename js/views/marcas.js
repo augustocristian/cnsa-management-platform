@@ -103,7 +103,7 @@ export async function render(container, params, ctx) {
     const f = new FormData(form);
     const ms = parse(f.get('tiempo'));
     if (!f.get('nadadorId') || !f.get('fecha') || !f.get('prueba')) { toast('Indica nadador, fecha y prueba'); return; }
-    if (ms == null || ms <= 0) { toast('Tiempo no válido (formato mm:ss.cc)'); return; }
+    if (!(ms > 0)) { toast('Tiempo no válido (formato mm:ss.cc)'); return; }
     store.upsert('Marcas', {
       nadadorId: f.get('nadadorId'), fecha: f.get('fecha'), prueba: f.get('prueba'), piscina: f.get('piscina'),
       tiempoMs: ms, competicion: f.get('competicion') || '', notas: f.get('notas') || ''

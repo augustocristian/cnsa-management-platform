@@ -6,10 +6,12 @@ on:
 permissions:
   contents: read
 concurrency:
-  group: pages
+  group: ci-${{ github.ref }}
   cancel-in-progress: true
+
 jobs:
-  build:
+  validate:
+    name: Validación estática
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -17,18 +19,92 @@ jobs:
         with: { node-version: 22, cache: npm }
       - run: npm ci
       - run: npm run check
+      - name: Auditoría de dependencias
+        run: npm audit --omit=dev --audit-level=high
+      - name: vendor/ sincronizado con npm
+        run: git diff --exit-code -- vendor/
+
+  unit:
+    name: Tests unitarios
+    needs: validate
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 22, cache: npm }
+      - run: npm ci
+      - run: npm run test:unit
+
+  integration:
+    name: Tests de integración
+    needs: validate
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 22, cache: npm }
+      - run: npm ci
+      - run: npm run test:integration
+
+  e2e:
+    name: Tests end-to-end
+    needs: [unit, integration]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 22, cache: npm }
+      - run: npm ci
+      - run: npx playwright install --with-deps chromium
+      - run: npm run test:e2e
+        env: { CI: 'true' }
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: playwright-report
+          path: |
+            playwright-report/
+            test-results/
+          retention-days: 7
+
+  build:
+    name: Construir sitio
+    needs: e2e
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 22, cache: npm }
+      - run: npm ci
       - name: Preparar sitio
         run: |
           mkdir _site
           cp -r index.html manifest.webmanifest sw.js css js icons vendor _site/
       - uses: actions/upload-pages-artifact@v3
         with: { path: _site }
+
   deploy:
+    name: Desplegar en GitHub Pages
     if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
     needs: build
     runs-on: ubuntu-latest
     permissions: { pages: write, id-token: write }
-    environment: { name: github-pages, url: "${{ steps.d.outputs.page_url }}" }
+    environment:
+      name: github-pages
+      url: ${{ steps.d.outputs.page_url }}
     steps:
       - id: d
         uses: actions/deploy-pages@v4
+
+  smoke:
+    name: Verificación post-despliegue
+    needs: deploy
+    runs-on: ubuntu-latest
+    steps:
+      - name: La app responde
+        run: |
+          for i in 1 2 3 4 5; do
+            code=$(curl -s -o /dev/null -w '%{http_code}' https://augustocristian.github.io/cnsa-management-platform/)
+            [ "$code" = 200 ] && exit 0; sleep 10
+          done
+          echo "HTTP $code"; exit 1
