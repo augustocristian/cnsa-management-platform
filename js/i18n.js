@@ -4,6 +4,21 @@
 import es from './locales/es.js';
 import en from './locales/en.js';
 import it from './locales/it.js';
+import vistasAes from './locales/vistas-a.es.js';
+import vistasAen from './locales/vistas-a.en.js';
+import vistasAit from './locales/vistas-a.it.js';
+import vistasBes from './locales/vistas-b.es.js';
+import vistasBen from './locales/vistas-b.en.js';
+import vistasBit from './locales/vistas-b.it.js';
+import vistasCes from './locales/vistas-c.es.js';
+import vistasCen from './locales/vistas-c.en.js';
+import vistasCit from './locales/vistas-c.it.js';
+import planES from './locales/planificacion.es.js';
+import planEN from './locales/planificacion.en.js';
+import planIT from './locales/planificacion.it.js';
+import calES from './locales/calendario.es.js';
+import calEN from './locales/calendario.en.js';
+import calIT from './locales/calendario.it.js';
 
 export const LANGS = [
   { code: 'es', label: 'Español' },
@@ -11,7 +26,7 @@ export const LANGS = [
   { code: 'it', label: 'Italiano' }
 ];
 export const LANG_KEY = 'cnl:lang';
-const DICTS = { es, en, it };
+const DICTS = { es: { ...es, ...vistasAes, ...vistasBes, ...vistasCes, ...planES, ...calES }, en: { ...en, ...vistasAen, ...vistasBen, ...vistasCen, ...planEN, ...calEN }, it: { ...it, ...vistasAit, ...vistasBit, ...vistasCit, ...planIT, ...calIT } };
 const INTL = { es: 'es-ES', en: 'en-GB', it: 'it-IT' };
 const listeners = new Set();
 

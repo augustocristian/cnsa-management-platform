@@ -1,4 +1,5 @@
 // Vista Asistencia: pasar lista (tocar para ciclar estado) e historial.
+import { t, tEstado, tDate, locale } from '../i18n.js';
 const CSS = `
 .asi-tabs{display:flex;gap:6px;margin-bottom:12px}
 .asi-tabs .btn.asi-on{background:var(--c-primary,#1a73e8);color:#fff}
@@ -21,11 +22,11 @@ const CSS = `
 `;
 
 const ESTADOS = ['presente', 'ausente', 'justificado'];
-const LABEL = { presente: 'Presente', ausente: 'Ausente', justificado: 'Justificado', '': 'Sin marcar' };
+const label = (e) => (e ? tEstado(e) : t('asist.sin-marcar'));
 const pad = (n) => String(n).padStart(2, '0');
 const todayIso = () => { const d = new Date(); return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`; };
 const isActive = (n) => !['false', '0', 'no', 'n', 'falso'].includes(String(n.activo ?? '').trim().toLowerCase());
-const fdate = (s) => { const [y, m, d] = String(s).slice(0, 10).split('-'); return `${d}/${m}/${y}`; };
+const fdate = (s) => tDate(String(s).slice(0, 10));
 
 function injectStyle() {
   if (document.getElementById('asi-style')) return;
@@ -47,16 +48,16 @@ export async function render(container, params, ctx) {
   let expanded = null;
   let unsub = null;
 
-  const grupoName = (id) => (store.list('Grupos').find((g) => g.id === id) || {}).nombre || 'Todos';
+  const grupoName = (id) => (store.list('Grupos').find((g) => g.id === id) || {}).nombre || t('entre.grupo-todos');
   const fullName = (n) => `${n.apellidos || ''}${n.apellidos ? ', ' : ''}${n.nombre || ''}`;
   const sortSessions = (arr) => arr.sort((a, b) =>
     (String(b.fecha) + String(b.hora || '')).localeCompare(String(a.fecha) + String(a.hora || '')));
 
   function defaultSession(sessions) {
-    const t = todayIso();
-    const today = sessions.find((s) => String(s.fecha).slice(0, 10) === t);
+    const td = todayIso();
+    const today = sessions.find((s) => String(s.fecha).slice(0, 10) === td);
     if (today) return today.id;
-    const past = sessions.find((s) => String(s.fecha).slice(0, 10) <= t);
+    const past = sessions.find((s) => String(s.fecha).slice(0, 10) <= td);
     return (past || sessions[0] || {}).id || '';
   }
 
@@ -75,16 +76,16 @@ export async function render(container, params, ctx) {
     const sessions = sortSessions(store.list('Entrenamientos'));
     if (!sessions.find((s) => s.id === sessionId)) sessionId = defaultSession(sessions);
     const sess = sessions.find((s) => s.id === sessionId);
-    if (!sess) return h('div', { class: 'card asi-empty' }, 'No hay sesiones. Crea una en Entrenamientos.');
+    if (!sess) return h('div', { class: 'card asi-empty' }, t('asist.sin-sesiones'));
 
     const sel = h('select', { onchange: (e) => { sessionId = e.target.value; draw(); } },
       ...sessions.map((s) => h('option', { value: s.id },
-        `${fdate(s.fecha)} ${s.hora || ''} · ${s.titulo || 'Sesión'} · ${grupoName(s.grupoId)}`)));
+        `${fdate(s.fecha)} ${s.hora || ''} · ${s.titulo || t('asist.sesion')} · ${grupoName(s.grupoId)}`)));
     sel.value = sessionId;
 
     const nadadores = store.list('Nadadores')
       .filter((n) => isActive(n) && (!sess.grupoId || n.grupoId === sess.grupoId))
-      .sort((a, b) => fullName(a).localeCompare(fullName(b), 'es'));
+      .sort((a, b) => fullName(a).localeCompare(fullName(b), locale()));
     const recs = new Map(store.list('Asistencia')
       .filter((a) => a.entrenamientoId === sess.id).map((a) => [a.nadadorId, a]));
 
@@ -98,28 +99,28 @@ export async function render(container, params, ctx) {
       return h('button', {
         type: 'button', class: `asi-sw${st ? ' asi-' + st : ''}`, disabled: !canEdit,
         onclick: () => cycle(sess, n, r),
-      }, h('b', {}, fullName(n)), h('span', { class: 'asi-st' }, LABEL[st] || 'Sin marcar'));
+      }, h('b', {}, fullName(n)), h('span', { class: 'asi-st' }, label(st)));
     });
 
     return h('div', {},
       h('div', { class: 'asi-bar' }, sel,
         canEdit ? h('button', { class: 'btn', onclick: async () => {
           for (const n of nadadores) if (!recs.get(n.id)) await cycle(sess, n, null);
-        } }, 'Marcar todos presentes') : null),
+        } }, t('asist.todos-presentes')) : null),
       h('div', { class: 'asi-sum' },
-        h('span', { class: 'badge' }, `Presentes: ${count.presente}`),
-        h('span', { class: 'badge' }, `Ausentes: ${count.ausente}`),
-        h('span', { class: 'badge' }, `Justificados: ${count.justificado}`),
-        h('span', { class: 'badge' }, `Sin marcar: ${sin}`)),
-      canEdit ? h('div', { class: 'asi-empty' }, 'Toca un nadador para cambiar: presente, ausente, justificado, sin marcar.') : null,
+        h('span', { class: 'badge' }, t('asist.presentes', { n: count.presente })),
+        h('span', { class: 'badge' }, t('asist.ausentes', { n: count.ausente })),
+        h('span', { class: 'badge' }, t('asist.justificados', { n: count.justificado })),
+        h('span', { class: 'badge' }, t('asist.sin-marcar-n', { n: sin }))),
+      canEdit ? h('div', { class: 'asi-empty' }, t('asist.ayuda-ciclo')) : null,
       nadadores.length ? h('div', { class: 'asi-list' }, ...items)
-        : h('div', { class: 'asi-empty' }, 'No hay nadadores activos en este grupo.'));
+        : h('div', { class: 'asi-empty' }, t('asist.sin-nadadores-grupo')));
   }
 
   function drawHistorial() {
     const grupos = store.list('Grupos');
     const gsel = h('select', { onchange: (e) => { histGroup = e.target.value; expanded = null; draw(); } },
-      h('option', { value: '' }, 'Todos los grupos'),
+      h('option', { value: '' }, t('asist.todos-grupos')),
       ...grupos.map((g) => h('option', { value: g.id }, g.nombre)));
     gsel.value = histGroup;
 
@@ -133,7 +134,7 @@ export async function render(container, params, ctx) {
 
     const nads = store.list('Nadadores')
       .filter((n) => isActive(n) && (!histGroup || n.grupoId === histGroup))
-      .sort((a, b) => fullName(a).localeCompare(fullName(b), 'es'));
+      .sort((a, b) => fullName(a).localeCompare(fullName(b), locale()));
 
     const rows = [];
     nads.forEach((n) => {
@@ -154,25 +155,25 @@ export async function render(container, params, ctx) {
         rows.push(h('tr', { class: 'asi-det' }, h('td', { colspan: 5 },
           det.length ? h('div', {}, ...det.map((r) => {
             const s = sessById.get(r.entrenamientoId);
-            return h('div', {}, `${fdate(s.fecha)} · ${s.titulo || 'Sesión'} · ${LABEL[r.estado] || r.estado}${r.nota ? ' (' + r.nota + ')' : ''}`);
-          })) : 'Sin registros')));
+            return h('div', {}, `${fdate(s.fecha)} · ${s.titulo || t('asist.sesion')} · ${tEstado(r.estado) || r.estado}${r.nota ? ' (' + r.nota + ')' : ''}`);
+          })) : t('asist.sin-registros'))));
       }
     });
 
     return h('div', {},
       h('div', { class: 'asi-bar' }, gsel),
-      h('div', { class: 'asi-empty' }, '% = sesiones presentes sobre sesiones con asistencia registrada. Toca una fila para ver el detalle.'),
+      h('div', { class: 'asi-empty' }, t('asist.ayuda-historial')),
       nads.length ? h('div', { class: 'card asi-wrap' }, h('table', { class: 'table' },
-        h('thead', {}, h('tr', {}, ...['Nadador', 'Pres.', 'Aus.', 'Just.', '% asistencia'].map((t) => h('th', {}, t)))),
-        h('tbody', {}, ...rows))) : h('div', { class: 'asi-empty' }, 'No hay nadadores.'));
+        h('thead', {}, h('tr', {}, ...['nadador', 'pres', 'aus', 'just', 'pct'].map((k) => h('th', {}, t('asist.th-' + k))))),
+        h('tbody', {}, ...rows))) : h('div', { class: 'asi-empty' }, t('asist.sin-nadadores')));
   }
 
   function draw() {
     container.replaceChildren(
-      h('h2', {}, 'Asistencia'),
+      h('h2', {}, t('asist.titulo')),
       h('div', { class: 'asi-tabs' },
-        h('button', { class: 'btn' + (tab === 'lista' ? ' asi-on' : ''), onclick: () => { tab = 'lista'; draw(); } }, 'Pasar lista'),
-        h('button', { class: 'btn' + (tab === 'historial' ? ' asi-on' : ''), onclick: () => { tab = 'historial'; draw(); } }, 'Historial')),
+        h('button', { class: 'btn' + (tab === 'lista' ? ' asi-on' : ''), onclick: () => { tab = 'lista'; draw(); } }, t('asist.tab-lista')),
+        h('button', { class: 'btn' + (tab === 'historial' ? ' asi-on' : ''), onclick: () => { tab = 'historial'; draw(); } }, t('asist.tab-historial'))),
       tab === 'lista' ? drawLista() : drawHistorial());
   }
 

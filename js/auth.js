@@ -1,6 +1,8 @@
 // Autenticación con Google Identity Services (token OAuth). Sin Client ID = modo local.
 import { GOOGLE_CLIENT_ID, SCOPES } from './config.js';
 
+const scopeTokens = new Map(); // scope adicional -> {access_token, expires} (consentimiento incremental, sólo en memoria)
+
 const TOKEN_KEY = 'cnl:token';
 const USER_KEY = 'cnl:user';
 const listeners = new Set();
@@ -90,6 +92,7 @@ export const auth = {
   },
 
   signOut() {
+    scopeTokens.clear();
     const t = validToken();
     if (t && window.google && window.google.accounts) { try { window.google.accounts.oauth2.revoke(t, () => {}); } catch (e) { /* ignorar */ } }
     tokenData = null;
@@ -112,6 +115,31 @@ export const auth = {
       if (!tokenClient) return null;
       return await requestToken('');
     } catch (e) { return null; }
+  },
+
+  // Token para un scope adicional (p. ej. calendar.events). interactive = true abre el consentimiento de Google
+  // (debe llamarse desde un clic); si no, intenta renovar en silencio. force = descarta el token en caché. -> token|null
+  async tokenForScope(scope, { interactive = false, force = false } = {}) {
+    if (!GOOGLE_CLIENT_ID) return null;
+    const hit = scopeTokens.get(scope);
+    if (!force && hit && hit.expires > Date.now() + 30000) return hit.access_token;
+    scopeTokens.delete(scope);
+    try {
+      await loadGis();
+      return await new Promise((resolve, reject) => {
+        const tc = window.google.accounts.oauth2.initTokenClient({
+          client_id: GOOGLE_CLIENT_ID, scope, include_granted_scopes: true,
+          hint: auth.user ? auth.user.email : undefined,
+          callback: (resp) => {
+            if (resp.error) return reject(new Error(resp.error_description || resp.error));
+            scopeTokens.set(scope, { access_token: resp.access_token, expires: Date.now() + (Number(resp.expires_in) || 3600) * 1000 });
+            resolve(resp.access_token);
+          },
+          error_callback: (err) => reject(new Error((err && err.type) || 'popup_error')),
+        });
+        tc.requestAccessToken({ prompt: interactive ? (hit ? '' : 'consent') : '' });
+      });
+    } catch (e) { if (interactive) throw e; return null; }
   },
 
   invalidate() { tokenData = null; try { sessionStorage.removeItem(TOKEN_KEY); } catch (e) { /* ignorar */ } },

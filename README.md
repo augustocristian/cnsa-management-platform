@@ -23,6 +23,8 @@ Pensada inicialmente para el Club Natación Lugones, con identidad visual config
 | **Nadadores** | Alta, edición y ficha individual; categorías en orden (de Prebenjamín a Máster) y grupos |
 | **Grupos** | Grupos de entrenamiento y sus nadadores |
 | **Entrenamientos** | Planificación semanal: piscina, volumen objetivo, enfoque, estado planificado/realizado |
+| **Calendario** | Mes / Semana / Agenda personalizados por rol; exportación `.ics` (Apple, Outlook, Google) y sincronización opcional con Google Calendar |
+| **Planificación** | Organiza la piscina: varias piscinas con calles, horario por día y capacidad; asigna cursos a calles y horas (semanal o puntual), detecta conflictos (calle, grupo, entrenador, horario, capacidad), sugiere distribución, vista día/semana e impresión |
 | **Asistencia** | Pasar lista desde el móvil con un toque; historial y porcentaje por nadador |
 | **Cargas** | Metros por tipo (aeróbico, velocidad, piernas, técnica, fuerza), RPE y objetivos mínimo/máximo con alertas |
 | **Marcas** | Tiempos mm:ss.cc, mejores marcas y evolución por prueba (25 m / 50 m) |
@@ -35,6 +37,14 @@ Pensada inicialmente para el Club Natación Lugones, con identidad visual config
 - **Administrador**: todo.
 - **Entrenador**: todo salvo configuración del club.
 - **Nadador**: su espacio personal y las comunicaciones que le correspondan.
+
+## Calendario
+
+Vista `#/calendario` con **Mes / Semana / Agenda**, código de color por grupo y leyenda. Los eventos son las sesiones de *Entrenamientos* y las asignaciones de calle de la *Planificación de piscina* (las semanales se expanden a fechas concretas con su nº de calle; una sesión concreta del mismo grupo y día manda sobre la asignación).
+
+- **Por rol**: el nadador sólo ve su grupo (vínculo `Usuarios.nadadorId` o email en *Nadadores*); el entrenador, los grupos cuyo `Grupos.entrenador` coincide con su nombre o email (interruptor *Todos los grupos*; si no entrena ninguno, ve todos); el administrador, todo con filtros por grupo y piscina.
+- **Exportar `.ics`** (RFC 5545): mes visible, temporada (1 sep - 31 ago) o próximos 90 días, con recordatorio opcional de 30/60 min. Es una **instantánea**: una suscripción por URL en vivo no es posible sin servidor, así que hay que volver a exportar para actualizar (los UID son estables, `<id>@cnl-plataforma`, por lo que reimportar actualiza en lugar de duplicar). La zona horaria del club se guarda en *Club* (clave `zonaHoraria`, por defecto `Europe/Madrid`); el `.ics` incluye un `VTIMEZONE` generado con las transiciones reales del rango.
+- **Sincronizar con Google Calendar** (sólo con login Google): consentimiento incremental del scope `calendar.events` al activarlo, upsert idempotente en el calendario principal (eventos marcados con `extendedProperties.private.cnlId`), resumen creados/actualizados/borrados/errores y *Dejar de sincronizar*. Configuración: [docs/SETUP-GOOGLE.md](docs/SETUP-GOOGLE.md).
 
 ## Persistencia
 
@@ -52,7 +62,8 @@ PWA 100 % estática (sin servidor ni build): JavaScript con ES modules, SheetJS 
 index.html · manifest.webmanifest · sw.js
 css/app.css
 js/  app.js router.js ui.js store.js auth.js drive.js schema.js config.js
-js/views/  inicio nadadores grupos entrenamientos asistencia cargas marcas banador comunicaciones club mi-espacio
+js/domain/ (lógica pura)  js/application/ (servicios)  js/infrastructure/ (APIs externas)
+js/views/  inicio nadadores grupos entrenamientos planificacion asistencia cargas marcas banador comunicaciones club mi-espacio
 vendor/  xlsx.full.min.js   (generado desde npm)
 ```
 
@@ -65,6 +76,16 @@ python -m http.server 8080   # o cualquier servidor estático
 ```
 
 Abre `http://localhost:8080` y pulsa **Probar en modo local**.
+
+## Pruebas
+
+| Nivel | Comando | Qué cubre |
+|---|---|---|
+| Unitarias | `npm run test:unit` | Lógica de módulos (store, drive, auth...) con `node --test` y jsdom |
+| Integración | `npm run test:integration` | Vistas y store trabajando juntos sobre jsdom |
+| E2E (Cucumber) | `npm run test:e2e` | Especificaciones en Gherkin español (`features/*.feature`) ejecutadas con Playwright/Chromium en escritorio y después en móvil (Pixel 5, `VIEWPORT=movil`) |
+
+Las pruebas E2E levantan solas el servidor estático en un puerto libre, parten de un navegador limpio en modo local con datos de demostración y fallan si aparecen errores de consola o respuestas 4xx/5xx. Primera vez: `npx playwright install chromium`. Informes en `reports/` (HTML, JUnit y capturas de los fallos). Los escenarios con `@google @pendiente` (Google Sheets, multi club real) están documentados pero excluidos; `npx cucumber-js --tags @smoke` ejecuta sólo los esenciales.
 
 ## Despliegue
 

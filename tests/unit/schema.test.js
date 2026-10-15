@@ -5,7 +5,7 @@ import { importApp } from '../helpers/env.js';
 const S = await importApp('js/schema.js');
 
 test('SHEETS contiene todas las hojas del contrato con id', () => {
-  const esperadas = ['Club', 'Usuarios', 'Nadadores', 'Grupos', 'Entrenamientos', 'Asistencia', 'Cargas', 'Marcas', 'Comunicaciones', 'ObjetivosCarga', 'Banador'];
+  const esperadas = ['Club', 'Usuarios', 'Nadadores', 'Grupos', 'Entrenamientos', 'Asistencia', 'Cargas', 'Marcas', 'Comunicaciones', 'ObjetivosCarga', 'Banador', 'Piscinas', 'AsignacionesCalle'];
   assert.deepEqual(Object.keys(S.SHEETS).sort(), esperadas.sort());
   for (const s of S.ENTITY_SHEETS) assert.equal(S.SHEETS[s][0], 'id', s);
   assert.deepEqual(S.SHEETS.Club, ['clave', 'valor']);

@@ -58,14 +58,15 @@ jobs:
       - run: npx playwright install --with-deps chromium
       - run: npm run test:e2e
         env: { CI: 'true' }
+      - name: Resumen en el panel del job
+        if: always()
+        run: node scripts/resumen-e2e.mjs >> "$GITHUB_STEP_SUMMARY"
       - uses: actions/upload-artifact@v4
-        if: failure()
+        if: always()
         with:
-          name: playwright-report
-          path: |
-            playwright-report/
-            test-results/
-          retention-days: 7
+          name: informes-e2e
+          path: reports/
+          retention-days: 14
 
   build:
     name: Construir sitio

@@ -1,8 +1,8 @@
 // Vista Inicio: dashboard del club.
 import { icon } from '../icons.js';
+import { t, tDate, tNum, tRol, tTipo } from '../i18n.js';
 const NS = 'http://www.w3.org/2000/svg';
-const DIAS = ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom'];
-const TIPOS = ['Aeróbico', 'Velocidad', 'Piernas', 'Técnica', 'Fuerza'];
+const dias = () => [0, 1, 2, 3, 4, 5, 6].map((i) => t('inicio.dia.' + i));
 
 function svg(tag, attrs = {}, ...kids) {
   const el = document.createElementNS(NS, tag);
@@ -12,7 +12,7 @@ function svg(tag, attrs = {}, ...kids) {
 }
 const iso = (d) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 const num = (v) => Number(v) || 0;
-const fmtM = (n) => Math.round(n).toLocaleString('es-ES');
+const fmtM = (n) => tNum(Math.round(n));
 
 function injectStyle() {
   if (document.getElementById('ini-style')) return;
@@ -63,11 +63,12 @@ function swimmerSvg() {
 }
 
 function weeklyChart(porDia, minD, maxD) {
+  const DIAS = dias();
   const W = 560, H = 240, L = 50, R = 12, T = 14, B = 28;
   const top = Math.max(1000, ...porDia, maxD) * 1.15;
   const x = (i) => L + (i * (W - L - R)) / 6;
   const y = (v) => T + (H - T - B) * (1 - v / top);
-  const root = svg('svg', { viewBox: `0 0 ${W} ${H}`, role: 'img', 'aria-label': 'Control de cargas semanal' });
+  const root = svg('svg', { viewBox: `0 0 ${W} ${H}`, role: 'img', 'aria-label': t('inicio.grafico-aria') });
   for (let k = 0; k <= 4; k++) {
     const v = (top * k) / 4;
     root.append(
@@ -92,7 +93,7 @@ function weeklyChart(porDia, minD, maxD) {
 function donut(parts) {
   const total = parts.reduce((a, p) => a + p.v, 0);
   const R = 50, C = 2 * Math.PI * R;
-  const root = svg('svg', { viewBox: '0 0 140 140', role: 'img', 'aria-label': 'Asistencia hoy' });
+  const root = svg('svg', { viewBox: '0 0 140 140', role: 'img', 'aria-label': t('inicio.asistencia-hoy') });
   root.append(svg('circle', { cx: 70, cy: 70, r: R, fill: 'none', stroke: '#eee', 'stroke-width': 20 }));
   let off = 0;
   if (total > 0) {
@@ -115,8 +116,8 @@ export async function render(container, params, ctx) {
   const now = new Date();
   const hoy = iso(now);
   const rol = auth.role ? auth.role() : 'admin';
-  const rolTxt = rol.charAt(0).toUpperCase() + rol.slice(1);
-  const fechaLarga = now.toLocaleDateString('es-ES', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
+  const rolTxt = tRol(rol) || rol;
+  const fechaLarga = tDate(now, 'long');
 
   // Semana actual (lunes a domingo)
   const lun = new Date(now); lun.setHours(0, 0, 0, 0);
@@ -133,55 +134,54 @@ export async function render(container, params, ctx) {
 
   // Banner
   const banner = h('div', { class: 'ini-banner' },
-    h('div', {}, h('h1', {}, `¡Bienvenido, ${rolTxt}!`), h('p', {}, fechaLarga)));
+    h('div', {}, h('h1', {}, t('inicio.bienvenida', { rol: rolTxt })), h('p', {}, fechaLarga)));
   banner.append(swimmerSvg());
 
   // Acceso rápido
-  const atajos = [['nadadores', 'Nadadores', '#/nadadores'], ['asistencia', 'Asistencia', '#/asistencia'], ['cargas', 'Cargas', '#/cargas'], ['marcas', 'Marcas', '#/marcas']];
-  const quick = h('div', { class: 'card ini-card' }, h('h3', {}, 'Acceso rápido'),
-    h('div', { class: 'ini-quick' }, ...atajos.map(([ic, t, href]) => h('a', { href }, h('span', { class: 'ini-ico' }, icon(ic, { size: 24 })), t))));
+  const atajos = [['nadadores', t('nav.nadadores'), '#/nadadores'], ['asistencia', t('nav.asistencia'), '#/asistencia'], ['cargas', t('nav.cargas'), '#/cargas'], ['marcas', t('nav.marcas'), '#/marcas']];
+  const quick = h('div', { class: 'card ini-card' }, h('h3', {}, t('inicio.acceso-rapido')),
+    h('div', { class: 'ini-quick' }, ...atajos.map(([ic, txt, href]) => h('a', { href }, h('span', { class: 'ini-ico' }, icon(ic, { size: 24 })), txt))));
 
   // Gráfico
-  const chart = h('div', { class: 'card ini-card ini-chart ini-wide' }, h('h3', {}, 'Control de cargas semanal del club'));
+  const chart = h('div', { class: 'card ini-card ini-chart ini-wide' }, h('h3', {}, t('inicio.grafico-titulo')));
   chart.append(weeklyChart(porDia, minTot / 7, maxTot / 7));
   chart.append(h('div', { class: 'ini-legend' },
-    h('span', {}, h('i', { style: 'background:#1a73e8' }), 'Realizado (m)'),
-    h('span', {}, h('i', { style: 'background:#e37400' }), 'Objetivo mínimo (diario)'),
-    h('span', {}, h('i', { style: 'background:#d93025' }), 'Objetivo máximo (diario)')));
+    h('span', {}, h('i', { style: 'background:#1a73e8' }), t('inicio.leyenda-real')),
+    h('span', {}, h('i', { style: 'background:#e37400' }), t('inicio.leyenda-min')),
+    h('span', {}, h('i', { style: 'background:#d93025' }), t('inicio.leyenda-max'))));
 
   // Alertas de cargas
-  const alertas = h('div', { class: 'card ini-card' }, h('h3', {}, 'Alertas de cargas'));
+  const alertas = h('div', { class: 'card ini-card' }, h('h3', {}, t('inicio.alertas')));
   let nAlert = 0;
   for (const o of objetivos) {
     const real = cargas.filter((c) => c.tipo === o.tipo).reduce((a, c) => a + num(c.metros), 0);
     const mn = num(o.minSemanalM) * nNad, mx = num(o.maxSemanalM) * nNad;
     let cls = '', txt = '';
-    if (mx && real > mx) { cls = 'ini-up'; txt = `Por encima (+${fmtM(real - mx)} m)`; }
-    else if (mn && real < mn) { cls = 'ini-down'; txt = `Por debajo (−${fmtM(mn - real)} m)`; }
-    if (txt) { nAlert++; alertas.append(h('div', { class: 'ini-alert' }, h('span', {}, `${o.tipo}: ${fmtM(real)} m`), h('span', { class: `badge ${cls}` }, txt))); }
+    if (mx && real > mx) { cls = 'ini-up'; txt = t('inicio.por-encima', { m: fmtM(real - mx) }); }
+    else if (mn && real < mn) { cls = 'ini-down'; txt = t('inicio.por-debajo', { m: fmtM(mn - real) }); }
+    if (txt) { nAlert++; alertas.append(h('div', { class: 'ini-alert' }, h('span', {}, `${tTipo(o.tipo)}: ${fmtM(real)} m`), h('span', { class: `badge ${cls}` }, txt))); }
   }
-  if (!objetivos.length) alertas.append(h('p', { class: 'ini-empty' }, 'Define objetivos de carga para ver alertas.'));
-  else if (!nAlert) alertas.append(h('p', { class: 'ini-ok' }, 'Todas las cargas están dentro del objetivo.'));
+  if (!objetivos.length) alertas.append(h('p', { class: 'ini-empty' }, t('inicio.sin-objetivos')));
+  else if (!nAlert) alertas.append(h('p', { class: 'ini-ok' }, t('inicio.todo-ok')));
 
   // Próxima sesión
   const grupos = store.list('Grupos');
-  const grupoNombre = (id) => (grupos.find((g) => g.id === id) || {}).nombre || 'Todos';
+  const grupoNombre = (id) => (grupos.find((g) => g.id === id) || {}).nombre || t('inicio.todos');
   const entrenos = store.list('Entrenamientos');
   const prox = entrenos
     .filter((e) => String(e.fecha).slice(0, 10) >= hoy && e.estado !== 'realizado')
     .sort((a, b) => (String(a.fecha) + String(a.hora)).localeCompare(String(b.fecha) + String(b.hora)))[0];
-  const sesion = h('div', { class: 'card ini-card ini-sess' }, h('h3', {}, 'Próxima sesión'));
+  const sesion = h('div', { class: 'card ini-card ini-sess' }, h('h3', {}, t('inicio.proxima-sesion')));
   if (prox) {
-    const d = new Date(String(prox.fecha).slice(0, 10) + 'T00:00');
-    const vol = prox.volumenMin || prox.volumenMax ? `${fmtM(num(prox.volumenMin))} – ${fmtM(num(prox.volumenMax))} m` : '—';
+        const vol = prox.volumenMin || prox.volumenMax ? `${fmtM(num(prox.volumenMin))} – ${fmtM(num(prox.volumenMax))} m` : '—';
     sesion.append(h('dl', {},
-      h('dt', {}, 'Día'), h('dd', {}, d.toLocaleDateString('es-ES', { weekday: 'long', day: 'numeric', month: 'long' })),
-      h('dt', {}, 'Hora'), h('dd', {}, prox.hora || '—'),
-      h('dt', {}, 'Grupo'), h('dd', {}, grupoNombre(prox.grupoId)),
-      h('dt', {}, 'Piscina'), h('dd', {}, prox.piscina ? `${prox.piscina} m` : '—'),
-      h('dt', {}, 'Volumen objetivo'), h('dd', {}, vol),
-      h('dt', {}, 'Enfoque'), h('dd', {}, prox.enfoque || prox.titulo || '—')));
-  } else sesion.append(h('p', { class: 'ini-empty' }, 'No hay sesiones planificadas.'));
+      h('dt', {}, t('inicio.dia')), h('dd', {}, tDate(String(prox.fecha).slice(0, 10), 'long')),
+      h('dt', {}, t('inicio.hora')), h('dd', {}, prox.hora || '—'),
+      h('dt', {}, t('inicio.grupo')), h('dd', {}, grupoNombre(prox.grupoId)),
+      h('dt', {}, t('inicio.piscina')), h('dd', {}, prox.piscina ? `${prox.piscina} m` : '—'),
+      h('dt', {}, t('inicio.volumen')), h('dd', {}, vol),
+      h('dt', {}, t('inicio.enfoque')), h('dd', {}, prox.enfoque || prox.titulo || '—')));
+  } else sesion.append(h('p', { class: 'ini-empty' }, t('inicio.sin-sesiones')));
 
   // Asistencia hoy
   const sesHoy = entrenos.filter((e) => String(e.fecha).slice(0, 10) === hoy);
@@ -194,22 +194,22 @@ export async function render(container, params, ctx) {
     ? sesHoy.reduce((a, e) => a + store.list('Nadadores').filter((n) => String(n.activo) !== 'false' && (!e.grupoId || n.grupoId === e.grupoId)).length, 0)
     : 0;
   const sinConf = Math.max(0, esperados - presentes - faltan);
-  const parts = [{ n: 'Asistieron', v: presentes, color: '#34a853' }, { n: 'Faltaron', v: faltan, color: '#d93025' }, { n: 'Sin confirmar', v: sinConf, color: '#bdc1c6' }];
-  const asisCard = h('div', { class: 'card ini-card' }, h('h3', {}, 'Asistencia hoy'));
+  const parts = [{ n: t('inicio.asistieron'), v: presentes, color: '#34a853' }, { n: t('inicio.faltaron'), v: faltan, color: '#d93025' }, { n: t('inicio.sin-confirmar'), v: sinConf, color: '#bdc1c6' }];
+  const asisCard = h('div', { class: 'card ini-card' }, h('h3', {}, t('inicio.asistencia-hoy')));
   if (sesHoy.length) {
     const wrap = h('div', { class: 'ini-donut' });
     wrap.append(donut(parts), h('ul', {}, ...parts.map((p) => h('li', {}, h('i', { style: `background:${p.color}` }), `${p.n}: ${p.v}`))));
     asisCard.append(wrap);
-  } else asisCard.append(h('p', { class: 'ini-empty' }, 'Hoy no hay sesiones.'));
+  } else asisCard.append(h('p', { class: 'ini-empty' }, t('inicio.hoy-sin-sesiones')));
 
   // Comunicaciones recientes
   const coms = store.list('Comunicaciones').sort((a, b) => String(b.fecha).localeCompare(String(a.fecha))).slice(0, 4);
-  const comCard = h('div', { class: 'card ini-card' }, h('h3', {}, 'Comunicaciones recientes'));
+  const comCard = h('div', { class: 'card ini-card' }, h('h3', {}, t('inicio.comunicaciones')));
   if (coms.length) for (const c of coms) {
-    comCard.append(h('div', { class: 'ini-com' }, h('strong', {}, c.titulo || '(sin título)'), h('br'),
-      h('small', {}, `${String(c.fecha).slice(0, 10)} · ${c.grupoId ? grupoNombre(c.grupoId) : 'Todos'}`)));
-  } else comCard.append(h('p', { class: 'ini-empty' }, 'Sin comunicaciones.'));
-  comCard.append(h('a', { href: '#/comunicaciones', class: 'btn' }, 'Ver todas'));
+    comCard.append(h('div', { class: 'ini-com' }, h('strong', {}, c.titulo || t('inicio.sin-titulo')), h('br'),
+      h('small', {}, `${tDate(String(c.fecha).slice(0, 10))} · ${c.grupoId ? grupoNombre(c.grupoId) : t('inicio.todos')}`)));
+  } else comCard.append(h('p', { class: 'ini-empty' }, t('inicio.sin-comunicaciones')));
+  comCard.append(h('a', { href: '#/comunicaciones', class: 'btn' }, t('inicio.ver-todas')));
 
   container.append(banner, h('div', { class: 'grid ini-grid' }, quick, alertas, chart, sesion, asisCard, comCard));
 }

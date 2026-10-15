@@ -26,6 +26,8 @@ export async function fresh({ demo = true, xlsx = false } = {}) {
   document.body.replaceChildren();
   document.head.replaceChildren();
   localStorage.clear();
+  localStorage.setItem('cnl:lang', 'es');
+  (await importApp('js/i18n.js')).setLang('es');
   location.hash = '';
   await ctx.store.init('Club Test');
   ctx.auth.setDemoRole(null);

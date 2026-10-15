@@ -310,6 +310,19 @@ export const store = {
     emit({ type: 'init' });
   },
 
+  // Añade (sin tocar el resto) conflictos de ejemplo a la planificación de piscina: varios errores y avisos.
+  seedPlanificacionConflictos() {
+    const pis = db.Piscinas[0];
+    if (!pis) return 0;
+    const g = db.Grupos;
+    const filas = [
+      { id: 'pcx1', piscinaId: pis.id, dia: 1, fecha: '', horaInicio: '17:30', horaFin: '18:30', calleDesde: 2, calleHasta: 3, grupoId: (g[1] || g[0]).id, entrenadorId: (g[1] || g[0]).entrenador, notas: 'Demo: calle solapada con Promoción' },
+      { id: 'pcx2', piscinaId: pis.id, dia: 4, fecha: '', horaInicio: '18:30', horaFin: '19:30', calleDesde: 5, calleHasta: 5, grupoId: (g[2] || g[0]).id, entrenadorId: (g[1] || g[0]).entrenador, notas: 'Demo: mismo entrenador a la vez' },
+    ];
+    filas.forEach((f) => store.upsert('AsignacionesCalle', f));
+    return filas.length;
+  },
+
   // Reemplaza los datos por una demo del Club Natación Lugones.
   seedDemo() {
     const d = buildDemo();
@@ -450,6 +463,22 @@ function buildDemo() {
     const ent = i % 3 !== 0;
     out.Banador.push({ id: 'b' + (i + 1), nadadorId: n.id, talla: tallas[n.categoria], estado: ent ? 'entregado' : 'pendiente', fecha: ent ? ymd(addDays(today, -30 - i)) : '', notas: '' });
   });
+
+  // Planificación de piscina: una piscina de 6 calles y asignaciones recurrentes coherentes con los grupos.
+  // Sin conflictos de error (sólo un aviso intencionado: sesión de refuerzo sin entrenador).
+  const horario = JSON.stringify({ 1: { abre: '07:00', cierra: '22:00' }, 2: { abre: '07:00', cierra: '22:00' }, 3: { abre: '07:00', cierra: '22:00' }, 4: { abre: '07:00', cierra: '22:00' }, 5: { abre: '07:00', cierra: '22:00' }, 6: { abre: '09:00', cierra: '22:00' }, 7: null });
+  out.Piscinas.push({ id: 'p1', nombre: 'Piscina Lugones', longitudM: 25, numCalles: 6, intervaloMin: 30, maxPorCalle: 8, horario });
+  const calles = { g1: [1, 2], g2: [3, 4], g3: [1, 3], g4: [1, 4] };
+  let np = 0;
+  grupos.forEach((g) => g.dias.forEach((dow) => {
+    const ini = Number(g.hora.slice(0, 2)) * 60 + Number(g.hora.slice(3));
+    const hm = (m) => pad(Math.floor(m / 60)) + ':' + pad(m % 60);
+    out.AsignacionesCalle.push({
+      id: 'ac' + (++np), piscinaId: 'p1', dia: dow, fecha: '', horaInicio: g.hora, horaFin: hm(ini + g.dur),
+      calleDesde: calles[g.id][0], calleHasta: calles[g.id][1], grupoId: g.id, entrenadorId: g.entrenador, notas: '',
+    });
+  }));
+  out.AsignacionesCalle.push({ id: 'ac' + (++np), piscinaId: 'p1', dia: 6, fecha: '', horaInicio: '10:00', horaFin: '11:00', calleDesde: 5, calleHasta: 6, grupoId: 'g1', entrenadorId: '', notas: 'Refuerzo (falta asignar entrenador)' });
 
   // Comunicaciones
   out.Comunicaciones.push(

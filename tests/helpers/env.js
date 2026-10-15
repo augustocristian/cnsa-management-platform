@@ -21,6 +21,7 @@ export function setupEnv({ loadXlsx = false, hash = '' } = {}) {
   define('window', w);
   define('document', w.document);
   define('localStorage', w.localStorage);
+  try { w.localStorage.setItem('cnl:lang', 'es'); } catch (e) { /* ignorar */ }
   define('sessionStorage', w.sessionStorage);
   define('location', w.location);
   define('navigator', w.navigator);

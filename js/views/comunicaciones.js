@@ -1,4 +1,5 @@
 // Vista Comunicaciones: publicar avisos (todos o por grupo) y listado.
+import { t, tDate } from '../i18n.js';
 function H(tag, attrs, ...kids) {
   const el = document.createElement(tag);
   for (const [k, v] of Object.entries(attrs || {})) {
@@ -50,18 +51,18 @@ export async function render(container, params, ctx) {
   function publish(form) {
     const f = new FormData(form);
     const titulo = (f.get('titulo') || '').trim(), texto = (f.get('texto') || '').trim();
-    if (!titulo || !texto) { toast('Escribe título y texto'); return; }
+    if (!titulo || !texto) { toast(t('comu.faltaTexto')); return; }
     store.upsert('Comunicaciones', {
       fecha: iso(new Date()), titulo, texto, grupoId: f.get('grupoId') || '',
-      autor: (auth.user && (auth.user.name || auth.user.email)) || 'Entrenador'
+      autor: (auth.user && (auth.user.name || auth.user.email)) || t('comu.autorDefecto')
     });
-    toast('Aviso publicado');
+    toast(t('comu.publicado'));
     draw();
   }
 
   function draw() {
     const grupos = store.list('Grupos');
-    const gName = (id) => { const g = store.get('Grupos', id); return g ? g.nombre : 'Grupo'; };
+    const gName = (id) => { const g = store.get('Grupos', id); return g ? g.nombre : t('comu.grupo'); };
     let items = store.list('Comunicaciones');
     if (miGrupo !== null) items = items.filter((c) => !c.grupoId || c.grupoId === miGrupo);
     else if (state.grupo === '__todos') items = items.filter((c) => !c.grupoId);
@@ -69,32 +70,32 @@ export async function render(container, params, ctx) {
     items = items.slice().sort((a, b) => (a.fecha < b.fecha ? 1 : a.fecha > b.fecha ? -1 : 0));
 
     const form = canPost && H('form', { class: 'cm-form', onsubmit: (e) => { e.preventDefault(); publish(e.target); } },
-      H('label', {}, 'Título', H('input', { type: 'text', name: 'titulo', required: true, maxlength: 120 })),
-      H('label', {}, 'Destinatarios', H('select', { name: 'grupoId' }, H('option', { value: '' }, 'Todo el club'),
+      H('label', {}, t('comu.campoTitulo'), H('input', { type: 'text', name: 'titulo', required: true, maxlength: 120 })),
+      H('label', {}, t('comu.destinatarios'), H('select', { name: 'grupoId' }, H('option', { value: '' }, t('comu.todoClub')),
         grupos.map((g) => H('option', { value: g.id }, g.nombre)))),
-      H('label', {}, 'Mensaje', H('textarea', { name: 'texto', required: true })),
-      H('div', {}, H('button', { class: 'btn', type: 'submit' }, 'Publicar aviso')));
+      H('label', {}, t('comu.mensaje'), H('textarea', { name: 'texto', required: true })),
+      H('div', {}, H('button', { class: 'btn', type: 'submit' }, t('comu.publicar'))));
 
     const filtro = miGrupo === null && H('div', { class: 'cm-bar' },
       H('select', { onchange: (e) => { state.grupo = e.target.value; draw(); } },
-        H('option', { value: '' }, 'Todos los avisos'), H('option', { value: '__todos', selected: state.grupo === '__todos' }, 'Sólo generales'),
+        H('option', { value: '' }, t('comu.todosAvisos')), H('option', { value: '__todos', selected: state.grupo === '__todos' }, t('comu.soloGenerales')),
         grupos.map((g) => H('option', { value: g.id, selected: g.id === state.grupo }, g.nombre))));
 
     const list = items.map((c) => H('div', { class: 'cm-item' },
       H('h4', {}, c.titulo),
       H('div', { class: 'cm-meta' },
-        H('span', {}, c.fecha), H('span', {}, c.autor ? `· ${c.autor}` : ''),
-        H('span', { class: 'badge' }, c.grupoId ? gName(c.grupoId) : 'Todos'),
+        H('span', {}, tDate(c.fecha)), H('span', {}, c.autor ? `· ${c.autor}` : ''),
+        H('span', { class: 'badge' }, c.grupoId ? gName(c.grupoId) : t('comu.todos')),
         canPost ? H('button', { class: 'btn', type: 'button', onclick: async () => {
-          const ok = ui && ui.confirmDialog ? await ui.confirmDialog('¿Eliminar este aviso?') : true;
+          const ok = ui && ui.confirmDialog ? await ui.confirmDialog(t('comu.confirmEliminar')) : true;
           if (ok) { store.remove('Comunicaciones', c.id); draw(); }
-        } }, 'Eliminar') : null),
+        } }, t('comu.eliminar')) : null),
       H('p', { class: 'cm-text' }, c.texto)));
 
     container.replaceChildren(
-      H('h2', {}, 'Comunicaciones'),
-      form ? H('div', { class: 'card cm-card' }, H('h3', {}, 'Nuevo aviso'), form) : null,
-      H('div', { class: 'card cm-card' }, H('h3', {}, 'Avisos'), filtro, list.length ? list : H('p', {}, 'No hay avisos.')));
+      H('h2', {}, t('comu.titulo')),
+      form ? H('div', { class: 'card cm-card' }, H('h3', {}, t('comu.nuevo')), form) : null,
+      H('div', { class: 'card cm-card' }, H('h3', {}, t('comu.avisos')), filtro, list.length ? list : H('p', {}, t('comu.vacio'))));
   }
 
   draw();

@@ -73,3 +73,28 @@ test('tDate por idioma', () => {
   assert.match(tDate('2026-10-15', 'long'), /Thursday.*15.*October.*2026/);
   setLang('es', { persist: false });
 });
+
+test('vistas-a: paridad de claves y variables en es/en/it', async () => {
+  const [a, b, c] = await Promise.all(['es', 'en', 'it'].map((l) => import(`../../js/locales/vistas-a.${l}.js`).then((m) => m.default)));
+  for (const [name, d] of [['en', b], ['it', c]]) {
+    assert.deepEqual(Object.keys(a).filter((k) => !(k in d)), [], 'faltan en ' + name);
+    assert.deepEqual(Object.keys(d).filter((k) => !(k in a)), [], 'huérfanas en ' + name);
+    for (const k of Object.keys(a)) assert.equal(vars(d[k]), vars(a[k]), k);
+  }
+  setLang('en', { persist: false });
+  assert.equal(t('grupos.titulo'), 'Groups');
+  setLang('es', { persist: false });
+});
+
+test('vistas-b (entrenamientos, asistencia, cargas, marcas): paridad es/en/it', async () => {
+  const [bes, ben, bit] = (await Promise.all(['es', 'en', 'it'].map((l) => import(`../../js/locales/vistas-b.${l}.js`)))).map((m) => m.default);
+  for (const [name, d] of [['en', ben], ['it', bit]]) {
+    assert.deepEqual(Object.keys(bes).filter((k) => !(k in d)), [], 'faltan en ' + name);
+    assert.deepEqual(Object.keys(d).filter((k) => !(k in bes)), [], 'huérfanas en ' + name);
+    for (const k of Object.keys(bes)) assert.equal(vars(d[k]), vars(bes[k]), k);
+  }
+  for (const k of Object.keys(bes)) assert.match(k, /^(entre|asist|cargas|marcas)\./);
+  setLang('en', { persist: false });
+  assert.equal(t('marcas.estilo.libre'), 'Freestyle');
+  setLang('es', { persist: false });
+});

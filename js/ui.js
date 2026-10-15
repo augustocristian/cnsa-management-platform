@@ -1,5 +1,6 @@
 // Helpers de UI. Nunca innerHTML con datos: todo por DOM/textContent.
 import { icon } from './icons.js';
+import { t, tDate } from './i18n.js';
 
 const SVG_TAGS = ['svg', 'path', 'circle', 'rect', 'line', 'polyline', 'polygon', 'g', 'text', 'ellipse'];
 
@@ -46,7 +47,7 @@ export function modal({ title, body, actions, onClose } = {}) {
     onClose?.();
   };
   const onKey = (e) => { if (e.key === 'Escape') close(); };
-  const acts = (actions || [{ label: 'Cerrar' }]).map((a) =>
+  const acts = (actions || [{ label: t('common.cerrar') }]).map((a) =>
     h('button', {
       type: 'button',
       class: 'btn' + (a.primary ? ' btn-primary' : '') + (a.danger ? ' btn-danger' : ''),
@@ -58,7 +59,7 @@ export function modal({ title, body, actions, onClose } = {}) {
   const overlay = h('div', { class: 'modal-overlay', onmousedown: (e) => { if (e.target === overlay) close(); } },
     h('div', { class: 'modal', role: 'dialog', 'aria-modal': 'true' },
       h('div', { class: 'modal-head' }, h('h3', null, title || ''),
-        h('button', { type: 'button', class: 'icon-btn', 'aria-label': 'Cerrar', onclick: close }, icon('cerrar', { size: 18 }))),
+        h('button', { type: 'button', class: 'icon-btn', 'aria-label': t('common.cerrar'), onclick: close }, icon('cerrar', { size: 18 }))),
       h('div', { class: 'modal-body' }, body),
       h('div', { class: 'modal-actions' }, acts)));
   document.body.appendChild(overlay);
@@ -68,16 +69,16 @@ export function modal({ title, body, actions, onClose } = {}) {
 }
 
 // -> Promise<boolean>
-export function confirmDialog(msg, { okLabel = 'Aceptar', danger = false } = {}) {
+export function confirmDialog(msg, { okLabel, danger = false } = {}) {
   return new Promise((resolve) => {
     let result = false;
     modal({
-      title: 'Confirmar',
+      title: t('common.confirmar'),
       body: h('p', null, msg),
       onClose: () => resolve(result),
       actions: [
-        { label: 'Cancelar' },
-        { label: okLabel, primary: !danger, danger, onClick: () => { result = true; } }
+        { label: t('common.cancelar') },
+        { label: okLabel || t('common.aceptar'), primary: !danger, danger, onClick: () => { result = true; } }
       ]
     });
   });
@@ -122,9 +123,6 @@ export function formFields(def, values = {}) {
   return { el, values: read, validate: () => el.reportValidity() };
 }
 
-const MESES = ['enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio', 'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre'];
-const DIAS = ['domingo', 'lunes', 'martes', 'miércoles', 'jueves', 'viernes', 'sábado'];
-
 function toDate(d) {
   if (d instanceof Date) return d;
   if (typeof d === 'string' && /^\d{4}-\d{2}-\d{2}/.test(d)) {
@@ -134,14 +132,8 @@ function toDate(d) {
   return new Date(d);
 }
 
-// fmtDate(d) -> 15/10/2026 ; fmtDate(d,'long') -> "jueves, 15 de octubre de 2026"
-export function fmtDate(d, mode) {
-  if (d === '' || d == null) return '';
-  const x = toDate(d);
-  if (isNaN(x)) return String(d);
-  if (mode === 'long') return `${DIAS[x.getDay()]}, ${x.getDate()} de ${MESES[x.getMonth()]} de ${x.getFullYear()}`;
-  return `${String(x.getDate()).padStart(2, '0')}/${String(x.getMonth() + 1).padStart(2, '0')}/${x.getFullYear()}`;
-}
+// fmtDate(d) -> según idioma (tDate); 'long' -> con día de la semana
+export function fmtDate(d, mode) { return tDate(d, mode); }
 
 // Date|string -> "YYYY-MM-DD" (hora local)
 export function isoDate(d = new Date()) {

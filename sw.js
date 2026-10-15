@@ -1,15 +1,23 @@
 // Service worker: cache-first del shell + vendor. Subir VERSION al cambiar ficheros.
-const VERSION = 'v2';
+const VERSION = 'v5';
 const CACHE = 'cnl-shell-' + VERSION;
 const SHELL = [
   './', './index.html', './manifest.webmanifest',
   './css/app.css',
   './js/app.js', './js/ui.js', './js/icons.js','./js/router.js', './js/config.js', './js/schema.js',
   './js/store.js', './js/auth.js', './js/drive.js', './js/sheetdata.js',
+  './js/i18n.js', './js/locales/es.js', './js/locales/en.js', './js/locales/it.js', './js/views/tutorial.js',
   './js/views/inicio.js', './js/views/nadadores.js', './js/views/grupos.js',
   './js/views/entrenamientos.js', './js/views/asistencia.js', './js/views/cargas.js',
   './js/views/marcas.js', './js/views/banador.js', './js/views/comunicaciones.js',
-  './js/views/club.js', './js/views/mi-espacio.js',
+  './js/views/club.js', './js/views/mi-espacio.js', './js/views/planificacion.js',
+  './js/domain/planificacion.js', './js/application/planificacionService.js',
+  './js/views/calendario.js', './js/domain/calendario.js', './js/application/calendarioService.js', './js/infrastructure/googleCalendar.js',
+  './js/locales/calendario.es.js', './js/locales/calendario.en.js', './js/locales/calendario.it.js',
+  './js/locales/planificacion.es.js', './js/locales/planificacion.en.js', './js/locales/planificacion.it.js',
+  './js/locales/vistas-a.es.js', './js/locales/vistas-a.en.js', './js/locales/vistas-a.it.js',
+  './js/locales/vistas-b.es.js', './js/locales/vistas-b.en.js', './js/locales/vistas-b.it.js',
+  './js/locales/vistas-c.es.js', './js/locales/vistas-c.en.js', './js/locales/vistas-c.it.js',
   './vendor/xlsx.full.min.js',
   './icons/icon.svg', './icons/icon-192.png', './icons/icon-512.png'
 ];

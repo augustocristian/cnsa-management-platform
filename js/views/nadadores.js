@@ -1,6 +1,7 @@
 // Vista Nadadores: listado, alta/edición en modal y ficha individual (#/nadadores/<id>).
 import { CATEGORIAS } from '../schema.js';
 import { icon } from '../icons.js';
+import { t, tDate, tNum, tCat, tEstado, tTipo } from '../i18n.js';
 
 const P = 'nad-'; // prefijo de clases propias
 
@@ -45,11 +46,8 @@ function fmtTiempo(ms, ui) {
   const m = Math.floor(ms / 60000), s = Math.floor((ms % 60000) / 1000), c = Math.floor((ms % 1000) / 10);
   return `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}.${String(c).padStart(2, '0')}`;
 }
-function fmtFecha(f, ui) {
-  if (!f) return '';
-  if (ui && ui.fmtDate) { try { return ui.fmtDate(f); } catch (e) { /* fallback */ } }
-  const d = new Date(f);
-  return isNaN(d) ? String(f) : d.toLocaleDateString('es-ES');
+function fmtFecha(f) {
+  return f ? tDate(f) : '';
 }
 
 function sortNad(a, b) {
@@ -123,7 +121,7 @@ export async function render(container, params, ctx) {
   const canEdit = role === 'admin' || role === 'entrenador';
 
   if (!canEdit) {
-    container.replaceChildren(h('div', { class: 'card' }, 'No tienes permisos para ver esta sección.'));
+    container.replaceChildren(h('div', { class: 'card' }, t('nadadores.sin-permisos')));
     return;
   }
 
@@ -160,33 +158,33 @@ function renderLista(container, ctx, canEdit, refresh) {
         && (!state.grupo || n.grupoId === state.grupo)
         && (!q || norm(nombreCompleto(n) + ' ' + (n.licencia || '')).includes(q)))
       .sort(sortNad);
-    count.textContent = `${rows.length} nadador${rows.length === 1 ? '' : 'es'}`;
+    count.textContent = t(rows.length === 1 ? 'nadadores.contador.uno' : 'nadadores.contador.otros', { n: rows.length });
     tbody.replaceChildren(...(rows.length ? rows.map((n) =>
       h('tr', { class: `${P}row ${isActivo(n) ? '' : P + 'inactivo'}`, onclick: () => { location.hash = `#/nadadores/${n.id}`; } },
         h('td', {}, `${n.apellidos || ''}, ${n.nombre || ''}`),
-        h('td', {}, h('span', { class: 'badge' }, n.categoria || '-')),
+        h('td', {}, h('span', { class: 'badge' }, tCat(n.categoria) || '-')),
         h('td', {}, grupoNombre(n.grupoId) || '-'),
         h('td', {}, edad(n.fechaNacimiento)),
-        h('td', {}, n.licencia || ''))) : [h('tr', {}, h('td', { colspan: 5, class: P + 'muted' }, 'Sin resultados.'))]));
+        h('td', {}, n.licencia || ''))) : [h('tr', {}, h('td', { colspan: 5, class: P + 'muted' }, t('nadadores.sin-resultados')))]));
   };
 
-  const inpQ = h('input', { type: 'search', placeholder: 'Buscar por nombre o licencia…', oninput: (e) => { state.q = e.target.value; paint(); } });
+  const inpQ = h('input', { type: 'search', placeholder: t('nadadores.buscar'), oninput: (e) => { state.q = e.target.value; paint(); } });
   const selCat = h('select', { onchange: (e) => { state.cat = e.target.value; paint(); } },
-    h('option', { value: '' }, 'Todas las categorías'), CATEGORIAS.map((c) => h('option', { value: c }, c)));
+    h('option', { value: '' }, t('nadadores.todas-cat')), CATEGORIAS.map((c) => h('option', { value: c }, tCat(c))));
   const selGrp = h('select', { onchange: (e) => { state.grupo = e.target.value; paint(); } },
-    h('option', { value: '' }, 'Todos los grupos'), grupos.map((g) => h('option', { value: g.id }, g.nombre)));
-  const chk = h('label', { class: P + 'muted' }, h('input', { type: 'checkbox', onchange: (e) => { state.inactivos = e.target.checked; paint(); } }), ' Ver inactivos');
+    h('option', { value: '' }, t('nadadores.todos-grupos')), grupos.map((g) => h('option', { value: g.id }, g.nombre)));
+  const chk = h('label', { class: P + 'muted' }, h('input', { type: 'checkbox', onchange: (e) => { state.inactivos = e.target.checked; paint(); } }), t('nadadores.ver-inactivos'));
 
   container.replaceChildren(
     h('div', { class: P + 'head' },
-      h('h1', {}, 'Nadadores'),
-      canEdit ? h('button', { class: 'btn', onclick: () => editNadador(null, ctx, refresh) }, icon('mas', { size: 16 }), ' Nuevo nadador') : null),
+      h('h1', {}, t('nadadores.titulo')),
+      canEdit ? h('button', { class: 'btn', onclick: () => editNadador(null, ctx, refresh) }, icon('mas', { size: 16 }), ' ' + t('nadadores.nuevo')) : null),
     h('div', { class: 'card' },
       h('div', { class: P + 'filters' }, inpQ, selCat, selGrp, chk),
       count,
       h('div', { class: P + 'tablewrap' },
         h('table', { class: 'table' },
-          h('thead', {}, h('tr', {}, ['Nombre', 'Categoría', 'Grupo', 'Edad', 'Licencia'].map((t) => h('th', {}, t)))),
+          h('thead', {}, h('tr', {}, [t('nadadores.col-nombre'), t('nadadores.col-categoria'), t('nadadores.col-grupo'), t('nadadores.col-edad'), t('nadadores.col-licencia')].map((x) => h('th', {}, x)))),
           tbody))));
   paint();
 }
@@ -203,28 +201,28 @@ function editNadador(n, ctx, done) {
   const sel = (opts, cur) => h('select', {}, opts.map(([v, t]) => h('option', { value: v, selected: v === cur }, t)));
 
   const body = h('div', { class: P + 'form' },
-    field('nombre', 'Nombre *', inp('nombre')),
-    field('apellidos', 'Apellidos *', inp('apellidos')),
-    field('fechaNacimiento', 'Fecha de nacimiento', inp('fechaNacimiento', 'date')),
-    field('sexo', 'Sexo', sel([['F', 'Femenino'], ['M', 'Masculino']], n.sexo)),
-    field('categoria', 'Categoría', sel([['', '—'], ...CATEGORIAS.map((c) => [c, c])], n.categoria || '')),
-    field('grupoId', 'Grupo', sel([['', 'Sin grupo'], ...grupos.map((g) => [g.id, g.nombre])], n.grupoId || '')),
-    field('email', 'Email', inp('email', 'email')),
-    field('telefono', 'Teléfono', inp('telefono', 'tel')),
-    field('tutor', 'Tutor / contacto', inp('tutor'), true),
-    field('licencia', 'Licencia', inp('licencia')),
-    field('activo', 'Estado', sel([['true', 'Activo'], ['false', 'Inactivo']], isActivo(n) ? 'true' : 'false')),
-    field('notas', 'Notas', h('textarea', { rows: 3 }, n.notas || ''), true));
+    field('nombre', t('nadadores.f-nombre'), inp('nombre')),
+    field('apellidos', t('nadadores.f-apellidos'), inp('apellidos')),
+    field('fechaNacimiento', t('nadadores.f-nacimiento'), inp('fechaNacimiento', 'date')),
+    field('sexo', t('nadadores.f-sexo'), sel([['F', t('nadadores.femenino')], ['M', t('nadadores.masculino')]], n.sexo)),
+    field('categoria', t('nadadores.f-categoria'), sel([['', '—'], ...CATEGORIAS.map((c) => [c, tCat(c)])], n.categoria || '')),
+    field('grupoId', t('nadadores.f-grupo'), sel([['', t('nadadores.sin-grupo')], ...grupos.map((g) => [g.id, g.nombre])], n.grupoId || '')),
+    field('email', t('nadadores.f-email'), inp('email', 'email')),
+    field('telefono', t('nadadores.f-telefono'), inp('telefono', 'tel')),
+    field('tutor', t('nadadores.f-tutor'), inp('tutor'), true),
+    field('licencia', t('nadadores.f-licencia'), inp('licencia')),
+    field('activo', t('nadadores.f-estado'), sel([['true', t('nadadores.activo')], ['false', t('nadadores.inactivo')]], isActivo(n) ? 'true' : 'false')),
+    field('notas', t('nadadores.f-notas'), h('textarea', { rows: 3 }, n.notas || ''), true));
 
-  openModal(isNew ? 'Nuevo nadador' : 'Editar nadador', body, [
-    { label: 'Cancelar' },
+  openModal(isNew ? t('nadadores.nuevo') : t('nadadores.editar'), body, [
+    { label: t('common.cancelar') },
     {
-      label: 'Guardar', cls: 'btn-primary', onClick: () => {
+      label: t('common.guardar'), cls: 'btn-primary', onClick: () => {
         const row = { ...n };
         for (const k of Object.keys(f)) row[k] = f[k].value.trim();
-        if (!row.nombre || !row.apellidos) { ui.toast('Nombre y apellidos son obligatorios'); return false; }
+        if (!row.nombre || !row.apellidos) { ui.toast(t('nadadores.obligatorios')); return false; }
         store.upsert('Nadadores', row);
-        ui.toast('Nadador guardado');
+        ui.toast(t('nadadores.guardado'));
         done();
       },
     },
@@ -233,13 +231,13 @@ function editNadador(n, ctx, done) {
 
 async function borrarNadador(n, ctx) {
   const { store, ui } = ctx;
-  const ok = await ui.confirmDialog(`¿Eliminar a ${nombreCompleto(n)} y todos sus registros (asistencia, cargas, marcas)?`);
+  const ok = await ui.confirmDialog(t('nadadores.confirmar-eliminar', { nombre: nombreCompleto(n) }));
   if (!ok) return false;
   for (const sheet of ['Asistencia', 'Cargas', 'Marcas', 'Banador']) {
     store.list(sheet).filter((r) => r.nadadorId === n.id).forEach((r) => store.remove(sheet, r.id));
   }
   store.remove('Nadadores', n.id);
-  ui.toast('Nadador eliminado');
+  ui.toast(t('nadadores.eliminado'));
   return true;
 }
 
@@ -247,26 +245,26 @@ async function borrarNadador(n, ctx) {
 function renderFicha(container, id, ctx, canEdit, refresh) {
   const { store, ui } = ctx;
   const n = store.get('Nadadores', id);
-  const back = h('button', { class: P + 'back', onclick: () => { location.hash = '#/nadadores'; } }, icon('flecha-izq', { size: 16 }), ' Volver al listado');
+  const back = h('button', { class: P + 'back', onclick: () => { location.hash = '#/nadadores'; } }, icon('flecha-izq', { size: 16 }), t('nadadores.volver'));
   if (!n) {
-    container.replaceChildren(back, h('div', { class: 'card' }, 'Nadador no encontrado.'));
+    container.replaceChildren(back, h('div', { class: 'card' }, t('nadadores.no-encontrado')));
     return;
   }
   const grupo = n.grupoId ? store.get('Grupos', n.grupoId) : null;
-  const dato = (t, v) => [h('dt', {}, t), h('dd', {}, v || '-')];
+  const dato = (etq, v) => [h('dt', {}, etq), h('dd', {}, v || '-')];
 
   const datos = h('div', { class: 'card' },
     h('div', { class: P + 'head' },
-      h('h1', {}, nombreCompleto(n), ' ', isActivo(n) ? null : h('span', { class: 'badge' }, 'Inactivo')),
+      h('h1', {}, nombreCompleto(n), ' ', isActivo(n) ? null : h('span', { class: 'badge' }, t('nadadores.inactivo'))),
       canEdit ? h('div', { class: P + 'actions' },
-        h('button', { class: 'btn', onclick: () => editNadador(n, ctx, refresh) }, 'Editar'),
-        h('button', { class: 'btn', onclick: async () => { if (await borrarNadador(n, ctx)) location.hash = '#/nadadores'; } }, 'Eliminar')) : null),
+        h('button', { class: 'btn', onclick: () => editNadador(n, ctx, refresh) }, t('common.editar')),
+        h('button', { class: 'btn', onclick: async () => { if (await borrarNadador(n, ctx)) location.hash = '#/nadadores'; } }, t('common.eliminar'))) : null),
     h('dl', { class: P + 'data' },
-      dato('Categoría', n.categoria), dato('Grupo', grupo && grupo.nombre),
-      dato('Fecha de nacimiento', fmtFecha(n.fechaNacimiento, ui) + (n.fechaNacimiento ? ` (${edad(n.fechaNacimiento)} años)` : '')),
-      dato('Sexo', n.sexo === 'M' ? 'Masculino' : n.sexo === 'F' ? 'Femenino' : n.sexo),
-      dato('Email', n.email), dato('Teléfono', n.telefono), dato('Tutor', n.tutor),
-      dato('Licencia', n.licencia), dato('Notas', n.notas)));
+      dato(t('nadadores.f-categoria'), tCat(n.categoria)), dato(t('nadadores.f-grupo'), grupo && grupo.nombre),
+      dato(t('nadadores.f-nacimiento'), fmtFecha(n.fechaNacimiento) + (n.fechaNacimiento ? ` (${t('nadadores.anios', { n: edad(n.fechaNacimiento) })})` : '')),
+      dato(t('nadadores.f-sexo'), n.sexo === 'M' ? t('nadadores.masculino') : n.sexo === 'F' ? t('nadadores.femenino') : n.sexo),
+      dato(t('nadadores.f-email'), n.email), dato(t('nadadores.f-telefono'), n.telefono), dato(t('nadadores.d-tutor'), n.tutor),
+      dato(t('nadadores.f-licencia'), n.licencia), dato(t('nadadores.d-notas'), n.notas)));
 
   container.replaceChildren(back, datos,
     seccionAsistencia(n, store, ui), seccionCargas(n, store, ui), seccionMarcas(n, store, ui));
@@ -275,8 +273,8 @@ function renderFicha(container, id, ctx, canEdit, refresh) {
 function seccion(titulo, ...contenido) {
   return h('div', { class: `card ${P}section` }, h('h2', {}, titulo), contenido);
 }
-const stat = (v, t) => h('div', { class: P + 'stat' }, h('b', {}, v), h('span', {}, t));
-const vacio = (t) => h('p', { class: P + 'muted' }, t);
+const stat = (v, etq) => h('div', { class: P + 'stat' }, h('b', {}, v), h('span', {}, etq));
+const vacio = (txt) => h('p', { class: P + 'muted' }, txt);
 
 function seccionAsistencia(n, store, ui) {
   const regs = store.list('Asistencia').filter((a) => a.nadadorId === n.id);
@@ -285,51 +283,51 @@ function seccionAsistencia(n, store, ui) {
     .sort((x, y) => String(y.e.fecha || '').localeCompare(String(x.e.fecha || '')));
   const c = (s) => regs.filter((a) => a.estado === s).length;
   const pct = regs.length ? Math.round(((c('presente') + c('justificado')) / regs.length) * 100) : 0;
-  if (!regs.length) return seccion('Asistencia', vacio('Sin registros de asistencia.'));
-  return seccion('Asistencia',
-    h('div', { class: P + 'stats' }, stat(c('presente'), 'Presente'), stat(c('ausente'), 'Ausente'), stat(c('justificado'), 'Justificado'), stat(pct + '%', 'Asistencia')),
+  if (!regs.length) return seccion(t('nadadores.asistencia'), vacio(t('nadadores.sin-asistencia')));
+  return seccion(t('nadadores.asistencia'),
+    h('div', { class: P + 'stats' }, stat(c('presente'), t('nadadores.st-presente')), stat(c('ausente'), t('nadadores.st-ausente')), stat(c('justificado'), t('nadadores.st-justificado')), stat(pct + '%', t('nadadores.st-asistencia'))),
     h('div', { class: P + 'tablewrap' }, h('table', { class: 'table' },
-      h('thead', {}, h('tr', {}, ['Fecha', 'Sesión', 'Estado', 'Nota'].map((t) => h('th', {}, t)))),
+      h('thead', {}, h('tr', {}, [t('nadadores.col-fecha'), t('nadadores.col-sesion'), t('nadadores.col-estado'), t('nadadores.col-nota')].map((x) => h('th', {}, x)))),
       h('tbody', {}, items.slice(0, 15).map((a) => h('tr', {},
-        h('td', {}, fmtFecha(a.e.fecha, ui)), h('td', {}, a.e.titulo || ''),
-        h('td', {}, h('span', { class: 'badge' }, a.estado || '')), h('td', {}, a.nota || '')))))));
+        h('td', {}, fmtFecha(a.e.fecha)), h('td', {}, a.e.titulo || ''),
+        h('td', {}, h('span', { class: 'badge' }, tEstado(a.estado) || '')), h('td', {}, a.nota || '')))))));
 }
 
 function seccionCargas(n, store, ui) {
   const regs = store.list('Cargas').filter((r) => r.nadadorId === n.id)
     .sort((a, b) => String(b.fecha).localeCompare(String(a.fecha)));
-  if (!regs.length) return seccion('Cargas', vacio('Sin cargas registradas.'));
+  if (!regs.length) return seccion(t('nadadores.cargas'), vacio(t('nadadores.sin-cargas')));
   const metros = regs.reduce((s, r) => s + num(r.metros), 0);
   const rpes = regs.filter((r) => num(r.rpe) > 0);
   const rpeMed = rpes.length ? (rpes.reduce((s, r) => s + num(r.rpe), 0) / rpes.length).toFixed(1) : '-';
-  return seccion('Cargas',
-    h('div', { class: P + 'stats' }, stat(regs.length, 'Sesiones'), stat(metros.toLocaleString('es-ES') + ' m', 'Metros totales'), stat(rpeMed, 'RPE medio')),
+  return seccion(t('nadadores.cargas'),
+    h('div', { class: P + 'stats' }, stat(regs.length, t('nadadores.st-sesiones')), stat(tNum(metros) + ' m', t('nadadores.st-metros')), stat(rpeMed === '-' ? rpeMed : tNum(rpeMed, { minimumFractionDigits: 1 }), t('nadadores.st-rpe'))),
     h('div', { class: P + 'tablewrap' }, h('table', { class: 'table' },
-      h('thead', {}, h('tr', {}, ['Fecha', 'Tipo', 'Metros', 'RPE', 'Min', 'Notas'].map((t) => h('th', {}, t)))),
+      h('thead', {}, h('tr', {}, [t('nadadores.col-fecha'), t('nadadores.col-tipo'), t('nadadores.col-metros'), t('nadadores.col-rpe'), t('nadadores.col-min'), t('nadadores.col-notas')].map((x) => h('th', {}, x)))),
       h('tbody', {}, regs.slice(0, 15).map((r) => h('tr', {},
-        h('td', {}, fmtFecha(r.fecha, ui)), h('td', {}, r.tipo || ''), h('td', {}, r.metros || ''),
+        h('td', {}, fmtFecha(r.fecha)), h('td', {}, tTipo(r.tipo) || ''), h('td', {}, r.metros || ''),
         h('td', {}, r.rpe || ''), h('td', {}, r.minutos || ''), h('td', {}, r.notas || '')))))));
 }
 
 function seccionMarcas(n, store, ui) {
   const regs = store.list('Marcas').filter((m) => m.nadadorId === n.id && num(m.tiempoMs) > 0);
-  if (!regs.length) return seccion('Evolución de marcas', vacio('Sin marcas registradas.'));
+  if (!regs.length) return seccion(t('nadadores.evolucion'), vacio(t('nadadores.sin-marcas')));
   const grupos = {};
   regs.forEach((m) => { (grupos[`${m.prueba} (${m.piscina || '?'} m)`] ||= []).push(m); });
   const bloques = Object.keys(grupos).sort().map((k) => {
     const lista = grupos[k].sort((a, b) => String(a.fecha).localeCompare(String(b.fecha)));
     const mejor = Math.min(...lista.map((m) => num(m.tiempoMs)));
     return h('div', { class: P + 'chartbox' },
-      h('h3', {}, k, ' ', h('span', { class: 'badge' }, 'PB ' + fmtTiempo(mejor, ui))),
+      h('h3', {}, k, ' ', h('span', { class: 'badge' }, t('nadadores.pb', { t: fmtTiempo(mejor, ui) }))),
       lista.length > 1 ? grafico(lista) : null,
       h('div', { class: P + 'tablewrap' }, h('table', { class: 'table' },
-        h('thead', {}, h('tr', {}, ['Fecha', 'Tiempo', 'Competición'].map((t) => h('th', {}, t)))),
+        h('thead', {}, h('tr', {}, [t('nadadores.col-fecha'), t('nadadores.col-tiempo'), t('nadadores.col-competicion')].map((x) => h('th', {}, x)))),
         h('tbody', {}, [...lista].reverse().map((m) => h('tr', {},
-          h('td', {}, fmtFecha(m.fecha, ui)),
+          h('td', {}, fmtFecha(m.fecha)),
           h('td', {}, fmtTiempo(m.tiempoMs, ui), num(m.tiempoMs) === mejor ? [' ', icon('trofeo', { size: 14, class: 'icon-inline' })] : ''),
           h('td', {}, m.competicion || '')))))));
   });
-  return seccion('Evolución de marcas', bloques);
+  return seccion(t('nadadores.evolucion'), bloques);
 
   function grafico(lista) {
     const W = 560, H = 160, pad = 28;
@@ -345,8 +343,8 @@ function seccionMarcas(n, store, ui) {
     svg.appendChild(el('polyline', { points: pts.map((p) => p.join(',')).join(' '), fill: 'none', stroke: '#1a73e8', 'stroke-width': 2 }));
     pts.forEach((p, i) => {
       svg.appendChild(el('circle', { cx: p[0], cy: p[1], r: 4, fill: '#1a73e8' }));
-      const t = el('title', {}, `${fmtFecha(lista[i].fecha, ui)} · ${fmtTiempo(ys[i], ui)}`);
-      svg.lastChild.appendChild(t);
+      const tt = el('title', {}, `${fmtFecha(lista[i].fecha)} · ${fmtTiempo(ys[i], ui)}`);
+      svg.lastChild.appendChild(tt);
     });
     svg.appendChild(el('text', { x: 4, y: 12, 'font-size': 10, fill: '#6b7a90' }, fmtTiempo(min, ui)));
     svg.appendChild(el('text', { x: 4, y: H - 4, 'font-size': 10, fill: '#6b7a90' }, fmtTiempo(max, ui)));

@@ -6,6 +6,7 @@ export const ICONS = {
   nadadores: 'M16 11a4 4 0 100-8 4 4 0 000 8zM4 21v-1a6 6 0 0112 0v1M18 14a5 5 0 014 5v2',
   grupos: 'M9 11a3 3 0 100-6 3 3 0 000 6zM17 11a3 3 0 100-6 3 3 0 000 6zM3 20v-1a5 5 0 0110 0v1M14 15a5 5 0 017 4v1',
   calendario: 'M5 5h14a1 1 0 011 1v14a1 1 0 01-1 1H5a1 1 0 01-1-1V6a1 1 0 011-1zM4 10h16M8 3v4M16 3v4',
+  planificacion: 'M4 5h16a1 1 0 011 1v12a1 1 0 01-1 1H4a1 1 0 01-1-1V6a1 1 0 011-1zM3 9.5h18M3 14.5h18M6 12l2-1 2 1 2-1 2 1',
   entrenamientos: 'M12 7v5l3 2M12 21a9 9 0 100-18 9 9 0 000 18z',
   asistencia: 'M9 12l2 2 4-4M5 4h14a1 1 0 011 1v15a1 1 0 01-1 1H5a1 1 0 01-1-1V5a1 1 0 011-1z',
   cargas: 'M3 20h18M6 20V12M11 20V6M16 20v-9M21 20V9',

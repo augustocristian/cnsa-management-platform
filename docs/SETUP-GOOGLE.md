@@ -10,11 +10,12 @@ Sin Client ID la app funciona en **modo local** (datos en el navegador, importar
 1. Menú **APIs y servicios > Biblioteca**.
 2. Busca **Google Sheets API** y pulsa **Habilitar**.
 3. Busca **Google Drive API** y pulsa **Habilitar** (carpeta `cnl` y compartir por email).
+4. *(Sólo si quieres la sincronización con Google Calendar)* Busca **Google Calendar API** y pulsa **Habilitar**.
 
 ## 3. Pantalla de consentimiento OAuth
 1. Menú **APIs y servicios > Pantalla de consentimiento de OAuth** (o **Google Auth Platform**).
 2. Tipo de usuario: **Externo**. Rellena nombre de la app, correo de soporte y correo de contacto.
-3. En **Permisos (scopes)** añade: `openid`, `email`, `profile`, `https://www.googleapis.com/auth/spreadsheets` y `https://www.googleapis.com/auth/drive.file`. Ninguno es un scope restringido; `drive.file` sólo da acceso a los ficheros que crea o abre la propia app.
+3. En **Permisos (scopes)** añade: `openid`, `email`, `profile`, `https://www.googleapis.com/auth/spreadsheets` y `https://www.googleapis.com/auth/drive.file`. Si vas a usar la sincronización con Google Calendar añade también `https://www.googleapis.com/auth/calendar.events` (scope sensible, no restringido; la app lo solicita **sólo cuando pulsas *Sincronizar con Google Calendar***, no en el inicio de sesión). Ninguno es un scope restringido; `drive.file` sólo da acceso a los ficheros que crea o abre la propia app.
 4. Mientras la app esté en modo **Pruebas**, añade en **Usuarios de prueba** los correos que vayan a entrar (admin, entrenadores). Para abrirla a cualquiera, pulsa **Publicar aplicación**.
 
 ## 4. Crear el ID de cliente OAuth
@@ -49,3 +50,9 @@ Sube el cambio a GitHub Pages. El Client ID no es secreto, puede estar en el rep
 - **Error `origin_mismatch`**: el origen no está en la lista del paso 4 (comprueba `https`, sin barra final).
 - **Acceso bloqueado / app no verificada**: añade tu correo como usuario de prueba (paso 3) o publica la app.
 - **El popup no se abre**: el navegador lo bloquea; permite ventanas emergentes para el sitio.
+
+## 7. Sincronizar con Google Calendar (opcional)
+- Requiere la **Google Calendar API** habilitada (paso 2.4) y el scope `calendar.events` en la pantalla de consentimiento. En modo *Pruebas* el usuario debe estar en *Usuarios de prueba*; Google mostrará el aviso de app no verificada hasta que se publique y verifique.
+- Al pulsar **Sincronizar con Google Calendar** en *Calendario*, Google pide el permiso adicional (consentimiento incremental). Los eventos se crean en el **calendario principal** del usuario marcados con una propiedad privada (`cnlId`, `cnlClub`); no se crea un calendario secundario porque `calendar.events` no permite crearlos (haría falta `calendar` o `calendar.app.created`, más amplios).
+- **Dejar de sincronizar** elimina de Google Calendar los eventos creados por la app. El mapa de sincronización se guarda en el navegador (`localStorage`, por club y usuario); si se pierde, la app reencuentra los eventos por su marca y no los duplica.
+- Error *API has not been used / is disabled*: habilita Google Calendar API. Error 403 de permisos: vuelve a pulsar el botón y acepta el acceso a eventos.

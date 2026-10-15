@@ -1,6 +1,7 @@
 // Vista Grupos: CRUD de grupos y nadadores por grupo.
 import { CATEGORIAS } from '../schema.js';
 import { icon } from '../icons.js';
+import { t, tCat } from '../i18n.js';
 
 const P = 'grp-';
 
@@ -68,7 +69,7 @@ export async function render(container, params, ctx) {
   const role = auth.role();
   const canEdit = role === 'admin' || role === 'entrenador';
   if (!canEdit) {
-    container.replaceChildren(h('div', { class: 'card' }, 'No tienes permisos para ver esta sección.'));
+    container.replaceChildren(h('div', { class: 'card' }, t('nadadores.sin-permisos')));
     return;
   }
   const refresh = () => render(container, params, ctx);
@@ -78,17 +79,17 @@ export async function render(container, params, ctx) {
     g = g || {};
     const nombre = h('input', { type: 'text', value: g.nombre || '' });
     const categoria = h('select', {}, h('option', { value: '' }, '—'),
-      CATEGORIAS.map((c) => h('option', { value: c, selected: c === g.categoria }, c)));
+      CATEGORIAS.map((c) => h('option', { value: c, selected: c === g.categoria }, tCat(c))));
     const entrenador = h('input', { type: 'text', value: g.entrenador || '' });
     const body = h('div', { class: P + 'form' },
-      h('label', {}, 'Nombre *', nombre), h('label', {}, 'Categoría', categoria), h('label', {}, 'Entrenador', entrenador));
-    openModal(isNew ? 'Nuevo grupo' : 'Editar grupo', body, [
-      { label: 'Cancelar' },
+      h('label', {}, t('grupos.f-nombre'), nombre), h('label', {}, t('grupos.f-categoria'), categoria), h('label', {}, t('grupos.f-entrenador'), entrenador));
+    openModal(isNew ? t('grupos.nuevo') : t('grupos.editar'), body, [
+      { label: t('common.cancelar') },
       {
-        label: 'Guardar', cls: 'btn-primary', onClick: () => {
-          if (!nombre.value.trim()) { ui.toast('El nombre es obligatorio'); return false; }
+        label: t('common.guardar'), cls: 'btn-primary', onClick: () => {
+          if (!nombre.value.trim()) { ui.toast(t('grupos.nombre-obligatorio')); return false; }
           store.upsert('Grupos', { ...g, nombre: nombre.value.trim(), categoria: categoria.value, entrenador: entrenador.value.trim() });
-          ui.toast('Grupo guardado');
+          ui.toast(t('grupos.guardado'));
           refresh();
         },
       },
@@ -96,11 +97,11 @@ export async function render(container, params, ctx) {
   }
 
   async function borrar(g, miembros) {
-    const ok = await ui.confirmDialog(`¿Eliminar el grupo "${g.nombre}"? Sus ${miembros.length} nadadores quedarán sin grupo.`);
+    const ok = await ui.confirmDialog(t('grupos.confirmar-eliminar', { nombre: g.nombre, n: miembros.length }));
     if (!ok) return;
     miembros.forEach((n) => store.upsert('Nadadores', { ...n, grupoId: '' }));
     store.remove('Grupos', g.id);
-    ui.toast('Grupo eliminado');
+    ui.toast(t('grupos.eliminado'));
     refresh();
   }
 
@@ -112,24 +113,24 @@ export async function render(container, params, ctx) {
     const miembros = nadadores.filter((n) => n.grupoId === g.id)
       .sort((a, b) => String(a.apellidos).localeCompare(String(b.apellidos), 'es'));
     return h('div', { class: `card ${P}card` },
-      h('h2', {}, g.nombre, ' ', g.categoria ? h('span', { class: 'badge' }, g.categoria) : null),
-      h('div', { class: P + 'muted' }, `Entrenador: ${g.entrenador || '-'} · ${miembros.length} nadador${miembros.length === 1 ? '' : 'es'}`),
+      h('h2', {}, g.nombre, ' ', g.categoria ? h('span', { class: 'badge' }, tCat(g.categoria)) : null),
+      h('div', { class: P + 'muted' }, t(miembros.length === 1 ? 'grupos.resumen.uno' : 'grupos.resumen.otros', { entrenador: g.entrenador || '-', n: miembros.length })),
       miembros.length ? h('ul', { class: P + 'list' }, miembros.map((n) =>
-        h('li', {}, h('a', { href: `#/nadadores/${n.id}` }, `${n.apellidos || ''}, ${n.nombre || ''}`)))) : h('p', { class: P + 'muted' }, 'Sin nadadores.'),
+        h('li', {}, h('a', { href: `#/nadadores/${n.id}` }, `${n.apellidos || ''}, ${n.nombre || ''}`)))) : h('p', { class: P + 'muted' }, t('grupos.sin-nadadores')),
       h('div', { class: P + 'actions' },
-        h('button', { class: 'btn', onclick: () => editar(g) }, 'Editar'),
-        h('button', { class: 'btn', onclick: () => borrar(g, store.list('Nadadores').filter((n) => n.grupoId === g.id)) }, 'Eliminar')));
+        h('button', { class: 'btn', onclick: () => editar(g) }, t('common.editar')),
+        h('button', { class: 'btn', onclick: () => borrar(g, store.list('Nadadores').filter((n) => n.grupoId === g.id)) }, t('common.eliminar'))));
   });
 
   const sinGrupo = nadadores.filter((n) => !n.grupoId || !grupos.some((g) => g.id === n.grupoId));
 
   container.replaceChildren(
     h('div', { class: P + 'head' },
-      h('h1', {}, 'Grupos'),
-      h('button', { class: 'btn', onclick: () => editar(null) }, icon('mas', { size: 16 }), ' Nuevo grupo')),
-    grupos.length ? h('div', { class: 'grid' }, tarjetas) : h('div', { class: 'card' }, 'Aún no hay grupos. Crea el primero.'),
+      h('h1', {}, t('grupos.titulo')),
+      h('button', { class: 'btn', onclick: () => editar(null) }, icon('mas', { size: 16 }), ' ' + t('grupos.nuevo'))),
+    grupos.length ? h('div', { class: 'grid' }, tarjetas) : h('div', { class: 'card' }, t('grupos.vacio')),
     sinGrupo.length ? h('div', { class: `card ${P}card`, style: 'margin-top:1rem' },
-      h('h2', {}, 'Sin grupo'),
+      h('h2', {}, t('grupos.sin-grupo')),
       h('ul', { class: P + 'list' }, sinGrupo.map((n) =>
         h('li', {}, h('a', { href: `#/nadadores/${n.id}` }, `${n.apellidos || ''}, ${n.nombre || ''}`)))) ) : null);
 }

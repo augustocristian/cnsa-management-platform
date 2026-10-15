@@ -1,4 +1,5 @@
 // Vista Bañador: entrega de bañador/equipación por nadador (talla, estado, fecha, notas).
+import { t, tEstado, tDate, locale } from '../i18n.js';
 const TALLAS = ['4', '6', '8', '10', '12', '14', 'XS', 'S', 'M', 'L', 'XL', 'XXL'];
 
 function H(tag, attrs, ...kids) {
@@ -45,7 +46,7 @@ export async function render(container, params, ctx) {
     const pendientes = items.filter((i) => !i.b || i.b.estado !== 'entregado').length;
     if (state.soloPendientes) items = items.filter((i) => !i.b || i.b.estado !== 'entregado');
     if (state.q) items = items.filter((i) => nombre(i.n).toLowerCase().includes(state.q.toLowerCase()));
-    items.sort((a, b) => nombre(a.n).localeCompare(nombre(b.n), 'es'));
+    items.sort((a, b) => nombre(a.n).localeCompare(nombre(b.n), locale()));
 
     const save = (n, b, patch) => {
       store.upsert('Banador', { ...(b || { nadadorId: n.id, talla: '', estado: 'pendiente', fecha: '', notas: '' }), ...patch });
@@ -61,30 +62,30 @@ export async function render(container, params, ctx) {
         H('td', {}, nombre(n)),
         H('td', {}, grupo ? grupo.nombre : ''),
         H('td', {}, canEdit
-          ? H('select', { onchange: (e) => save(n, b, { talla: e.target.value }) }, H('option', { value: '' }, '—'), tallas.map((t) => H('option', { value: t, selected: t === talla }, t)))
+          ? H('select', { onchange: (e) => save(n, b, { talla: e.target.value }) }, H('option', { value: '' }, '—'), tallas.map((sz) => H('option', { value: sz, selected: sz === talla }, sz)))
           : talla || '—'),
-        H('td', {}, H('span', { class: `badge ${estado === 'entregado' ? 'bn-ok' : 'bn-pend'}` }, estado === 'entregado' ? 'Entregado' : 'Pendiente')),
-        H('td', {}, b && b.fecha ? b.fecha : ''),
+        H('td', {}, H('span', { class: `badge ${estado === 'entregado' ? 'bn-ok' : 'bn-pend'}` }, tEstado(estado))),
+        H('td', {}, b && b.fecha ? tDate(b.fecha) : ''),
         H('td', {}, canEdit ? H('input', { type: 'text', value: b ? b.notas || '' : '', onchange: (e) => store.upsert('Banador', { ...(b || { nadadorId: n.id, talla: '', estado: 'pendiente', fecha: '' }), notas: e.target.value }) }) : (b && b.notas) || ''),
         canEdit ? H('td', {}, estado === 'entregado'
-          ? H('button', { class: 'btn', type: 'button', onclick: () => save(n, b, { estado: 'pendiente', fecha: '' }) }, 'Marcar pendiente')
+          ? H('button', { class: 'btn', type: 'button', onclick: () => save(n, b, { estado: 'pendiente', fecha: '' }) }, t('banador.marcarPendiente'))
           : H('button', { class: 'btn', type: 'button', onclick: () => {
-            if (!talla) { toast('Indica primero la talla'); return; }
+            if (!talla) { toast(t('banador.indicaTalla')); return; }
             save(n, b, { estado: 'entregado', fecha: iso(new Date()) });
-          } }, 'Marcar entregado')) : null);
+          } }, t('banador.marcarEntregado'))) : null);
     });
 
     container.replaceChildren(
-      H('h2', {}, 'Bañador y equipación'),
+      H('h2', {}, t('banador.titulo')),
       H('div', { class: 'bn-bar' },
-        H('label', {}, H('input', { type: 'checkbox', checked: state.soloPendientes, onchange: (e) => { state.soloPendientes = e.target.checked; draw(); } }), ' Sólo pendientes'),
-        H('input', { type: 'search', placeholder: 'Buscar nadador…', value: state.q, oninput: (e) => { state.q = e.target.value; clearTimeout(draw.t); draw.t = setTimeout(() => { draw(); const i = container.querySelector('input[type=search]'); if (i) { i.focus(); i.setSelectionRange(i.value.length, i.value.length); } }, 250); } }),
-        H('span', { class: 'bn-count' }, `${pendientes} pendiente(s) de ${nads.length}`)),
+        H('label', {}, H('input', { type: 'checkbox', checked: state.soloPendientes, onchange: (e) => { state.soloPendientes = e.target.checked; draw(); } }), t('banador.soloPendientes')),
+        H('input', { type: 'search', placeholder: t('banador.buscar'), value: state.q, oninput: (e) => { state.q = e.target.value; clearTimeout(draw.t); draw.t = setTimeout(() => { draw(); const i = container.querySelector('input[type=search]'); if (i) { i.focus(); i.setSelectionRange(i.value.length, i.value.length); } }, 250); } }),
+        H('span', { class: 'bn-count' }, t('banador.contador', { n: pendientes, total: nads.length }))),
       H('div', { class: 'card bn-table' }, rows.length
         ? H('table', { class: 'table' },
-          H('thead', {}, H('tr', {}, ['Nadador', 'Grupo', 'Talla', 'Estado', 'Fecha', 'Notas', canEdit ? '' : null].map((x) => (x == null ? null : H('th', {}, x))))),
+          H('thead', {}, H('tr', {}, [t('banador.colNadador'), t('banador.colGrupo'), t('banador.colTalla'), t('banador.colEstado'), t('banador.colFecha'), t('banador.colNotas'), canEdit ? '' : null].map((x) => (x == null ? null : H('th', {}, x))))),
           H('tbody', {}, rows))
-        : H('p', {}, 'No hay nadadores que mostrar.')));
+        : H('p', {}, t('banador.vacio'))));
   }
 
   draw();

@@ -11,6 +11,8 @@ export const SHEETS = {
   Comunicaciones: ['id', 'fecha', 'titulo', 'texto', 'grupoId', 'autor'],
   ObjetivosCarga: ['id', 'tipo', 'minSemanalM', 'maxSemanalM'],
   Banador: ['id', 'nadadorId', 'talla', 'estado', 'fecha', 'notas'],
+  Piscinas: ['id', 'nombre', 'longitudM', 'numCalles', 'intervaloMin', 'maxPorCalle', 'horario'], // horario = JSON por día {"1":{"abre":"07:00","cierra":"22:00"},...,"7":null}
+  AsignacionesCalle: ['id', 'piscinaId', 'dia', 'fecha', 'horaInicio', 'horaFin', 'calleDesde', 'calleHasta', 'grupoId', 'entrenadorId', 'notas'], // dia 1=lunes..7=domingo; fecha (opcional) = excepción puntual
 };
 
 // Hojas de entidad (todas salvo Club, que es clave/valor).

@@ -28,6 +28,8 @@ UI en español. Mobile-first.
 | Cargas | id, entrenamientoId, nadadorId, fecha, metros, rpe, minutos, notas |
 | Marcas | id, nadadorId, fecha, prueba, piscina (`25`\|`50`), tiempoMs, competicion, notas |
 | Comunicaciones | id, fecha, titulo, texto, grupoId (vacío = todos), autor |
+| Piscinas | id, nombre, longitudM (`25`\|`50`), numCalles, intervaloMin (`15`\|`30`), maxPorCalle, horario (JSON por día: `{"1":{"abre":"07:00","cierra":"22:00"},...,"7":null}`; 1=lunes, `null`=cerrado) |
+| AsignacionesCalle | id, piscinaId, dia (1-7), fecha (vacía = semanal; con valor = excepción puntual, el día se deriva de la fecha), horaInicio, horaFin (`HH:MM`), calleDesde, calleHasta, grupoId, entrenadorId (nombre del entrenador), notas |
 
 Categorías en orden: Prebenjamín, Benjamín, Alevín, Infantil, Junior, Absoluto, Máster.
 
@@ -45,6 +47,20 @@ Categorías en orden: Prebenjamín, Benjamín, Alevín, Infantil, Junior, Absolu
 - `js/views/<modulo>.js` — `export async function render(container, params, ctx)` donde `ctx = {store, auth, ui}`. Módulos: `inicio`, `nadadores`, `entrenamientos`, `asistencia`, `cargas`, `marcas`, `comunicaciones`, `club` (ajustes/identidad/usuarios), `mi-espacio` (rol nadador).
 - `css/app.css`, `index.html`, `manifest.webmanifest`, `sw.js`, `icons/`.
 - `vendor/xlsx.full.min.js` — SheetJS vendorizado (global `XLSX`), cargado con `<script>` en index.html y cacheado por el SW.
+
+## Calendario (arquitectura en capas)
+- `js/domain/calendario.js` — **puro** (sin DOM, red ni storage): fechas, fuentes de eventos (`FUENTES_EVENTOS`, extensible con `registrarFuente`; hoy sesiones de Entrenamientos y `AsignacionesCalle` expandidas por semana), personalización por rol (`ambitoUsuario`, `filtrarEventos`), colores, generación iCalendar (`generarICS`, `escaparTexto`, `plegarLinea`, `generarVTimezone`), cuerpo de evento de Google (`aEventoGoogle`) y `diffSync`.
+- `js/application/calendarioService.js` — `crearCalendarioService({store, auth, storage, cliente, ahora, etq})`: junta store, rol y dominio; exporta y sincroniza. Todo inyectable.
+- `js/infrastructure/googleCalendar.js` — `crearClienteGoogleCalendar({fetch, getToken, sleep})`: insertar/actualizar/borrar/listarGestionados con reintentos (429, 403 de cuota, 5xx, red; `Retry-After`), renovación de token ante 401 y errores con `code` (`auth|permisos|api-desactivada|limite|no-existe|red|servidor`).
+- `js/views/calendario.js` — sólo presenta (`ctx.cal` permite inyectar servicio/descarga en pruebas).
+- **Zona horaria**: `Club.zonaHoraria` (IANA, por defecto `Europe/Madrid`). El `.ics` usa `DTSTART;TZID=` + `VTIMEZONE` generado con `Intl` (transiciones reales del rango, sin RRULE; sin base de datos tz). Los eventos sin hora son de día completo.
+- **Google**: `auth.tokenForScope(CALENDAR_SCOPE)` (consentimiento incremental, token en memoria; `CALENDAR_SCOPE` fuera de `SCOPES`). Calendario principal + `extendedProperties.private.cnlId/cnlClub`; mapa `cnl:cal-sync:<club>:<email>` en localStorage; sólo se borran los eventos futuros desaparecidos (lo pasado se conserva).
+
+## Planificación de la piscina (arquitectura en capas)
+- `js/domain/planificacion.js` — **puro** (sin DOM, store, fetch ni i18n): normalización, `validarPiscina`, solapes, `detectarConflictos(datos, {huecos})` y `conflictosDe(candidata, datos)` (devuelven `{tipo, severidad: error|aviso|info, asignaciones, params}`; los textos se traducen en la vista con `plan.c.<tipo>`), rejilla (`rangoDia`, `franjas`, `niveles`, `delDia`, `ocupacion`), `ajustarAlReducir` (recorte al bajar el nº de calles) y `sugerirDistribucion` (determinista: grupos por nº de nadadores, primera hora/calles libres sin errores).
+- `js/application/planificacionService.js` — `crearPlanificacionService(repo, {puedeEditar})`: el repositorio (`list/get/upsert/remove`, p. ej. el store) se inyecta. Bloquea guardar con errores, exige `forzar` para avisos, escribe sólo si `puedeEditar()` (si no, lanza `sin-permiso`).
+- `js/views/planificacion.js` — sólo presenta (rejilla calles x franjas, semana completa, formularios, panel de conflictos, sugerencia, impresión por `@media print`). Estilos propios con prefijo `pl-`. Nadador: sólo lectura (su grupo si se puede identificar).
+- Reglas: errores = calle solapada, mismo grupo o entrenador a la vez, calle fuera de rango, fuera de horario, hora inválida, sin grupo; avisos = capacidad por calle excedida, sin entrenador; info = huecos libres. Los datos guardados (hojas `Piscinas`, `AsignacionesCalle`) son neutros/en español.
 
 ## Permisos
 admin: todo. entrenador: todo excepto usuarios/club. nadador: sólo `mi-espacio` (sus datos filtrados por `nadadorId`) + comunicaciones de su grupo.
