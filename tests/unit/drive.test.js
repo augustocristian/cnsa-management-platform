@@ -1,5 +1,5 @@
-// Tests de js/drive.js y js/sheetdata.js con fetch simulado (sin red).
-import { test, beforeEach, after } from 'node:test';
+// Tests de js/drive.js (Drive API v3, sólo scope drive.file) y js/sheetdata.js con fetch simulado (sin red).
+import { test, describe, beforeEach, after } from 'node:test';
 import assert from 'node:assert/strict';
 
 const mem = new Map();
@@ -10,23 +10,28 @@ const memStorage = {
   clear: () => mem.clear(),
 };
 // Otros tests de la misma ejecución pueden definir su propio localStorage/fetch: se instala el mío por test y se restaura.
-const prev = { localStorage: globalThis.localStorage, fetch: globalThis.fetch, ensureToken: null };
+const prev = { localStorage: globalThis.localStorage, fetch: globalThis.fetch };
 
 const { drive } = await import('../../js/drive.js');
 const { auth } = await import('../../js/auth.js');
-const { SHEETS } = await import('../../js/schema.js');
-const { dataToTabs, tabsToData, hashData, mergeData } = await import('../../js/sheetdata.js');
+const { SHEETS, ENTITY_SHEETS } = await import('../../js/schema.js');
+const { dataToDoc, docToData, hashData, mergeData, isEmptyData } = await import('../../js/sheetdata.js');
+const { SCOPES } = await import('../../js/config.js');
 
-const ID = ' 1AbCdEfGhIjKlMnOpQrStUvWxYz0123456789'.trim();
 let calls;
 let handler;
 let tokens;
+const authOriginal = { ensureToken: auth.ensureToken, invalidate: auth.invalidate, user: auth.user };
 
-const json = (obj, status = 200) => ({ ok: status < 400, status, json: async () => obj, text: async () => JSON.stringify(obj) });
+const json = (obj, status = 200) => ({ ok: status < 400, status, json: async () => obj, text: async () => (typeof obj === 'string' ? obj : JSON.stringify(obj)) });
+const texto = (s) => ({ ok: true, status: 200, json: async () => JSON.parse(s), text: async () => s });
 
+// Los hooks van en una suite propia: si fueran de raíz se aplicarían a TODOS los tests del proceso.
+describe('Drive API con fetch simulado', () => {
 beforeEach(() => {
   globalThis.localStorage = memStorage;
   mem.clear();
+  drive.reset();
   calls = [];
   tokens = 0;
   handler = () => json({});
@@ -34,153 +39,222 @@ beforeEach(() => {
   auth.ensureToken = async () => 'tok' + (++tokens);
   auth.invalidate = () => {};
   globalThis.fetch = async (url, opts = {}) => {
-    const c = { url: String(url), method: opts.method || 'GET', headers: opts.headers || {}, body: opts.body ? JSON.parse(opts.body) : null };
+    const c = { url: String(url), method: opts.method || 'GET', headers: opts.headers || {}, body: null, raw: opts.body };
+    if (typeof opts.body === 'string') { try { c.body = JSON.parse(opts.body); } catch (e) { c.body = opts.body; } }
+    else if (opts.body && typeof opts.body.text === 'function') c.body = await opts.body.text();
     calls.push(c);
     return handler(c);
   };
 });
 
-test('parseSheetId extrae el ID de URLs y acepta IDs sueltos', () => {
-  assert.equal(drive.parseSheetId(`https://docs.google.com/spreadsheets/d/${ID}/edit#gid=0`), ID);
-  assert.equal(drive.parseSheetId(`  https://docs.google.com/spreadsheets/d/${ID}/edit?usp=sharing `), ID);
-  assert.equal(drive.parseSheetId(ID), ID);
-  assert.equal(drive.parseSheetId('hola'), null);
-  assert.equal(drive.parseSheetId(''), null);
+test('el único scope de datos es drive.file (sin Sheets API ni scopes sensibles)', () => {
+  assert.equal(SCOPES, 'https://www.googleapis.com/auth/drive.file openid email profile');
+  assert.ok(!/spreadsheets/.test(SCOPES));
 });
 
-test('createClub crea la hoja con todas las pestañas, la mueve a cnl y la recuerda', async () => {
+test('ensureFolder reutiliza la carpeta existente (la más antigua), la crea si falta y la cachea', async () => {
+  handler = (c) => (c.method === 'GET' ? json({ files: [{ id: 'F1' }, { id: 'F2' }] }) : json({}));
+  assert.equal(await drive.ensureFolder(), 'F1');
+  assert.equal(await drive.ensureFolder(), 'F1');
+  assert.equal(calls.length, 1, 'segunda llamada desde la caché');
+  const q = decodeURIComponent(calls[0].url);
+  assert.match(q, /name='cnl'/);
+  assert.doesNotMatch(q, /in parents/, 'la carpeta cnl se busca en todo el Drive (puede haberla movido el usuario)');
+  assert.match(q, /orderBy=createdTime/);
+  drive.reset();
+  calls.length = 0;
+  handler = (c) => (c.method === 'GET' ? json({ files: [] }) : json({ id: 'NUEVA' }));
+  assert.equal(await drive.ensureFolder(), 'NUEVA');
+  const post = calls.find((c) => c.method === 'POST');
+  assert.deepEqual(post.body, { name: 'cnl', mimeType: 'application/vnd.google-apps.folder', parents: ['root'] });
+});
+
+test('ensureFolderPath crea cnl/entrenos dentro de cnl', async () => {
   handler = (c) => {
-    if (c.url.startsWith('https://sheets.googleapis.com/v4/spreadsheets?')) return json({ spreadsheetId: 'NEW1234567', properties: { title: 'Mi Club' } });
-    if (c.url.includes('/drive/v3/files?q=')) return json({ files: [] });
-    if (c.url.includes('/drive/v3/files?fields=id')) return json({ id: 'FOLDER1' });
-    if (c.url.includes('fields=parents')) return json({ parents: ['ROOT'] });
-    return json({ id: 'NEW1234567' });
+    if (c.method === 'GET') return json({ files: [] });
+    return json({ id: c.body.name === 'cnl' ? 'CNL' : 'ENT' });
   };
-  const club = await drive.createClub('Mi Club');
-  assert.equal(club.id, 'NEW1234567');
-  assert.equal(club.owner, 'owner@x.com');
-  const create = calls[0];
-  assert.equal(create.method, 'POST');
-  assert.equal(create.headers.Authorization, 'Bearer tok1');
-  assert.equal(create.body.properties.title, 'Mi Club');
-  assert.deepEqual(create.body.sheets.map((s) => s.properties.title), Object.keys(SHEETS));
-  const head = create.body.sheets[1].data[0].rowData[0].values.map((v) => v.userEnteredValue.stringValue);
-  assert.deepEqual(head, SHEETS.Usuarios);
-  const move = calls.find((c) => c.method === 'PATCH');
-  assert.match(move.url, /addParents=FOLDER1/);
-  assert.match(move.url, /removeParents=ROOT/);
-  handler = () => json({ properties: { title: 'Mi Club' } });
-  const list = await drive.listClubs();
-  assert.deepEqual(list.map((c) => c.id), ['NEW1234567']);
+  assert.equal(await drive.ensureFolderPath(['entrenos']), 'ENT');
+  const creados = calls.filter((c) => c.method === 'POST').map((c) => [c.body.name, c.body.parents[0]]);
+  assert.deepEqual(creados, [['cnl', 'root'], ['entrenos', 'CNL']]);
 });
 
-test('read pide batchGet de las pestañas existentes y devuelve las filas', async () => {
+test('createClub crea cnl/<Club>.json marcado como club, sin tocar la API de Sheets', async () => {
   handler = (c) => {
-    if (c.url.includes('values:batchGet')) {
-      return json({ valueRanges: [{ values: [['clave', 'valor'], ['nombre', 'CNL']] }, { values: [['id', 'email', 'nombre', 'rol', 'nadadorId'], ['u1', 'a@b.c', 'A', 'admin']] }] });
-    }
-    return json({ properties: { title: 'CNL' }, sheets: [{ properties: { title: 'Club' } }, { properties: { title: 'Usuarios' } }, { properties: { title: 'Otra' } }] });
-  };
-  const r = await drive.read(ID);
-  const bg = calls.find((c) => c.url.includes('values:batchGet'));
-  assert.match(bg.url, /ranges='Club'&ranges='Usuarios'/);
-  assert.doesNotMatch(bg.url, /Otra/);
-  const data = tabsToData(r.tabs);
-  assert.equal(data.club.nombre, 'CNL');
-  assert.deepEqual(data.db.Usuarios, [{ id: 'u1', email: 'a@b.c', nombre: 'A', rol: 'admin', nadadorId: '' }]);
-  assert.deepEqual(data.db.Nadadores, []);
-});
-
-test('write amplía/crea pestañas, sobrescribe en RAW y limpia la cola', async () => {
-  handler = (c) => {
-    if (c.method === 'GET') return json({ sheets: [{ properties: { sheetId: 0, title: 'Club', gridProperties: { rowCount: 2, columnCount: 2 } } }] });
+    if (c.url.includes('/drive/v3/files?q=') && c.url.includes('mimeType')) return json({ files: [{ id: 'CNL' }] });
+    if (c.url.includes('/drive/v3/files?q=')) return json({ files: [] }); // ningún fichero con ese nombre
+    if (c.url.includes('uploadType=multipart')) return json({ id: 'CLUB1', name: 'Mi Club.json', md5Checksum: 'abc' });
     return json({});
   };
-  const data = { db: { Nadadores: [{ id: 'n1', nombre: 'Ana' }] }, club: { nombre: 'CNL' } };
-  await drive.write(ID, dataToTabs(data));
-  const posts = calls.filter((c) => c.method === 'POST');
-  assert.match(posts[0].url, /:batchUpdate$/);
-  assert.ok(posts[0].body.requests.some((r) => r.addSheet && r.addSheet.properties.title === 'Nadadores'));
-  assert.ok(posts[0].body.requests.some((r) => r.updateSheetProperties));
-  const upd = posts[1];
-  assert.match(upd.url, /values:batchUpdate/);
-  assert.equal(upd.body.valueInputOption, 'RAW');
-  const nad = upd.body.data.find((d) => d.range === "'Nadadores'!A1");
-  assert.equal(nad.values[1][0], 'n1');
-  assert.equal(nad.values[1][1], 'Ana');
-  const clear = posts[2];
-  assert.match(clear.url, /values:batchClear/);
-  assert.ok(clear.body.ranges.includes("'Nadadores'!A3:ZZ"));
+  const club = await drive.createClub('Mi Club');
+  assert.deepEqual([club.id, club.name], ['CLUB1', 'Mi Club']);
+  const up = calls.find((c) => c.url.includes('uploadType=multipart'));
+  assert.equal(up.method, 'POST');
+  assert.match(up.headers['Content-Type'], /^multipart\/related; boundary=/);
+  assert.match(up.body, /"name":"Mi Club.json"/);
+  assert.match(up.body, /"parents":\["CNL"\]/);
+  assert.match(up.body, /"appProperties":\{"cnl":"club"\}/);
+  assert.match(up.body, /"version":1/);
+  assert.ok(calls.every((c) => !c.url.includes('sheets.googleapis.com')), 'no se usa la API de Sheets');
+  assert.ok(calls.every((c) => /^Bearer tok/.test(c.headers.Authorization)));
+});
+
+test('createClub evita nombres repetidos añadiendo un número y limpia caracteres no válidos', async () => {
+  let existentes = 0;
+  handler = (c) => {
+    if (c.url.includes('/drive/v3/files?q=') && c.url.includes('mimeType')) return json({ files: [{ id: 'CNL' }] });
+    if (c.url.includes('/drive/v3/files?q=')) return json({ files: existentes++ < 1 ? [{ id: 'X', name: 'a-b.json' }] : [] });
+    if (c.url.includes('uploadType=multipart')) return json({ id: 'C2', name: 'a-b (2).json' });
+    return json({});
+  };
+  const club = await drive.createClub('a/b');
+  assert.equal(club.name, 'a-b (2)');
+  assert.match(calls.find((c) => c.url.includes('uploadType=multipart')).body, /"name":"a-b \(2\).json"/);
+});
+
+test('listClubs devuelve los .json marcados como club dentro de cnl, ordenados', async () => {
+  handler = (c) => {
+    if (c.url.includes('mimeType')) return json({ files: [{ id: 'CNL' }] });
+    return json({ files: [{ id: 'B', name: 'Zeta.json', modifiedTime: '2026-10-01T10:00:00Z', md5Checksum: 'm' }, { id: 'A', name: 'Alfa.json' }] });
+  };
+  const l = await drive.listClubs();
+  assert.deepEqual(l.map((c) => [c.id, c.name]), [['A', 'Alfa'], ['B', 'Zeta']]);
+  const q = decodeURIComponent(calls[calls.length - 1].url);
+  assert.match(q, /appProperties has \{ key='cnl' and value='club' \}/);
+  assert.match(q, /'CNL' in parents/);
+  assert.match(l[0].url, /drive\.google\.com/);
+});
+
+test('meta, read y write usan modifiedTime/md5Checksum como revisión', async () => {
+  const doc = { version: 1, club: { nombre: 'X' }, hojas: { Grupos: [] } };
+  handler = (c) => {
+    if (c.url.includes('alt=media')) return texto(JSON.stringify(doc));
+    if (c.method === 'PATCH') return json({ id: 'F', name: 'X.json', md5Checksum: 'nuevo' });
+    return json({ id: 'F', name: 'X.json', md5Checksum: 'viejo', modifiedTime: '2026-10-01T00:00:00Z' });
+  };
+  assert.deepEqual(await drive.meta('F'), { rev: 'viejo', modifiedTime: '2026-10-01T00:00:00Z', name: 'X' });
+  const r = await drive.read('F');
+  assert.deepEqual(r.doc, doc);
+  assert.equal(r.rev, 'viejo');
+  const w = await drive.write('F', doc);
+  assert.equal(w.rev, 'nuevo');
+  const patch = calls.find((c) => c.method === 'PATCH');
+  assert.match(patch.url, /upload\/drive\/v3\/files\/F\?uploadType=media/);
+  assert.equal(patch.headers['Content-Type'], 'application/json');
+  assert.deepEqual(JSON.parse(patch.raw), doc);
+  // sin md5 (p. ej. recién creado) se usa modifiedTime
+  handler = () => json({ id: 'F', name: 'X.json', modifiedTime: 'T1' });
+  assert.equal((await drive.meta('F')).rev, 'T1');
+});
+
+test('read de un fichero que no es JSON lanza un error claro; en la papelera es 404', async () => {
+  handler = (c) => (c.url.includes('alt=media') ? texto('no es json') : json({ id: 'F', name: 'X.json', md5Checksum: 'm' }));
+  await assert.rejects(drive.read('F'), /JSON válido/);
+  handler = () => json({ id: 'F', name: 'X.json', trashed: true });
+  await assert.rejects(drive.meta('F'), (e) => e.status === 404 && e.code === 'no-encontrado');
+});
+
+test('preferencias: sin fichero -> null; guardar crea cnl/preferencias.json y después lo actualiza', async () => {
+  handler = (c) => {
+    if (c.url.includes('mimeType')) return json({ files: [{ id: 'CNL' }] });
+    if (c.url.includes('/drive/v3/files?q=')) return json({ files: [] });
+    return json({ id: 'P1', name: 'preferencias.json' });
+  };
+  assert.equal(await drive.leerPreferencias(), null);
+  await drive.guardarPreferencias({ version: 1, valores: { idioma: 'en' }, marcas: { idioma: 5 } });
+  const create = calls.find((c) => c.url.includes('uploadType=multipart'));
+  assert.match(create.body, /"name":"preferencias.json"/);
+  assert.match(create.body, /"appProperties":\{"cnl":"prefs"\}/);
+  assert.match(create.body, /"idioma": "en"/);
+  calls.length = 0;
+  handler = (c) => (c.url.includes('alt=media') ? texto('{"version":1,"valores":{"idioma":"en"},"marcas":{"idioma":5}}') : json({ id: 'P1', name: 'preferencias.json' }));
+  assert.equal((await drive.leerPreferencias()).valores.idioma, 'en');
+  await drive.guardarPreferencias({ version: 1, valores: { idioma: 'it' }, marcas: { idioma: 9 } });
+  const upd = calls.find((c) => c.method === 'PATCH');
+  assert.match(upd.url, /files\/P1\?uploadType=media/);
+  assert.ok(!calls.some((c) => c.url.includes('uploadType=multipart')), 'no se crea un segundo fichero');
+});
+
+test('subida genérica (PDF/xlsx) a una subcarpeta con upload()', async () => {
+  handler = () => json({ id: 'PDF1', name: 'sesion.pdf' });
+  const f = await drive.upload({ name: 'sesion.pdf', mimeType: 'application/pdf', body: new Blob(['%PDF-1.4']), parentId: 'ENT' });
+  assert.equal(f.id, 'PDF1');
+  const c = calls[0];
+  assert.match(c.body, /"parents":\["ENT"\]/);
+  assert.match(c.body, /Content-Type: application\/pdf/);
+  assert.match(c.body, /%PDF-1\.4/);
 });
 
 test('401 renueva el token y reintenta una vez; si persiste lanza 401', async () => {
   let n = 0;
-  handler = () => (++n === 1 ? json({ error: { message: 'x' } }, 401) : json({ properties: { title: 'T' }, sheets: [] }));
-  const r = await drive.read(ID);
-  assert.equal(r.title, 'T');
+  handler = () => (++n === 1 ? json({ error: { message: 'x' } }, 401) : json({ id: 'F', name: 'X.json', md5Checksum: 'm' }));
+  const r = await drive.meta('F');
+  assert.equal(r.rev, 'm');
   assert.equal(calls[0].headers.Authorization, 'Bearer tok1');
   assert.equal(calls[1].headers.Authorization, 'Bearer tok2');
   handler = () => json({}, 401);
-  await assert.rejects(drive.read(ID), (e) => e.status === 401);
+  await assert.rejects(drive.meta('F'), (e) => e.status === 401 && e.code === 'sesion-caducada');
 });
 
-test('403 y 404 dan mensajes claros; sin red marca offline', async () => {
+test('errores típicos: API desactivada (con enlace), permisos, 404, límite y sin red', async () => {
+  const cuerpoApi = { error: { code: 403, message: 'Google Drive API has not been used in project 123456 before or it is disabled.', errors: [{ reason: 'accessNotConfigured' }],
+    details: [{ '@type': 'type.googleapis.com/google.rpc.ErrorInfo', reason: 'SERVICE_DISABLED', metadata: { activationUrl: 'https://console.developers.google.com/apis/api/drive.googleapis.com/overview?project=123456', serviceTitle: 'Google Drive API' } }] } };
+  handler = () => json(cuerpoApi, 403);
+  await assert.rejects(drive.meta('F'), (e) => e.status === 403 && e.code === 'api-desactivada' && /activationUrl|overview\?project=123456/.test(e.enlace || '') && /no está activada/.test(e.message));
   handler = () => json({ error: { message: 'The caller does not have permission' } }, 403);
-  await assert.rejects(drive.read(ID), (e) => e.status === 403 && /permiso/.test(e.message) && /compart/.test(e.message));
+  await assert.rejects(drive.meta('F'), (e) => e.status === 403 && e.code === 'sin-permiso' && /acceso/.test(e.message));
   handler = () => json({ error: { message: 'not found' } }, 404);
-  await assert.rejects(drive.read(ID), (e) => e.status === 404 && /No se encuentra/.test(e.message));
+  await assert.rejects(drive.meta('F'), (e) => e.status === 404 && /No se encuentra/.test(e.message));
+  handler = () => json({ error: { message: 'slow down' } }, 429);
+  await assert.rejects(drive.meta('F'), (e) => e.code === 'limite');
   globalThis.fetch = async () => { throw new TypeError('Failed to fetch'); };
-  await assert.rejects(drive.read(ID), (e) => e.offline === true);
+  await assert.rejects(drive.meta('F'), (e) => e.offline === true && e.code === 'sin-conexion');
 });
 
-test('joinClub acepta URL o ID, valida acceso y guarda en la lista local', async () => {
-  handler = () => json({ properties: { title: 'Club Vecino' }, sheets: [{ properties: { title: 'Club' } }, { properties: { title: 'Nadadores' } }] });
-  const a = await drive.joinClub(`https://docs.google.com/spreadsheets/d/${ID}/edit#gid=0`);
-  assert.deepEqual([a.id, a.name], [ID, 'Club Vecino']);
-  assert.match(calls[0].url, new RegExp('/spreadsheets/' + ID + '\\?'));
-  await drive.joinClub(ID); // repetido: no duplica
-  assert.deepEqual((await drive.listClubs()).map((c) => c.id), [ID]);
-  await assert.rejects(drive.joinClub('no es un enlace'), /enlace/);
-  handler = () => json({}, 403);
-  await assert.rejects(drive.joinClub(ID), (e) => e.status === 403);
-  handler = () => json({ properties: { title: 'Otra' }, sheets: [{ properties: { title: 'Hoja 1' } }] });
-  await assert.rejects(drive.joinClub('Z'.repeat(20)), /no es un club/);
+test('sin token y sin red -> error offline; sin token con red -> sesión caducada', async () => {
+  auth.ensureToken = async () => null;
+  const nav = Object.getOwnPropertyDescriptor(globalThis, 'navigator');
+  Object.defineProperty(globalThis, 'navigator', { value: { onLine: false }, configurable: true });
+  try {
+    await assert.rejects(drive.meta('F'), (e) => e.offline === true);
+    Object.defineProperty(globalThis, 'navigator', { value: { onLine: true }, configurable: true });
+    await assert.rejects(drive.meta('F'), (e) => e.status === 401);
+  } finally {
+    if (nav) Object.defineProperty(globalThis, 'navigator', nav); else delete globalThis.navigator;
+  }
 });
 
-test('listClubs oculta los sin acceso (403), olvida los borrados (404) y tolera offline', async () => {
-  mem.set('cnl:clubs', JSON.stringify([{ id: 'AAAAAAAAAA', name: 'A' }, { id: 'BBBBBBBBBB', name: 'B' }, { id: 'CCCCCCCCCC', name: 'C' }]));
-  handler = (c) => {
-    if (c.url.includes('AAAAAAAAAA')) return json({ properties: { title: 'A' } });
-    if (c.url.includes('BBBBBBBBBB')) return json({}, 403);
-    return json({}, 404);
-  };
-  assert.deepEqual((await drive.listClubs()).map((c) => c.id), ['AAAAAAAAAA']);
-  assert.deepEqual(JSON.parse(mem.get('cnl:clubs')).map((c) => c.id), ['AAAAAAAAAA', 'BBBBBBBBBB']);
-  globalThis.fetch = async () => { throw new TypeError('offline'); };
-  const l = await drive.listClubs();
-  assert.equal(l.length, 2);
-  assert.ok(l.every((c) => c.unverified));
+test('ya no existen compartir, unirse ni la hoja de Usuarios', () => {
+  for (const k of ['joinClub', 'shareWithEmail', 'parseSheetId', 'sheetUrl', 'forgetClub']) assert.equal(drive[k], undefined, k);
+  assert.ok(!('Usuarios' in SHEETS));
+  assert.ok(!ENTITY_SHEETS.includes('Usuarios'));
 });
 
-test('shareWithEmail crea un permiso writer', async () => {
-  await drive.shareWithEmail(ID, ' otro@x.com ');
-  const c = calls[0];
-  assert.match(c.url, new RegExp('/files/' + ID + '/permissions'));
-  assert.deepEqual(c.body, { type: 'user', role: 'writer', emailAddress: 'otro@x.com' });
-  await assert.rejects(drive.shareWithEmail(ID, 'mal'), /Email/);
-  handler = () => json({}, 404);
-  await assert.rejects(drive.shareWithEmail(ID, 'a@b.c'), /desde Google Drive/);
-});
-
-test('sheetdata: ida y vuelta, logos largos troceados y fusión sin perder cambios locales', () => {
+test('sheetdata: documento {version, club, hojas}, ida y vuelta, logos largos sin trocear y hash estable', () => {
   const logo = 'x'.repeat(95000);
-  const data = tabsToData(dataToTabs({ db: { Grupos: [{ id: 'g1', nombre: 'A', categoria: '', entrenador: '' }] }, club: { nombre: 'CNL', logo } }));
+  const data = docToData(dataToDoc({ db: { Grupos: [{ id: 'g1', nombre: 'A', categoria: '', entrenador: '', extra: 'no' }] }, club: { nombre: 'CNL', logo } }));
   assert.equal(data.club.logo, logo);
   assert.equal(data.db.Grupos[0].nombre, 'A');
-  assert.equal(hashData(data), hashData(tabsToData(dataToTabs(data))));
+  assert.equal('extra' in data.db.Grupos[0], false, 'sólo las columnas del esquema');
+  assert.equal(hashData(data), hashData(docToData(dataToDoc(data))));
+  const doc = dataToDoc(data);
+  assert.equal(doc.version, 1);
+  assert.deepEqual(Object.keys(doc.hojas).sort(), [...ENTITY_SHEETS].sort());
+  assert.equal(isEmptyData(docToData({ version: 1, club: {}, hojas: {} })), true);
+  assert.equal(isEmptyData(data), false);
+});
 
+test('sheetdata: docToData tolera basura (hojas ausentes, filas sin id, ids repetidos)', () => {
+  assert.equal(isEmptyData(docToData(null)), true);
+  assert.equal(isEmptyData(docToData('texto')), true);
+  const d = docToData({ club: [], hojas: { Grupos: [{ nombre: 'sin id' }, null, { id: 1, nombre: 'Uno' }, { id: '1', nombre: 'Uno bis' }], Nadadores: 'mal' } });
+  assert.deepEqual(d.db.Grupos.map((g) => [g.id, g.nombre]), [['1', 'Uno bis']]);
+  assert.deepEqual(d.db.Nadadores, []);
+});
+
+test('sheetdata: fusión por fila sin perder cambios locales', () => {
   const mk = (grupos, club = {}) => {
-    const d = tabsToData({});
+    const d = docToData({});
     d.db.Grupos = grupos.map(([id, nombre]) => ({ id, nombre, categoria: '', entrenador: '' }));
     d.club = club;
     return d;
@@ -198,4 +272,8 @@ test('sheetdata: ida y vuelta, logos largos troceados y fusión sin perder cambi
 after(() => {
   globalThis.localStorage = prev.localStorage;
   globalThis.fetch = prev.fetch;
+  auth.ensureToken = authOriginal.ensureToken;
+  auth.invalidate = authOriginal.invalidate;
+  auth.user = authOriginal.user;
+});
 });

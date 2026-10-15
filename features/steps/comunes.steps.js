@@ -1,29 +1,53 @@
 // Pasos reutilizables por todas las áreas.
 import { Given, When, Then } from '@cucumber/cucumber';
 import assert from 'node:assert/strict';
-import { ROLES, ruta, regexTexto, todasLasPalabras } from '../support/world.js';
+import { ruta, regexTexto, todasLasPalabras } from '../support/world.js';
 
-// ---- Acceso y roles ----
-Given('un club en modo local con datos de demostración', async function () {
-  await this.entrarLocal();
+// ---- Acceso: sesión de Google, club y primer arranque (adaptador de pruebas, sin Google real) ----
+Given('un club con datos de demostración', async function () {
+  await this.entrarConClub({ demo: true });
+});
+
+// Misma cosa, dicho desde la perspectiva de Drive (la sesión de Google es simulada).
+Given('un club de demostración con la sesión de Google iniciada', async function () {
+  await this.entrarConClub({ demo: true });
+});
+
+Given('un club vacío con la sesión de Google iniciada', async function () {
+  await this.entrarConClub({ demo: false });
 });
 
 Given('que la aplicación está recién abierta sin sesión', async function () {
-  await this.page.goto('/');
+  await this.abrirApp({ sesion: false });
 });
 
-Given('que entro como {string}', async function (rol) { await cambiarRol(this, rol); });
-When('cambio al rol {string}', async function (rol) { await cambiarRol(this, rol); });
+Given('que la aplicación está abierta sin Client ID de Google', async function () {
+  await this.abrirApp({ sinClientId: true });
+});
 
-async function cambiarRol(mundo, rol) {
-  const valor = ROLES[rol];
-  assert.ok(valor, `Rol desconocido: ${rol}`);
-  await mundo.page.locator('#role-select').selectOption(valor);
-  await mundo.page.locator('.role-box strong').filter({ hasText: rol }).waitFor({ timeout: mundo.timeout });
-}
+Given('que la aplicación está abierta y Google rechaza el inicio de sesión con {string}', async function (codigo) {
+  await this.abrirApp({ sesion: false, errorLogin: codigo });
+});
 
-Then('mi rol actual es {string}', async function (rol) {
-  await this.eventually(async () => assert.equal((await this.page.locator('.role-box strong').innerText()).trim(), rol));
+Then('veo el botón {string}', async function (nombre) {
+  await this.verVisible(this.page.getByRole('button', { name: nombre }), `No se ve el botón "${nombre}"`);
+});
+
+Then('no veo el botón {string}', async function (nombre) {
+  assert.equal(await this.page.getByRole('button', { name: nombre }).count(), 0, `Se ve el botón "${nombre}"`);
+});
+
+Then('no veo ningún texto sobre el modo local', async function () {
+  const txt = (await this.page.locator('body').innerText()).toLowerCase();
+  assert.ok(!txt.includes('modo local') && !txt.includes('probar en modo'), 'Aparece texto sobre el modo local');
+});
+
+Then('el menú de la aplicación no se muestra', async function () {
+  assert.equal(await this.page.locator('nav.sidebar').count(), 0);
+});
+
+Then('mi sesión es la de {string}', async function (email) {
+  await this.eventually(async () => assert.equal((await this.page.locator('#user-box strong').innerText()).trim(), email));
 });
 
 // ---- Navegación ----
@@ -104,4 +128,8 @@ Then('veo en pantalla a alguien llamado {string}', async function (nombre) {
 Then('la fila que contiene {string} muestra {string}', async function (clave, texto) {
   const fila = this.vista.locator('tr').filter({ hasText: regexTexto(clave) });
   await this.eventually(async () => assert.match(await fila.first().innerText(), regexTexto(texto)));
+});
+
+Then('no existe el selector para cambiar de rol', async function () {
+  assert.equal(await this.page.locator('#role-select').count(), 0);
 });

@@ -173,44 +173,13 @@ test('crear una piscina nueva con el botón (sin piscinas previas)', async () =>
   assert.match(c.container.textContent, /Municipal/);
 });
 
-test('rol nadador: solo lectura (sin huecos, sin acciones, sin panel) y detalle al tocar un bloque', async () => {
-  c.auth.setDemoRole('nadador');
+test('un solo usuario: la planificación siempre es editable (sin modo de sólo lectura)', async () => {
   await renderView('planificacion', c.container, [], c);
   await lunes();
-  assert.equal(c.container.querySelectorAll('button.pl-cell').length, 0);
-  assert.equal(c.container.querySelector('.pl-panel'), null);
-  for (const t of ['Nueva asignación', 'Sugerir distribución', 'Configurar piscina', 'Nueva piscina']) {
-    assert.throws(() => buttonByText(c.container, t), t);
-  }
-  assert.match(c.container.textContent, /solo lectura/);
-  const b = c.container.querySelector('.pl-gridwrap .pl-block');
-  assert.equal(b.draggable, false);
-  const n0 = asignaciones().length;
-  await click(b);
-  assert.ok(modal());
-  assert.throws(() => fieldByLabel(modal(), 'Hora de inicio'));
-  assert.equal(asignaciones().length, n0);
-});
-
-test('rol nadador vinculado a un grupo: solo ve su curso', async () => {
-  c.store.upsert('Usuarios', { id: 'u1', email: 'nadador@club.test', nombre: 'N', rol: 'nadador', nadadorId: 'n04' }); // n04 es del grupo g2
-  c.auth.user = { email: 'nadador@club.test', name: 'N' };
-  c.auth.setDemoRole('nadador');
-  await renderView('planificacion', c.container, [], c);
-  await click(buttonByText(c.container, 'Semana completa'));
-  const items = [...c.container.querySelectorAll('.pl-screen .pl-item')];
-  assert.ok(items.length > 0);
-  assert.ok(items.every((i) => i.textContent.includes('Alevín')));
-  assert.equal(c.container.querySelectorAll('.pl-screen .pl-legend li').length, 1);
-  c.auth.user = null;
-});
-
-test('el servicio rechaza escribir con el rol nadador', async () => {
-  const { crearPlanificacionService } = await importApp('js/application/planificacionService.js');
-  c.auth.setDemoRole('nadador');
-  const svc = crearPlanificacionService(c.store, { puedeEditar: () => c.auth.role() !== 'nadador' });
-  assert.throws(() => svc.guardarAsignacion({ piscinaId: 'p1' }), /sin-permiso/);
-  assert.ok(svc.asignaciones().length > 0);
+  assert.ok(buttonByText(c.container, 'Sugerir distribución'));
+  assert.ok(buttonByText(c.container, 'Configurar piscina'));
+  assert.doesNotMatch(c.container.textContent, /solo lectura/);
+  assert.ok(c.container.querySelectorAll('.pl-gridwrap .pl-block').length > 0);
 });
 
 test('sugerir distribución: propone y aplica sin errores', async () => {

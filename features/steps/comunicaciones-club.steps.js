@@ -1,4 +1,4 @@
-import { When, Then } from '@cucumber/cucumber';
+import { Given, When, Then } from '@cucumber/cucumber';
 import assert from 'node:assert/strict';
 import { regexTexto, todasLasPalabras } from '../support/world.js';
 
@@ -42,28 +42,8 @@ When('pulso la campana de avisos', async function () {
   await this.page.getByRole('button', { name: /^Avisos/ }).click();
 });
 
-// ---- Mi espacio ----
-When('elijo previsualizar el espacio de {string}', async function (nombre) {
-  const sel = this.vista.locator('.mie-pick select');
-  await sel.selectOption({ label: nombre });
-});
-
-Then('mi espacio muestra las secciones:', async function (tabla) {
-  for (const [s] of tabla.raw()) await this.verVisible(this.vista.locator('h3', { hasText: s }), `Falta "${s}"`);
-});
-
-Then('en mi espacio veo el aviso {string}', async function (titulo) {
-  await this.verVisible(this.vista.locator('.mie-card strong', { hasText: regexTexto(titulo) }));
-});
-
-Then('en mi espacio no veo el aviso {string}', async function (titulo) {
-  await this.page.waitForTimeout(200);
-  assert.equal(await this.vista.locator('.mie-card strong', { hasText: regexTexto(titulo) }).count(), 0);
-});
-
 // ---- Club: identidad ----
 const identidad = (m) => m.vista.locator('.clb-card').filter({ hasText: 'Identidad del club' });
-const usuarios = (m) => m.vista.locator('.clb-card').filter({ hasText: 'Usuarios y roles' });
 
 // PNG de 1x1 píxel
 const PNG = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==', 'base64');
@@ -118,29 +98,18 @@ Then('la cabecera muestra el logotipo por defecto', async function () {
   await this.eventually(async () => assert.match(await this.page.locator('.brand img.logo').getAttribute('src'), /icon\.svg$/));
 });
 
-// ---- Club: usuarios ----
-When('añado el usuario con:', async function (tabla) {
-  const card = usuarios(this);
-  for (const [campo, valor] of tabla.raw()) {
-    const c = card.getByLabel(campo).first();
-    const tag = await c.evaluate((el) => el.tagName.toLowerCase());
-    if (tag === 'select') await c.selectOption({ label: valor }); else await c.fill(valor);
-  }
-  await card.getByRole('button', { name: 'Añadir usuario' }).click();
-  await this.verVisible(this.page.locator('#toasts .toast', { hasText: 'Usuario guardado' }));
+// ---- Club: datos en Drive ----
+Then('la configuración explica que los datos están en la carpeta cnl de Drive', async function () {
+  await this.verVisible(this.vista.getByText('carpeta «cnl» de tu Google Drive'));
+  await this.verVisible(this.vista.getByRole('link', { name: 'Abrir el fichero del club en Drive' }));
 });
 
-Then('la lista de usuarios incluye a {string} con rol {string}', async function (email, rol) {
-  const fila = usuarios(this).locator('tr').filter({ hasText: email });
-  await this.verVisible(fila.locator('.badge', { hasText: new RegExp(`^${rol}$`) }));
+Then('la configuración no ofrece usuarios, roles ni compartir la hoja', async function () {
+  const txt = await this.vista.innerText();
+  assert.doesNotMatch(txt, /Usuarios y roles|Unirse con enlace|Compartir por email/);
 });
 
-Then('la configuración advierte que en modo local no hay hoja de Google que compartir', async function () {
-  await this.verVisible(this.vista.getByText('En modo local no hay hoja de Google que compartir'));
-});
-
-import { Given } from '@cucumber/cucumber';
-
+// ---- Comunicaciones: preparación ----
 Given('que he publicado el aviso {string} para {string}', async function (titulo, destino) {
   await this.irA('comunicaciones');
   const form = this.vista.locator('form.cm-form');

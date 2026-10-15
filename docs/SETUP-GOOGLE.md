@@ -1,58 +1,63 @@
-# Configurar el login con Google, Sheets y Drive
+# Configurar el inicio de sesión con Google (5 minutos, una sola vez)
 
-Sin Client ID la app funciona en **modo local** (datos en el navegador, importar/exportar .xlsx). Para guardar en una Google Sheet compartida sigue estos pasos.
+La aplicación **necesita** un ID de cliente de Google: sirve para iniciar sesión y guardar tus datos en tu propio Drive. No hay modo local ni datos fuera de tu cuenta. Lo hace **una sola vez quien publica la app**; después, quien la use sólo verá el botón *Iniciar sesión con Google*.
+
+Todo se guarda en la carpeta `cnl` de tu Drive con **un único permiso, `drive.file`** (la app sólo accede a los ficheros que ella misma crea). Ese permiso **no es sensible**, no requiere verificación de Google y **no hace falta activar la API de Google Sheets**: sólo la de Drive.
+
+El tutorial interactivo de la propia app (menú *Tutorial*, o el enlace de la pantalla *Configuración necesaria*) recorre estos mismos pasos con botones de copiar.
 
 ## 1. Crear el proyecto
 1. Entra en <https://console.cloud.google.com/> con tu cuenta de Google.
-2. Arriba, pulsa el selector de proyectos y elige **Proyecto nuevo**. Nómbralo, por ejemplo, `CNL Plataforma`, y créalo.
+2. Selector de proyectos > **Proyecto nuevo**. Nómbralo, por ejemplo, `CNL Plataforma`, y créalo.
 
-## 2. Activar las APIs
-1. Menú **APIs y servicios > Biblioteca**.
-2. Busca **Google Sheets API** y pulsa **Habilitar**.
-3. Busca **Google Drive API** y pulsa **Habilitar** (carpeta `cnl` y compartir por email).
-4. *(Sólo si quieres la sincronización con Google Calendar)* Busca **Google Calendar API** y pulsa **Habilitar**.
+## 2. Activar la API de Google Drive
+1. Abre <https://console.cloud.google.com/apis/library/drive.googleapis.com> y pulsa **Habilitar**.
+2. *(Sólo si vas a sincronizar con Google Calendar)* Habilita también **Google Calendar API**.
 
 ## 3. Pantalla de consentimiento OAuth
 1. Menú **APIs y servicios > Pantalla de consentimiento de OAuth** (o **Google Auth Platform**).
 2. Tipo de usuario: **Externo**. Rellena nombre de la app, correo de soporte y correo de contacto.
-3. En **Permisos (scopes)** añade: `openid`, `email`, `profile`, `https://www.googleapis.com/auth/spreadsheets` y `https://www.googleapis.com/auth/drive.file`. Si vas a usar la sincronización con Google Calendar añade también `https://www.googleapis.com/auth/calendar.events` (scope sensible, no restringido; la app lo solicita **sólo cuando pulsas *Sincronizar con Google Calendar***, no en el inicio de sesión). Ninguno es un scope restringido; `drive.file` sólo da acceso a los ficheros que crea o abre la propia app.
-4. Mientras la app esté en modo **Pruebas**, añade en **Usuarios de prueba** los correos que vayan a entrar (admin, entrenadores). Para abrirla a cualquiera, pulsa **Publicar aplicación**.
+3. En **Permisos (scopes)** añade sólo `https://www.googleapis.com/auth/drive.file` (los de perfil básico `openid`, `email` y `profile` ya van incluidos). Si vas a usar la sincronización con Google Calendar, el permiso `https://www.googleapis.com/auth/calendar.events` se pide **sólo al pulsar *Sincronizar con Google Calendar***, no al iniciar sesión.
+4. En **Usuarios de prueba** añade **tu correo de Google** (mientras la app esté en modo *Pruebas* sólo entran esas cuentas). Si prefieres no depender de la lista, pulsa **Publicar aplicación**: con `drive.file` no hace falta la verificación de Google.
 
 ## 4. Crear el ID de cliente OAuth
-1. Menú **APIs y servicios > Credenciales > Crear credenciales > ID de cliente de OAuth**.
+1. **APIs y servicios > Credenciales > Crear credenciales > ID de cliente de OAuth**.
 2. Tipo de aplicación: **Aplicación web**.
 3. En **Orígenes autorizados de JavaScript** añade:
-   - `https://augustocristian.github.io`
-   - (para pruebas locales) `http://localhost:8000` o el puerto que uses
+   - `https://augustocristian.github.io` (GitHub Pages)
+   - (para desarrollo) `http://localhost:8080` o el puerto que uses
 4. No hace falta ninguna URI de redireccionamiento (se usa el flujo de token de Google Identity Services).
 5. Pulsa **Crear** y copia el **ID de cliente** (termina en `.apps.googleusercontent.com`).
 
-## 5. Configurar la app
-Edita `js/config.js` y pega el ID:
+## 5. Pegar el ID en la aplicación
+Edita `js/config.js` y pégalo entre las comillas de `BUILTIN_CLIENT_ID`:
 
 ```js
-export const GOOGLE_CLIENT_ID = '1234567890-abc.apps.googleusercontent.com';
+const BUILTIN_CLIENT_ID = '1234567890-abc.apps.googleusercontent.com';
 ```
 
 Sube el cambio a GitHub Pages. El Client ID no es secreto, puede estar en el repositorio.
 
+Para probarlo **antes** de publicar, abre la app: mientras la constante esté vacía verás *Configuración necesaria*, con un campo para pegar el ID y **Probar y guardar** (abre el inicio de sesión de Google; si funciona, el ID queda guardado sólo en ese navegador en `localStorage['cnl:clientId']`). Esa pantalla también muestra el **origen actual** de la página (cópialo en el paso 4 si Google dice `origin_mismatch`).
+
 ## 6. Cómo funciona
-- Al crear un club se crea una **Google Sheet** con una pestaña por entidad (Club, Usuarios, Nadadores, ...; fila 1 = cabeceras) y se guarda en la carpeta `cnl` de tu Drive.
-- **Compartir el club**: abre la hoja en Google Drive > **Compartir** y añade el correo de cada entrenador como **Editor** (o usa *Configuración > Compartir > Compartir por email*, que lo hace por ti). Envíales el enlace (o el ID de la hoja, la parte entre `/d/` y `/edit`).
-- **Unirse**: la otra persona inicia sesión, en el selector de club escribe el enlace o ID en *Unirse con enlace o ID de hoja* y pulsa **Unirse**. El club queda guardado en su dispositivo.
-- Los roles los define la pestaña **Usuarios** (se edita en *Configuración*). El propietario (quien creó el club) es siempre administrador.
-- Los cambios se guardan en caché local y se suben a la hoja automáticamente (unos segundos de espera) o con el botón Sincronizar. Cada ~30 s la app comprueba si otra persona ha cambiado la hoja y fusiona los cambios sin perder los tuyos pendientes.
-- No edites a mano las cabeceras de la fila 1 ni borres pestañas; sí puedes ver los datos desde Google Sheets. El .xlsx exportado sirve de copia de seguridad.
+- La primera vez, un asistente de dos pasos crea tu club **vacío** (sin datos de ejemplo) en `cnl/<NombreClub>.json`.
+- En la carpeta `cnl` de tu Drive hay: `<Club>.json` (todos los datos y la configuración del club, uno por club), `preferencias.json` (idioma, último club, progreso del tutorial, vista y recordatorio del calendario, mapa de sincronización con Google Calendar), `entrenos/` (PDFs de entrenamientos) y, si la creas, la copia `<Club>.xlsx`.
+- **Carpeta `cnl` previa**: con `drive.file` la app no puede ver carpetas ni ficheros que no creó ella. Si ya tenías una carpeta `cnl` hecha a mano, la app crea (y reutiliza) la suya; puedes mover o compartir lo tuyo desde Drive. No se duplica: si la carpeta de la app ya existe, la reutiliza.
+- Los cambios se guardan automáticamente (unos segundos de espera), con caché local para trabajar sin conexión y una cola de cambios pendientes que se sube al volver la red. Si editas desde otro dispositivo, la app detecta el cambio (`md5Checksum`/`modifiedTime`) y fusiona por fila sin perder lo tuyo.
+- **Copia de seguridad**: *Configuración* permite exportar/importar `.xlsx` y guardar una copia en `cnl/`.
+- *Salir* cierra la sesión y **revoca** el permiso concedido a la app.
 
 ## Problemas frecuentes
-- **Error 403 al abrir o guardar**: la hoja no está compartida contigo como Editor, o falta activar Google Sheets API / Drive API en el proyecto.
-- **Error 404 al unirse**: el enlace o ID es incorrecto, o la hoja no se ha compartido con tu cuenta.
-- **Error `origin_mismatch`**: el origen no está en la lista del paso 4 (comprueba `https`, sin barra final).
-- **Acceso bloqueado / app no verificada**: añade tu correo como usuario de prueba (paso 3) o publica la app.
-- **El popup no se abre**: el navegador lo bloquea; permite ventanas emergentes para el sitio.
+- **«Acceso bloqueado» / «aplicación no verificada» / `access_denied`**: tu correo no está en **Usuarios de prueba** (paso 3.4), o la app está en *Pruebas*. Añádelo (la app te enlaza a la pantalla de consentimiento) o publica la aplicación.
+- **`origin_mismatch` / «origen no autorizado»**: el origen desde el que abres la app no está en el paso 4.3 (comprueba `https`, el puerto y que no lleve barra final). La app muestra el origen actual para copiarlo.
+- **El popup no se abre / se cierra solo**: el navegador lo bloquea; permite las ventanas emergentes del sitio y vuelve a pulsar el botón.
+- **«La API de Google Drive no está activada»** (error 403 `accessNotConfigured`): habilítala en el paso 2; la app muestra el enlace directo de activación.
+- **«Google ha denegado el acceso a tu Drive»** (403): cierra sesión y vuelve a entrar aceptando el permiso de archivos.
+- **La sesión caduca**: en modo *Pruebas* Google puede cerrarla a los 7 días; vuelve a iniciar sesión (los datos no se pierden).
 
 ## 7. Sincronizar con Google Calendar (opcional)
-- Requiere la **Google Calendar API** habilitada (paso 2.4) y el scope `calendar.events` en la pantalla de consentimiento. En modo *Pruebas* el usuario debe estar en *Usuarios de prueba*; Google mostrará el aviso de app no verificada hasta que se publique y verifique.
-- Al pulsar **Sincronizar con Google Calendar** en *Calendario*, Google pide el permiso adicional (consentimiento incremental). Los eventos se crean en el **calendario principal** del usuario marcados con una propiedad privada (`cnlId`, `cnlClub`); no se crea un calendario secundario porque `calendar.events` no permite crearlos (haría falta `calendar` o `calendar.app.created`, más amplios).
-- **Dejar de sincronizar** elimina de Google Calendar los eventos creados por la app. El mapa de sincronización se guarda en el navegador (`localStorage`, por club y usuario); si se pierde, la app reencuentra los eventos por su marca y no los duplica.
+- Requiere la **Google Calendar API** habilitada (paso 2) y el scope `calendar.events`. En modo *Pruebas* tu correo debe estar en *Usuarios de prueba*; Google mostrará el aviso de app no verificada hasta que se publique y verifique (este scope sí es sensible).
+- Al pulsar **Sincronizar con Google Calendar** en *Calendario*, Google pide el permiso adicional (consentimiento incremental). Los eventos se crean en el **calendario principal** marcados con una propiedad privada (`cnlId`, `cnlClub`).
+- **Dejar de sincronizar** elimina de Google Calendar los eventos creados por la app. El mapa de sincronización se guarda en tus preferencias de Drive (`cnl/preferencias.json`); si se pierde, la app reencuentra los eventos por su marca y no los duplica.
 - Error *API has not been used / is disabled*: habilita Google Calendar API. Error 403 de permisos: vuelve a pulsar el botón y acepta el acceso a eventos.

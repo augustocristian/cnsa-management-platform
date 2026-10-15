@@ -2,12 +2,11 @@ import { setWorldConstructor, World } from '@cucumber/cucumber';
 import assert from 'node:assert/strict';
 
 export const MODULOS = {
-  'Inicio': 'inicio', 'Mi espacio': 'mi-espacio', 'Nadadores': 'nadadores', 'Grupos': 'grupos',
+  'Inicio': 'inicio', 'Nadadores': 'nadadores', 'Grupos': 'grupos',
   'Entrenamientos': 'entrenamientos', 'Asistencia': 'asistencia', 'Cargas': 'cargas', 'Marcas': 'marcas',
   'Bañador': 'banador', 'Comunicaciones': 'comunicaciones', 'Configuración': 'club',
   'Planificación': 'planificacion', 'Calendario': 'calendario',
 };
-export const ROLES = { 'Administrador': 'admin', 'Entrenador': 'entrenador', 'Nadador': 'nadador' };
 export const DIALOGO = '.nad-modal, .grp-modal, .ent-modal, .modal';
 const TIMEOUT = 8000;
 
@@ -38,19 +37,33 @@ class MundoCNL extends World {
     return (await this.vista.count()) ? this.vista : this.page;
   }
 
-  async entrarLocal() {
-    await this.page.addInitScript(() => {
+  // Abre la app con el adaptador de pruebas de Google (js/infrastructure/fakeGoogle.js, activado por localStorage['cnl:test']).
+  // opciones: {sesion, demo, sinClientId, usuario, errorLogin, fallos}. Los indicadores se escriben una sola vez por pestaña:
+  // las recargas posteriores conservan el "Drive" simulado (espejo en localStorage) y la sesión.
+  async abrirApp(opciones = {}) {
+    await this.page.addInitScript((o) => {
       try {
         if (!sessionStorage.getItem('e2e-init')) {
-          localStorage.setItem('cnl:local', '1');
+          localStorage.setItem('cnl:test', '1');
+          localStorage.setItem('cnl:test:opts', JSON.stringify(o));
           localStorage.setItem('cnl:lang', 'es');
           sessionStorage.setItem('e2e-init', '1');
         }
       } catch (e) { /* ignorar */ }
-    });
+    }, opciones);
     await this.page.goto('/');
-    await this.page.locator('.role-box strong').waitFor({ timeout: this.timeout });
   }
+
+  // Sesión simulada ya iniciada y un club (con datos de demostración o vacío) en el Drive simulado.
+  async entrarConClub({ demo = true } = {}) {
+    await this.abrirApp({ sesion: true, demo });
+    await this.esperarShell();
+  }
+
+  async esperarShell() { await this.page.locator('.topbar .brand-name').waitFor({ timeout: this.timeout }); }
+
+  // Estado del Drive simulado (clubs, prefs, archivos) tal como lo ve la página.
+  async drive() { return this.page.evaluate(() => ({ clubs: window.__CNL_FAKE__.clubs(), prefs: window.__CNL_FAKE__.prefs(), archivos: window.__CNL_FAKE__.archivos() })); }
 
   async irA(r) {
     await this.page.evaluate((x) => { location.hash = '#/' + x; }, r);
@@ -83,7 +96,11 @@ class MundoCNL extends World {
     const campo = ambito.getByLabel(etiqueta).first();
     await campo.waitFor({ timeout: this.timeout });
     const tag = await campo.evaluate((el) => el.tagName.toLowerCase());
-    if (tag === 'select') await campo.selectOption({ label: valor });
+    if (tag === 'select') {
+      // etiqueta exacta o, si no existe, la primera opción que la contenga (p. ej. sesiones con fecha delante)
+      const opciones = (await campo.locator('option').allInnerTexts()).map((o) => o.trim());
+      await campo.selectOption({ label: opciones.find((o) => o === valor) ?? opciones.find((o) => o.includes(valor)) ?? valor });
+    }
     else await campo.fill(valor);
   }
 

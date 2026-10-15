@@ -6,16 +6,8 @@ Característica: Panel de inicio
   para empezar la jornada sabiendo qué está pasando
 
   @smoke
-  Escenario: Entrar en modo local desde la pantalla de acceso
-    Dado que la aplicación está recién abierta sin sesión
-    Entonces veo el encabezado "CNL Plataforma"
-    Cuando pulso "Probar en modo local"
-    Entonces mi rol actual es "Administrador"
-    Y veo el encabezado "Bienvenido"
-
-  @smoke
   Esquema del escenario: El panel resume la información relevante del club
-    Dado un club en modo local con datos de demostración
+    Dado un club con datos de demostración
     Entonces veo el encabezado "<tarjeta>"
 
     Ejemplos: Información relevante, actividad reciente y avisos
@@ -28,7 +20,7 @@ Característica: Panel de inicio
       | Comunicaciones recientes           |
 
   Esquema del escenario: Los accesos rápidos llevan al módulo correspondiente
-    Dado un club en modo local con datos de demostración
+    Dado un club con datos de demostración
     Cuando pulso "<acceso>"
     Entonces estoy en el módulo "<acceso>"
 
@@ -40,7 +32,7 @@ Característica: Panel de inicio
       | Marcas     |
 
   Escenario: Un aviso nuevo aparece entre las comunicaciones recientes del panel
-    Dado un club en modo local con datos de demostración
+    Dado un club con datos de demostración
     Y que estoy en el módulo "Comunicaciones"
     Cuando publico un aviso con los datos:
       | Título        | Cambio de horario del sábado    |
@@ -50,6 +42,6 @@ Característica: Panel de inicio
     Entonces veo el texto "Cambio de horario del sábado"
 
   Escenario: La campana de avisos lleva a las comunicaciones
-    Dado un club en modo local con datos de demostración
+    Dado un club con datos de demostración
     Cuando pulso la campana de avisos
     Entonces estoy en el módulo "Comunicaciones"

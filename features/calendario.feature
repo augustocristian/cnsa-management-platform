@@ -5,7 +5,7 @@ Característica: Calendario
   llevármelo a mi calendario personal y, si uso Google, mantenerlo sincronizado
 
   Antecedentes:
-    Dado un club en modo local con datos de demostración
+    Dado un club con datos de demostración
     Y que estoy en el módulo "Calendario"
 
   @smoke
@@ -22,11 +22,12 @@ Característica: Calendario
     Y veo el texto "Añadir a mi calendario"
     Y veo el texto "instantánea"
 
-  Escenario: Sin Google la sincronización no está disponible
-    Entonces veo el texto "en modo local no está disponible"
-    Y veo el texto "Cómo configurar Google"
+  Escenario: Con la sesión de Google se puede sincronizar con Google Calendar
+    Entonces veo el texto "Sincronizar con Google Calendar"
+    Y veo el botón "Sincronizar con Google Calendar"
+    Y no veo el texto "no está disponible"
 
-  Escenario: El nadador ve sólo los entrenamientos de su grupo
-    Cuando cambio al rol "Nadador"
-    Y abro el módulo "Calendario"
-    Entonces veo el texto "Previsualizar como nadador"
+  Escenario: El entrenador filtra el calendario por grupo y por piscina
+    Entonces veo el texto "Grupo"
+    Y veo el texto "Piscina"
+    Y no veo el texto "Previsualizar como nadador"

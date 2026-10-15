@@ -2,10 +2,10 @@
 @planificacion
 Característica: Planificación de la piscina
   Como entrenador quiero organizar en qué calles y a qué hora se imparte cada curso,
-  detectar conflictos y compartir el horario con los nadadores en modo lectura
+  detectar conflictos y sugerir una distribución
 
   Antecedentes:
-    Dado un club en modo local con datos de demostración
+    Dado un club con datos de demostración
 
   @smoke
   Escenario: La planificación muestra la piscina con sus calles y el panel de conflictos
@@ -19,9 +19,7 @@ Característica: Planificación de la piscina
     Cuando pulso "Semana completa"
     Entonces veo el texto "Infantil-Junior"
 
-  Escenario: El nadador ve la planificación sólo en lectura
-    Dado que entro como "Nadador"
+  Escenario: La planificación siempre es editable para el único usuario
     Cuando abro el módulo "Planificación"
-    Entonces veo el texto "Vista de solo lectura."
-    Y no veo el texto "Nueva asignación"
-    Y no veo el texto "Panel de conflictos"
+    Entonces veo el botón "Sugerir distribución"
+    Y no veo el texto "Vista de solo lectura."

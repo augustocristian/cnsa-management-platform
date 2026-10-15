@@ -5,7 +5,7 @@ Característica: Asistencia
   y seguir la participación de cada nadador
 
   Antecedentes:
-    Dado un club en modo local con datos de demostración
+    Dado un club con datos de demostración
     Y que he creado la sesión "Lista E2E" para el grupo "Promoción"
     Y que estoy en el módulo "Asistencia"
 

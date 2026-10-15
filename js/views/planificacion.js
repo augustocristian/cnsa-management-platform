@@ -126,24 +126,12 @@ export function mensajeConflicto(c) {
 }
 
 export async function render(container, params, ctx) {
-  const { store, auth } = ctx;
+  const { store } = ctx;
   const h = ctx.ui.h;
   const toast = (m) => ctx.ui.toast(m);
   injectStyle();
-  const svc = crearPlanificacionService(store, { puedeEditar: () => auth.role() !== 'nadador' });
+  const svc = crearPlanificacionService(store);
   const canEdit = () => svc.puedeEditar();
-
-  // Nadador: sólo ve su grupo (si se puede identificar; en vista demo sin vínculo ve todos, siempre de sólo lectura).
-  function miGrupo() {
-    if (canEdit()) return '';
-    const email = ((auth.user && auth.user.email) || '').toLowerCase();
-    const u = store.list('Usuarios').find((x) => (x.email || '').toLowerCase() === email);
-    let id = (u && u.nadadorId) || '';
-    const nads = store.list('Nadadores');
-    if (!id && email) { const n = nads.find((x) => (x.email || '').toLowerCase() === email); if (n) id = n.id; }
-    const n = nads.find((x) => x.id === id);
-    return n ? n.grupoId : '';
-  }
 
   const hoy = hoyIso();
   let semana = D.lunesDe(hoy);
@@ -563,7 +551,7 @@ export async function render(container, params, ctx) {
       return;
     }
 
-    const grupoFiltro = miGrupo();
+    const grupoFiltro = '';
     const todas = svc.asignaciones(pool.id);
     const visibles = grupoFiltro ? todas.filter((a) => a.grupoId === grupoFiltro) : todas;
     const globales = editar ? svc.conflictos({ huecos: true }) : [];

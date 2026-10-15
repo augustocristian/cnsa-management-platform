@@ -3,59 +3,39 @@
 import * as D from '../domain/calendario.js';
 import { crearClienteGoogleCalendar } from '../infrastructure/googleCalendar.js';
 import { CALENDAR_SCOPE } from '../config.js';
+import { preferencias, CLAVES } from '../preferencias.js';
 
-const HOJAS = ['Entrenamientos', 'Grupos', 'AsignacionesCalle', 'Piscinas', 'Usuarios', 'Nadadores'];
+const HOJAS = ['Entrenamientos', 'Grupos', 'AsignacionesCalle', 'Piscinas', 'Nadadores'];
 const CONCURRENCIA = 3;
 const FATALES = new Set(['auth', 'permisos', 'api-desactivada', 'limite']);
 
-function almacenamientoPorDefecto() {
-  try { return globalThis.localStorage || null; } catch (e) { return null; }
-}
+// El mapa de sincronización con Google Calendar es una preferencia del usuario: vive en cnl/preferencias.json
+// (localStorage sólo es su caché). Los tests inyectan su propio almacenamiento.
+function almacenamientoPorDefecto() { return preferencias.comoAlmacenamiento(CLAVES.calSync); }
 
 // opciones: {store, auth, storage?, cliente?, calendarScope?, ahora?: () => Date, etq?: () => etiquetas, fetch?, sleep?}
 export function crearCalendarioService({ store, auth, storage, cliente, ahora = () => new Date(), etq = () => D.ETQ_DEFECTO, fetch: fetchFn, sleep, calendarScope = CALENDAR_SCOPE } = {}) {
   const ls = storage === undefined ? almacenamientoPorDefecto() : storage;
-  let nadadorDemo = '';
   let clienteCache = cliente || null;
 
   const datos = () => Object.fromEntries(HOJAS.map((h) => [h, store.list(h)]));
   const hoy = () => D.fechaDeDate(ahora());
-  const usuario = () => ({ rol: auth.role(), email: (auth.user && auth.user.email) || '', nombre: (auth.user && auth.user.name) || '' });
+  const usuario = () => ({ email: (auth.user && auth.user.email) || '', nombre: (auth.user && auth.user.name) || '' });
   const clubRef = () => store.clubRef || {};
-  const clubId = () => { const r = clubRef(); return r.id || `local:${r.name || (store.club && store.club.nombre) || 'club'}`; };
+  const clubId = () => clubRef().id || '';
   const nombreClub = () => (store.club && String(store.club.nombre || '').trim()) || clubRef().name || 'Club';
 
-  function ambito() {
-    const u = usuario();
-    const d = datos();
-    let a = D.ambitoUsuario({ ...u, datos: d });
-    if (u.rol === 'nadador' && !a.vinculado && nadadorDemo) { // vista demo: elegir a qué nadador representar
-      const n = d.Nadadores.find((x) => x.id === nadadorDemo);
-      a = { todos: false, grupoIds: n && n.grupoId ? [n.grupoId] : [], vinculado: !!n, nadadorId: nadadorDemo };
-    }
-    return a;
-  }
-
-  // Conjunto de grupos visibles según rol y filtros de pantalla. null = todos.
-  // filtros: {todosGrupos (entrenador), grupoId, piscina}
+  // Conjunto de grupos visibles según el filtro de pantalla. null = todos. filtros: {grupoId, piscina}
   function gruposVisibles(filtros = {}) {
-    const u = usuario();
-    const a = ambito();
-    let ids;
-    if (u.rol === 'nadador') ids = a.grupoIds;
-    else if (u.rol === 'entrenador' && !a.todos && !filtros.todosGrupos) ids = a.grupoIds;
-    else ids = null;
-    if (filtros.grupoId && u.rol !== 'nadador') ids = ids && !ids.includes(filtros.grupoId) ? [] : [filtros.grupoId];
-    return ids;
+    return filtros.grupoId ? [filtros.grupoId] : null;
   }
 
   function eventos(rango, filtros = {}) {
     const todos = D.eventosEnRango(datos(), rango, { etq: etq() });
-    return D.filtrarEventos(todos, { grupoIds: gruposVisibles(filtros), piscina: u_noNadador(filtros.piscina) });
+    return D.filtrarEventos(todos, { grupoIds: gruposVisibles(filtros), piscina: filtros.piscina || '' });
   }
-  const u_noNadador = (p) => (usuario().rol === 'nadador' ? '' : p || '');
 
-  // Los eventos "míos" para sincronizar: ámbito por rol, sin filtros de pantalla (para que el resultado sea estable).
+  // Los eventos para sincronizar: todos los del club, sin filtros de pantalla (para que el resultado sea estable).
   const eventosPropios = (rango) => eventos(rango, {});
 
   const zona = () => D.zonaOrDefecto(store.club && store.club.zonaHoraria);
@@ -90,9 +70,8 @@ export function crearCalendarioService({ store, auth, storage, cliente, ahora = 
   }
   function guardarEstado(est) { try { ls.setItem(claveMapa(), JSON.stringify(est)); } catch (e) { /* sin almacenamiento */ } }
 
-  // -> {ok, motivo: 'local'|'sin-sesion'|null}
+  // -> {ok, motivo: 'sin-sesion'|null}
   function puedeSincronizar() {
-    if (!auth.enabled) return { ok: false, motivo: 'local' };
     if (!auth.user) return { ok: false, motivo: 'sin-sesion' };
     return { ok: true, motivo: null };
   }
@@ -181,12 +160,9 @@ export function crearCalendarioService({ store, auth, storage, cliente, ahora = 
   }
 
   return {
-    datos, usuario, ambito, gruposVisibles, eventos, eventosPropios, zona, guardarZona, nombreClub, nombreCalendario,
+    datos, usuario, gruposVisibles, eventos, eventosPropios, zona, guardarZona, nombreClub, nombreCalendario,
     exportar, puedeSincronizar, estadoSync, sincronizar, dejarDeSincronizar, hoy,
     grupos: () => store.list('Grupos'),
     piscinas: () => store.list('Piscinas'),
-    nadadores: () => store.list('Nadadores'),
-    setNadadorDemo: (id) => { nadadorDemo = id || ''; },
-    getNadadorDemo: () => nadadorDemo,
   };
 }

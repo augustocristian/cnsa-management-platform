@@ -5,7 +5,7 @@ Característica: Marcas
   ver su evolución individual y su rendimiento en la temporada
 
   Antecedentes:
-    Dado un club en modo local con datos de demostración
+    Dado un club con datos de demostración
     Y que estoy en el módulo "Marcas"
 
   @smoke

@@ -1,191 +1,217 @@
-// Google Sheets API v4 (+ Drive API, scope drive.file): una hoja de cálculo compartida por club,
-// con una pestaña por entidad (fila 1 = cabeceras de schema.js). Carpeta 'cnl' en Drive del propietario.
+// Google Drive API v3 con el ÚNICO scope drive.file (la app sólo ve los ficheros que ella misma crea).
+// Todo vive en la carpeta 'cnl' del Drive del usuario:
+//   cnl/<NombreClub>.json   datos del club ({version, club, hojas}) - uno por club
+//   cnl/preferencias.json   preferencias del usuario
+//   cnl/entrenos/           PDFs de entrenamientos (y copias .xlsx en cnl/)
+// Si el usuario ya tenía una carpeta 'cnl' creada a mano, la app crea y usa la suya (drive.file no ve la otra).
 import { auth } from './auth.js';
-import { DRIVE_FOLDER } from './config.js';
-import { SHEETS } from './schema.js';
+import { DRIVE_FOLDER, PREFS_FILE } from './config.js';
+import { clasificarErrorApi } from './domain/erroresGoogle.js';
 
-const SHEETS_API = 'https://sheets.googleapis.com/v4/spreadsheets';
 const API = 'https://www.googleapis.com/drive/v3';
+const UPLOAD = 'https://www.googleapis.com/upload/drive/v3';
 const FOLDER_MIME = 'application/vnd.google-apps.folder';
-const CLUBS_KEY = 'cnl:clubs';
-let folderId = null;
+const JSON_MIME = 'application/json';
+const FILE_FIELDS = 'id,name,modifiedTime,md5Checksum';
+const folderIds = new Map(); // 'padre/nombre' -> id (caché de la sesión)
+let prefsFileId = null;
 
-const TAB_NAMES = Object.keys(SHEETS);
-const quote = (name) => "'" + name.replace(/'/g, "''") + "'";
+const q = (s) => String(s).replace(/\\/g, '\\\\').replace(/'/g, "\\'");
+const rev = (f) => (f && (f.md5Checksum || f.modifiedTime)) || '';
 
-// Error con mensaje claro y `status` HTTP (o `offline` si no hay red).
+// Error con `status` HTTP, `code` estable (domain/erroresGoogle.js) o `offline` si no hay red.
 function httpError(status, body) {
+  const c = clasificarErrorApi(status, body);
   let detail = '';
   try { detail = JSON.parse(body).error.message || ''; } catch (e) { detail = String(body || '').slice(0, 160); }
   const msg = {
-    401: 'La sesión de Google ha caducado. Vuelve a iniciar sesión.',
-    403: 'No tienes permiso sobre esta hoja. Pide al propietario que la comparta contigo como editor (o revisa que las APIs de Sheets y Drive estén activadas).',
-    404: 'No se encuentra la hoja de cálculo (¿enlace incorrecto o sin acceso?).',
-    429: 'Google limita las peticiones: espera un momento y reintenta.',
-  }[status] || 'Error de Google ' + status;
+    'sesion-caducada': 'La sesión de Google ha caducado. Vuelve a iniciar sesión.',
+    'sin-permiso': 'Google ha denegado el acceso a tu Drive. Vuelve a iniciar sesión y acepta el permiso de archivos.',
+    'no-encontrado': 'No se encuentra el fichero en tu Drive (¿borrado o movido a la papelera?).',
+    'limite': 'Google limita las peticiones: espera un momento y reintenta.',
+    'api-desactivada': 'La API de Google Drive no está activada en el proyecto de Google Cloud.',
+  }[c.codigo] || 'Error de Google ' + status;
   const e = new Error(msg + (detail && status !== 401 ? ' [' + detail + ']' : ''));
   e.status = status;
+  e.code = c.codigo;
+  if (c.enlace) e.enlace = c.enlace;
   return e;
 }
+
+const offlineError = () => Object.assign(new Error('Sin conexión'), { offline: true, code: 'sin-conexion' });
 
 // fetch con token; si caduca (401) lo renueva una vez.
 async function gfetch(url, opts = {}, retry = true) {
   const token = await auth.ensureToken();
-  if (!token) { const e = new Error('Sin sesión de Google. Inicia sesión.'); e.status = 401; throw e; }
+  if (!token) {
+    if (typeof navigator !== 'undefined' && navigator.onLine === false) throw offlineError();
+    const e = new Error('Sin sesión de Google. Inicia sesión.'); e.status = 401; e.code = 'sesion-caducada'; throw e;
+  }
   const headers = Object.assign({}, opts.headers, { Authorization: 'Bearer ' + token });
   let r;
   try { r = await fetch(url, Object.assign({}, opts, { headers })); }
-  catch (err) { const e = new Error('Sin conexión'); e.offline = true; throw e; }
+  catch (err) { throw offlineError(); }
   if (r.status === 401 && retry) { auth.invalidate(); return gfetch(url, opts, false); }
   if (!r.ok) throw httpError(r.status, await r.text());
   return r;
 }
 
-const jsonPost = (url, body, method = 'POST') => gfetch(url, { method, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
-const q = (s) => s.replace(/'/g, "\\'");
+const jsonReq = (url, body, method = 'POST') => gfetch(url, { method, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
 
-// ---- Lista local de clubes conocidos (creados o a los que se ha unido el usuario) ----
-function readKnown() {
-  try { const l = JSON.parse(localStorage.getItem(CLUBS_KEY) || '[]'); return Array.isArray(l) ? l : []; } catch (e) { return []; }
+// Cuerpo multipart/related (metadatos JSON + contenido). `contenido` = string | Blob | ArrayBuffer.
+function multipart(meta, mimeType, contenido) {
+  const b = 'cnl' + Math.random().toString(36).slice(2) + Date.now().toString(36);
+  const body = new Blob([`--${b}\r\nContent-Type: application/json; charset=UTF-8\r\n\r\n${JSON.stringify(meta)}\r\n--${b}\r\nContent-Type: ${mimeType}\r\n\r\n`, contenido, `\r\n--${b}--`]);
+  return { body, headers: { 'Content-Type': 'multipart/related; boundary=' + b } };
 }
-function writeKnown(list) { try { localStorage.setItem(CLUBS_KEY, JSON.stringify(list)); } catch (e) { /* ignorar */ } }
-function remember(club) {
-  const list = readKnown().filter((c) => c.id !== club.id);
-  list.push({ id: club.id, name: club.name });
-  writeKnown(list);
-}
+
+// Nombre de fichero seguro para Drive.
+const safeName = (s) => String(s || 'club').replace(/[\\/:*?"<>|\u0000-\u001f]/g, '-').replace(/\s+/g, ' ').trim().slice(0, 120) || 'club';
+const jsonName = (name) => safeName(name) + '.json';
 
 export const drive = {
-  // Extrae el ID de una URL docs.google.com/spreadsheets/d/<id>/... o de un ID suelto; null si no vale.
-  parseSheetId(input) {
-    const s = String(input || '').trim();
-    const m = /\/spreadsheets\/d\/([a-zA-Z0-9_-]+)/.exec(s);
-    if (m) return m[1];
-    return /^[a-zA-Z0-9_-]{10,}$/.test(s) ? s : null;
-  },
+  fileUrl(id) { return 'https://drive.google.com/file/d/' + id + '/view'; },
+  folderUrl(id) { return 'https://drive.google.com/drive/folders/' + id; },
 
-  sheetUrl(id) { return 'https://docs.google.com/spreadsheets/d/' + id + '/edit'; },
-
-  // Devuelve el id de la carpeta (la crea si no existe).
-  async ensureFolder(name = DRIVE_FOLDER) {
-    if (folderId && name === DRIVE_FOLDER) return folderId;
-    const query = `name='${q(name)}' and mimeType='${FOLDER_MIME}' and trashed=false`;
-    const r = await gfetch(`${API}/files?q=${encodeURIComponent(query)}&fields=files(id,name)&spaces=drive`);
+  // Devuelve el id de la carpeta (la crea si no existe; si hay varias iguales usa la más antigua: no se duplica).
+  async ensureFolder(name = DRIVE_FOLDER, parentId = 'root') {
+    const k = parentId + '/' + name;
+    if (folderIds.has(k)) return folderIds.get(k);
+    // La carpeta raíz 'cnl' se busca en todo el Drive (con drive.file sólo se ven las creadas por la app; así se encuentra aunque el usuario la haya movido).
+    const enPadre = parentId === 'root' ? '' : ` and '${q(parentId)}' in parents`;
+    const query = `name='${q(name)}' and mimeType='${FOLDER_MIME}' and trashed=false${enPadre}`;
+    const r = await gfetch(`${API}/files?q=${encodeURIComponent(query)}&fields=files(id,name,createdTime)&orderBy=createdTime&spaces=drive&pageSize=10`);
     const found = (await r.json()).files || [];
     let id = found.length ? found[0].id : null;
-    if (!id) id = (await (await jsonPost(`${API}/files?fields=id`, { name, mimeType: FOLDER_MIME })).json()).id;
-    if (name === DRIVE_FOLDER) folderId = id;
+    if (!id) id = (await (await jsonReq(`${API}/files?fields=id`, { name, mimeType: FOLDER_MIME, parents: [parentId] })).json()).id;
+    folderIds.set(k, id);
     return id;
   },
 
-  // Clubes conocidos en este dispositivo a los que aún se tiene acceso: [{id, name, url}]
-  async listClubs() {
-    const known = readKnown();
-    const res = await Promise.all(known.map(async (c) => {
-      try {
-        const r = await gfetch(`${SHEETS_API}/${encodeURIComponent(c.id)}?fields=properties.title`);
-        return { id: c.id, name: (await r.json()).properties.title || c.name, url: drive.sheetUrl(c.id) };
-      } catch (e) {
-        if (e.status === 404) return { gone: c.id };      // borrada
-        if (e.status === 403) return null;                  // sin acceso (otra cuenta / revocado): se oculta
-        if (e.status === 401) throw e;
-        return { id: c.id, name: c.name, url: drive.sheetUrl(c.id), unverified: true }; // offline u otro fallo
-      }
-    }));
-    const gone = res.filter((x) => x && x.gone).map((x) => x.gone);
-    if (gone.length) writeKnown(known.filter((c) => !gone.includes(c.id)));
-    return res.filter((x) => x && !x.gone).sort((a, b) => a.name.localeCompare(b.name));
+  // ensureFolderPath(['entrenos']) -> id de cnl/entrenos (crea lo que falte dentro de 'cnl').
+  async ensureFolderPath(partes = []) {
+    let id = await drive.ensureFolder(DRIVE_FOLDER);
+    for (const p of partes) id = await drive.ensureFolder(p, id);
+    return id;
   },
 
-  // Crea la hoja del club con todas las pestañas y cabeceras, la guarda en la carpeta 'cnl' y la recuerda.
-  async createClub(name) {
-    const sheets = TAB_NAMES.map((t, i) => ({
-      properties: { sheetId: i, title: t, gridProperties: { frozenRowCount: 1 } },
-      data: [{ startRow: 0, startColumn: 0, rowData: [{ values: SHEETS[t].map((c) => ({ userEnteredValue: { stringValue: c }, userEnteredFormat: { textFormat: { bold: true } } })) }] }],
-    }));
-    const r = await jsonPost(`${SHEETS_API}?fields=spreadsheetId,properties.title`, { properties: { title: name }, sheets });
-    const id = (await r.json()).spreadsheetId;
-    try { // mover a la carpeta 'cnl' (si falla se queda en la raíz del Drive)
-      const fid = await drive.ensureFolder();
-      const meta = await (await gfetch(`${API}/files/${encodeURIComponent(id)}?fields=parents`)).json();
-      const remove = (meta.parents || []).join(',');
-      await gfetch(`${API}/files/${encodeURIComponent(id)}?addParents=${encodeURIComponent(fid)}${remove ? '&removeParents=' + encodeURIComponent(remove) : ''}&fields=id`, { method: 'PATCH' });
-    } catch (e) { if (e.status === 401) throw e; console.warn('No se pudo mover a la carpeta cnl', e); }
-    remember({ id, name });
-    return { id, name, url: drive.sheetUrl(id), owner: auth.user ? auth.user.email : '' };
+  // Busca un fichero por nombre dentro de una carpeta -> {id,name,rev,modifiedTime}|null
+  async findFile(name, parentId, { appProperty } = {}) {
+    let query = `name='${q(name)}' and '${q(parentId)}' in parents and trashed=false`;
+    if (appProperty) query += ` and appProperties has { key='${q(appProperty[0])}' and value='${q(appProperty[1])}' }`;
+    const j = await (await gfetch(`${API}/files?q=${encodeURIComponent(query)}&fields=files(${FILE_FIELDS})&orderBy=createdTime&spaces=drive&pageSize=5`)).json();
+    const f = (j.files || [])[0];
+    return f ? { id: f.id, name: f.name, rev: rev(f), modifiedTime: f.modifiedTime } : null;
   },
 
-  // Une al usuario a un club compartido (URL o ID de la hoja): valida acceso y lo guarda en la lista local.
-  async joinClub(input) {
-    const id = drive.parseSheetId(input);
-    if (!id) throw new Error('No parece un enlace ni un ID de Google Sheets.');
-    const r = await gfetch(`${SHEETS_API}/${encodeURIComponent(id)}?fields=properties.title,sheets.properties.title`);
-    const j = await r.json();
-    const titles = (j.sheets || []).map((s) => s.properties.title);
-    if (!titles.includes('Club') || !titles.includes('Nadadores')) throw new Error('Esa hoja no es un club de CNL Plataforma (faltan las pestañas Club/Nadadores).');
-    const name = j.properties.title;
-    remember({ id, name });
-    return { id, name, url: drive.sheetUrl(id) };
-  },
-
-  // Olvida un club de la lista local (no borra nada en Google).
-  forgetClub(id) { writeKnown(readKnown().filter((c) => c.id !== id)); },
-
-  // Lee todas las pestañas: {title, tabs: {Nombre: [[celdas]...]}}. Las pestañas ausentes quedan vacías.
-  async read(id) {
-    const base = `${SHEETS_API}/${encodeURIComponent(id)}`;
-    const meta = await (await gfetch(`${base}?fields=properties.title,sheets.properties.title`)).json();
-    const have = new Set((meta.sheets || []).map((s) => s.properties.title));
-    const names = TAB_NAMES.filter((t) => have.has(t));
-    const tabs = {};
-    if (names.length) {
-      const qs = names.map((n) => 'ranges=' + encodeURIComponent(quote(n))).join('&');
-      const j = await (await gfetch(`${base}/values:batchGet?${qs}&majorDimension=ROWS&valueRenderOption=UNFORMATTED_VALUE`)).json();
-      (j.valueRanges || []).forEach((vr, i) => { tabs[names[i]] = vr.values || []; });
+  // Crea o actualiza (si se da `id`) un fichero. contenido = string | Blob. -> {id,name,rev}
+  async upload({ name, mimeType = JSON_MIME, body, parentId, id, appProperties }) {
+    if (id) {
+      const r = await gfetch(`${UPLOAD}/files/${encodeURIComponent(id)}?uploadType=media&fields=${FILE_FIELDS}`, { method: 'PATCH', headers: { 'Content-Type': mimeType }, body });
+      const f = await r.json();
+      return { id: f.id, name: f.name, rev: rev(f) };
     }
-    return { title: meta.properties.title, tabs };
+    const meta = { name, parents: [parentId || (await drive.ensureFolder())] };
+    if (appProperties) meta.appProperties = appProperties;
+    const m = multipart(meta, mimeType, body);
+    const r = await gfetch(`${UPLOAD}/files?uploadType=multipart&fields=${FILE_FIELDS}`, { method: 'POST', headers: m.headers, body: m.body });
+    const f = await r.json();
+    return { id: f.id, name: f.name, rev: rev(f) };
   },
 
-  // Escribe todas las pestañas (tabs = {Nombre: [[cabeceras],[fila]...]}): crea las que falten, amplía la
-  // cuadrícula si hace falta, sobrescribe valores y limpia las filas sobrantes.
-  async write(id, tabs) {
-    const base = `${SHEETS_API}/${encodeURIComponent(id)}`;
-    const meta = await (await gfetch(`${base}?fields=sheets.properties(sheetId,title,gridProperties)`)).json();
-    const byTitle = new Map((meta.sheets || []).map((s) => [s.properties.title, s.properties]));
-    const names = Object.keys(tabs);
-    const requests = [];
-    names.forEach((n) => {
-      const rows = tabs[n].length;
-      const cols = Math.max(1, ...tabs[n].map((r) => r.length));
-      const p = byTitle.get(n);
-      if (!p) requests.push({ addSheet: { properties: { title: n, gridProperties: { rowCount: Math.max(rows + 50, 100), columnCount: Math.max(cols, 5), frozenRowCount: 1 } } } });
-      else {
-        const g = p.gridProperties || {};
-        if ((g.rowCount || 0) < rows + 1 || (g.columnCount || 0) < cols) {
-          requests.push({ updateSheetProperties: { properties: { sheetId: p.sheetId, gridProperties: { rowCount: Math.max(g.rowCount || 0, rows + 50), columnCount: Math.max(g.columnCount || 0, cols) } }, fields: 'gridProperties.rowCount,gridProperties.columnCount' } });
-        }
-      }
-    });
-    if (requests.length) await jsonPost(`${base}:batchUpdate`, { requests });
-    // Primero se sobrescribe, luego se limpia la cola: nunca queda la hoja vacía a mitad de escritura.
-    await jsonPost(`${base}/values:batchUpdate`, {
-      valueInputOption: 'RAW',
-      data: names.map((n) => ({ range: quote(n) + '!A1', majorDimension: 'ROWS', values: tabs[n] })),
-    });
-    await jsonPost(`${base}/values:batchClear`, { ranges: names.map((n) => `${quote(n)}!A${tabs[n].length + 1}:ZZ`) });
+  async renameFile(id, name) {
+    await jsonReq(`${API}/files/${encodeURIComponent(id)}?fields=id`, { name }, 'PATCH');
   },
 
-  // Comparte la hoja con un email (rol writer por defecto). Sólo funciona si la hoja la creó esta app con esa cuenta.
-  async shareWithEmail(id, email, role = 'writer') {
-    const em = String(email || '').trim();
-    if (!/^[^@\s]+@[^@\s]+$/.test(em)) throw new Error('Email no válido.');
+  // Manda el fichero a la papelera de Drive.
+  async deleteFile(id) {
+    await jsonReq(`${API}/files/${encodeURIComponent(id)}?fields=id`, { trashed: true }, 'PATCH');
+  },
+
+  // Clubes del usuario: los .json marcados como club dentro de 'cnl' (drive.file sólo ve los creados por la app).
+  // -> [{id, name, url, modified, rev}]
+  async listClubs() {
+    const fid = await drive.ensureFolder();
+    const query = `'${q(fid)}' in parents and trashed=false and appProperties has { key='cnl' and value='club' }`;
+    const j = await (await gfetch(`${API}/files?q=${encodeURIComponent(query)}&fields=files(${FILE_FIELDS})&spaces=drive&pageSize=100`)).json();
+    return (j.files || [])
+      .map((f) => ({ id: f.id, name: String(f.name || '').replace(/\.json$/i, ''), url: drive.fileUrl(f.id), modified: f.modifiedTime, rev: rev(f) }))
+      .sort((a, b) => a.name.localeCompare(b.name));
+  },
+
+  // Crea el fichero del club en cnl/ (vacío: la app lo inicializa al abrirlo). -> {id, name, url, rev}
+  async createClub(nombre) {
+    const fid = await drive.ensureFolder();
+    let name = jsonName(nombre);
+    for (let n = 2; await drive.findFile(name, fid); n++) name = jsonName(nombre + ' (' + n + ')');
+    const doc = { version: 1, club: {}, hojas: {} };
+    const f = await drive.upload({ name, body: JSON.stringify(doc), parentId: fid, appProperties: { cnl: 'club' } });
+    return { id: f.id, name: name.replace(/\.json$/i, ''), url: drive.fileUrl(f.id), rev: f.rev };
+  },
+
+  // Renombra el fichero del club (sigue al nombre del club).
+  async renameClub(id, nombre) { await drive.renameFile(id, jsonName(nombre)); },
+
+  // Metadatos baratos para detectar cambios de otro dispositivo -> {rev, modifiedTime, name}
+  async meta(id) {
+    const f = await (await gfetch(`${API}/files/${encodeURIComponent(id)}?fields=${FILE_FIELDS},trashed`)).json();
+    if (f.trashed) throw Object.assign(new Error('El club está en la papelera de Drive.'), { status: 404, code: 'no-encontrado' });
+    return { rev: rev(f), modifiedTime: f.modifiedTime, name: String(f.name || '').replace(/\.json$/i, '') };
+  },
+
+  // Lee el fichero del club -> {doc, rev, name}
+  async read(id) {
+    const m = await drive.meta(id);
+    const r = await gfetch(`${API}/files/${encodeURIComponent(id)}?alt=media`);
+    let doc;
+    try { doc = JSON.parse(await r.text()); } catch (e) { throw new Error('El fichero del club no es un JSON válido.'); }
+    return { doc, rev: m.rev, name: m.name };
+  },
+
+  // Escribe el fichero del club (sobrescribe el contenido) -> {rev}
+  async write(id, doc) {
+    const f = await drive.upload({ id, body: JSON.stringify(doc) });
+    return { rev: f.rev };
+  },
+
+  // ---- Preferencias del usuario: cnl/preferencias.json ----
+  async leerPreferencias() {
+    const fid = await drive.ensureFolder();
+    if (!prefsFileId) {
+      const f = await drive.findFile(PREFS_FILE, fid, { appProperty: ['cnl', 'prefs'] });
+      if (!f) return null;
+      prefsFileId = f.id;
+    }
     try {
-      await jsonPost(`${API}/files/${encodeURIComponent(id)}/permissions?sendNotificationEmail=true`, { type: 'user', role, emailAddress: em });
+      const r = await gfetch(`${API}/files/${encodeURIComponent(prefsFileId)}?alt=media`);
+      return JSON.parse(await r.text());
     } catch (e) {
-      if (e.status === 403 || e.status === 404) e.message = 'No se pudo compartir desde la app (sólo el creador de la hoja puede). Compártela desde Google Drive con ' + em + '.';
+      if (e.status === 404) { prefsFileId = null; return null; }
+      if (e instanceof SyntaxError) return null; // fichero corrupto: se reescribe
       throw e;
     }
   },
+
+  async guardarPreferencias(obj) {
+    const fid = await drive.ensureFolder();
+    const body = JSON.stringify(obj, null, 2);
+    if (!prefsFileId) {
+      const f = await drive.findFile(PREFS_FILE, fid, { appProperty: ['cnl', 'prefs'] });
+      if (f) prefsFileId = f.id;
+    }
+    if (prefsFileId) {
+      try { await drive.upload({ id: prefsFileId, body }); return; } catch (e) { if (e.status !== 404) throw e; prefsFileId = null; }
+    }
+    prefsFileId = (await drive.upload({ name: PREFS_FILE, body, parentId: fid, appProperties: { cnl: 'prefs' } })).id;
+  },
+
+  // Puerto remoto para el servicio de preferencias.
+  get preferencias() {
+    return { leer: () => drive.leerPreferencias(), escribir: (o) => drive.guardarPreferencias(o) };
+  },
+
+  // Olvida cachés internas (al cerrar sesión).
+  reset() { folderIds.clear(); prefsFileId = null; },
 };
 
 export default drive;

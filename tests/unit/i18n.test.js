@@ -31,7 +31,7 @@ test('no hay valores vacíos', () => {
 test('interpolación y fallback', () => {
   setLang('es', { persist: false });
   assert.equal(t('tutorial.progreso', { hecho: 2, total: 8 }), '2 de 8 pasos completados');
-  assert.equal(t('login.sin-acceso').includes('{email}'), true); // sin vars se deja el marcador
+  assert.equal(t('gerr.detalle').includes('{msg}'), true); // sin vars se deja el marcador
   assert.equal(t('clave.inexistente'), 'clave.inexistente');
   setLang('en', { persist: false });
   assert.equal(t('common.guardar'), 'Save');
@@ -57,7 +57,7 @@ test('categorías, estados y tipos del schema tienen traducción', async () => {
   const s = await import('../../js/schema.js');
   setLang('it', { persist: false });
   for (const c of s.CATEGORIAS) assert.notEqual(tCat(c), '', c);
-  for (const [fn, list] of [[tTipo, s.TIPOS_CARGA], [tRol, s.ROLES],
+  for (const [fn, list] of [[tTipo, s.TIPOS_CARGA], [tRol, ['entrenador']],
     [tEstado, [...s.ESTADOS_ENTRENAMIENTO, ...s.ESTADOS_ASISTENCIA, ...s.ESTADOS_BANADOR]]]) {
     for (const v of list) assert.notEqual(fn(v), v, v);
   }
@@ -97,4 +97,40 @@ test('vistas-b (entrenamientos, asistencia, cargas, marcas): paridad es/en/it', 
   setLang('en', { persist: false });
   assert.equal(t('marcas.estilo.libre'), 'Freestyle');
   setLang('es', { persist: false });
+});
+
+test('cargas-tipos: paridad de claves y variables en es/en/it, y todo predefinido traducido', async () => {
+  const [ces, cen, cit] = (await Promise.all(['es', 'en', 'it'].map((l) => import(`../../js/locales/cargas-tipos.${l}.js`)))).map((m) => m.default);
+  const D = await import('../../js/domain/cargas.js');
+  for (const [name, d] of [['en', cen], ['it', cit]]) {
+    assert.deepEqual(Object.keys(ces).filter((k) => !(k in d)), [], 'faltan en ' + name);
+    assert.deepEqual(Object.keys(d).filter((k) => !(k in ces)), [], 'huérfanas en ' + name);
+    for (const k of Object.keys(ces)) assert.equal(vars(d[k]), vars(ces[k]), k);
+  }
+  for (const k of Object.keys(ces)) assert.match(k, /^tc\./);
+  for (const c of D.CATALOGO_PREDEFINIDO) {
+    assert.equal(ces[`tc.${c.clave}.nombre`], c.nombre);
+    assert.equal(ces[`tc.${c.clave}.desc`], c.descripcion);
+  }
+});
+
+test('contenidos: predefinidos se traducen, personalizados se muestran tal cual y la descripción editada manda', async () => {
+  const { tContenido, tContenidoDesc } = await import('../../js/i18n.js');
+  const D = await import('../../js/domain/cargas.js');
+  const fila = D.sembrarCatalogo([]).find((x) => x.id === 'tc-alactico');
+  setLang('en', { persist: false });
+  assert.equal(tContenido(fila), 'Alactic / Sprint');
+  assert.match(tContenidoDesc(fila), /Maximum speed/);
+  assert.equal(tContenidoDesc({ ...fila, descripcion: 'Mi texto' }), 'Mi texto');
+  assert.equal(tTipo('Aláctico / Sprint'), 'Alactic / Sprint');
+  assert.equal(tTipo('aerobico LIGERO'), 'Light aerobic');
+  const propio = { id: 'x1', nombre: 'Piernas rápidas', descripcion: 'Texto propio', predefinido: false };
+  assert.equal(tContenido(propio), 'Piernas rápidas');
+  assert.equal(tContenidoDesc(propio), 'Texto propio');
+  setLang('it', { persist: false });
+  assert.equal(tContenido(fila), 'Alattacido / Sprint');
+  assert.match(tContenidoDesc(fila), /Velocità massima/);
+  setLang('es', { persist: false });
+  assert.equal(tContenido(fila), 'Aláctico / Sprint');
+  assert.equal(tTipo('Aeróbico'), 'Aeróbico', 'tipos antiguos siguen funcionando');
 });

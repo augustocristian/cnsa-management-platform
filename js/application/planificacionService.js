@@ -23,7 +23,7 @@ export function piscinaPorDefecto() {
   return { id: '', nombre: '', longitudM: 25, numCalles: 6, intervaloMin: 30, maxPorCalle: 8, horario: D.horarioPorDefecto() };
 }
 
-// puedeEditar: () => boolean (p. ej. el rol no es nadador). Las operaciones de escritura lanzan 'sin-permiso' si es false.
+// puedeEditar: () => boolean (por defecto siempre true: app de un solo usuario). Las operaciones de escritura lanzan 'sin-permiso' si es false.
 export function crearPlanificacionService(repo, { puedeEditar = () => true } = {}) {
   const exigir = () => {
     if (!puedeEditar()) { const e = new Error('sin-permiso'); e.code = 'sin-permiso'; throw e; }
@@ -40,12 +40,11 @@ export function crearPlanificacionService(repo, { puedeEditar = () => true } = {
     asignaciones: (piscinaId) => repo.list(HOJA_ASIGNACIONES).map(D.normalizarAsignacion).filter((a) => !piscinaId || a.piscinaId === String(piscinaId)),
     grupos: () => repo.list('Grupos'),
     nadadoresPorGrupo: () => D.nadadoresPorGrupo(repo.list('Nadadores')),
-    // Entrenadores conocidos: los de Grupos y los usuarios con rol entrenador (sin duplicados, orden alfabético).
+    // Entrenadores conocidos: los de Grupos y los de las asignaciones (sin duplicados, orden alfabético).
     entrenadores() {
       const set = new Map();
       const add = (n) => { const s = String(n || '').trim(); if (s) set.set(s.toLowerCase(), set.get(s.toLowerCase()) || s); };
       repo.list('Grupos').forEach((g) => add(g.entrenador));
-      repo.list('Usuarios').filter((u) => u.rol === 'entrenador').forEach((u) => add(u.nombre));
       repo.list(HOJA_ASIGNACIONES).forEach((a) => add(a.entrenadorId));
       return [...set.values()].sort((a, b) => a.localeCompare(b));
     },

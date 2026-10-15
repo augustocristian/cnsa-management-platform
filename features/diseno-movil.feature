@@ -5,7 +5,7 @@ Característica: Diseño móvil primero
   coherente y adaptada a móvil, tableta y escritorio
 
   Antecedentes:
-    Dado un club en modo local con datos de demostración
+    Dado un club con datos de demostración
 
   @smoke @navegacion
   Esquema del escenario: Todos los módulos son accesibles desde el menú sin errores

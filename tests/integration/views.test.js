@@ -1,6 +1,6 @@
 import base from 'node:test';
 import assert from 'node:assert/strict';
-import { fresh, renderView, VIEWS } from '../helpers/app.js';
+import { fresh, renderView, tick, VIEWS } from '../helpers/app.js';
 
 let c;
 // Cada test arranca con DOM limpio y store sembrado (sin hooks: los ficheros comparten proceso vía index.js).
@@ -17,7 +17,6 @@ const EXPECT = {
   banador: /Bañador/,
   comunicaciones: /Comunicaciones/,
   club: /Identidad del club/,
-  'mi-espacio': /nadador/i,
 };
 
 for (const name of VIEWS) {
@@ -35,11 +34,10 @@ for (const name of VIEWS) {
     assert.doesNotMatch(c.container.textContent, /undefined|NaN|\[object/);
   });
 
-  test(`vista ${name}: renderiza como entrenador y como nadador`, async () => {
-    for (const rol of ['entrenador', 'nadador']) {
-      c.auth.setDemoRole(rol);
+  test(`vista ${name}: se puede volver a pintar sobre sí misma`, async () => {
+    for (let i = 0; i < 2; i++) {
       await renderView(name, c.container, [], c);
-      assert.ok(c.container.children.length > 0, rol);
+      assert.ok(c.container.children.length > 0, 'pasada ' + i);
     }
   });
 }
@@ -47,10 +45,8 @@ for (const name of VIEWS) {
 test('inicio muestra datos del club: tarjetas y SVG', async () => {
   await renderView('inicio', c.container, [], c);
   assert.ok(c.container.querySelectorAll('svg').length >= 2);
-  assert.match(c.container.textContent, /Admin/);
-  c.auth.setDemoRole('entrenador');
-  await renderView('inicio', c.container, [], c);
   assert.match(c.container.textContent, /Bienvenido, Entrenador/);
+  assert.equal(c.container.querySelector('#primeros-pasos'), null, 'con datos no se muestran los primeros pasos');
 });
 
 test('grupos lista los 4 grupos demo con sus nadadores', async () => {
@@ -79,20 +75,30 @@ test('club: guardar identidad actualiza el store', async () => {
   assert.equal(c.store.club.nombre, 'Club Renombrado');
 });
 
-test('club: añadir usuario valida email y guarda', async () => {
+test('club: sin usuarios, roles ni compartir; explica dónde se guardan los datos en Drive', async () => {
   await renderView('club', c.container, [], c);
-  const add = [...c.container.querySelectorAll('button')].find((b) => b.textContent === 'Añadir usuario');
-  add.click();
-  assert.equal(c.store.list('Usuarios').length, 0);
-  c.container.querySelector('input[type=email]').value = 'Nuevo@Club.es';
-  add.click();
-  assert.equal(c.store.list('Usuarios').length, 1);
-  assert.equal(c.store.list('Usuarios')[0].email, 'nuevo@club.es');
+  const txt = c.container.textContent;
+  assert.doesNotMatch(txt, /Usuarios y roles|Unirse con enlace|Compartir por email/);
+  assert.equal(c.container.querySelector('input[type=email]'), null);
+  assert.match(txt, /carpeta «cnl» de tu Google Drive/);
+  assert.match(txt, /Test[.]json|[.]json/);
+  assert.equal(c.container.querySelector('#clb-abrir-fichero').href, 'https://drive.google.com/file/d/' + c.ref.id + '/view');
+  assert.match(c.container.querySelector('#clb-prefs-estado').textContent, /Estado de las preferencias/);
 });
 
-test('mi-espacio con nadador seleccionado muestra sus datos', async () => {
-  await renderView('mi-espacio', c.container, { id: 'n04' }, c);
-  assert.match(c.container.textContent, /Hola, Carla/);
-  assert.match(c.container.textContent, /Mis marcas/);
-  assert.ok(c.container.querySelectorAll('table').length >= 2);
+test('club: guardar copia Excel en Drive sube cnl/<Club>.xlsx', async () => {
+  await renderView('club', c.container, [], c);
+  c.container.querySelector('#clb-guardar-xlsx').click();
+  await tick(30);
+  assert.ok(c.fake.archivos().some((f) => f.name.endsWith('.xlsx')));
+});
+
+test('club nuevo y vacío: el inicio muestra los primeros pasos (estado vacío con acciones), sin datos de ejemplo', async () => {
+  c = await fresh({ demo: false });
+  await renderView('inicio', c.container, [], c);
+  const pp = c.container.querySelector('#primeros-pasos');
+  assert.ok(pp, 'tarjeta de primeros pasos');
+  assert.deepEqual([...pp.querySelectorAll('a')].map((a) => a.getAttribute('href')), ['#/grupos', '#/nadadores', '#/planificacion', '#/entrenamientos']);
+  assert.equal(c.store.list('Nadadores').length, 0);
+  assert.doesNotMatch(c.container.textContent, /undefined|NaN|[[]object/);
 });

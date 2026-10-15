@@ -4,7 +4,7 @@ Característica: Comunicaciones
   Como entrenador quiero un espacio para comunicar avisos a todo el club o a un grupo
 
   Antecedentes:
-    Dado un club en modo local con datos de demostración
+    Dado un club con datos de demostración
     Y que estoy en el módulo "Comunicaciones"
 
   @smoke

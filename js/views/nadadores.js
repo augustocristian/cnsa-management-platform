@@ -1,7 +1,9 @@
 // Vista Nadadores: listado, alta/edición en modal y ficha individual (#/nadadores/<id>).
 import { CATEGORIAS } from '../schema.js';
 import { icon } from '../icons.js';
-import { t, tDate, tNum, tCat, tEstado, tTipo } from '../i18n.js';
+import { t, tDate, tNum, tCat, tEstado } from '../i18n.js';
+import { indicePorNombre, normalizarNombre } from '../domain/cargas.js';
+import { crearServicio, chip, injectStyle as injectTc } from './cargas-contenidos.js';
 
 const P = 'nad-'; // prefijo de clases propias
 
@@ -267,7 +269,7 @@ function renderFicha(container, id, ctx, canEdit, refresh) {
       dato(t('nadadores.f-licencia'), n.licencia), dato(t('nadadores.d-notas'), n.notas)));
 
   container.replaceChildren(back, datos,
-    seccionAsistencia(n, store, ui), seccionCargas(n, store, ui), seccionMarcas(n, store, ui));
+    seccionAsistencia(n, store, ui), seccionCargas(n, store, ui, ctx), seccionMarcas(n, store, ui));
 }
 
 function seccion(titulo, ...contenido) {
@@ -293,7 +295,9 @@ function seccionAsistencia(n, store, ui) {
         h('td', {}, h('span', { class: 'badge' }, tEstado(a.estado) || '')), h('td', {}, a.nota || '')))))));
 }
 
-function seccionCargas(n, store, ui) {
+function seccionCargas(n, store, ui, ctx) {
+  injectTc();
+  const indice = indicePorNombre(crearServicio(ctx).tipos());
   const regs = store.list('Cargas').filter((r) => r.nadadorId === n.id)
     .sort((a, b) => String(b.fecha).localeCompare(String(a.fecha)));
   if (!regs.length) return seccion(t('nadadores.cargas'), vacio(t('nadadores.sin-cargas')));
@@ -305,7 +309,7 @@ function seccionCargas(n, store, ui) {
     h('div', { class: P + 'tablewrap' }, h('table', { class: 'table' },
       h('thead', {}, h('tr', {}, [t('nadadores.col-fecha'), t('nadadores.col-tipo'), t('nadadores.col-metros'), t('nadadores.col-rpe'), t('nadadores.col-min'), t('nadadores.col-notas')].map((x) => h('th', {}, x)))),
       h('tbody', {}, regs.slice(0, 15).map((r) => h('tr', {},
-        h('td', {}, fmtFecha(r.fecha)), h('td', {}, tTipo(r.tipo) || ''), h('td', {}, r.metros || ''),
+        h('td', {}, fmtFecha(r.fecha)), h('td', {}, r.tipo ? chip(h, indice.get(normalizarNombre(r.tipo)), r.tipo) : ''), h('td', {}, r.metros || ''),
         h('td', {}, r.rpe || ''), h('td', {}, r.minutos || ''), h('td', {}, r.notas || '')))))));
 }
 

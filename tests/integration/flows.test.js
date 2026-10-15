@@ -201,7 +201,7 @@ test('cargas: registrar carga y verla en la semana', async () => {
   form.elements.nadadorId.value = 'n04';
   form.elements.notas.value = 'marca-test';
   form.elements.fecha.value = today();
-  form.elements.tipo.value = 'Velocidad';
+  form.elements.tipoId.value = 'tc-alactico';
   form.elements.metros.value = '2400';
   form.elements.rpe.value = '7';
   form.elements.minutos.value = '75';
@@ -209,7 +209,7 @@ test('cargas: registrar carga y verla en la semana', async () => {
   await tick();
   assert.equal(c.store.list('Cargas').length, before + 1);
   const r = c.store.list('Cargas').find((x) => x.notas === 'marca-test');
-  assert.deepEqual([r.nadadorId, r.tipo, r.rpe, r.minutos, r.fecha], ['n04', 'Velocidad', 7, 75, today()]);
+  assert.deepEqual([r.nadadorId, r.tipo, r.rpe, r.minutos, r.fecha], ['n04', 'Aláctico / Sprint', 7, 75, today()]);
   assert.match(c.container.textContent, /Carla Menéndez Vigil/);
 });
 
@@ -226,11 +226,11 @@ test('cargas: sin metros no registra', async () => {
 
 test('cargas: guardar objetivo semanal', async () => {
   await renderView('cargas', c.container, [], c);
-  const fila = [...c.container.querySelectorAll('.cg-obj tbody tr')].find((tr) => tr.firstChild.textContent === 'Fuerza');
+  const fila = [...c.container.querySelectorAll('.cg-obj tbody tr')].find((tr) => tr.firstChild.textContent === 'Brazos');
   const [mn, mx] = fila.querySelectorAll('input');
   mn.value = '100'; mx.value = '900';
   fila.querySelector('button').click();
-  const o = c.store.list('ObjetivosCarga').find((x) => x.tipo === 'Fuerza');
+  const o = c.store.get('TiposCarga', 'tc-brazos');
   assert.deepEqual([o.minSemanalM, o.maxSemanalM], [100, 900]);
 });
 
@@ -303,58 +303,23 @@ test('banador: marcar entregado exige talla y guarda fecha', async () => {
   assert.equal(b.fecha, today());
 });
 
-test('rol nadador: sin formularios ni botones de edición', async () => {
-  c.auth.setDemoRole('nadador');
+test('un solo usuario con todos los permisos: formularios y acciones de edición siempre disponibles', async () => {
+  assert.equal(c.auth.role(), 'entrenador');
+  assert.equal(c.auth.setDemoRole, undefined, 'no hay selector de rol');
   await renderView('entrenamientos', c.container, [], c);
-  assert.equal(c.container.querySelector('.ent-act'), null);
-  assert.equal(c.container.textContent.includes('Nueva sesión'), false);
+  assert.ok(c.container.textContent.includes('Nueva sesión'));
   for (const [name, sel] of [['cargas', 'form.cg-form'], ['marcas', 'form.mc-form'], ['comunicaciones', 'form.cm-form']]) {
     await renderView(name, c.container, [], c);
-    assert.equal(c.container.querySelector(sel), null, `${name} no debería mostrar ${sel}`);
+    assert.ok(c.container.querySelector(sel), `${name} debería mostrar ${sel}`);
   }
-  await renderView('cargas', c.container, [], c);
-  assert.ok([...c.container.querySelectorAll('.cg-obj input')].every((i) => i.disabled));
-  await renderView('asistencia', c.container, [], c);
-  assert.equal(c.container.querySelectorAll('button.asi-sw:not([disabled])').length, 0);
-  assert.equal(c.container.textContent.includes('Marcar todos presentes'), false);
-  await renderView('banador', c.container, [], c);
-  assert.equal(c.container.querySelector('tbody select'), null);
-  assert.equal(c.container.querySelector('tbody button'), null);
-});
-
-test('rol nadador: nadadores, grupos y club están restringidos', async () => {
-  c.auth.setDemoRole('nadador');
-  for (const name of ['nadadores', 'grupos', 'club']) {
-    await renderView(name, c.container, [], c);
-    assert.match(c.container.textContent, /permisos|Sólo los administradores/, name);
-    assert.equal(c.container.querySelector('input'), null, name);
-  }
-});
-
-test('rol entrenador: no accede a club pero sí a nadadores', async () => {
-  c.auth.setDemoRole('entrenador');
-  await renderView('club', c.container, [], c);
-  assert.match(c.container.textContent, /administradores/);
   await renderView('nadadores', c.container, [], c);
   assert.ok(buttonByText(c.container, 'Nuevo nadador'));
+  await renderView('club', c.container, [], c);
+  assert.ok(c.container.querySelector('input[type=text]'), 'Configuración abierta para el único usuario');
 });
 
-test('nadador solo ve comunicaciones generales y de su grupo', async () => {
-  c.store.upsert('Usuarios', { email: 'x@y.es', rol: 'nadador', nadadorId: 'n01' }); // g1
-  c.auth.user = { email: 'x@y.es', name: 'X' };
-  c.auth.setDemoRole('nadador');
+test('comunicaciones: se ven todos los avisos (sin filtro por grupo del nadador)', async () => {
   await renderView('comunicaciones', c.container, [], c);
   assert.ok(c.container.textContent.includes('Horarios de la próxima semana'));
-  assert.equal(c.container.textContent.includes('Competición en Gijón'), false); // es de g3
-  c.auth.user = null;
-});
-
-test('mi-espacio sin vínculo ofrece selector y al elegir renderiza', async () => {
-  c.auth.setDemoRole('nadador');
-  await renderView('mi-espacio', c.container, [], c);
-  const sel = c.container.querySelector('select');
-  assert.ok(sel);
-  setValue(sel, 'n02');
-  await tick(10);
-  assert.match(c.container.textContent, /Hola, Martina/);
+  assert.ok(c.container.textContent.includes('Competición en Gijón'));
 });

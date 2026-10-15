@@ -23,7 +23,7 @@ function sembrar() {
 
 async function montar(extra = {}) {
   sembrar();
-  localStorage.setItem('cnl:cal-vista', 'agenda');
+  c.preferencias.set('calendario.vista', 'agenda');
   const mod = await importApp('js/views/calendario.js');
   const cal = { ...extra };
   await mod.render(c.container, [], { store: c.store, auth: c.auth, ui: c.ui, cal });
@@ -42,43 +42,34 @@ test('admin ve todos los grupos y puede filtrar por grupo', async () => {
   assert.ok(c.container.querySelectorAll('.cal-gchip').length >= 2, 'leyenda con chips');
 });
 
-test('nadador sólo ve las sesiones de su grupo (vínculo vía Usuarios.nadadorId)', async () => {
-  c = await fresh({ demo: false });
-  c.store.upsert('Usuarios', { id: 'u1', email: 'lucia@club.es', nombre: 'Lucía', rol: 'nadador', nadadorId: 'n1' });
-  const prev = c.auth.user;
-  c.auth.user = { email: 'lucia@club.es', name: 'Lucía' };
-  try {
-    c.auth.setDemoRole('nadador');
-    await montar();
-    assert.deepEqual(titulos().sort(), ['Reunión del club', 'Sesión Promo']);
-    assert.match(c.container.querySelector('#cal-ambito').textContent, /Promoción/);
-    assert.equal(c.container.querySelector('#cal-grupo'), null, 'sin filtros de grupo para el nadador');
-  } finally { c.auth.user = prev; }
-});
-
-test('nadador sin vínculo en modo demo: elige un nadador y ve su grupo', async () => {
-  c.auth.setDemoRole('nadador');
+test('un solo usuario: se ven todos los grupos, sin ámbito por rol ni vista de nadador', async () => {
   await montar();
-  assert.match(c.container.querySelector('#cal-ambito').textContent, /no está vinculado/);
-  assert.deepEqual(titulos(), ['Reunión del club']);
-  cambiar(c.container.querySelector('#cal-nadador'), 'n2');
-  await tick();
-  assert.deepEqual(titulos().sort(), ['Reunión del club', 'Sesión Alevín']);
+  assert.deepEqual(titulos().sort(), ['Reunión del club', 'Sesión Alevín', 'Sesión Promo']);
+  assert.match(c.container.querySelector('#cal-ambito').textContent, /todo el club/);
+  assert.equal(c.container.querySelector('#cal-nadador'), null, 'sin previsualización como nadador');
+  assert.equal(c.container.querySelector('#cal-todos'), null, 'sin interruptor de grupos propios');
+  cambiar(c.container.querySelector('#cal-piscina'), '50');
+  assert.deepEqual(titulos(), ['Reunión del club'], 'el filtro de piscina responde (el evento sin piscina siempre se ve)');
 });
 
-test('entrenador ve los grupos que entrena y puede ver todos con el interruptor', async () => {
-  const prev = c.auth.user;
-  c.auth.user = { email: 'marta@club.es', name: 'Marta Valdés' };
-  try {
-    c.auth.setDemoRole('entrenador');
-    await montar();
-    assert.deepEqual(titulos().sort(), ['Reunión del club', 'Sesión Promo']);
-    const chk = c.container.querySelector('#cal-todos');
-    assert.ok(chk, 'interruptor Todos los grupos');
-    chk.checked = true;
-    chk.dispatchEvent(new window.Event('change', { bubbles: true }));
-    assert.equal(titulos().length, 3);
-  } finally { c.auth.user = prev; }
+test('la vista, la ventana y el recordatorio elegidos se guardan en las preferencias del usuario (Drive)', async () => {
+  await montar();
+  clic(c.container.querySelector('.cal-seg button[data-vista="semana"]'));
+  assert.equal(c.preferencias.get('calendario.vista'), 'semana');
+  cambiar(c.container.querySelector('#cal-ventana'), '180');
+  assert.equal(c.preferencias.get('calendario.ventanaDias'), 180);
+  cambiar(c.container.querySelector('select[aria-label="Recordatorio"]'), '60');
+  assert.equal(c.preferencias.get('calendario.alarmaMin'), 60);
+  await c.preferencias.conectar({ remoto: c.drive.preferencias, email: c.auth.user.email });
+  const enDrive = c.fake.prefs();
+  assert.equal(enDrive.valores['calendario.vista'], 'semana');
+  assert.equal(enDrive.valores['calendario.ventanaDias'], 180);
+  // una vista nueva recupera lo elegido
+  const mod = await importApp('js/views/calendario.js');
+  await mod.render(c.container, [], { store: c.store, auth: c.auth, ui: c.ui, cal: {} });
+  await tick();
+  assert.equal(c.container.querySelector('#cal-ventana').value, '180');
+  assert.equal(c.container.querySelector('.cal-seg button[aria-pressed="true"]').dataset.vista, 'semana');
 });
 
 test('cambiar de vista (mes/semana/agenda) y navegar mantiene el contenido', async () => {
@@ -147,21 +138,20 @@ test('el admin guarda la zona horaria en Club.zonaHoraria y el .ics la usa; una 
   assert.ok(capturas[0].ics.includes('DTSTART;TZID=America/Mexico_City:'));
 });
 
-test('sin Google (modo local) la sincronización está deshabilitada y enlaza al tutorial', async () => {
+test('con la sesión de Google la sincronización de Calendar está disponible (ya no hay modo local)', async () => {
   await montar();
-  assert.equal(c.container.querySelector('#cal-sync').disabled, true);
-  assert.equal(c.container.querySelector('#cal-sync-parar').disabled, true);
-  const motivo = c.container.querySelector('#cal-sync-motivo');
-  assert.match(motivo.textContent, /modo local/);
-  assert.equal(motivo.querySelector('a').getAttribute('href'), '#/tutorial');
+  assert.equal(c.container.querySelector('#cal-sync').disabled, false);
+  assert.equal(c.container.querySelector('#cal-sync-parar').disabled, false);
+  assert.equal(c.container.querySelector('#cal-sync-motivo'), null);
+  assert.equal(c.container.querySelector('#cal-sync-estado').textContent.length > 0, true);
 });
 
 // ---------- servicio con store/auth/cliente simulados ----------
 async function servicioSimulado({ filas }) {
   const { crearCalendarioService } = await importApp('js/application/calendarioService.js');
-  const db = { Entrenamientos: filas, Grupos: [{ id: 'g1', nombre: 'Promoción', entrenador: '' }], Usuarios: [], Nadadores: [], Piscinas: [], AsignacionesCalle: [] };
+  const db = { Entrenamientos: filas, Grupos: [{ id: 'g1', nombre: 'Promoción', entrenador: '' }], Nadadores: [], Piscinas: [], AsignacionesCalle: [] };
   const store = { list: (h) => (db[h] || []).slice(), club: { nombre: 'Club Test' }, clubRef: { id: 'club-1', name: 'Club Test' }, setClub(o) { Object.assign(this.club, o); } };
-  const auth = { enabled: true, user: { email: 'yo@club.es', name: 'Yo' }, role: () => 'admin' };
+  const auth = { enabled: true, user: { email: 'yo@club.es', name: 'Yo' } };
   const mem = new Map();
   const storage = { getItem: (k) => (mem.has(k) ? mem.get(k) : null), setItem: (k, v) => mem.set(k, String(v)) };
   const remoto = new Map();
@@ -212,7 +202,7 @@ base('servicio: sincroniza de forma idempotente (crea, no repite, actualiza, bor
   assert.equal(s.svc.estadoSync().activa, false);
 });
 
-base('servicio: errores fatales abortan y se resumen; sin Google no se puede sincronizar', async () => {
+base('servicio: errores fatales abortan y se resumen; sin sesión no se puede sincronizar', async () => {
   const s = await servicioSimulado({ filas: [fila('a', '2026-10-20'), fila('b', '2026-10-21'), fila('c', '2026-10-22')] });
   const original = s.svc;
   const { crearCalendarioService } = await importApp('js/application/calendarioService.js');
@@ -225,7 +215,7 @@ base('servicio: errores fatales abortan y se resumen; sin Google no se puede sin
   assert.equal(r.abortado, 'api-desactivada');
   assert.equal(r.creados, 0);
   assert.ok(r.errores.length >= 1);
-  s.auth.enabled = false;
-  await assert.rejects(original.sincronizar({}), (e) => e.code === 'local');
-  assert.deepEqual(original.puedeSincronizar(), { ok: false, motivo: 'local' });
+  s.auth.user = null;
+  await assert.rejects(original.sincronizar({}), (e) => e.code === 'sin-sesion');
+  assert.deepEqual(original.puedeSincronizar(), { ok: false, motivo: 'sin-sesion' });
 });

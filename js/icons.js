@@ -28,6 +28,8 @@ export const ICONS = {
   nube: 'M7 18a4 4 0 01-.6-7.95A6 6 0 0118 9.5 4.3 4.3 0 0117.5 18H7z',
   aviso: 'M12 4l9.5 16h-19L12 4zM12 10v4.5M12 17.5v.01',
   'flecha-izq': 'M19 12H5M11 6l-6 6 6 6',
+  'flecha-arriba': 'M12 19V5M6 11l6-6 6 6',
+  'flecha-abajo': 'M12 5v14M6 13l6 6 6-6',
   'flecha-dcha': 'M5 12h14M13 6l6 6-6 6',
   reloj: 'M12 7v5l3 2M12 21a9 9 0 100-18 9 9 0 000 18z',
   trofeo: 'M8 21h8M12 17v4M7 4h10v5a5 5 0 01-10 0V4zM7 6H4v1a3 3 0 003 3M17 6h3v1a3 3 0 01-3 3',
@@ -39,7 +41,12 @@ export const ICONS = {
   buscar: 'M11 18a7 7 0 100-14 7 7 0 000 14zM20 20l-4-4',
   usuario: 'M12 12a4 4 0 100-8 4 4 0 000 8zM4 21a8 8 0 0116 0',
   info: 'M12 21a9 9 0 100-18 9 9 0 000 18zM12 11v6M12 7.5v.01',
-  grafica: 'M3 17l6-6 4 4 8-8M15 7h6v6'
+  grafica: 'M3 17l6-6 4 4 8-8M15 7h6v6',
+  'fila-arriba': 'M12 19V5M6 11l6-6 6 6',
+  'fila-abajo': 'M12 5v14M6 13l6 6 6-6',
+  imprimir: 'M7 9V4h10v5M7 17H4v-7h16v7h-3M7 14h10v6H7z',
+  ojo: 'M2 12s4-7 10-7 10 7 10 7-4 7-10 7S2 12 2 12zM12 15a3 3 0 100-6 3 3 0 000 6z',
+  documento: 'M6 3h8l4 4v14H6V3zM14 3v4h4M9 13h6M9 17h6'
 };
 
 // icon('mas', {size: 18, class: 'x'}) -> <svg>

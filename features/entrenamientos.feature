@@ -5,7 +5,7 @@ Característica: Entrenamientos
   planificarlas por semanas y consultar el trabajo previsto y el realizado
 
   Antecedentes:
-    Dado un club en modo local con datos de demostración
+    Dado un club con datos de demostración
     Y que estoy en el módulo "Entrenamientos"
 
   @smoke

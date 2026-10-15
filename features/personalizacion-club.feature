@@ -1,11 +1,11 @@
 # language: es
 @club
 Característica: Personalización por club
-  Como administrador quiero que la aplicación muestre el nombre, el logotipo
+  Como entrenador quiero que la aplicación muestre el nombre, el logotipo
   y los colores de mi club
 
   Antecedentes:
-    Dado un club en modo local con datos de demostración
+    Dado un club con datos de demostración
     Y que estoy en el módulo "Configuración"
 
   @smoke
@@ -43,12 +43,5 @@ Característica: Personalización por club
     Entonces la cabecera muestra el nombre "Club Persistente"
     Y el color principal de la aplicación es "#6a1b9a"
 
-  Escenario: En modo local no hay hoja de Google que compartir
-    Entonces la configuración advierte que en modo local no hay hoja de Google que compartir
-
-  @google @pendiente
-  Escenario: Cada club conserva su propia identidad
-    # Requiere inicio de sesión con Google y varias hojas compartidas: no ejecutable en e2e.
-    Dado que pertenezco a los clubes "Club Lugones" y "Club Gijón" con Google
-    Cuando cambio al club "Club Gijón"
-    Entonces veo el nombre, el logotipo y los colores de "Club Gijón"
+  Escenario: La configuración explica dónde se guardan los datos
+    Entonces la configuración explica que los datos están en la carpeta cnl de Drive

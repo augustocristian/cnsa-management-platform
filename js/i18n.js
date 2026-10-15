@@ -16,9 +16,19 @@ import vistasCit from './locales/vistas-c.it.js';
 import planES from './locales/planificacion.es.js';
 import planEN from './locales/planificacion.en.js';
 import planIT from './locales/planificacion.it.js';
+import entES from './locales/entreno.es.js';
+import entEN from './locales/entreno.en.js';
+import entIT from './locales/entreno.it.js';
 import calES from './locales/calendario.es.js';
 import calEN from './locales/calendario.en.js';
 import calIT from './locales/calendario.it.js';
+import accES from './locales/acceso.es.js';
+import accEN from './locales/acceso.en.js';
+import accIT from './locales/acceso.it.js';
+import tcES from './locales/cargas-tipos.es.js';
+import tcEN from './locales/cargas-tipos.en.js';
+import tcIT from './locales/cargas-tipos.it.js';
+import { normalizarNombre } from './domain/cargas.js';
 
 export const LANGS = [
   { code: 'es', label: 'Español' },
@@ -26,7 +36,7 @@ export const LANGS = [
   { code: 'it', label: 'Italiano' }
 ];
 export const LANG_KEY = 'cnl:lang';
-const DICTS = { es: { ...es, ...vistasAes, ...vistasBes, ...vistasCes, ...planES, ...calES }, en: { ...en, ...vistasAen, ...vistasBen, ...vistasCen, ...planEN, ...calEN }, it: { ...it, ...vistasAit, ...vistasBit, ...vistasCit, ...planIT, ...calIT } };
+const DICTS = { es: { ...es, ...vistasAes, ...vistasBes, ...vistasCes, ...planES, ...calES, ...entES, ...tcES , ...accES }, en: { ...en, ...vistasAen, ...vistasBen, ...vistasCen, ...planEN, ...calEN, ...entEN, ...tcEN , ...accEN }, it: { ...it, ...vistasAit, ...vistasBit, ...vistasCit, ...planIT, ...calIT, ...entIT, ...tcIT , ...accIT } };
 const INTL = { es: 'es-ES', en: 'en-GB', it: 'it-IT' };
 const listeners = new Set();
 
@@ -88,7 +98,39 @@ function tVal(ns, value) {
 }
 export const tCat = (v) => tVal('cat', v);
 export const tEstado = (v) => tVal('estado', v);
-export const tTipo = (v) => tVal('tipo', v);
+// Contenidos de entrenamiento. Los predefinidos se traducen con `tc.<clave>.nombre|desc`; los personalizados
+// (y los heredados) se muestran tal cual los escribió el usuario.
+let nombresPredef = null;
+function clavePredefinida(nombre) {
+  if (!nombresPredef) {
+    nombresPredef = new Map();
+    for (const k of Object.keys(DICTS.es)) {
+      const m = /^tc\.([\w-]+)\.nombre$/.exec(k);
+      if (m) nombresPredef.set(normalizarNombre(DICTS.es[k]), m[1]);
+    }
+  }
+  return nombresPredef.get(normalizarNombre(nombre)) || null;
+}
+// Nombre guardado (p. ej. Cargas.tipo) -> texto visible. Admite los tipos antiguos (Aeróbico, Velocidad...).
+export function tTipo(v) {
+  if (v == null || v === '') return '';
+  const clave = clavePredefinida(v);
+  return clave ? t(`tc.${clave}.nombre`) : tVal('tipo', v);
+}
+const slugContenido = (r) => String(r.id || '').replace(/^tc-/, '');
+// Fila de TiposCarga normalizada ({id, nombre, descripcion, predefinido}) -> nombre visible.
+export function tContenido(r) {
+  if (!r) return '';
+  const k = `tc.${slugContenido(r)}.nombre`;
+  return r.predefinido && hasKey(k) ? t(k) : r.nombre;
+}
+// Descripción visible: la traducida mientras siga siendo la original en español; si el usuario la editó, la suya.
+export function tContenidoDesc(r) {
+  if (!r) return '';
+  const k = `tc.${slugContenido(r)}.desc`;
+  if (r.predefinido && hasKey(k) && (!r.descripcion || r.descripcion === DICTS.es[k])) return t(k);
+  return r.descripcion || '';
+}
 export const tRol = (v) => tVal('rol', v);
 export const tNav = (v) => tVal('nav', v);
 

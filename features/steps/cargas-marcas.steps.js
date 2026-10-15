@@ -2,7 +2,8 @@ import { Given, When, Then } from '@cucumber/cucumber';
 import assert from 'node:assert/strict';
 import { regexTexto, todasLasPalabras } from '../support/world.js';
 
-const sinSeparadores = (t) => t.replace(/[.\s  ,]/g, '');
+const exacto = (s) => new RegExp('^' + s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '$');
+const sinSeparadores =(t) => t.replace(/[.\s  ,]/g, '');
 
 // ---- Cargas ----
 When('registro una carga con los datos:', async function (tabla) {
@@ -22,7 +23,7 @@ When('paso a la semana anterior de cargas', async function () {
 });
 
 When('fijo el objetivo semanal de {string} entre {int} y {int} metros', async function (tipo, min, max) {
-  const fila = this.vista.locator('.cg-obj tbody tr').filter({ has: this.page.locator('td:first-child', { hasText: new RegExp(`^${tipo}$`) }) });
+  const fila = this.vista.locator('.cg-obj tbody tr').filter({ has: this.page.locator('td:first-child', { hasText: exacto(tipo) }) });
   await fila.locator('input').nth(0).fill(String(min));
   await fila.locator('input').nth(1).fill(String(max));
   await fila.getByRole('button', { name: 'Guardar' }).click();
@@ -48,7 +49,7 @@ Then('todas las cargas listadas son de {string}', async function (nombre) {
 });
 
 Then('veo la evolución de las cargas por tipo y por día', async function () {
-  await this.verVisible(this.vista.locator('svg[aria-label="Metros semanales por tipo"]'));
+  await this.verVisible(this.vista.locator('[aria-label="Metros semanales por tipo"]'));
   await this.verVisible(this.vista.locator('svg[aria-label="Metros por día"]'));
 });
 
@@ -112,19 +113,23 @@ Given('que he registrado una carga de {int} metros para {string}', async functio
   await this.irA('cargas');
   const form = this.vista.locator('form.cg-form');
   await this.rellenar(form, 'Nadador', nombre);
-  await this.rellenar(form, 'Tipo', 'Aeróbico');
+  await this.rellenar(form, 'Contenido', 'Aeróbico medio / Umbral anaeróbico');
   await this.rellenar(form, 'Metros', String(metros));
   await form.getByRole('button', { name: 'Registrar' }).click();
   await this.verVisible(this.page.locator('#toasts .toast', { hasText: 'Carga registrada' }));
 });
 
-When('dejo sin objetivo semanal todos los tipos de carga', async function () {
-  for (const tipo of ['Aeróbico', 'Velocidad', 'Piernas', 'Técnica', 'Fuerza']) {
-    const fila = this.vista.locator('.cg-obj tbody tr').filter({ has: this.page.locator('td:first-child', { hasText: new RegExp(`^${tipo}$`) }) });
+When('dejo sin objetivo semanal todos los contenidos de entrenamiento', async function () {
+  const filas = this.vista.locator('.cg-obj tbody tr');
+  const n = await filas.count();
+  assert.ok(n >= 10, 'Faltan contenidos en la tabla de objetivos');
+  for (let i = 0; i < n; i++) { // la tabla se repinta tras cada guardado: se vuelve a localizar la fila
+    const fila = this.vista.locator('.cg-obj tbody tr').nth(i);
+    const nombre = (await fila.locator('td').first().innerText()).trim();
     await fila.locator('input').nth(0).fill('0');
     await fila.locator('input').nth(1).fill('0');
     await fila.getByRole('button', { name: 'Guardar' }).click();
-    await this.verVisible(this.page.locator('#toasts .toast', { hasText: `Objetivo de ${tipo} guardado` }));
+    await this.verVisible(this.page.locator('#toasts .toast', { hasText: `Objetivo de ${nombre} guardado` }));
   }
 });
 

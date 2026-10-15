@@ -78,7 +78,7 @@ Then('el service worker está activo', async function () {
 
 When('recargo la aplicación', async function () {
   await this.page.reload();
-  await this.page.locator('.role-box strong').waitFor({ timeout: this.timeout });
+  await this.esperarShell();
 });
 
 When('me quedo sin conexión', async function () {
@@ -86,12 +86,16 @@ When('me quedo sin conexión', async function () {
   // El worker toma el control de la página en su primera carga tras activarse
   await this.page.reload();
   await this.page.waitForFunction(() => !!navigator.serviceWorker.controller);
+  // Deja que el worker termine de guardar en caché los módulos cargados en esta recarga antes de cortar la red
+  await this.esperarShell();
+  await this.page.waitForLoadState('networkidle');
+  await this.page.waitForTimeout(500);
   await this.contexto.setOffline(true);
 });
 
 Then('la aplicación sigue disponible con sus datos', async function () {
   await this.page.reload();
-  await this.page.locator('.role-box strong').waitFor({ timeout: this.timeout });
+  await this.esperarShell();
   await this.irA('nadadores');
   await this.verVisible(this.vista.locator('tr.nad-row'));
 });

@@ -1,48 +1,43 @@
-// Arranque de la PWA: login, selector de club, shell, tema y carga dinámica de vistas.
+// Arranque de la PWA: Configuración necesaria -> inicio de sesión con Google -> (primera vez) asistente de club -> shell.
+// App de uso individual: todo se guarda en la carpeta 'cnl' del Drive del usuario (ver docs/ARCHITECTURE.md).
 import { h, toast, isoDate } from './ui.js';
 import * as ui from './ui.js';
 import * as router from './router.js';
 import { icon } from './icons.js';
-import { t, tNav, tRol, tDate, langSelect, onLangChange } from './i18n.js';
+import { t, tNav, langSelect, onLangChange, getLang, setLang } from './i18n.js';
+import * as acceso from './views/acceso.js';
 
-const LOCAL_KEY = 'cnl:local';
-const CLUB_KEY = 'cnl:club';
-const DEFAULT_NAME = 'Club Natación Lugones';
-const DEFAULT_LEMA = 'Pequeño gran club';
+const DEFAULT_NAME = 'CNL Plataforma';
+const DEFAULT_LEMA = '';
 const TUTORIAL = 'tutorial';
+const ELEGIR_CLUB = 'cnl:elegir'; // sessionStorage: forzar el selector de club tras "Cambiar de club"
 
-
-
-
-// Menú: [ruta, etiqueta, roles permitidos]
+// Menú: [ruta, etiqueta]. Usuario único: todos los módulos disponibles.
 const MENU = [
-  ['inicio', 'Inicio', ['admin', 'entrenador']],
-  ['mi-espacio', 'Mi espacio', ['nadador']],
-  ['nadadores', 'Nadadores', ['admin', 'entrenador']],
-  ['grupos', 'Grupos', ['admin', 'entrenador']],
-  ['entrenamientos', 'Entrenamientos', ['admin', 'entrenador']],
-  ['calendario', 'Calendario', ['admin', 'entrenador', 'nadador']],
-  ['planificacion', 'Planificación', ['admin', 'entrenador', 'nadador']],
-  ['asistencia', 'Asistencia', ['admin', 'entrenador']],
-  ['cargas', 'Cargas', ['admin', 'entrenador']],
-  ['marcas', 'Marcas', ['admin', 'entrenador']],
-  ['banador', 'Bañador', ['admin', 'entrenador']],
-  ['comunicaciones', 'Comunicaciones', ['admin', 'entrenador', 'nadador']],
-  ['club', 'Configuración', ['admin']],
-  ['tutorial', 'Tutorial', ['admin', 'entrenador', 'nadador']]
+  ['inicio', 'Inicio'],
+  ['nadadores', 'Nadadores'],
+  ['grupos', 'Grupos'],
+  ['entrenamientos', 'Entrenamientos'],
+  ['calendario', 'Calendario'],
+  ['planificacion', 'Planificación'],
+  ['asistencia', 'Asistencia'],
+  ['cargas', 'Cargas'],
+  ['marcas', 'Marcas'],
+  ['banador', 'Bañador'],
+  ['comunicaciones', 'Comunicaciones'],
+  ['club', 'Configuración'],
+  ['tutorial', 'Tutorial']
 ];
 
 const $app = () => document.getElementById('app');
 const lsGet = (k) => { try { return localStorage.getItem(k); } catch (e) { return null; } };
 const lsSet = (k, v) => { try { v == null ? localStorage.removeItem(k) : localStorage.setItem(k, v); } catch (e) { /* ignorar */ } };
 
-let store, auth, drive, config;
-let realRole = 'admin';
+let store, auth, drive, config, prefs, CLAVES, fake;
 let renderToken = 0;
-let redraw = null; // repinta la pantalla previa al shell (login, selector...) al cambiar de idioma
+let redraw = null; // repinta la pantalla previa al shell (login, asistente...) al cambiar de idioma
 let langEl = null;
 const langBox = () => (langEl ||= langSelect());
-const tutorialLink = (label) => h('a', { class: 'btn btn-link', href: '#/' + TUTORIAL }, label);
 
 // ---------- Utilidades de color / tema ----------
 function parseHex(c) {
@@ -77,23 +72,45 @@ function logoEl(size = 44) {
   return h('img', { class: 'logo', src: './icons/icon.svg', alt: '', width: size, height: size });
 }
 
-// ---------- Módulos opcionales cargados dinámicamente ----------
+// ---------- Módulos cargados dinámicamente ----------
+const modoPruebas = () => {
+  try { if (window.__CNL_TEST__) return true; } catch (e) { /* ignorar */ }
+  return lsGet('cnl:test') === '1';
+};
+
 async function loadCore() {
-  try { config = await import('./config.js'); } catch (e) { config = {}; }
-  const a = await import('./auth.js');
-  auth = a.auth || a.default;
-  const s = await import('./store.js');
-  store = s.store || s.default;
-  try { const d = await import('./drive.js'); drive = d.drive || d.default; } catch (e) { drive = null; }
+  config = await import('./config.js');
+  auth = (await import('./auth.js')).auth;
+  store = (await import('./store.js')).store;
+  drive = (await import('./drive.js')).drive;
+  const p = await import('./preferencias.js');
+  prefs = p.preferencias;
+  CLAVES = p.CLAVES;
+  // Herramienta de pruebas: sustituye a Google por un adaptador en memoria. Nunca se carga en uso normal.
+  if (modoPruebas()) {
+    const f = await import('./infrastructure/fakeGoogle.js');
+    fake = f.instalarFakeGoogle({ auth, drive, config, opciones: f.leerOpciones() });
+  }
+}
+
+// Idioma <-> preferencias del usuario (Drive). Antes de iniciar sesión el cambio queda en la caché y se sube al conectar.
+function enlazarIdioma() {
+  onLangChange((c) => { prefs.set(CLAVES.idioma, c); });
+  prefs.on((e) => {
+    if (e.tipo === 'cambio' && e.origen === 'remoto' && e.claves.includes(CLAVES.idioma)) {
+      const l = prefs.get(CLAVES.idioma);
+      if (l && l !== getLang()) setLang(l);
+    }
+  });
 }
 
 // ---------- Pantallas previas al shell ----------
 function centerCard(...children) {
   const root = $app();
-  root.replaceChildren(h('div', { class: 'auth-wrap' }, h('div', { class: 'card auth-card' }, h('div', { class: 'auth-lang' }, langBox()), children)));
+  root.replaceChildren(h('div', { class: 'auth-wrap' }, h('main', { class: 'card auth-card acc-card-wide' }, h('div', { class: 'auth-lang' }, langBox()), children)));
 }
 
-// Tutorial accesible sin sesión
+// Tutorial accesible sin sesión (el propietario lo necesita antes de poder iniciar sesión)
 async function tutorialScreen() {
   redraw = tutorialScreen;
   const box = h('div', { class: 'card auth-card tutorial-standalone', style: { maxWidth: '860px' } });
@@ -104,119 +121,105 @@ async function tutorialScreen() {
   box.appendChild(holder);
   try {
     const mod = await import('./views/tutorial.js');
-    await mod.render(holder, [], { store, auth, ui });
+    await mod.render(holder, router.current().params, { store, auth, ui });
   } catch (e) { holder.replaceChildren(errorCard(e)); }
 }
 const wantsTutorialPreShell = () => router.current().name === TUTORIAL;
 
+function configScreen() {
+  redraw = configScreen;
+  centerCard(acceso.configNecesaria({ auth, onListo: () => start() }));
+}
+
 function loginScreen() {
   redraw = loginScreen;
-  const enabled = !!auth.enabled;
-  const err = h('p', { class: 'form-error', role: 'alert' });
-  const btnLocal = h('button', {
-    class: 'btn', type: 'button',
-    onclick: () => { lsSet(LOCAL_KEY, '1'); start(); }
-  }, t('shell.login.probar-local'));
-  const kids = [
-    h('img', { class: 'logo-big', src: './icons/icon.svg', alt: '', width: 72, height: 72 }),
-    h('h1', null, t('shell.titulo')),
-    h('p', { class: 'muted' }, t('shell.lema-app'))
-  ];
-  if (enabled) {
-    kids.push(h('button', {
-      class: 'btn btn-primary btn-lg', type: 'button',
-      onclick: async (e) => {
-        e.currentTarget.disabled = true;
-        err.textContent = '';
-        try { await auth.signIn(); lsSet(LOCAL_KEY, null); start(); }
-        catch (ex) { err.textContent = t('shell.login.fallo', { msg: ex.message || ex }); e.currentTarget.disabled = false; }
-      }
-    }, h('span', { class: 'g-mark' }, 'G'), t('login.google')));
-  } else {
-    kids.push(h('p', { class: 'hint', role: 'note' }, t('shell.login.sin-google'), ' ', t('login.necesita-config')),
-      tutorialLink(t('login.ver-tutorial')));
-  }
-  kids.push(btnLocal, err,
-    h('p', { class: 'hint' }, t('shell.login.nota-local')));
-  if (enabled) kids.push(tutorialLink(t('login.ver-tutorial')));
-  centerCard(kids);
+  centerCard(acceso.login({ auth, onSesion: () => start() }));
 }
 
-async function clubSelector() {
+function errorScreen(tituloKey, e, { reintentar } = {}) {
   redraw = null;
-  centerCard(h('p', { class: 'muted' }, t('shell.club.cargando')));
-  let clubs = [];
-  try { clubs = await drive.listClubs(); }
-  catch (e) {
-    centerCard(h('h2', null, t('shell.club.error-lista')), h('p', { class: 'form-error' }, e.message || String(e)),
-      h('button', { class: 'btn btn-primary', onclick: () => start() }, t('shell.club.reintentar')),
-      h('button', { class: 'btn', onclick: doLogout }, t('shell.salir')));
-    return new Promise(() => {});
-  }
-  // Auto-selección del último club usado
-  const last = lsGet(CLUB_KEY);
-  const hit = clubs.find((c) => c.id === last);
-  if (hit && !clubSelector.forceChoose) return hit;
-
-  return new Promise((resolve) => {
-    const draw = () => {
-    const nameInput = h('input', { type: 'text', placeholder: t('shell.club.nombre-ph'), maxlength: 60 });
-    const joinInput = h('input', { type: 'text', placeholder: t('shell.club.unirse-ph'), 'aria-label': t('shell.club.unirse-ph') });
-    const err = h('p', { class: 'form-error', role: 'alert' });
-    const list = h('div', { class: 'club-list' }, clubs.length
-      ? clubs.map((c) => h('button', { class: 'club-item', type: 'button', onclick: () => resolve(c) },
-        h('strong', null, c.name), h('small', null, c.modified ? t('shell.club.modificado', { fecha: tDate(c.modified) }) : '')))
-      : h('p', { class: 'muted' }, t('shell.club.vacio')));
-    centerCard(
-      h('h2', null, t('selector.titulo')),
-      auth.user ? h('p', { class: 'muted' }, auth.user.email) : null,
-      list,
-      h('div', { class: 'new-club' }, nameInput,
-        h('button', {
-          class: 'btn btn-primary', type: 'button',
-          onclick: async (e) => {
-            const n = nameInput.value.trim();
-            if (!n) { err.textContent = t('shell.club.escribe-nombre'); return; }
-            e.currentTarget.disabled = true;
-            try { resolve({ ...(await drive.createClub(n)), isNew: true }); }
-            catch (ex) { err.textContent = ex.message || String(ex); e.currentTarget.disabled = false; }
-          }
-        }, t('shell.club.crear'))),
-      h('div', { class: 'new-club join-club' }, joinInput,
-        h('button', {
-          class: 'btn', type: 'button',
-          onclick: async (e) => {
-            const v = joinInput.value.trim();
-            if (!v) { err.textContent = t('shell.club.pega-enlace'); return; }
-            e.currentTarget.disabled = true;
-            err.textContent = '';
-            try { resolve(await drive.joinClub(v)); }
-            catch (ex) { err.textContent = ex.message || String(ex); e.currentTarget.disabled = false; }
-          }
-        }, t('shell.club.unirse'))),
-      h('p', { class: 'hint' }, t('shell.club.nota-unirse')),
-      err,
-      h('button', { class: 'btn btn-link', type: 'button', onclick: doLogout }, t('shell.club.cerrar-sesion')));
-    };
-    redraw = draw;
-    draw();
-  });
+  centerCard(h('h2', null, t(tituloKey)),
+    e && (e.code || e.enlace) ? acceso.errorGoogle(e) : h('p', { class: 'form-error', role: 'alert' }, (e && e.message) || String(e)),
+    h('button', { class: 'btn btn-primary', type: 'button', onclick: reintentar || (() => start()) }, t('shell.club.reintentar')),
+    h('button', { class: 'btn', type: 'button', onclick: doLogout }, t('shell.salir')));
 }
-function doLogout() {
+
+// Cola de preferencias y cierre de sesión: intenta subir lo pendiente (máx. 1,5 s), revoca el token y limpia cachés.
+async function doLogout() {
+  try {
+    if (prefs) await Promise.race([prefs.flush(), new Promise((r) => setTimeout(r, 1500))]);
+  } catch (e) { /* sin red: la caché se descarta igualmente */ }
+  try { prefs?.desconectar(); } catch (e) { /* ignorar */ }
   try { auth.signOut(); } catch (e) { /* ignorar */ }
-  lsSet(LOCAL_KEY, null);
-  lsSet(CLUB_KEY, null);
+  try { drive?.reset?.(); } catch (e) { /* ignorar */ }
+  // Cachés de datos de clubes ya sincronizadas: fuera. Las que tienen cambios sin subir se conservan.
+  try {
+    for (const k of Object.keys(localStorage)) {
+      if (!k.startsWith('cnl:club:')) continue;
+      let dirty = false;
+      try { dirty = !!JSON.parse(localStorage.getItem(k)).dirty; } catch (e) { /* corrupta */ }
+      if (!dirty) localStorage.removeItem(k);
+    }
+    sessionStorage.removeItem(ELEGIR_CLUB);
+  } catch (e) { /* ignorar */ }
   location.hash = '';
   location.reload();
 }
 
-// ---------- Shell ----------
-const allowedMenu = () => {
-  const role = auth.role();
-  return MENU.filter(([, , roles]) => roles.includes(role));
-};
-const defaultRoute = () => (auth.role() === 'nadador' ? 'mi-espacio' : 'inicio');
+// Primer arranque (o "Crear otro club"): asistente. -> {ref, club}
+async function flujoCrearClub({ cancelar } = {}) {
+  let creado = null;
+  await acceso.asistente({
+    mount: (kids) => centerCard(kids),
+    redibujar: (fn) => { redraw = fn; },
+    cancelar,
+    crear: async (datos) => {
+      const { crearClub } = await import('./application/asistenteClub.js');
+      creado = await crearClub({ drive, datos });
+    },
+  });
+  return creado;
+}
 
+function selectorClub(clubes) {
+  return new Promise((resolve) => {
+    const draw = () => centerCard(acceso.selector({
+      clubes, email: auth.user?.email,
+      onElegir: (c) => resolve({ ref: c }),
+      onCrear: async () => { const r = await flujoCrearClub({ cancelar: () => { draw(); redraw = draw; } }); resolve(r); },
+      onSalir: doLogout,
+    }));
+    redraw = draw;
+    draw();
+  });
+}
+
+// Con sesión: conecta las preferencias, localiza los clubes en Drive y decide qué mostrar. -> {ref, club?}
+async function resolverClub() {
+  redraw = null;
+  centerCard(h('p', { class: 'muted', role: 'status' }, t('shell.club.cargando')));
+  const conectando = prefs.conectar({ remoto: drive.preferencias, email: auth.user.email }).catch((e) => console.warn('Preferencias', e));
+  let clubes;
+  try {
+    clubes = await drive.listClubs();
+    prefs.set(CLAVES.clubes, clubes.map((c) => ({ id: c.id, name: c.name })));
+  } catch (e) {
+    const cache = prefs.get(CLAVES.clubes, []);
+    if (e && e.offline && cache.length) clubes = cache.map((c) => ({ ...c, unverified: true })); // sin conexión: clubes conocidos
+    else { await conectando; errorScreen('shell.club.error-lista', e); return null; }
+  }
+  await conectando;
+  const forzar = (() => { try { return sessionStorage.getItem(ELEGIR_CLUB) === '1'; } catch (e) { return false; } })();
+  if (!clubes.length) return flujoCrearClub(); // primera vez: asistente con el club vacío
+  if (forzar) { try { sessionStorage.removeItem(ELEGIR_CLUB); } catch (e) { /* ignorar */ } return selectorClub(clubes); }
+  const ultimo = prefs.get(CLAVES.ultimoClub);
+  const hit = clubes.find((c) => c.id === ultimo);
+  if (hit) return { ref: hit };
+  if (clubes.length === 1) return { ref: clubes[0] };
+  return selectorClub(clubes);
+}
+
+// ---------- Shell ----------
 function navIcon(name) {
   return icon(name === 'club' ? 'ajustes' : name, { size: 22 });
 }
@@ -229,48 +232,34 @@ function bellCount() {
   } catch (e) { return 0; }
 }
 
-const statusLabel = (st) => (['local', 'sincronizado', 'pendiente', 'error', 'offline'].includes(st) ? t('shell.sync.' + st) : st);
+const statusLabel = (st) => (['sincronizado', 'pendiente', 'error', 'offline'].includes(st) ? t('shell.sync.' + st) : st);
 
 function buildHeader() {
-  const role = auth.role();
   const n = bellCount();
-  const status = store.status || 'local';
-  const canSync = status !== 'local';
+  const status = store.status || 'sincronizado';
+  const email = auth.user?.email || '';
   return h('header', { class: 'topbar' },
     h('div', { class: 'brand' }, logoEl(48),
-      h('div', { class: 'brand-text' }, h('div', { class: 'brand-name' }, clubName()), h('div', { class: 'brand-lema' }, clubLema()))),
+      h('div', { class: 'brand-text' }, h('div', { class: 'brand-name' }, clubName()), clubLema() ? h('div', { class: 'brand-lema' }, clubLema()) : null)),
     h('div', { class: 'top-actions' },
       langBox(),
-      h('div', { class: 'role-box' }, h('small', null, t('shell.rol-actual')), h('strong', null, tRol(role) || role)),
+      email ? h('div', { class: 'role-box', id: 'user-box' }, h('small', null, t('shell.sesion')), h('strong', { title: email }, email)) : null,
       h('button', {
-        class: 'status-chip st-' + status, type: 'button', title: canSync ? t('common.sincronizar') : statusLabel(status),
-        onclick: async () => { if (!canSync) return; try { await store.sync(); toast(t('shell.sync-ok')); } catch (e) { toast(t('shell.sync-fallo')); } }
+        class: 'status-chip st-' + status, type: 'button', title: t('common.sincronizar'),
+        onclick: async () => { try { await store.sync(); await prefs.flush(); toast(t('shell.sync-ok')); } catch (e) { toast(t('shell.sync-fallo')); } }
       }, h('span', { class: 'dot' }), h('span', { class: 'status-text' }, statusLabel(status))),
       h('button', { class: 'icon-btn bell', type: 'button', 'aria-label': t('shell.avisos', { n }), title: t('shell.avisos-titulo'), onclick: () => router.navigate('comunicaciones') },
         icon('campana', { size: 24 }),
         n > 0 ? h('span', { class: 'badge' }, n > 9 ? '9+' : n) : null),
-      h('button', { class: 'icon-btn', type: 'button', 'aria-label': t('shell.salir'), title: auth.user ? t('shell.salir-user', { email: auth.user.email }) : t('shell.salir'), onclick: doLogout },
+      h('button', { class: 'icon-btn', type: 'button', 'aria-label': t('shell.salir'), title: email ? t('shell.salir-user', { email }) : t('shell.salir'), onclick: doLogout },
         icon('salir', { size: 24 }))));
 }
 
 function buildNav() {
   const cur = router.current().name;
-  const links = allowedMenu().map(([name]) =>
+  const links = MENU.map(([name]) =>
     h('a', { href: '#/' + name, class: 'nav-item' + (cur === name ? ' active' : ''), dataset: { route: name } }, navIcon(name), h('span', null, tNav(name))));
-  const nav = h('nav', { class: 'sidebar', 'aria-label': t('shell.menu') }, h('div', { class: 'nav-list' }, links));
-  if (realRole !== 'nadador') {
-    const opts = [...new Set([realRole, 'entrenador', 'nadador'])];
-    const sel = h('select', { id: 'role-select', 'aria-label': t('shell.cambiar-rol') },
-      opts.map((r) => h('option', { value: r, selected: r === auth.role() }, tRol(r) + (r === realRole ? ' ' + t('shell.real') : ''))));
-    sel.addEventListener('change', () => {
-      auth.setDemoRole(sel.value === realRole ? null : sel.value);
-      // El shell se reconstruye en el listener de auth
-      const { name } = router.current();
-      if (!allowedMenu().some(([n]) => n === name)) router.navigate(defaultRoute());
-    });
-    nav.appendChild(h('div', { class: 'role-switch' }, h('label', { for: 'role-select' }, t('shell.cambiar-rol')), sel, h('small', null, t('shell.vista-demo'))));
-  }
-  return nav;
+  return h('nav', { class: 'sidebar', 'aria-label': t('shell.menu') }, h('div', { class: 'nav-list' }, links));
 }
 
 function buildFooter() {
@@ -284,7 +273,7 @@ function renderShell() {
   $app().replaceChildren(h('div', { class: 'shell' }, h('div', { id: 'slot-header' }), buildNav(), main, buildFooter()));
   refreshHeader();
   const { name } = router.current();
-  if (!name || !allowedMenu().some(([n]) => n === name)) history.replaceState(null, '', '#/' + defaultRoute());
+  if (!name || !MENU.some(([n]) => n === name)) history.replaceState(null, '', '#/inicio');
   showView(router.current());
 }
 
@@ -300,7 +289,7 @@ function refreshHeader() {
 async function showView({ name, params }) {
   const main = document.getElementById('view');
   if (!main) return;
-  if (!allowedMenu().some(([n]) => n === name)) { router.navigate(defaultRoute()); return; }
+  if (!MENU.some(([n]) => n === name)) { router.navigate('inicio'); return; }
   document.querySelectorAll('.nav-item').forEach((a) => a.classList.toggle('active', a.dataset.route === name));
   const token = ++renderToken;
   main.replaceChildren(h('p', { class: 'muted loading' }, t('shell.cargando')));
@@ -342,6 +331,7 @@ function setupInstall() {
   window.addEventListener('beforeinstallprompt', (e) => {
     e.preventDefault();
     deferred = e;
+    // Preferencia sólo de este dispositivo (no es configuración del usuario): se queda en localStorage.
     if (lsGet('cnl:install-dismissed') === '1' || document.getElementById('install-banner')) return;
     const banner = h('div', { id: 'install-banner', class: 'install-banner' },
       h('span', null, t('shell.install.texto')),
@@ -363,45 +353,40 @@ function registerSW() {
 
 // ---------- Arranque ----------
 let started = false;
-async function start() {
-  const localMode = lsGet(LOCAL_KEY) === '1';
-  let clubRef;
-  if (localMode) {
-    clubRef = { id: 'local', name: DEFAULT_NAME, local: true };
-  } else {
-    if (!auth.user) { if (wantsTutorialPreShell()) tutorialScreen(); else loginScreen(); return; }
-    clubSelector.forceChoose = false;
-    const ref = await clubSelector();
-    if (!ref) return;
-    lsSet(CLUB_KEY, ref.id);
-    clubRef = ref;
-  }
+
+async function abrirClub({ ref, club }) {
   redraw = null;
-  centerCard(h('p', { class: 'muted' }, t('shell.club.abriendo')));
+  centerCard(h('p', { class: 'muted', role: 'status' }, t('shell.club.abriendo')));
   try {
-    await store.init(clubRef);
+    await store.init(ref);
   } catch (e) {
     console.error(e);
-    centerCard(h('h2', null, t('shell.club.error-abrir')), h('p', { class: 'form-error' }, e.message || String(e)),
-      h('button', { class: 'btn btn-primary', onclick: () => location.reload() }, t('shell.club.reintentar')),
-      h('button', { class: 'btn', onclick: doLogout }, t('shell.salir')));
-    return;
+    errorScreen('shell.club.error-abrir', e, { reintentar: () => location.reload() });
+    return false;
   }
-  // Primer arranque en modo local: cargar datos de ejemplo
-  if (localMode && !store.list('Nadadores').length && !lsGet('cnl:seeded')) {
-    store.seedDemo();
-    lsSet('cnl:seeded', '1');
-  }
-  auth.setDemoRole?.(null);
-  realRole = auth.role();
+  if (club) store.setClub(club); // club recién creado con el asistente: identidad elegida
+  prefs.set(CLAVES.ultimoClub, ref.id);
+  if (club) prefs.set(CLAVES.clubes, [...prefs.get(CLAVES.clubes, []).filter((c) => c.id !== ref.id), { id: ref.id, name: ref.name }]); // espejo para abrirlo sin conexión
+  fake?.despuesDeAbrirClub?.(store);
   renderShell();
   if (!started) {
     started = true;
     router.onChange(showView);
     store.on?.(() => { if (document.getElementById('slot-header')) refreshHeader(); });
-    auth.on?.(() => { if (document.getElementById('slot-header')) { renderShell(); } });
     router.start({ silent: true });
   }
+  return true;
+}
+
+async function start() {
+  if (!auth.enabled) { // sin Client ID: pantalla de configuración (o tutorial)
+    if (wantsTutorialPreShell()) tutorialScreen(); else configScreen();
+    return;
+  }
+  if (!auth.user) { if (wantsTutorialPreShell()) tutorialScreen(); else loginScreen(); return; }
+  const elegido = await resolverClub();
+  if (!elegido) return;
+  await abrirClub(elegido);
 }
 
 async function boot() {
@@ -413,19 +398,18 @@ async function boot() {
   });
   window.addEventListener('hashchange', () => {
     if (document.getElementById('slot-header')) return;
-    if (wantsTutorialPreShell()) { if (auth && !auth.user && lsGet(LOCAL_KEY) !== '1') tutorialScreen(); }
+    if (wantsTutorialPreShell()) { if (auth && !auth.user) tutorialScreen(); }
     else if (redraw === tutorialScreen) start();
   });
   try {
     await loadCore();
+    enlazarIdioma();
     await auth.init();
   } catch (e) {
     console.error(e);
     $app().replaceChildren(h('div', { class: 'card auth-card' }, h('h2', null, t('shell.error-arranque')), h('p', { class: 'form-error' }, e.message || String(e))));
     return;
   }
-  // Sesión de Google caducada pero guardado modo local no aplica
-  if (auth.enabled && auth.user) lsSet(LOCAL_KEY, null);
   await start();
 }
 

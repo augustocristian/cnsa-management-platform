@@ -1,39 +1,33 @@
-// Tutorial paso a paso para configurar la app con Google. Progreso en localStorage.
+// Tutorial paso a paso (5 minutos) para que el propietario configure Google una sola vez y para el uso básico.
+// El progreso es una preferencia del usuario (cnl/preferencias.json en su Drive; localStorage sólo como caché).
 import { h, toast } from '../ui.js';
 import { icon } from '../icons.js';
 import { t, onLangChange } from '../i18n.js';
+import { preferencias, CLAVES } from '../preferencias.js';
+import { CLIENT_ID_KEY, setClientId, isValidClientId } from '../config.js';
 
-export const PROGRESS_KEY = 'cnl:tutorial';
-export const CLIENT_ID_KEY = 'cnl:clientId';
+export { CLIENT_ID_KEY };
 
 const PROD_ORIGIN = 'https://augustocristian.github.io';
 const DEV_ORIGIN = 'http://localhost:4173';
-const SCOPE_SHEETS = 'https://www.googleapis.com/auth/spreadsheets';
 const SCOPE_DRIVE = 'https://www.googleapis.com/auth/drive.file';
 const CONSOLE = 'https://console.cloud.google.com';
 
 // items = nº de viñetas tNpasoN.iK; links/copies = [claveSufijo, url|valor]
 const STEPS = [
   { items: 3, links: [['crear-proyecto', `${CONSOLE}/projectcreate`]] },
-  { items: 3, links: [['sheets-api', `${CONSOLE}/apis/library/sheets.googleapis.com`], ['drive-api', `${CONSOLE}/apis/library/drive.googleapis.com`]] },
-  { items: 5, links: [['consentimiento', `${CONSOLE}/apis/credentials/consent`]], copies: [['scope-sheets', SCOPE_SHEETS], ['scope-drive', SCOPE_DRIVE]], warn: true },
-  { items: 5, links: [['credenciales', `${CONSOLE}/apis/credentials`]], copies: [['origen-prod', PROD_ORIGIN], ['origen-dev', DEV_ORIGIN]] },
-  { items: 2, copies: [['config', "export const GOOGLE_CLIENT_ID = 'TU_ID.apps.googleusercontent.com';"]], clientField: true },
-  { items: 4 },
-  { items: 3, links: [['drive', 'https://drive.google.com/drive/my-drive']] },
-  { items: 3 }
+  { items: 3, links: [['drive-api', `${CONSOLE}/apis/library/drive.googleapis.com`]] },
+  { items: 5, links: [['consentimiento', `${CONSOLE}/apis/credentials/consent`]], copies: [['scope-drive', SCOPE_DRIVE]], warn: true },
+  { items: 4, links: [['credenciales', `${CONSOLE}/apis/credentials`]], copies: [['origen-prod', PROD_ORIGIN], ['origen-dev', DEV_ORIGIN], ['origen-actual', location.origin]] },
+  { items: 2, copies: [['config', "const BUILTIN_CLIENT_ID = 'TU_ID.apps.googleusercontent.com';"]], clientField: true },
+  { items: 5, links: [['drive', 'https://drive.google.com/drive/my-drive']] }
 ];
 
-const lsGet = (k) => { try { return localStorage.getItem(k); } catch (e) { return null; } };
-const lsSet = (k, v) => { try { v == null ? localStorage.removeItem(k) : localStorage.setItem(k, v); } catch (e) { /* ignorar */ } };
-
 function loadProgress() {
-  try {
-    const p = JSON.parse(lsGet(PROGRESS_KEY) || '{}');
-    return { done: Array.isArray(p.done) ? p.done.filter((n) => n >= 1 && n <= STEPS.length) : [], current: Number(p.current) || 1 };
-  } catch (e) { return { done: [], current: 1 }; }
+  const p = preferencias.get(CLAVES.tutorial, { done: [], current: 1 });
+  return { done: Array.isArray(p.done) ? p.done.filter((n) => n >= 1 && n <= STEPS.length) : [], current: Number(p.current) || 1 };
 }
-const saveProgress = (p) => lsSet(PROGRESS_KEY, JSON.stringify(p));
+const saveProgress = (p) => preferencias.set(CLAVES.tutorial, { done: p.done, current: p.current });
 
 async function copyText(text) {
   try { await navigator.clipboard.writeText(text); }
@@ -96,16 +90,18 @@ export async function render(container, params, ctx) {
     h('div', { class: 'tut-val' }, h('code', null, v),
       h('button', { type: 'button', class: 'btn', onclick: () => copyText(v) }, t('common.copiar'))));
 
+  const storedId = () => { try { return localStorage.getItem(CLIENT_ID_KEY) || ''; } catch (e) { return ''; } };
+
   function clientField() {
-    const input = h('input', { type: 'text', id: 'tut-clientid', autocomplete: 'off', spellcheck: 'false', value: lsGet(CLIENT_ID_KEY) || '', placeholder: '123456-abc.apps.googleusercontent.com' });
+    const input = h('input', { type: 'text', id: 'tut-clientid', autocomplete: 'off', spellcheck: 'false', value: storedId(), placeholder: '123456-abc.apps.googleusercontent.com' });
     return h('div', { class: 'tut-field' },
       h('label', null, h('span', null, t('tutorial.paso5.campo')), input),
       h('button', { type: 'button', class: 'btn btn-primary', onclick: () => {
         const v = input.value.trim();
-        if (!/\.apps\.googleusercontent\.com$/.test(v)) { toast(t('tutorial.paso5.invalido'), 4500); return; }
-        lsSet(CLIENT_ID_KEY, v); toast(t('tutorial.paso5.guardado'), 4500);
+        if (!isValidClientId(v)) { toast(t('tutorial.paso5.invalido'), 4500); return; }
+        setClientId(v); toast(t('tutorial.paso5.guardado'), 4500);
       } }, t('tutorial.paso5.guardar')),
-      h('button', { type: 'button', class: 'btn', onclick: () => { lsSet(CLIENT_ID_KEY, null); input.value = ''; toast(t('tutorial.paso5.borrado')); } }, t('tutorial.paso5.borrar')),
+      h('button', { type: 'button', class: 'btn', onclick: () => { setClientId(''); input.value = ''; toast(t('tutorial.paso5.borrado')); } }, t('tutorial.paso5.borrar')),
       h('button', { type: 'button', class: 'btn', onclick: () => location.reload() }, t('tutorial.paso5.recargar')));
   }
 

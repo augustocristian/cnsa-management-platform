@@ -1,6 +1,7 @@
-// Vista Club: identidad, usuarios/roles, importar/exportar y sincronización.
-import { t, tRol } from '../i18n.js';
-const ROLES = ['admin', 'entrenador', 'nadador'];
+// Vista Configuración: identidad del club, dónde se guardan los datos (Drive), copias .xlsx y preferencias.
+import { t } from '../i18n.js';
+import { renderGestor } from './cargas-contenidos.js';
+import { preferencias } from '../preferencias.js';
 
 function injectStyle() {
   if (document.getElementById('clb-style')) return;
@@ -15,8 +16,7 @@ function injectStyle() {
   .clb-logo{width:72px;height:72px;border-radius:12px;border:1px dashed #cfd4dc;object-fit:contain;background:#fafafa}
   .clb-card h3{margin:0 0 12px;color:#174ea6}
   .clb-actions{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
-  .clb-table{width:100%;border-collapse:collapse}
-  .clb-table td,.clb-table th{padding:6px;border-bottom:1px solid #eee;text-align:left;font-size:.9rem}
+  .clb-actions .btn{min-height:44px}
   `;
   document.head.append(s);
 }
@@ -42,64 +42,33 @@ function fileToLogo(file) {
   });
 }
 
-// Bloque 'Compartir': enlace/ID de la hoja de Google, copiar, abrir y compartir por email (Drive permissions).
-function buildCompartir(ctx) {
-  const { store, ui } = ctx;
+// Enlaces al fichero del club y a la carpeta cnl en Drive (la carpeta se resuelve al pulsar).
+function buildDrive(ctx, ui) {
   const h = ui.h;
-  const ref = store.clubRef;
-  if (!ref || ref.local || !ref.id) {
-    return h('div', { class: 'card clb-card' }, h('h3', {}, t('club.compartir')),
-      h('p', { class: 'muted' }, t('club.localSinHoja')));
+  const ref = ctx.store.clubRef;
+  const nombre = (ctx.store.club && ctx.store.club.nombre) || (ref && ref.name) || '';
+  const items = [h('p', null, t('club.dondeTexto', { nombre }))];
+  const acciones = h('div', { class: 'clb-actions' });
+  if (ref && ref.id) {
+    acciones.append(h('a', { class: 'btn', id: 'clb-abrir-fichero', href: 'https://drive.google.com/file/d/' + ref.id + '/view', target: '_blank', rel: 'noopener noreferrer' }, t('club.abrirFichero')));
+    const bCarpeta = h('button', { type: 'button', class: 'btn', id: 'clb-abrir-carpeta' }, t('club.abrirCarpeta'));
+    bCarpeta.addEventListener('click', async () => {
+      try {
+        const { drive } = await import('../drive.js');
+        const id = await drive.ensureFolder();
+        window.open(drive.folderUrl(id), '_blank', 'noopener');
+      } catch (e) { ui.toast(e.message || String(e)); }
+    });
+    acciones.append(bCarpeta);
   }
-  const url = 'https://docs.google.com/spreadsheets/d/' + ref.id + '/edit';
-  const inUrl = h('input', { type: 'text', readonly: 'readonly', value: url, 'aria-label': t('club.enlaceHoja') });
-  inUrl.addEventListener('focus', () => inUrl.select());
-  const bCopy = h('button', { type: 'button', class: 'btn' }, t('club.copiarEnlace'));
-  bCopy.addEventListener('click', async () => {
-    try { await navigator.clipboard.writeText(url); ui.toast(t('club.enlaceCopiado')); }
-    catch (e) { inUrl.select(); ui.toast(t('club.pulsaCopiar')); }
-  });
-  const bId = h('button', { type: 'button', class: 'btn' }, t('club.copiarId'));
-  bId.addEventListener('click', async () => {
-    try { await navigator.clipboard.writeText(ref.id); ui.toast(t('club.idCopiado')); } catch (e) { ui.toast(t('club.idMsg', { id: ref.id })); }
-  });
-  const bOpen = h('a', { class: 'btn', href: url, target: '_blank', rel: 'noopener' }, t('club.abrirSheets'));
-  const inMail = h('input', { type: 'email', placeholder: t('club.placeholderEmail') });
-  const bShare = h('button', { type: 'button', class: 'btn btn-primary' }, t('club.compartirEmail'));
-  bShare.addEventListener('click', async () => {
-    const email = inMail.value.trim();
-    bShare.disabled = true;
-    try {
-      const { drive } = await import('../drive.js');
-      await drive.shareWithEmail(ref.id, email, 'writer');
-      ui.toast(t('club.hojaCompartida', { email }));
-      inMail.value = '';
-    } catch (e) { ui.toast(e.message || String(e)); }
-    bShare.disabled = false;
-  });
-  return h('div', { class: 'card clb-card' }, h('h3', {}, t('club.compartir')),
-    h('p', {}, t('club.compIntro')),
-    h('ol', {},
-      h('li', {}, t('club.comp1')),
-      h('li', {}, t('club.comp2')),
-      h('li', {}, t('club.comp3')),
-      h('li', {}, t('club.comp4'))),
-    h('div', { class: 'clb-row' }, h('label', {}, t('club.enlaceHoja'), inUrl)),
-    h('div', { class: 'clb-actions' }, bCopy, bId, bOpen),
-    h('div', { class: 'clb-row', style: 'margin-top:12px' }, h('label', {}, t('club.compartirCon'), inMail), bShare),
-    h('p', { class: 'muted' }, t('club.compNota')));
+  return h('div', { class: 'card clb-card' }, h('h3', {}, t('club.dondeTitulo')), ...items, acciones);
 }
 
 export async function render(container, params, ctx) {
-  const { store, auth, ui } = ctx;
+  const { store, ui } = ctx;
   const h = ui.h;
   injectStyle();
   container.replaceChildren();
-
-  if (auth.role && auth.role() !== 'admin') {
-    container.append(h('div', { class: 'card' }, t('club.soloAdmin')));
-    return;
-  }
 
   const club = { ...(store.club || {}) };
 
@@ -129,52 +98,8 @@ export async function render(container, params, ctx) {
     h('div', { class: 'clb-row' }, h('label', {}, t('club.colorPrimario'), inC1), h('label', {}, t('club.colorSecundario'), inC2)),
     btnGuardar);
 
-  // ---- Usuarios ----
-  const usuariosBox = h('div', { class: 'card clb-card' }, h('h3', {}, t('club.usuarios')));
-  const nadadores = store.list('Nadadores');
-  let editId = null;
-  const uEmail = h('input', { type: 'email', placeholder: t('club.placeholderEmail') });
-  const uNombre = h('input', { type: 'text' });
-  const uRol = h('select', {}, ...ROLES.map((r) => h('option', { value: r }, tRol(r))));
-  const uNad = h('select', {}, h('option', { value: '' }, t('club.ninguno')),
-    ...nadadores.map((n) => h('option', { value: n.id }, `${n.nombre} ${n.apellidos || ''}`)));
-  const btnU = h('button', { type: 'button', class: 'btn btn-primary' }, t('club.anadirUsuario'));
-  const tabla = h('table', { class: 'table clb-table' });
-
-  function resetForm() {
-    editId = null; uEmail.value = ''; uNombre.value = ''; uRol.value = 'entrenador'; uNad.value = ''; btnU.textContent = t('club.anadirUsuario');
-  }
-  function pintaTabla() {
-    tabla.replaceChildren(h('tr', {}, ...[t('club.colEmail'), t('club.colNombre'), t('club.colRol'), t('club.colNadador'), ''].map((c) => h('th', {}, c))));
-    for (const u of store.list('Usuarios')) {
-      const n = nadadores.find((x) => x.id === u.nadadorId);
-      const bE = h('button', { type: 'button', class: 'btn' }, t('club.editar'));
-      bE.addEventListener('click', () => {
-        editId = u.id; uEmail.value = u.email || ''; uNombre.value = u.nombre || ''; uRol.value = u.rol || 'nadador'; uNad.value = u.nadadorId || ''; btnU.textContent = t('club.guardarCambios');
-      });
-      const bD = h('button', { type: 'button', class: 'btn' }, t('club.eliminar'));
-      bD.addEventListener('click', async () => {
-        if (await ui.confirmDialog(t('club.confirmEliminarUsuario', { email: u.email }))) { store.remove('Usuarios', u.id); pintaTabla(); }
-      });
-      tabla.append(h('tr', {}, h('td', {}, u.email || ''), h('td', {}, u.nombre || ''), h('td', {}, h('span', { class: 'badge' }, tRol(u.rol || ''))),
-        h('td', {}, n ? `${n.nombre} ${n.apellidos || ''}` : ''), h('td', {}, bE, ' ', bD)));
-    }
-  }
-  btnU.addEventListener('click', () => {
-    const email = uEmail.value.trim().toLowerCase();
-    if (!email || !email.includes('@')) { ui.toast(t('club.emailInvalido')); return; }
-    const row = { email, nombre: uNombre.value.trim(), rol: uRol.value, nadadorId: uRol.value === 'nadador' ? uNad.value : '' };
-    if (editId) row.id = editId;
-    store.upsert('Usuarios', row);
-    resetForm(); pintaTabla(); ui.toast(t('club.usuarioGuardado'));
-  });
-  usuariosBox.append(
-    h('div', { class: 'clb-row' }, h('label', {}, t('club.colEmail'), uEmail), h('label', {}, t('club.colNombre'), uNombre), h('label', {}, t('club.colRol'), uRol), h('label', {}, t('club.nadadorVinculado'), uNad)),
-    btnU, tabla);
-  pintaTabla();
-
-  // ---- Datos ----
-  const estado = h('span', { class: 'badge' }, store.status || '');
+  // ---- Datos: sincronización y copias de seguridad ----
+  const estado = h('span', { class: 'badge', id: 'clb-estado' }, store.status || '');
   const unsub = store.on ? store.on(() => { if (estado.isConnected) estado.textContent = store.status || ''; }) : null;
   void unsub;
   const bSync = h('button', { type: 'button', class: 'btn btn-primary' }, t('club.sincronizar'));
@@ -184,6 +109,13 @@ export async function render(container, params, ctx) {
   const bExp = h('button', { type: 'button', class: 'btn' }, t('club.exportar'));
   bExp.addEventListener('click', async () => {
     try { await store.exportXlsx(); } catch (e) { ui.toast(t('club.errExport', { msg: e.message })); }
+  });
+  const bGuardarXlsx = h('button', { type: 'button', class: 'btn', id: 'clb-guardar-xlsx' }, t('club.guardarXlsx'));
+  bGuardarXlsx.addEventListener('click', async () => {
+    bGuardarXlsx.disabled = true;
+    try { const f = await store.guardarXlsxEnDrive(); ui.toast(t('club.xlsxGuardado', { nombre: f.name })); }
+    catch (e) { ui.toast(t('club.errExport', { msg: e.message })); }
+    bGuardarXlsx.disabled = false;
   });
   const inImp = h('input', { type: 'file', accept: '.xlsx', style: 'display:none' });
   const bImp = h('button', { type: 'button', class: 'btn' }, t('club.importar'));
@@ -197,7 +129,35 @@ export async function render(container, params, ctx) {
     inImp.value = '';
   });
   const datos = h('div', { class: 'card clb-card' }, h('h3', {}, t('club.datos')),
-    h('div', { class: 'clb-actions' }, bSync, bExp, bImp, inImp, h('span', {}, t('club.estado')), estado));
+    h('div', { class: 'clb-actions' }, bSync, bExp, bGuardarXlsx, bImp, inImp, h('span', {}, t('club.estado')), estado));
 
-  container.append(h('div', { class: 'clb-wrap' }, identidad, usuariosBox, buildCompartir(ctx), datos));
+  // ---- Preferencias del usuario (cnl/preferencias.json) ----
+  const prefEstado = h('p', { class: 'muted', id: 'clb-prefs-estado', 'aria-live': 'polite' });
+  const pintaPrefs = () => { prefEstado.textContent = t('club.prefsEstado', { estado: t('prefs.estado.' + preferencias.estado) }); };
+  pintaPrefs();
+  const offPrefs = preferencias.on(() => { if (prefEstado.isConnected) pintaPrefs(); else offPrefs(); });
+  const bPrefs = h('button', { type: 'button', class: 'btn' }, t('club.prefsSincronizar'));
+  bPrefs.addEventListener('click', async () => {
+    const r = await preferencias.sincronizar();
+    pintaPrefs();
+    ui.toast(r.ok ? t('club.prefsSincronizadas') : t('club.errSync', { msg: (r.error && r.error.message) || '' }));
+  });
+  const prefs = h('div', { class: 'card clb-card' }, h('h3', {}, t('club.prefsTitulo')), h('p', null, t('club.prefsTexto')), prefEstado, h('div', { class: 'clb-actions' }, bPrefs));
+
+  // ---- Clubes ----
+  const bCambiar = h('button', { type: 'button', class: 'btn', id: 'clb-cambiar' }, t('club.cambiarClub'));
+  bCambiar.addEventListener('click', async () => {
+    try { sessionStorage.setItem('cnl:elegir', '1'); } catch (e) { /* ignorar */ }
+    await preferencias.flush();
+    location.hash = '';
+    location.reload();
+  });
+  const clubes = h('div', { class: 'card clb-card' }, h('h3', {}, t('club.clubesTitulo')), h('div', { class: 'clb-actions' }, bCambiar));
+
+  // Contenidos de entrenamiento (catálogo de cargas)
+  const contenidosHost = h('div');
+  renderGestor(contenidosHost, ctx);
+  const contenidos = h('div', { class: 'card clb-card' }, h('h3', {}, t('tc.titulo')), contenidosHost);
+
+  container.append(h('div', { class: 'clb-wrap' }, identidad, contenidos, buildDrive(ctx, ui), datos, prefs, clubes));
 }

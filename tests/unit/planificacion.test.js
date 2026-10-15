@@ -318,7 +318,7 @@ test('cada tipo de conflicto y error de piscina tiene mensaje traducido', () => 
 
 // ---------- Servicio con repositorio en memoria ----------
 function repoMemoria() {
-  const db = { Piscinas: [], AsignacionesCalle: [], Grupos: grupos.map((g) => ({ ...g })), Nadadores: [], Usuarios: [] };
+  const db = { Piscinas: [], AsignacionesCalle: [], Grupos: grupos.map((g) => ({ ...g })), Nadadores: [] };
   let n = 0;
   return {
     db,
@@ -417,7 +417,6 @@ test('servicio: sin permiso de edición no escribe (solo lectura)', () => {
 test('servicio: sugerir y aplicar crea asignaciones sin errores; entrenadores sin duplicados', () => {
   const repo = repoMemoria();
   repo.db.Nadadores = [...nad('g1', 10), ...nad('g2', 5)];
-  repo.db.Usuarios = [{ id: 'u1', rol: 'entrenador', nombre: 'ana' }, { id: 'u2', rol: 'admin', nombre: 'Jefe' }];
   const svc = crearPlanificacionService(repo);
   svc.guardarPiscina(piscina());
   assert.deepEqual(svc.entrenadores(), ['Ana', 'Bruno']);

@@ -1,6 +1,8 @@
 // Vista Entrenamientos: planificación semanal, crear/editar sesiones.
 import { icon } from '../icons.js';
 import { t, tEstado, locale } from '../i18n.js';
+import * as PLAN from './entreno-acciones.js';
+import { abrirEditor } from './entreno-editor.js';
 const CSS = `
 .ent-bar{display:flex;flex-wrap:wrap;gap:8px;align-items:center;justify-content:space-between;margin-bottom:12px}
 .ent-nav{display:flex;gap:6px;align-items:center;flex-wrap:wrap}
@@ -52,6 +54,7 @@ export async function render(container, params, ctx) {
   injectStyle();
 
   const canEdit = auth.role() !== 'nadador';
+  const plan = PLAN.servicio(ctx);
   let weekStart = mondayOf(new Date());
   let groupFilter = '';
   let unsub = null;
@@ -105,7 +108,8 @@ export async function render(container, params, ctx) {
       if (out.volumenMin && out.volumenMax && Number(out.volumenMin) > Number(out.volumenMax)) {
         return toast(t('entre.err-volumen'));
       }
-      await store.upsert('Entrenamientos', out);
+      const guardada = await store.upsert('Entrenamientos', out);
+      if (isNew && row.copiaDe && guardada) plan.copiarPlan(row.copiaDe, guardada.id); // duplicar: copia también el plan detallado
       close();
       toast(t('entre.guardada'));
     });
@@ -120,6 +124,8 @@ export async function render(container, params, ctx) {
     if (s.piscina) meta.push(t('entre.meta-piscina', { n: s.piscina }));
     if (s.volumenMin || s.volumenMax) meta.push(t('entre.meta-vol', { min: s.volumenMin || '?', max: s.volumenMax || '?' }));
     if (s.enfoque) meta.push(t('entre.meta-enfoque', { v: s.enfoque }));
+    const resumen = plan.tienePlan(s.id) ? plan.resumen(s.id) : null;
+    if (resumen && resumen.metros) meta.push(t('entreno.chip', { m: resumen.metros, min: resumen.tiempoMin }));
     const done = s.estado === 'realizado';
     return h('div', { class: 'ent-sess' },
       h('div', { class: 'ent-time' }, s.hora || '--:--'),
@@ -130,15 +136,18 @@ export async function render(container, params, ctx) {
           h('span', { class: 'badge' }, tEstado(done ? 'realizado' : 'planificado')),
           ...meta.map((m) => h('span', {}, m))),
         s.descripcion ? h('div', { class: 'ent-meta' }, s.descripcion) : null),
-      canEdit ? h('div', { class: 'ent-act' },
+      h('div', { class: 'ent-act' },
+        h('button', { class: 'btn', onclick: () => abrirEditor({ ctx, sesionId: s.id, soloLectura: !canEdit }) }, icon('documento', { size: 16 }), ' ' + t(canEdit ? 'entreno.plan' : 'entreno.ver-plan')),
+        h('button', { class: 'btn', 'aria-label': t('entreno.pdf-de', { n: s.titulo || t('entre.sesion') }), onclick: () => PLAN.pdfSesion(ctx, s.id) }, icon('descargar', { size: 16 }), ' PDF'),
+        ...(!canEdit ? [] : [
         h('button', { class: 'btn', onclick: async () => {
           await store.upsert('Entrenamientos', { ...s, estado: done ? 'planificado' : 'realizado' });
         } }, done ? t('entre.reabrir') : t('entre.marcar-realizado')),
         h('button', { class: 'btn', onclick: () => openForm(s) }, t('common.editar')),
-        h('button', { class: 'btn', onclick: () => openForm({ ...s, id: undefined, estado: 'planificado' }) }, t('entre.duplicar')),
+        h('button', { class: 'btn', onclick: () => openForm({ ...s, id: undefined, estado: 'planificado', copiaDe: s.id }) }, t('entre.duplicar')),
         h('button', { class: 'btn', onclick: async () => {
-          if (await confirmDel(t('entre.confirm-eliminar'))) { await store.remove('Entrenamientos', s.id); toast(t('entre.eliminada')); }
-        } }, t('common.eliminar'))) : null);
+          if (await confirmDel(t('entre.confirm-eliminar'))) { plan.eliminarSesion(s.id); toast(t('entre.eliminada')); }
+        } }, t('common.eliminar'))])));
   }
 
   function draw() {
@@ -159,6 +168,7 @@ export async function render(container, params, ctx) {
         h('button', { class: 'btn', 'aria-label': t('entre.semana-siguiente'), onclick: () => { weekStart = addDays(weekStart, 7); draw(); } }, '›'),
         h('button', { class: 'btn', onclick: () => { weekStart = mondayOf(new Date()); draw(); } }, t('entre.hoy'))),
       h('div', { class: 'ent-nav' }, groupSel,
+        h('button', { class: 'btn', onclick: () => PLAN.pdfSemana(ctx, { lunes: iso(weekStart), grupoId: groupFilter, grupoNombre: groupFilter ? grupoName(groupFilter) : '' }) }, icon('descargar', { size: 16 }), ' ' + t('entreno.pdf-semana')),
         canEdit ? h('button', { class: 'btn btn-primary', onclick: () => openForm({ fecha: todayIso, estado: 'planificado', grupoId: groupFilter }) }, icon('mas', { size: 16 }), ' ' + t('entre.nueva')) : null));
 
     const days = [];

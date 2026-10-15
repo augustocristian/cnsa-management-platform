@@ -175,32 +175,6 @@ export function eventosEnRango(datos, rango, { fuentes = FUENTES_EVENTOS, etq = 
   return todos.filter((e) => (vistos.has(e.id) ? false : vistos.add(e.id))).sort(cmpEv);
 }
 
-// ---------- Personalización por rol ----------
-// -> {todos, grupoIds[], vinculado, nadadorId}
-//  nadador: sólo su grupo (vínculo Usuarios.nadadorId o Nadadores.email); sin vínculo => nada.
-//  entrenador: los grupos cuyo Grupos.entrenador coincide con su nombre o email; si ninguno => todos.
-//  admin: todo.
-export function ambitoUsuario({ rol, email = '', nombre = '', datos }) {
-  const grupos = datos.Grupos || [];
-  const em = norm(email);
-  if (rol === 'nadador') {
-    const u = (datos.Usuarios || []).find((x) => em && norm(x.email) === em);
-    let nad = u && u.nadadorId ? (datos.Nadadores || []).find((n) => n.id === str(u.nadadorId)) : null;
-    if (!nad && em) nad = (datos.Nadadores || []).find((n) => norm(n.email) === em);
-    return { todos: false, grupoIds: nad && nad.grupoId ? [nad.grupoId] : [], vinculado: !!nad, nadadorId: nad ? nad.id : '' };
-  }
-  if (rol === 'entrenador') {
-    const u = (datos.Usuarios || []).find((x) => em && norm(x.email) === em);
-    const nombres = [nombre, u && u.nombre].filter(Boolean).map(norm);
-    const mios = grupos.filter((g) => {
-      const e = norm(g.entrenador);
-      return e && ((em && e === em) || nombres.includes(e));
-    }).map((g) => g.id);
-    return mios.length ? { todos: false, grupoIds: mios, vinculado: true, nadadorId: '' } : { todos: true, grupoIds: [], vinculado: false, nadadorId: '' };
-  }
-  return { todos: true, grupoIds: [], vinculado: true, nadadorId: '' };
-}
-
 // filtros: {grupoIds: null|string[] (null = sin límite), piscina: ''|'25'|'50', incluirGenerales}
 // Las sesiones sin grupo (grupoId vacío) son para todo el club y se muestran siempre.
 export function filtrarEventos(eventos, { grupoIds = null, piscina = '' } = {}) {

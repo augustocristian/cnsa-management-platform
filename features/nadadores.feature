@@ -5,7 +5,7 @@ Característica: Gestión de nadadores
   y organizarlos por categorías y grupos de entrenamiento
 
   Antecedentes:
-    Dado un club en modo local con datos de demostración
+    Dado un club con datos de demostración
     Y que estoy en el módulo "Nadadores"
 
   @smoke

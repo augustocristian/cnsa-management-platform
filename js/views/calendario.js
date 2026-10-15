@@ -1,10 +1,11 @@
-// Vista Calendario: Mes / Semana / Agenda personalizados por rol, exportación .ics y sincronización con Google Calendar.
+// Vista Calendario: Mes / Semana / Agenda con filtros por grupo y piscina, exportación .ics y sincronización con Google Calendar.
 // Sólo presenta: la lógica vive en js/domain/calendario.js, la orquestación en js/application/calendarioService.js
 // y la API de Google en js/infrastructure/googleCalendar.js.
 import { icon } from '../icons.js';
 import { t, locale } from '../i18n.js';
 import * as D from '../domain/calendario.js';
 import { crearCalendarioService } from '../application/calendarioService.js';
+import { preferencias, CLAVES } from '../preferencias.js';
 
 const CSS = `
 .cal-sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
@@ -75,8 +76,6 @@ function injectStyle() {
   document.head.appendChild(s);
 }
 
-const lsGet = (k) => { try { return localStorage.getItem(k); } catch (e) { return null; } };
-const lsSet = (k, v) => { try { localStorage.setItem(k, v); } catch (e) { /* ignorar */ } };
 const dateOf = (f) => { const p = D.parseFecha(f); return new Date(p.y, p.m - 1, p.d); };
 const intl = (f, opts) => new Intl.DateTimeFormat(locale(), opts).format(dateOf(f));
 const fmtLargo = (f) => intl(f, { weekday: 'long', day: 'numeric', month: 'long' });
@@ -123,13 +122,12 @@ export async function render(container, params, ctx) {
   const svc = hooks.servicio || crearCalendarioService({ store, auth, etq: etiquetas, ahora: hooks.ahora });
   const hoy = svc.hoy();
   const esMovil = typeof window.matchMedia === 'function' && window.matchMedia('(max-width: 759px)').matches;
-  const guardada = lsGet('cnl:cal-vista');
+  const guardada = preferencias.get(CLAVES.calVista);
   const st = {
     vista: VISTAS.includes(guardada) ? guardada : (esMovil ? 'agenda' : 'mes'),
     cursor: hoy, sel: hoy, filtros: { todosGrupos: false, grupoId: '', piscina: '' },
-    rango: 'mes', alarma: 0, ventana: 90,
+    rango: 'mes', alarma: preferencias.get(CLAVES.calAlarma, 0), ventana: preferencias.get(CLAVES.calVentana, 90),
   };
-  const rol = svc.usuario().rol;
   const grupos = svc.grupos();
   const color = (gid) => D.colorGrupo(gid, grupos);
   const colorVars = (gid) => { const c = color(gid); return `--cal-fondo:${c.fondo};--cal-acento:${c.acento};--cal-texto:${c.texto}`; };
@@ -173,7 +171,7 @@ export async function render(container, params, ctx) {
   function leyenda(lista) {
     const ids = new Set(lista.map((e) => e.grupoId));
     const visibles = svc.gruposVisibles(st.filtros);
-    const chips = grupos.filter((g) => ids.has(g.id) || (visibles && visibles.includes(g.id)) || (!visibles && rol !== 'nadador'))
+    const chips = grupos.filter((g) => ids.has(g.id) || (visibles && visibles.includes(g.id)) || !visibles)
       .map((g) => h('li', { class: 'cal-gchip', style: colorVars(g.id) }, g.nombre));
     if (ids.has('')) chips.push(h('li', { class: 'cal-gchip', style: colorVars('') }, t('cal.sin-grupo')));
     return h('div', null, h('p', { class: 'cal-leyenda-t' }, t('cal.leyenda')), h('ul', { class: 'cal-leyenda', 'aria-label': t('cal.leyenda') }, chips));
@@ -243,7 +241,7 @@ export async function render(container, params, ctx) {
   // ---------- Barra y filtros ----------
   const tituloEl = h('p', { class: 'cal-titulo', 'aria-live': 'polite', id: 'cal-titulo' });
   const cuerpo = h('div', { id: 'cal-cuerpo' });
-  const segBtns = VISTAS.map((v) => h('button', { type: 'button', dataset: { vista: v }, onclick: () => { st.vista = v; lsSet('cnl:cal-vista', v); pintar(); } }, t('cal.vista.' + v)));
+  const segBtns = VISTAS.map((v) => h('button', { type: 'button', dataset: { vista: v }, onclick: () => { st.vista = v; preferencias.set(CLAVES.calVista, v); pintar(); } }, t('cal.vista.' + v)));
 
   function titulo() {
     if (st.vista === 'semana') { const l = D.lunesDe(st.cursor); return t('cal.semana-de', { a: fmtCorto(l), b: fmtCorto(D.addDias(l, 6)) }); }
@@ -271,33 +269,14 @@ export async function render(container, params, ctx) {
     h('div', { class: 'cal-seg', role: 'group', 'aria-label': t('cal.vista.etiqueta') }, segBtns));
 
   const filtros = [];
-  const ambito = svc.ambito();
-  if (rol === 'entrenador' && !ambito.todos) {
-    filtros.push(h('label', { class: 'cal-check' }, h('input', { type: 'checkbox', id: 'cal-todos', onchange: (e) => { st.filtros.todosGrupos = e.target.checked; pintar(); } }), t('cal.filtro.todos-grupos')));
-  }
-  if (rol !== 'nadador') {
-    filtros.push(h('label', null, t('cal.filtro.grupo'),
-      h('select', { id: 'cal-grupo', onchange: (e) => { st.filtros.grupoId = e.target.value; pintar(); } },
-        h('option', { value: '' }, t('cal.filtro.grupo-todos')), grupos.map((g) => h('option', { value: g.id }, g.nombre)))));
-    filtros.push(h('label', null, t('cal.filtro.piscina'),
-      h('select', { id: 'cal-piscina', onchange: (e) => { st.filtros.piscina = e.target.value; pintar(); } },
-        h('option', { value: '' }, t('cal.filtro.piscina-todas')), ['25', '50'].map((p) => h('option', { value: p }, `${p} m`)))));
-  }
-  const demoNadador = rol === 'nadador' && !ambito.vinculado && (!auth.user || auth.demoRole);
-  if (demoNadador) {
-    filtros.push(h('label', null, t('cal.nadador.demo'),
-      h('select', { id: 'cal-nadador', onchange: (e) => { svc.setNadadorDemo(e.target.value); render(container, params, { ...ctx, cal: { ...hooks, servicio: svc } }); } },
-        h('option', { value: '' }, t('cal.nadador.demo-elige')),
-        svc.nadadores().map((n) => h('option', { value: n.id, selected: n.id === svc.getNadadorDemo() }, `${n.nombre} ${n.apellidos || ''}`.trim())))));
-  }
+  filtros.push(h('label', null, t('cal.filtro.grupo'),
+    h('select', { id: 'cal-grupo', onchange: (e) => { st.filtros.grupoId = e.target.value; pintar(); } },
+      h('option', { value: '' }, t('cal.filtro.grupo-todos')), grupos.map((g) => h('option', { value: g.id }, g.nombre)))));
+  filtros.push(h('label', null, t('cal.filtro.piscina'),
+    h('select', { id: 'cal-piscina', onchange: (e) => { st.filtros.piscina = e.target.value; pintar(); } },
+      h('option', { value: '' }, t('cal.filtro.piscina-todas')), ['25', '50'].map((p) => h('option', { value: p }, p + ' m')))));
 
-  function textoAmbito() {
-    const a = svc.ambito();
-    const nombres = (ids) => grupos.filter((g) => ids.includes(g.id)).map((g) => g.nombre).join(', ');
-    if (rol === 'nadador') return a.grupoIds.length ? t('cal.ambito.nadador', { grupo: nombres(a.grupoIds) }) : t('cal.nadador.sin-vinculo');
-    if (rol === 'entrenador' && !a.todos) return t('cal.ambito.entrenador', { grupos: nombres(a.grupoIds) });
-    return t('cal.ambito.todos');
-  }
+  const textoAmbito = () => t('cal.ambito.todos');
 
   function pintar() {
     const lista = eventosVista();
@@ -310,8 +289,8 @@ export async function render(container, params, ctx) {
   // ---------- Exportación ----------
   const alarmas = [];
   const selAlarma = () => {
-    const s = h('select', { 'aria-label': t('cal.exp.alarma'), onchange: (e) => { st.alarma = Number(e.target.value); alarmas.forEach((x) => { x.value = e.target.value; }); } },
-      [0, 30, 60].map((m) => h('option', { value: String(m) }, t('cal.exp.alarma.' + m))));
+    const s = h('select', { 'aria-label': t('cal.exp.alarma'), onchange: (e) => { st.alarma = Number(e.target.value); preferencias.set(CLAVES.calAlarma, st.alarma); alarmas.forEach((x) => { x.value = e.target.value; }); } },
+      [0, 30, 60].map((m) => h('option', { value: String(m), selected: m === st.alarma }, t('cal.exp.alarma.' + m))));
     alarmas.push(s);
     return s;
   };
@@ -338,7 +317,7 @@ export async function render(container, params, ctx) {
   let zonas = [];
   try { zonas = Intl.supportedValuesOf('timeZone'); } catch (e) { zonas = [D.TZ_DEFECTO]; }
   const zonaMsg = h('p', { class: 'cal-estado', role: 'status', 'aria-live': 'polite' });
-  const bloqueZona = rol === 'admin' ? h('div', { class: 'cal-fila' },
+  const bloqueZona = h('div', { class: 'cal-fila' },
     h('label', null, t('cal.exp.zona'), zonaInput, h('datalist', { id: 'cal-zonas' }, zonas.map((z) => h('option', { value: z })))),
     h('button', {
       type: 'button', class: 'btn', id: 'cal-zona-guardar',
@@ -348,7 +327,7 @@ export async function render(container, params, ctx) {
         catch (e) { zonaMsg.textContent = t('cal.exp.zona-invalida'); zonaMsg.classList.add('cal-error'); }
       },
     }, t('cal.exp.zona-guardar')),
-    h('small', { class: 'cal-nota' }, t('cal.exp.zona-ayuda'))) : null;
+    h('small', { class: 'cal-nota' }, t('cal.exp.zona-ayuda')));
 
   const panelExport = h('section', { class: 'card', 'aria-labelledby': 'cal-exp-t' },
     h('h3', { id: 'cal-exp-t' }, t('cal.exp.titulo')),
@@ -369,7 +348,7 @@ export async function render(container, params, ctx) {
   const puede = svc.puedeSincronizar();
   const errTxt = (e) => {
     const c = e && e.code;
-    if (['auth', 'permisos', 'api-desactivada', 'limite', 'red', 'servidor', 'local', 'sin-sesion'].includes(c)) return t('cal.sync.err.' + c);
+    if (['auth', 'permisos', 'api-desactivada', 'limite', 'red', 'servidor', 'sin-sesion'].includes(c)) return t('cal.sync.err.' + c);
     return t('cal.sync.err.http', { msg: (e && e.message) || '' });
   };
   function pintarEstadoSync() {
@@ -408,13 +387,12 @@ export async function render(container, params, ctx) {
     h('h3', { id: 'cal-sync-t' }, t('cal.sync.titulo')),
     h('p', { class: 'cal-nota' }, t('cal.sync.desc')),
     puede.ok ? h('div', { class: 'cal-fila' },
-      h('label', null, t('cal.sync.ventana'), h('select', { id: 'cal-ventana', onchange: (e) => { st.ventana = Number(e.target.value); } },
-        [30, 90, 180].map((d) => h('option', { value: String(d), selected: d === 90 }, t('cal.sync.ventana.' + d)))) ),
+      h('label', null, t('cal.sync.ventana'), h('select', { id: 'cal-ventana', onchange: (e) => { st.ventana = Number(e.target.value); preferencias.set(CLAVES.calVentana, st.ventana); } },
+        [30, 90, 180].map((d) => h('option', { value: String(d), selected: d === st.ventana }, t('cal.sync.ventana.' + d)))) ),
       h('label', null, t('cal.exp.alarma'), selAlarma())) : null,
     h('div', { class: 'cal-fila' }, btnSync, btnParar),
     puede.ok ? syncEstado : h('p', { class: 'cal-nota', id: 'cal-sync-motivo' },
-      puede.motivo === 'local' ? t('cal.sync.local') : t('cal.sync.sin-sesion'), ' ',
-      h('a', { href: '#/tutorial' }, t('cal.sync.local-tutorial'))),
+      t('cal.sync.sin-sesion')),
     syncMsg);
   if (puede.ok) pintarEstadoSync();
 

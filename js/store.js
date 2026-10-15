@@ -1,36 +1,35 @@
-// Almacén de datos: caché local (localStorage) + sincronización con Drive (.xlsx por club).
-import { SHEETS, ENTITY_SHEETS, newId, TIPOS_CARGA } from './schema.js';
-import { GOOGLE_CLIENT_ID } from './config.js';
-import { auth } from './auth.js';
+// Almacén de datos de UN club: caché local (localStorage, espejo con cola de cambios pendientes) +
+// fichero cnl/<Club>.json en el Drive del usuario (fuente de verdad). Fusión por fila (id) ante cambios de otro dispositivo.
+import { SHEETS, ENTITY_SHEETS, newId } from './schema.js';
+import { prepararCatalogo, normalizarTipo, filaTipo, sembrarCatalogo } from './domain/cargas.js';
+import { planDemo } from './domain/entreno.js';
 import { drive } from './drive.js';
-import { dataToTabs, tabsToData, hashData, mergeData, isEmptyData } from './sheetdata.js';
+import { dataToDoc, docToData, mergeData, isEmptyData } from './sheetdata.js';
 
-const LOCAL_PREFIX = 'cnl:local:';
-const CLOUD_PREFIX = 'cnl:club:';
-const LOCAL_INDEX = 'cnl:local-index';
-const DEFAULT_CLUB = 'Club Natación Lugones';
+const CACHE_PREFIX = 'cnl:club:';
+const XLSX_MIME = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
 const DEBOUNCE_MS = 1500;
 const POLL_MS = 30000;
 
 const listeners = new Set();
 let db = emptyDb();
 let club = {};
-let ref = null; // {name, local, id?}
+let ref = null; // {name, id}
 let dirty = false;
 let timer = null;
 let syncing = null;
 let rev = 0; // contador de cambios locales (para no perder ediciones hechas durante una subida)
-let base = null; // última versión sincronizada con la hoja (para fusionar cambios de otros usuarios)
-let lastHash = null; // hash de la última versión remota conocida
+let base = null; // última versión sincronizada con Drive (para fusionar cambios hechos desde otro dispositivo)
+let lastRev = null; // revisión (md5Checksum/modifiedTime) del fichero remoto en la última sincronización
 let pollTimer = null;
 
 const snapshot = () => JSON.parse(JSON.stringify({ db, club }));
 
-// Lee la hoja remota -> {data, hash, empty}
+// Lee el fichero remoto -> {data, rev, empty}
 async function readRemote() {
-  const { tabs } = await drive.read(ref.id);
-  const data = tabsToData(tabs);
-  return { data, hash: hashData(data), empty: isEmptyData(data) };
+  const { doc, rev: r } = await drive.read(ref.id);
+  const data = docToData(doc);
+  return { data, rev: r, empty: isEmptyData(data) };
 }
 
 function emptyDb() {
@@ -49,11 +48,11 @@ function setStatus(s) {
   emit({ type: 'status', status: s });
 }
 
-const cacheKey = () => (ref.local ? LOCAL_PREFIX + ref.name : CLOUD_PREFIX + ref.id);
+const cacheKey = () => CACHE_PREFIX + ref.id;
 
 function saveCache() {
   try {
-    localStorage.setItem(cacheKey(), JSON.stringify({ db, club, dirty, lastHash, base: dirty && !ref.local ? base : null }));
+    localStorage.setItem(cacheKey(), JSON.stringify({ db, club, dirty, lastRev, base: dirty ? base : null }));
   } catch (e) {
     console.warn('No se pudo guardar la caché local', e);
   }
@@ -65,6 +64,30 @@ function loadCache() {
     if (c && c.db) return c;
   } catch (e) { /* ignorar */ }
   return null;
+}
+
+// Fila limpia con exactamente las columnas de la hoja.
+function cleanRow(sheet, row) {
+  const clean = {};
+  SHEETS[sheet].forEach((c) => { clean[c] = row[c] === undefined || row[c] === null ? '' : row[c]; });
+  clean.id = row.id ? String(row.id) : newId();
+  return clean;
+}
+
+// Siembra el catálogo de contenidos de entrenamiento (TiposCarga) y migra datos antiguos (ver domain/cargas.js).
+// Idempotente: sólo añade los predefinidos que faltan y nunca pisa ediciones. Devuelve true si cambió algo.
+function ensureCatalog() {
+  const plan = prepararCatalogo({
+    tipos: db.TiposCarga.map(normalizarTipo), cargas: db.Cargas, objetivos: db.ObjetivosCarga, generarId: () => 'tc-' + newId(),
+  });
+  if (!plan.crear.length && !plan.actualizar.length && !plan.eliminarObjetivos.length) return false;
+  plan.crear.concat(plan.actualizar).forEach((t) => {
+    const fila = cleanRow('TiposCarga', filaTipo(t));
+    const i = db.TiposCarga.findIndex((r) => r.id === fila.id);
+    if (i >= 0) db.TiposCarga[i] = fila; else db.TiposCarga.push(fila);
+  });
+  if (plan.eliminarObjetivos.length) db.ObjetivosCarga = db.ObjetivosCarga.filter((o) => !plan.eliminarObjetivos.includes(o.id));
+  return true;
 }
 
 function applyData(data) {
@@ -110,17 +133,10 @@ function markDirty() {
   dirty = true;
   rev++;
   saveCache();
-  if (ref.local) { setStatus('local'); return; }
   setStatus(navigator.onLine ? 'pendiente' : 'offline');
   clearTimeout(timer);
   timer = setTimeout(() => store.sync().catch(() => {}), DEBOUNCE_MS);
-}
-
-function indexLocal(name) {
-  try {
-    const idx = JSON.parse(localStorage.getItem(LOCAL_INDEX) || '[]');
-    if (!idx.includes(name)) { idx.push(name); localStorage.setItem(LOCAL_INDEX, JSON.stringify(idx)); }
-  } catch (e) { /* ignorar */ }
+  if (timer && timer.unref) timer.unref();
 }
 
 // Polling cada ~30 s para detectar cambios de otros usuarios (sólo con la pestaña visible).
@@ -128,60 +144,62 @@ function startPolling() {
   clearInterval(pollTimer);
   pollTimer = setInterval(() => {
     if (typeof document !== 'undefined' && document.visibilityState === 'hidden') return;
+    if (dirty) { if (navigator.onLine) store.sync().catch(() => {}); return; } // cola de cambios pendientes (p. ej. tras un corte de red)
     store.refresh().catch((e) => { if (!e.offline) { store.lastError = e; setStatus('error'); } });
   }, POLL_MS);
   if (pollTimer && pollTimer.unref) pollTimer.unref();
 }
 
+// El fichero del club en Drive sigue al nombre del club (best effort).
+async function renameIfNeeded() {
+  const nombre = String(club.nombre || '').trim();
+  if (!nombre || nombre === ref.name) return;
+  try { await drive.renameClub(ref.id, nombre); ref.name = nombre; } catch (e) { console.warn('No se pudo renombrar el fichero del club', e); }
+}
+
+// Al volver la red se suben los cambios que quedaron pendientes sin conexión.
+if (typeof window !== 'undefined' && window.addEventListener) {
+  window.addEventListener('online', () => { if (ref && dirty) store.sync().catch(() => {}); });
+}
+
 export const store = {
-  status: 'local',
+  status: 'sincronizado', // sincronizado | pendiente | offline | error
   lastError: null,
 
-  // clubRef: null | string (club local) | {name, local?} | {id, name} (Drive)
+  // clubRef: {id, name} (id del fichero cnl/<Club>.json en Drive)
   async init(clubRef) {
     clearTimeout(timer);
-    if (typeof clubRef === 'string') clubRef = { name: clubRef, local: true };
-    if (!clubRef) clubRef = { name: DEFAULT_CLUB, local: true };
-    ref = { name: clubRef.name, id: clubRef.id, local: !GOOGLE_CLIENT_ID || !!clubRef.local || !clubRef.id };
-    auth._setUsersProvider(() => db.Usuarios);
-    if (auth._setOwnerProvider) auth._setOwnerProvider(() => club.propietario);
+    if (!clubRef || !clubRef.id) throw new Error('Falta el club (id del fichero en Drive).');
+    ref = { name: clubRef.name, id: clubRef.id };
     dirty = false;
     clearInterval(pollTimer);
     pollTimer = null;
     base = null;
-    lastHash = null;
+    lastRev = null;
     const cached = loadCache();
-    if (cached) { applyData(cached); dirty = !!cached.dirty; lastHash = cached.lastHash || null; base = cached.base || null; } else { db = emptyDb(); club = {}; }
+    if (cached) { applyData(cached); dirty = !!cached.dirty; lastRev = cached.lastRev || null; base = cached.base || null; } else { db = emptyDb(); club = {}; }
 
-    if (ref.local) {
-      indexLocal(ref.name);
-      if (!club.nombre) club.nombre = ref.name;
-      saveCache();
-      setStatus('local');
-      emit({ type: 'init' });
-      return store;
-    }
-
-    // Hoja de Google: si no hay cambios locales pendientes, se toma lo remoto.
+    // Si no hay cambios locales pendientes se toma lo remoto; si los hay, se fusionan al sincronizar.
     try {
       if (!navigator.onLine) throw Object.assign(new Error('offline'), { offline: true });
       if (!dirty) {
         const remote = await readRemote();
-        if (remote.empty) { // hoja recién creada: el creador es el propietario (admin)
+        if (remote.empty) { // fichero recién creado
           if (!club.nombre) club.nombre = ref.name;
-          if (!club.propietario) club.propietario = clubRef.owner || (auth.user && auth.user.email) || '';
           dirty = true;
         } else applyData(remote.data);
-        lastHash = remote.hash;
+        lastRev = remote.rev;
         base = remote.empty ? null : snapshot();
       }
       if (!club.nombre) club.nombre = ref.name;
+      if (ensureCatalog()) dirty = true;
       saveCache();
       setStatus(dirty ? 'pendiente' : 'sincronizado');
       if (dirty) store.sync().catch(() => {});
       startPolling();
     } catch (e) {
       if (!cached) throw e;
+      if (ensureCatalog()) { dirty = true; saveCache(); }
       setStatus(e.offline ? 'offline' : 'error');
       startPolling();
     }
@@ -189,19 +207,21 @@ export const store = {
     return store;
   },
 
-  // Datos del club abierto: {name, id, local}
-  get clubRef() { return ref ? { name: ref.name, id: ref.id, local: ref.local } : null; },
+  // Datos del club abierto: {name, id}
+  get clubRef() { return ref ? { name: ref.name, id: ref.id } : null; },
 
-  // Comprueba si otro usuario ha cambiado la hoja y, si es así, incorpora los cambios. Devuelve true si cambió algo.
+  // Comprueba (con una petición barata de metadatos) si otro dispositivo ha cambiado el fichero y, si es así,
+  // incorpora los cambios. Devuelve true si cambió algo.
   async refresh() {
-    if (!ref || ref.local || syncing || dirty || !navigator.onLine) return false;
+    if (!ref || syncing || dirty || !navigator.onLine) return false;
+    const m = await drive.meta(ref.id);
+    if (m.rev === lastRev || dirty || syncing) return false;
     const remote = await readRemote();
-    if (remote.hash === lastHash || dirty || syncing) return false;
+    if (dirty || syncing) return false;
     applyData(remote.data);
     base = snapshot();
-    lastHash = remote.hash;
-    saveCache();
-    setStatus('sincronizado');
+    lastRev = remote.rev;
+    if (ensureCatalog()) markDirty(); else { saveCache(); setStatus('sincronizado'); }
     emit({ type: 'remote' });
     return true;
   },
@@ -218,9 +238,7 @@ export const store = {
 
   upsert(sheet, row) {
     if (!db[sheet]) throw new Error('Hoja desconocida: ' + sheet);
-    const clean = {};
-    SHEETS[sheet].forEach((c) => { clean[c] = row[c] === undefined || row[c] === null ? '' : row[c]; });
-    clean.id = row.id ? String(row.id) : newId();
+    const clean = cleanRow(sheet, row);
     const i = db[sheet].findIndex((r) => r.id === clean.id);
     if (i >= 0) db[sheet][i] = clean; else db[sheet].push(clean);
     markDirty();
@@ -236,36 +254,40 @@ export const store = {
 
   on(fn) { listeners.add(fn); return () => listeners.delete(fn); },
 
-  // Sube los cambios a Drive. En modo local no hace nada.
+  // Sube los cambios a Drive (fusionando antes los que haya hecho otro dispositivo).
   async sync() {
-    if (!ref || ref.local) return;
+    if (!ref) return;
     if (syncing) return syncing;
     clearTimeout(timer);
     if (!navigator.onLine) { setStatus('offline'); return; }
     syncing = (async () => {
       try {
-        // 1) ¿Ha cambiado la hoja desde la última vez? Fusionar sin perder los cambios locales.
-        const remote = await readRemote();
+        // 1) ¿Ha cambiado el fichero desde la última vez? Fusionar sin perder los cambios locales.
+        const m = await drive.meta(ref.id);
         let merged = false;
-        if (remote.hash !== lastHash) {
+        let remote = null;
+        if (m.rev !== lastRev) {
+          remote = await readRemote();
           if (dirty) {
-            const m = mergeData(remote.empty ? null : base, { db, club }, remote.data);
-            applyData(m);
-            merged = true;
-          } else { applyData(remote.data); merged = true; }
+            const mg = mergeData(remote.empty ? null : base, { db, club }, remote.data);
+            applyData(mg);
+          } else applyData(remote.data);
+          merged = true;
+          if (ensureCatalog()) { dirty = true; rev++; }
         }
         // 2) Subir si hay cambios locales.
         if (dirty) {
           const startRev = rev;
           const data = snapshot();
-          await drive.write(ref.id, dataToTabs(data));
+          const w = await drive.write(ref.id, dataToDoc(data));
           base = data;
-          lastHash = hashData(data);
+          lastRev = w.rev;
           dirty = rev !== startRev; // ediciones hechas durante la subida
-        } else { base = snapshot(); lastHash = remote.hash; }
+          await renameIfNeeded();
+        } else if (remote) { base = snapshot(); lastRev = remote.rev; }
         saveCache();
         setStatus(dirty ? 'pendiente' : 'sincronizado');
-        if (dirty) timer = setTimeout(() => store.sync().catch(() => {}), DEBOUNCE_MS);
+        if (dirty) { timer = setTimeout(() => store.sync().catch(() => {}), DEBOUNCE_MS); if (timer && timer.unref) timer.unref(); }
         if (merged) emit({ type: 'remote' });
       } catch (e) {
         console.error(e);
@@ -290,22 +312,27 @@ export const store = {
     return blob;
   },
 
+  // Guarda una copia .xlsx en la carpeta cnl de Drive (sobrescribe la anterior del mismo club).
+  async guardarXlsxEnDrive() {
+    const name = (club.nombre || ref.name || 'club').replace(/[\\/:*?"<>|]/g, '-') + '.xlsx';
+    const fid = await drive.ensureFolder();
+    const prev = await drive.findFile(name, fid);
+    return drive.upload({ name, mimeType: XLSX_MIME, body: workbookBlob(), parentId: fid, id: prev && prev.id });
+  },
+
   // Sustituye los datos por los de un .xlsx (File/Blob).
   async importXlsx(file) {
     applyData(parseWorkbook(await file.arrayBuffer()));
+    ensureCatalog();
     if (!club.nombre) club.nombre = ref.name;
     markDirty();
     emit({ type: 'init' });
   },
 
-  // Clubes locales conocidos (modo sin Client ID).
-  localClubs() {
-    try { return JSON.parse(localStorage.getItem(LOCAL_INDEX) || '[]').map((name) => ({ name, local: true })); } catch (e) { return []; }
-  },
-
   // Borra todos los datos del club actual (conserva identidad).
   clear() {
     db = emptyDb();
+    ensureCatalog();
     markDirty();
     emit({ type: 'init' });
   },
@@ -327,6 +354,7 @@ export const store = {
   seedDemo() {
     const d = buildDemo();
     db = d.db;
+    ensureCatalog();
     club = Object.assign({}, club, d.club);
     markDirty();
     emit({ type: 'init' });
@@ -388,15 +416,19 @@ function buildDemo() {
     });
   });
 
-  // Objetivos semanales por tipo (metros)
-  const obj = { 'Aeróbico': [6000, 12000], 'Velocidad': [1500, 3500], 'Piernas': [1000, 2500], 'Técnica': [2000, 4000], 'Fuerza': [500, 1500] };
-  TIPOS_CARGA.forEach((t, i) => out.ObjetivosCarga.push({ id: 'o' + (i + 1), tipo: t, minSemanalM: obj[t][0], maxSemanalM: obj[t][1] }));
+  // Catálogo de contenidos con objetivos semanales por nadador (metros) en los que se trabajan en la demo
+  const obj = { 'aerobico-medio': [1500, 4000], 'aerobico-intenso': [800, 2500], 'anaerobico': [300, 1200], 'alactico': [400, 1500], 'piernas': [500, 1500], 'virajes': [500, 1500] };
+  sembrarCatalogo([]).forEach((t) => {
+    const clave = t.id.replace(/^tc-/, '');
+    if (obj[clave]) { t.min = obj[clave][0]; t.max = obj[clave][1]; }
+    out.TiposCarga.push(cleanRow('TiposCarga', filaTipo(t)));
+  });
 
   // Entrenamientos: de hace 3 semanas a la próxima semana
   const today = new Date(); today.setHours(0, 0, 0, 0);
   const monday = addDays(today, -((today.getDay() + 6) % 7));
   const enfoques = ['Resistencia aeróbica', 'Velocidad y salidas', 'Técnica de viraje', 'Trabajo de piernas', 'Series mixtas', 'Fuerza en seco'];
-  const tipoDe = { 'Resistencia aeróbica': 'Aeróbico', 'Velocidad y salidas': 'Velocidad', 'Técnica de viraje': 'Técnica', 'Trabajo de piernas': 'Piernas', 'Series mixtas': 'Aeróbico', 'Fuerza en seco': 'Fuerza' };
+  const tipoDe = { 'Resistencia aeróbica': 'Aeróbico medio / Umbral anaeróbico', 'Velocidad y salidas': 'Aláctico / Sprint', 'Técnica de viraje': 'Virajes/volteos', 'Trabajo de piernas': 'Piernas', 'Series mixtas': 'Aeróbico intenso / Potencia aeróbica', 'Fuerza en seco': 'Anaeróbico / Tolerancia al lactato' };
   let ne = 0;
   const sesiones = [];
   for (let w = -3; w <= 1; w++) {
@@ -415,6 +447,12 @@ function buildDemo() {
           volumenMin: Math.round(vol * 0.9 / 100) * 100, volumenMax: Math.round(vol * 1.1 / 100) * 100, enfoque,
         });
         sesiones.push({ id, fecha: f, pasada, hoy: ymd(fecha) === ymd(today), g, vol, tipo: tipoDe[enfoque] });
+        Object.assign(out.Entrenamientos[out.Entrenamientos.length - 1], { tipoSesion: '', materialDia: '', notasGenerales: '' });
+        if (!pasada) { // sesiones de hoy y próximas: plan detallado realista (ver domain/entreno.js)
+          const plan = planDemo(ne, vol, g.dur);
+          Object.assign(out.Entrenamientos[out.Entrenamientos.length - 1], { tipoSesion: plan.tipoSesion, materialDia: plan.materialDia, notasGenerales: plan.notasGenerales });
+          plan.lineas.forEach((l, i) => out.EntrenoLineas.push(cleanRow('EntrenoLineas', { ...l, id: 'el' + id + '-' + (i + 1), entrenamientoId: id })));
+        }
       });
     });
   }

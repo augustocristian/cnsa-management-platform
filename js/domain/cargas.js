@@ -1,0 +1,275 @@
+// Dominio de las cargas de entrenamiento. PURO: sin DOM, store, red ni i18n.
+// Catálogo de contenidos (hoja TiposCarga), normalización de nombres, validación, siembra/migración
+// de datos antiguos, agregados semanales por contenido y evaluación de objetivos.
+//
+// Convenciones:
+// - Los valores guardados van en español. Cargas.tipo guarda el NOMBRE del contenido (compatible con los datos
+//   antiguos y legible en Excel); la comparación es siempre por nombre normalizado (sin tildes ni mayúsculas).
+// - Los contenidos predefinidos tienen id estable `tc-<clave>`, así la siembra es idempotente aunque dos
+//   usuarios abran el club a la vez (la fusión por id no duplica).
+
+export const CATEGORIAS_TIPO = ['intensidad', 'especifico', 'personalizado'];
+export const NOMBRE_MAX = 60;
+export const DESCRIPCION_MAX = 240;
+export const COLOR_SIN_TIPO = '#9aa4b2';
+export const PREFIJO_ID = 'tc-';
+
+// Colores para contenidos nuevos (distintos de los predefinidos, legibles sobre blanco).
+export const COLORES_PERSONALIZADOS = ['#6d4c9f', '#0b7285', '#a1887f', '#c2185b', '#5c7c1e', '#e07b00', '#3f6fb5', '#7a5c00'];
+
+// Catálogo predefinido. `nombre` y `descripcion` son el valor guardado (español); la vista los traduce
+// con las claves `tc.<clave>.nombre` / `tc.<clave>.desc`.
+export const CATALOGO_PREDEFINIDO = Object.freeze([
+  { clave: 'aerobico-ligero', nombre: 'Aeróbico ligero', categoria: 'intensidad', orden: 1, color: '#2e9e73',
+    descripcion: 'Esfuerzo suave (<60-75 % de FC o Borg 4-5/10), duración larga, ideal para calentamiento y recuperación.' },
+  { clave: 'aerobico-medio', nombre: 'Aeróbico medio / Umbral anaeróbico', categoria: 'intensidad', orden: 2, color: '#1a73e8',
+    descripcion: 'Ritmo sostenido (tipo CSS, Critical Swim Speed), base del fondo aeróbico.' },
+  { clave: 'aerobico-intenso', nombre: 'Aeróbico intenso / Potencia aeróbica', categoria: 'intensidad', orden: 3, color: '#7e57c2',
+    descripcion: 'Cerca del VO2 máx, intervalos exigentes con descansos controlados.' },
+  { clave: 'anaerobico', nombre: 'Anaeróbico / Tolerancia al lactato', categoria: 'intensidad', orden: 4, color: '#e8710a',
+    descripcion: 'Series de alta intensidad para soportar la acumulación de ácido láctico.' },
+  { clave: 'alactico', nombre: 'Aláctico / Sprint', categoria: 'intensidad', orden: 5, color: '#d93025',
+    descripcion: 'Velocidad máxima en distancias cortas (50-100 m) con amplias recuperaciones.' },
+  { clave: 'piernas', nombre: 'Piernas', categoria: 'especifico', orden: 6, color: '#00897b',
+    descripcion: 'Trabajo específico de patada, con o sin tabla y aletas.' },
+  { clave: 'brazos', nombre: 'Brazos', categoria: 'especifico', orden: 7, color: '#8d6e63',
+    descripcion: 'Trabajo específico de tracción, con pull buoy y palas si se desea.' },
+  { clave: 'tecnica', nombre: 'Técnica', categoria: 'especifico', orden: 8, color: '#3949ab',
+    descripcion: 'Ejercicios para mejorar el gesto y la eficiencia en cada estilo.' },
+  { clave: 'salidas', nombre: 'Salidas', categoria: 'especifico', orden: 9, color: '#b08900',
+    descripcion: 'Salidas desde el poyete y primeros metros bajo el agua.' },
+  { clave: 'virajes', nombre: 'Virajes/volteos', categoria: 'especifico', orden: 10, color: '#00acc1',
+    descripcion: 'Aproximación, giro e impulso en la pared en cada estilo.' },
+].map((c) => Object.freeze({ ...c, id: PREFIJO_ID + c.clave })));
+
+// ---------- Utilidades ----------
+// Clave de comparación de nombres: sin tildes, sin mayúsculas, espacios colapsados y sin espacios junto a "/".
+export function normalizarNombre(s) {
+  return String(s ?? '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase()
+    .replace(/\s+/g, ' ').replace(/\s*\/\s*/g, '/').trim();
+}
+
+const aBool = (v, defecto) => {
+  if (v === true || v === false) return v;
+  const s = String(v ?? '').trim().toLowerCase();
+  if (s === '') return defecto;
+  return !['false', 'no', '0', 'n'].includes(s);
+};
+const aNumero = (v) => {
+  if (v === '' || v == null) return null;
+  const n = Number(String(v).replace(',', '.'));
+  return Number.isFinite(n) ? n : NaN;
+};
+// Objetivo en metros: > 0 o null (sin objetivo). 0 equivale a "sin objetivo" como en el modelo antiguo.
+const objetivo = (v) => { const n = aNumero(v); return n != null && Number.isFinite(n) && n > 0 ? n : null; };
+export const colorValido = (c) => /^#[0-9a-f]{6}$/i.test(String(c ?? '').trim());
+
+export const esPredefinido = (t) => !!t && !!t.predefinido;
+export const rangoCategoria = (c) => { const i = CATEGORIAS_TIPO.indexOf(c); return i < 0 ? CATEGORIAS_TIPO.length - 1 : i; };
+
+// Fila de la hoja -> objeto de dominio tipado.
+export function normalizarTipo(r) {
+  const cat = CATEGORIAS_TIPO.includes(r.categoria) ? r.categoria : 'personalizado';
+  const orden = aNumero(r.orden);
+  return {
+    id: String(r.id ?? ''),
+    nombre: String(r.nombre ?? '').trim(),
+    descripcion: String(r.descripcion ?? '').trim(),
+    color: colorValido(r.color) ? String(r.color).trim().toLowerCase() : COLOR_SIN_TIPO,
+    categoria: cat,
+    orden: orden != null && Number.isFinite(orden) ? orden : 999,
+    activo: aBool(r.activo, true),
+    predefinido: aBool(r.predefinido, false),
+    min: objetivo(r.minSemanalM),
+    max: objetivo(r.maxSemanalM),
+  };
+}
+
+// Objeto de dominio -> fila de la hoja (valores simples).
+export function filaTipo(t) {
+  return {
+    id: t.id, nombre: t.nombre, descripcion: t.descripcion || '', color: t.color, categoria: t.categoria,
+    orden: t.orden, activo: t.activo ? 'true' : 'false', predefinido: t.predefinido ? 'true' : 'false',
+    minSemanalM: t.min == null ? '' : t.min, maxSemanalM: t.max == null ? '' : t.max,
+  };
+}
+
+// Orden de presentación: categoría, orden y nombre.
+export function ordenarTipos(tipos) {
+  return tipos.slice().sort((a, b) => rangoCategoria(a.categoria) - rangoCategoria(b.categoria)
+    || a.orden - b.orden || a.nombre.localeCompare(b.nombre, 'es'));
+}
+
+// [{categoria, tipos}] sólo con categorías no vacías, en orden.
+export function agruparPorCategoria(tipos) {
+  const orden = ordenarTipos(tipos);
+  return CATEGORIAS_TIPO.map((categoria) => ({ categoria, tipos: orden.filter((t) => t.categoria === categoria) }))
+    .filter((g) => g.tipos.length);
+}
+
+export const filtrarActivos = (tipos) => tipos.filter((t) => t.activo);
+
+// Índice nombre normalizado -> tipo.
+export function indicePorNombre(tipos) {
+  const m = new Map();
+  tipos.forEach((t) => { const k = normalizarNombre(t.nombre); if (k && !m.has(k)) m.set(k, t); });
+  return m;
+}
+export function resolverTipo(valor, tipos) {
+  const k = normalizarNombre(valor);
+  if (!k) return null;
+  return tipos.find((t) => normalizarNombre(t.nombre) === k) || null;
+}
+
+export function siguienteOrden(tipos) {
+  return Math.max(10, ...tipos.map((t) => (Number.isFinite(t.orden) && t.orden < 999 ? t.orden : 0))) + 1;
+}
+export function siguienteColor(tipos) {
+  const usados = tipos.filter((t) => !t.predefinido).length;
+  return COLORES_PERSONALIZADOS[usados % COLORES_PERSONALIZADOS.length];
+}
+
+// ---------- Validación ----------
+// data: {nombre, descripcion, color, min, max} (min/max pueden venir como texto). existentes: tipos normalizados.
+// -> [{campo, codigo}] (vacío = válido). Los textos se traducen en la vista con `tc.err.<codigo>`.
+export function validarTipo(data, existentes, { id = '' } = {}) {
+  const errores = [];
+  const nombre = String(data.nombre ?? '').trim();
+  if (!nombre) errores.push({ campo: 'nombre', codigo: 'nombre-vacio' });
+  else if (nombre.length > NOMBRE_MAX) errores.push({ campo: 'nombre', codigo: 'nombre-largo' });
+  else {
+    const k = normalizarNombre(nombre);
+    if (existentes.some((t) => t.id !== String(id) && normalizarNombre(t.nombre) === k)) errores.push({ campo: 'nombre', codigo: 'nombre-duplicado' });
+  }
+  if (String(data.descripcion ?? '').trim().length > DESCRIPCION_MAX) errores.push({ campo: 'descripcion', codigo: 'descripcion-larga' });
+  if (data.color != null && data.color !== '' && !colorValido(data.color)) errores.push({ campo: 'color', codigo: 'color-invalido' });
+  const mn = aNumero(data.min), mx = aNumero(data.max);
+  if (Number.isNaN(mn) || (mn != null && mn < 0)) errores.push({ campo: 'min', codigo: 'objetivo-invalido' });
+  if (Number.isNaN(mx) || (mx != null && mx < 0)) errores.push({ campo: 'max', codigo: 'objetivo-invalido' });
+  if (mn > 0 && mx > 0 && mn > mx) errores.push({ campo: 'max', codigo: 'minmax' });
+  return errores;
+}
+
+// ---------- Siembra y migración ----------
+// Predefinidos que faltan (por id). Si ya hay un contenido con el mismo nombre normalizado y otro id
+// (p. ej. creado a mano en Excel) no se siembra: se respeta lo existente y se evita el duplicado.
+export function sembrarCatalogo(existentes) {
+  const ids = new Set(existentes.map((t) => t.id));
+  const nombres = new Set(existentes.map((t) => normalizarNombre(t.nombre)));
+  return CATALOGO_PREDEFINIDO.filter((c) => !ids.has(c.id) && !nombres.has(normalizarNombre(c.nombre)))
+    .map((c) => ({ id: c.id, nombre: c.nombre, descripcion: c.descripcion, color: c.color, categoria: c.categoria, orden: c.orden, activo: true, predefinido: true, min: null, max: null }));
+}
+
+// Migración de datos antiguos (idempotente):
+// - Cargas.tipo y ObjetivosCarga.tipo que no existen en el catálogo se conservan como contenidos personalizados
+//   ("heredados", con su nombre original). Los que coinciden por nombre (Piernas, Técnica) usan el predefinido.
+// - Los objetivos de ObjetivosCarga pasan a minSemanalM/maxSemanalM del contenido (sin pisar uno ya definido)
+//   y la fila antigua se elimina para no volver a migrarla.
+// tipos: normalizados (los objetos recibidos se modifican); cargas/objetivos: filas crudas. -> {crear:[tipo], actualizar:[tipo], eliminarObjetivos:[id]}
+export function migrarHeredados({ tipos, cargas = [], objetivos = [], generarId }) {
+  const todos = tipos.slice();
+  const porNombre = indicePorNombre(todos);
+  const crear = [];
+  const actualizar = new Map();
+  const nuevo = (nombre) => {
+    const t = {
+      id: generarId(), nombre: String(nombre).trim(), descripcion: '', color: siguienteColor(todos), categoria: 'personalizado',
+      orden: siguienteOrden(todos), activo: true, predefinido: false, min: null, max: null,
+    };
+    todos.push(t); crear.push(t); porNombre.set(normalizarNombre(t.nombre), t);
+    return t;
+  };
+  const usados = new Set(cargas.map((c) => normalizarNombre(c.tipo)).filter(Boolean));
+  const eliminarObjetivos = [];
+  for (const o of objetivos) {
+    const nombre = String(o.tipo ?? '').trim();
+    const mn = objetivo(o.minSemanalM), mx = objetivo(o.maxSemanalM);
+    let t = porNombre.get(normalizarNombre(nombre));
+    if (!t && nombre && (mn || mx || usados.has(normalizarNombre(nombre)))) t = nuevo(nombre);
+    if (t && (mn || mx) && t.min == null && t.max == null) {
+      t.min = mn; t.max = mx;
+      if (!crear.includes(t)) actualizar.set(t.id, t);
+    }
+    eliminarObjetivos.push(String(o.id));
+  }
+  for (const c of cargas) {
+    const nombre = String(c.tipo ?? '').trim();
+    if (nombre && !porNombre.has(normalizarNombre(nombre))) nuevo(nombre);
+  }
+  return { crear, actualizar: [...actualizar.values()], eliminarObjetivos };
+}
+
+// Siembra + migración en un paso (lo que se ejecuta al abrir un club).
+// -> {crear:[tipo], actualizar:[tipo], eliminarObjetivos:[id]}; todo vacío = nada que hacer.
+export function prepararCatalogo({ tipos, cargas = [], objetivos = [], generarId }) {
+  const sembrados = sembrarCatalogo(tipos);
+  const mig = migrarHeredados({ tipos: tipos.map((t) => ({ ...t })).concat(sembrados), cargas, objetivos, generarId });
+  return { crear: sembrados.concat(mig.crear), actualizar: mig.actualizar.filter((t) => !sembrados.includes(t)), eliminarObjetivos: mig.eliminarObjetivos };
+}
+
+// ---------- Fechas (semana de lunes a domingo) ----------
+export const fechaIso = (d) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+export function lunesDe(d) { const x = new Date(d); x.setHours(0, 0, 0, 0); x.setDate(x.getDate() - ((x.getDay() + 6) % 7)); return x; }
+export function rangoSemana(lunes) { const fin = new Date(lunes); fin.setDate(fin.getDate() + 6); return { desde: fechaIso(lunes), hasta: fechaIso(fin) }; }
+const diaDeSemana = (iso) => { const [y, m, d] = String(iso).slice(0, 10).split('-').map(Number); return (new Date(y, m - 1, d).getDay() + 6) % 7; };
+
+// ---------- Agregados ----------
+// Metros de la semana [desde, hasta] por contenido y por día. Sin nadadorId, los valores son la MEDIA por nadador
+// con carga registrada esa semana (así son comparables con los objetivos, que son por nadador). Con nadadorId, totales.
+// -> { divisor, nadadores, total, metros: {tipoId: m}, sinClasificar, porDia: [7], porDiaTipo: [{tipoId|'': m} x 7] }
+export function agregarSemana({ cargas, tipos, desde, hasta, nadadorId = '' }) {
+  const indice = indicePorNombre(tipos);
+  const filas = cargas.filter((c) => {
+    const f = String(c.fecha).slice(0, 10);
+    return f >= desde && f <= hasta && (!nadadorId || c.nadadorId === nadadorId);
+  });
+  const nads = new Set(filas.map((c) => c.nadadorId));
+  const divisor = nadadorId ? 1 : Math.max(1, nads.size);
+  const metros = Object.fromEntries(tipos.map((t) => [t.id, 0]));
+  const porDia = Array(7).fill(0);
+  const porDiaTipo = Array.from({ length: 7 }, () => ({}));
+  let sinClasificar = 0;
+  for (const c of filas) {
+    const m = Number(c.metros) || 0;
+    const t = indice.get(normalizarNombre(c.tipo));
+    const k = t ? t.id : '';
+    if (t) metros[t.id] += m; else sinClasificar += m;
+    const d = diaDeSemana(c.fecha);
+    porDia[d] += m;
+    porDiaTipo[d][k] = (porDiaTipo[d][k] || 0) + m;
+  }
+  for (const k of Object.keys(metros)) metros[k] /= divisor;
+  for (let i = 0; i < 7; i++) {
+    porDia[i] /= divisor;
+    for (const k of Object.keys(porDiaTipo[i])) porDiaTipo[i][k] /= divisor;
+  }
+  const total = porDia.reduce((a, v) => a + v, 0);
+  return { divisor, nadadores: nads.size, total, metros, sinClasificar: sinClasificar / divisor, porDia, porDiaTipo };
+}
+
+// ---------- Objetivos ----------
+// -> {estado: 'sin-objetivo'|'ok'|'bajo'|'alto', diferencia} (diferencia > 0 = metros que faltan o que sobran).
+export function evaluarObjetivo(valor, min, max) {
+  if (max && valor > max) return { estado: 'alto', diferencia: valor - max };
+  if (min && valor < min) return { estado: 'bajo', diferencia: min - valor };
+  return { estado: min || max ? 'ok' : 'sin-objetivo', diferencia: 0 };
+}
+
+// Evaluación de todos los contenidos activos con objetivo -> [{tipo, metros, min, max, estado, diferencia}] en orden.
+export function evaluarSemana(agregado, tipos) {
+  return ordenarTipos(tipos).filter((t) => t.activo && (t.min || t.max)).map((tipo) => {
+    const metros = agregado.metros[tipo.id] || 0;
+    return { tipo, metros, min: tipo.min, max: tipo.max, ...evaluarObjetivo(metros, tipo.min, tipo.max) };
+  });
+}
+
+// Objetivo total semanal por nadador (suma de los contenidos activos) para la línea del gráfico semanal.
+export function objetivoTotal(tipos) {
+  const act = filtrarActivos(tipos);
+  return { min: act.reduce((a, t) => a + (t.min || 0), 0), max: act.reduce((a, t) => a + (t.max || 0), 0) };
+}
+
+// Contenidos a mostrar en un gráfico: los activos más los inactivos con metros esa semana.
+export function tiposVisibles(agregado, tipos) {
+  return ordenarTipos(tipos).filter((t) => t.activo || (agregado.metros[t.id] || 0) > 0);
+}

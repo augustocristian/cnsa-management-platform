@@ -11,7 +11,6 @@ const GRUPOS = [
 const ses = (id, fecha, hora, grupoId, extra = {}) => ({ id, fecha, hora, duracionMin: 60, grupoId, titulo: 'S' + id, descripcion: '', estado: 'planificado', piscina: '25', volumenMin: '', volumenMax: '', enfoque: '', ...extra });
 const DATOS = {
   Grupos: GRUPOS,
-  Usuarios: [{ id: 'u1', email: 'nad@x.es', nombre: 'Nad', rol: 'nadador', nadadorId: 'n1' }, { id: 'u2', email: 'marta@x.es', nombre: 'Marta Valdés', rol: 'entrenador', nadadorId: '' }],
   Nadadores: [{ id: 'n1', grupoId: 'g1', email: '' }, { id: 'n2', grupoId: 'g2', email: 'otro@x.es' }],
   Entrenamientos: [ses('e1', '2026-10-20', '17:30', 'g1'), ses('e2', '2026-10-21', '18:30', 'g2'), ses('e3', '2026-10-22', '19:00', '')],
   Piscinas: [{ id: 'p1', nombre: 'Piscina Lugones', longitudM: 25 }],
@@ -80,23 +79,9 @@ test('fuentes: punto de extensión registrarFuente y una fuente rota no tumba el
   assert.ok(evs.some((e) => e.id === 'ses-e1'));
 });
 
-// ---------- personalización por rol ----------
-test('ámbito: nadador sólo su grupo (por Usuarios.nadadorId o por email de Nadadores)', () => {
-  const a = D.ambitoUsuario({ rol: 'nadador', email: 'NAD@x.es', datos: DATOS });
-  assert.deepEqual(a.grupoIds, ['g1']);
-  const b = D.ambitoUsuario({ rol: 'nadador', email: 'otro@x.es', datos: DATOS });
-  assert.deepEqual(b.grupoIds, ['g2']);
-  const c = D.ambitoUsuario({ rol: 'nadador', email: 'nadie@x.es', datos: DATOS });
-  assert.equal(c.vinculado, false);
-  assert.deepEqual(c.grupoIds, []);
-});
-
-test('ámbito: entrenador por nombre o email; sin grupos propios => todos; admin => todos', () => {
-  assert.deepEqual(D.ambitoUsuario({ rol: 'entrenador', email: 'marta@x.es', nombre: '', datos: DATOS }).grupoIds, ['g1']); // vía Usuarios.nombre
-  assert.deepEqual(D.ambitoUsuario({ rol: 'entrenador', email: 'jorge@club.es', datos: DATOS }).grupoIds, ['g2']); // por email
-  assert.deepEqual(D.ambitoUsuario({ rol: 'entrenador', nombre: 'MARTA VALDES', datos: DATOS }).grupoIds, ['g1']); // sin tildes/mayúsculas
-  assert.equal(D.ambitoUsuario({ rol: 'entrenador', email: 'z@z.es', datos: DATOS }).todos, true);
-  assert.equal(D.ambitoUsuario({ rol: 'admin', datos: DATOS }).todos, true);
+// ---------- filtros (app de un solo usuario: sin ámbito por rol) ----------
+test('no existe el ámbito por rol (el entrenador lo ve todo y filtra por grupo)', () => {
+  assert.equal(D.ambitoUsuario, undefined);
 });
 
 test('filtrarEventos: por grupos (los generales siempre) y por piscina', () => {
