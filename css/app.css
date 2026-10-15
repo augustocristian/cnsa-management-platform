@@ -191,3 +191,10 @@ input:focus, select:focus, textarea:focus { outline: 2px solid var(--c-primary-m
   .install-banner { bottom: calc(var(--bottom-h) + 12px); }
   #toasts { bottom: calc(var(--bottom-h) + 16px); }
 }
+
+/* Tablas genéricas */
+.table { width: 100%; border-collapse: collapse; font-size: .92rem; }
+.table th { text-align: left; font-size: .78rem; text-transform: uppercase; letter-spacing: .03em; color: var(--muted); padding: .55rem .7rem; border-bottom: 2px solid var(--border); white-space: nowrap; }
+.table td { padding: .6rem .7rem; border-bottom: 1px solid var(--border); }
+.table tbody tr:hover { background: color-mix(in srgb, var(--c-primary) 6%, transparent); }
+.card { overflow-x: auto; }
