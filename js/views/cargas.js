@@ -172,7 +172,7 @@ export async function render(container, params, ctx) {
         H('option', { value: '' }, '—'), nads.map((n) => H('option', { value: n.id, selected: n.id === state.nadadorId }, nombre(n.id))))),
       H('label', {}, 'Fecha', H('input', { type: 'date', name: 'fecha', required: true, value: iso(new Date()) })),
       H('label', {}, 'Tipo', H('select', { name: 'tipo' }, TIPOS.map((t) => H('option', { value: t }, t)))),
-      H('label', {}, 'Metros', H('input', { type: 'number', name: 'metros', min: 1, step: 50, required: true })),
+      H('label', {}, 'Metros', H('input', { type: 'number', name: 'metros', min: 0, step: 50, required: true })),
       H('label', {}, 'RPE (1-10)', H('input', { type: 'number', name: 'rpe', min: 1, max: 10 })),
       H('label', {}, 'Minutos', H('input', { type: 'number', name: 'minutos', min: 1 })),
       H('label', {}, 'Notas', H('input', { type: 'text', name: 'notas' })),
