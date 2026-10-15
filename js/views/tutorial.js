@@ -1,5 +1,6 @@
 // Tutorial paso a paso para configurar la app con Google. Progreso en localStorage.
 import { h, toast } from '../ui.js';
+import { icon } from '../icons.js';
 import { t, onLangChange } from '../i18n.js';
 
 export const PROGRESS_KEY = 'cnl:tutorial';
@@ -126,7 +127,7 @@ export async function render(container, params, ctx) {
           type: 'button', 'aria-label': t('tutorial.paso-n', { n: i + 1, total }), 'aria-current': i + 1 === n ? 'step' : null,
           class: 'tut-chip' + (state.done.includes(i + 1) ? ' done' : '') + (i + 1 === n ? ' cur' : ''),
           onclick: () => go(i + 1)
-        }, state.done.includes(i + 1) ? '✓' : String(i + 1))))),
+        }, state.done.includes(i + 1) ? icon('check', { size: 14 }) : String(i + 1))))),
 
       h('div', { class: 'card', dataset: { step: n } },
         h('p', { class: 'muted' }, t('tutorial.paso-n', { n, total })),
@@ -135,7 +136,7 @@ export async function render(container, params, ctx) {
         h('ol', { class: 'tut-list' }, Array.from({ length: s.items }, (_, i) => h('li', null, t(`${P}.i${i + 1}`)))),
         s.links ? h('div', null, h('strong', null, t('tutorial.enlaces')),
           h('div', { class: 'tut-row' }, s.links.map(([k, url]) =>
-            h('a', { class: 'btn', href: url, target: '_blank', rel: 'noopener noreferrer' }, `${t('tutorial.link.' + k)} ↗`)))) : null,
+            h('a', { class: 'btn', href: url, target: '_blank', rel: 'noopener noreferrer' }, t('tutorial.link.' + k), ' ', icon('flecha-dcha', { size: 14 }))))) : null,
         s.copies ? h('div', null, h('strong', null, t('tutorial.valores')), s.copies.map(copyRow)) : null,
         s.clientField ? clientField() : null,
         s.warn ? h('div', { class: 'tut-warn', role: 'note' },

@@ -3,12 +3,14 @@ import { SHEETS, ENTITY_SHEETS, newId, TIPOS_CARGA } from './schema.js';
 import { GOOGLE_CLIENT_ID } from './config.js';
 import { auth } from './auth.js';
 import { drive } from './drive.js';
+import { dataToTabs, tabsToData, hashData, mergeData, isEmptyData } from './sheetdata.js';
 
 const LOCAL_PREFIX = 'cnl:local:';
 const CLOUD_PREFIX = 'cnl:club:';
 const LOCAL_INDEX = 'cnl:local-index';
 const DEFAULT_CLUB = 'Club Natación Lugones';
 const DEBOUNCE_MS = 1500;
+const POLL_MS = 30000;
 
 const listeners = new Set();
 let db = emptyDb();
@@ -17,6 +19,19 @@ let ref = null; // {name, local, id?}
 let dirty = false;
 let timer = null;
 let syncing = null;
+let rev = 0; // contador de cambios locales (para no perder ediciones hechas durante una subida)
+let base = null; // última versión sincronizada con la hoja (para fusionar cambios de otros usuarios)
+let lastHash = null; // hash de la última versión remota conocida
+let pollTimer = null;
+
+const snapshot = () => JSON.parse(JSON.stringify({ db, club }));
+
+// Lee la hoja remota -> {data, hash, empty}
+async function readRemote() {
+  const { tabs } = await drive.read(ref.id);
+  const data = tabsToData(tabs);
+  return { data, hash: hashData(data), empty: isEmptyData(data) };
+}
 
 function emptyDb() {
   const d = {};
@@ -38,7 +53,7 @@ const cacheKey = () => (ref.local ? LOCAL_PREFIX + ref.name : CLOUD_PREFIX + ref
 
 function saveCache() {
   try {
-    localStorage.setItem(cacheKey(), JSON.stringify({ db, club, dirty }));
+    localStorage.setItem(cacheKey(), JSON.stringify({ db, club, dirty, lastHash, base: dirty && !ref.local ? base : null }));
   } catch (e) {
     console.warn('No se pudo guardar la caché local', e);
   }
@@ -93,6 +108,7 @@ function parseWorkbook(buf) {
 // ---------- Persistencia ----------
 function markDirty() {
   dirty = true;
+  rev++;
   saveCache();
   if (ref.local) { setStatus('local'); return; }
   setStatus(navigator.onLine ? 'pendiente' : 'offline');
@@ -107,8 +123,19 @@ function indexLocal(name) {
   } catch (e) { /* ignorar */ }
 }
 
+// Polling cada ~30 s para detectar cambios de otros usuarios (sólo con la pestaña visible).
+function startPolling() {
+  clearInterval(pollTimer);
+  pollTimer = setInterval(() => {
+    if (typeof document !== 'undefined' && document.visibilityState === 'hidden') return;
+    store.refresh().catch((e) => { if (!e.offline) { store.lastError = e; setStatus('error'); } });
+  }, POLL_MS);
+  if (pollTimer && pollTimer.unref) pollTimer.unref();
+}
+
 export const store = {
   status: 'local',
+  lastError: null,
 
   // clubRef: null | string (club local) | {name, local?} | {id, name} (Drive)
   async init(clubRef) {
@@ -117,9 +144,14 @@ export const store = {
     if (!clubRef) clubRef = { name: DEFAULT_CLUB, local: true };
     ref = { name: clubRef.name, id: clubRef.id, local: !GOOGLE_CLIENT_ID || !!clubRef.local || !clubRef.id };
     auth._setUsersProvider(() => db.Usuarios);
+    if (auth._setOwnerProvider) auth._setOwnerProvider(() => club.propietario);
     dirty = false;
+    clearInterval(pollTimer);
+    pollTimer = null;
+    base = null;
+    lastHash = null;
     const cached = loadCache();
-    if (cached) { applyData(cached); dirty = !!cached.dirty; } else { db = emptyDb(); club = {}; }
+    if (cached) { applyData(cached); dirty = !!cached.dirty; lastHash = cached.lastHash || null; base = cached.base || null; } else { db = emptyDb(); club = {}; }
 
     if (ref.local) {
       indexLocal(ref.name);
@@ -130,24 +162,48 @@ export const store = {
       return store;
     }
 
-    // Drive: si no hay cambios locales pendientes, se toma lo remoto.
+    // Hoja de Google: si no hay cambios locales pendientes, se toma lo remoto.
     try {
       if (!navigator.onLine) throw Object.assign(new Error('offline'), { offline: true });
       if (!dirty) {
-        const buf = await drive.download(ref.id);
-        if (buf.byteLength > 0) applyData(parseWorkbook(buf));
-        else { if (!club.nombre) club.nombre = ref.name; dirty = true; }
+        const remote = await readRemote();
+        if (remote.empty) { // hoja recién creada: el creador es el propietario (admin)
+          if (!club.nombre) club.nombre = ref.name;
+          if (!club.propietario) club.propietario = clubRef.owner || (auth.user && auth.user.email) || '';
+          dirty = true;
+        } else applyData(remote.data);
+        lastHash = remote.hash;
+        base = remote.empty ? null : snapshot();
       }
       if (!club.nombre) club.nombre = ref.name;
       saveCache();
       setStatus(dirty ? 'pendiente' : 'sincronizado');
       if (dirty) store.sync().catch(() => {});
+      startPolling();
     } catch (e) {
       if (!cached) throw e;
       setStatus(e.offline ? 'offline' : 'error');
+      startPolling();
     }
     emit({ type: 'init' });
     return store;
+  },
+
+  // Datos del club abierto: {name, id, local}
+  get clubRef() { return ref ? { name: ref.name, id: ref.id, local: ref.local } : null; },
+
+  // Comprueba si otro usuario ha cambiado la hoja y, si es así, incorpora los cambios. Devuelve true si cambió algo.
+  async refresh() {
+    if (!ref || ref.local || syncing || dirty || !navigator.onLine) return false;
+    const remote = await readRemote();
+    if (remote.hash === lastHash || dirty || syncing) return false;
+    applyData(remote.data);
+    base = snapshot();
+    lastHash = remote.hash;
+    saveCache();
+    setStatus('sincronizado');
+    emit({ type: 'remote' });
+    return true;
   },
 
   get club() { return club; },
@@ -188,13 +244,33 @@ export const store = {
     if (!navigator.onLine) { setStatus('offline'); return; }
     syncing = (async () => {
       try {
-        await drive.upload(ref.id, workbookBlob());
-        dirty = false;
+        // 1) ¿Ha cambiado la hoja desde la última vez? Fusionar sin perder los cambios locales.
+        const remote = await readRemote();
+        let merged = false;
+        if (remote.hash !== lastHash) {
+          if (dirty) {
+            const m = mergeData(remote.empty ? null : base, { db, club }, remote.data);
+            applyData(m);
+            merged = true;
+          } else { applyData(remote.data); merged = true; }
+        }
+        // 2) Subir si hay cambios locales.
+        if (dirty) {
+          const startRev = rev;
+          const data = snapshot();
+          await drive.write(ref.id, dataToTabs(data));
+          base = data;
+          lastHash = hashData(data);
+          dirty = rev !== startRev; // ediciones hechas durante la subida
+        } else { base = snapshot(); lastHash = remote.hash; }
         saveCache();
-        setStatus('sincronizado');
+        setStatus(dirty ? 'pendiente' : 'sincronizado');
+        if (dirty) timer = setTimeout(() => store.sync().catch(() => {}), DEBOUNCE_MS);
+        if (merged) emit({ type: 'remote' });
       } catch (e) {
         console.error(e);
-        setStatus(navigator.onLine ? 'error' : 'offline');
+        setStatus(navigator.onLine && !e.offline ? 'error' : 'offline');
+        store.lastError = e;
         throw e;
       } finally { syncing = null; }
     })();

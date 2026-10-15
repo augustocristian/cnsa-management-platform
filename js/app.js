@@ -2,6 +2,7 @@
 import { h, toast, isoDate } from './ui.js';
 import * as ui from './ui.js';
 import * as router from './router.js';
+import { icon } from './icons.js';
 
 const LOCAL_KEY = 'cnl:local';
 const CLUB_KEY = 'cnl:club';
@@ -10,20 +11,7 @@ const DEFAULT_LEMA = 'Pequeño gran club';
 
 const ROLE_LABEL = { admin: 'Administrador', entrenador: 'Entrenador', nadador: 'Nadador' };
 
-// Iconos SVG (trazo) para el menú
-const ICONS = {
-  inicio: 'M3 11l9-8 9 8M5 10v10h5v-6h4v6h5V10',
-  nadadores: 'M16 11a4 4 0 100-8 4 4 0 000 8zM4 21v-1a6 6 0 0112 0v1M18 14a5 5 0 014 5v2',
-  grupos: 'M9 11a3 3 0 100-6 3 3 0 000 6zM17 11a3 3 0 100-6 3 3 0 000 6zM3 20v-1a5 5 0 0110 0v1M14 15a5 5 0 017 4v1',
-  entrenamientos: 'M12 7v5l3 2M12 21a9 9 0 100-18 9 9 0 000 18z',
-  asistencia: 'M9 12l2 2 4-4M5 4h14a1 1 0 011 1v15a1 1 0 01-1 1H5a1 1 0 01-1-1V5a1 1 0 011-1z',
-  cargas: 'M3 20h18M6 20V12M11 20V6M16 20v-9M21 20V9',
-  marcas: 'M8 21h8M12 17v4M7 4h10v5a5 5 0 01-10 0V4zM7 6H4v1a3 3 0 003 3M17 6h3v1a3 3 0 01-3 3',
-  banador: 'M7 3l-4 4 3 3 1-1v12h10V9l1 1 3-3-4-4a5 5 0 01-10 0z',
-  comunicaciones: 'M4 5h16v11H9l-5 4V5z',
-  club: 'M12 15a3 3 0 100-6 3 3 0 000 6zM19 12a7 7 0 00-.1-1.2l2-1.5-2-3.4-2.3 1a7 7 0 00-2-1.2L14 3h-4l-.4 2.7a7 7 0 00-2 1.2l-2.3-1-2 3.4 2 1.5A7 7 0 005 12c0 .4 0 .8.1 1.2l-2 1.5 2 3.4 2.3-1a7 7 0 002 1.2L10 21h4l.4-2.7a7 7 0 002-1.2l2.3 1 2-3.4-2-1.5c.1-.4.1-.8.1-1.2z',
-  'mi-espacio': 'M12 12a4 4 0 100-8 4 4 0 000 8zM4 21a8 8 0 0116 0'
-};
+
 
 // Menú: [ruta, etiqueta, roles permitidos]
 const MENU = [
@@ -144,6 +132,7 @@ async function clubSelector() {
 
   return new Promise((resolve) => {
     const nameInput = h('input', { type: 'text', placeholder: 'Nombre del nuevo club', maxlength: 60 });
+    const joinInput = h('input', { type: 'text', placeholder: 'Unirse con enlace o ID de hoja', 'aria-label': 'Unirse con enlace o ID de hoja' });
     const err = h('p', { class: 'form-error', role: 'alert' });
     const list = h('div', { class: 'club-list' }, clubs.length
       ? clubs.map((c) => h('button', { class: 'club-item', type: 'button', onclick: () => resolve(c) },
@@ -164,6 +153,19 @@ async function clubSelector() {
             catch (ex) { err.textContent = ex.message || String(ex); e.currentTarget.disabled = false; }
           }
         }, 'Crear club')),
+      h('div', { class: 'new-club join-club' }, joinInput,
+        h('button', {
+          class: 'btn', type: 'button',
+          onclick: async (e) => {
+            const v = joinInput.value.trim();
+            if (!v) { err.textContent = 'Pega el enlace o el ID de la hoja.'; return; }
+            e.currentTarget.disabled = true;
+            err.textContent = '';
+            try { resolve(await drive.joinClub(v)); }
+            catch (ex) { err.textContent = ex.message || String(ex); e.currentTarget.disabled = false; }
+          }
+        }, 'Unirse')),
+      h('p', { class: 'hint' }, 'Para unirte a un club existente, el propietario debe haber compartido antes la hoja de Google contigo.'),
       err,
       h('button', { class: 'btn btn-link', type: 'button', onclick: doLogout }, 'Cerrar sesión'));
   });
@@ -184,8 +186,7 @@ const allowedMenu = () => {
 const defaultRoute = () => (auth.role() === 'nadador' ? 'mi-espacio' : 'inicio');
 
 function navIcon(name) {
-  return h('svg', { viewBox: '0 0 24 24', width: 22, height: 22, fill: 'none', stroke: 'currentColor', 'stroke-width': 1.8, 'stroke-linecap': 'round', 'stroke-linejoin': 'round', 'aria-hidden': 'true' },
-    h('path', { d: ICONS[name] || ICONS.inicio }));
+  return icon(name === 'club' ? 'ajustes' : name, { size: 22 });
 }
 
 function bellCount() {
@@ -213,12 +214,10 @@ function buildHeader() {
         onclick: async () => { if (!canSync) return; try { await store.sync(); toast('Sincronizado'); } catch (e) { toast('Error al sincronizar'); } }
       }, h('span', { class: 'dot' }), h('span', { class: 'status-text' }, STATUS_LABEL[status] || status)),
       h('button', { class: 'icon-btn bell', type: 'button', 'aria-label': `Avisos: ${n}`, title: 'Comunicaciones recientes', onclick: () => router.navigate('comunicaciones') },
-        h('svg', { viewBox: '0 0 24 24', width: 24, height: 24, fill: 'none', stroke: 'currentColor', 'stroke-width': 1.8, 'stroke-linecap': 'round', 'stroke-linejoin': 'round' },
-          h('path', { d: 'M6 9a6 6 0 0112 0c0 5 2 6 2 7H4c0-1 2-2 2-7zM10 20a2 2 0 004 0' })),
+        icon('campana', { size: 24 }),
         n > 0 ? h('span', { class: 'badge' }, n > 9 ? '9+' : n) : null),
       h('button', { class: 'icon-btn', type: 'button', 'aria-label': 'Salir', title: auth.user ? `Salir (${auth.user.email})` : 'Salir', onclick: doLogout },
-        h('svg', { viewBox: '0 0 24 24', width: 24, height: 24, fill: 'none', stroke: 'currentColor', 'stroke-width': 1.8, 'stroke-linecap': 'round', 'stroke-linejoin': 'round' },
-          h('path', { d: 'M9 4H5v16h4M16 8l4 4-4 4M20 12H9' })))));
+        icon('salir', { size: 24 }))));
 }
 
 function buildNav() {
@@ -316,7 +315,7 @@ function setupInstall() {
         class: 'btn btn-primary', type: 'button',
         onclick: async () => { banner.remove(); deferred.prompt(); await deferred.userChoice.catch(() => {}); deferred = null; }
       }, 'Instalar'),
-      h('button', { class: 'icon-btn', type: 'button', 'aria-label': 'Descartar', onclick: () => { lsSet('cnl:install-dismissed', '1'); banner.remove(); } }, '✕'));
+      h('button', { class: 'icon-btn', type: 'button', 'aria-label': 'Descartar', onclick: () => { lsSet('cnl:install-dismissed', '1'); banner.remove(); } }, icon('cerrar', { size: 18 })));
     document.body.appendChild(banner);
   });
   window.addEventListener('appinstalled', () => document.getElementById('install-banner')?.remove());

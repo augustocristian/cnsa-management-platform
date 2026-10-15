@@ -1,4 +1,5 @@
 // Helpers de UI. Nunca innerHTML con datos: todo por DOM/textContent.
+import { icon } from './icons.js';
 
 const SVG_TAGS = ['svg', 'path', 'circle', 'rect', 'line', 'polyline', 'polygon', 'g', 'text', 'ellipse'];
 
@@ -57,7 +58,7 @@ export function modal({ title, body, actions, onClose } = {}) {
   const overlay = h('div', { class: 'modal-overlay', onmousedown: (e) => { if (e.target === overlay) close(); } },
     h('div', { class: 'modal', role: 'dialog', 'aria-modal': 'true' },
       h('div', { class: 'modal-head' }, h('h3', null, title || ''),
-        h('button', { type: 'button', class: 'icon-btn', 'aria-label': 'Cerrar', onclick: close }, '✕')),
+        h('button', { type: 'button', class: 'icon-btn', 'aria-label': 'Cerrar', onclick: close }, icon('cerrar', { size: 18 }))),
       h('div', { class: 'modal-body' }, body),
       h('div', { class: 'modal-actions' }, acts)));
   document.body.appendChild(overlay);

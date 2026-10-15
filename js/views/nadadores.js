@@ -1,5 +1,6 @@
 // Vista Nadadores: listado, alta/edición en modal y ficha individual (#/nadadores/<id>).
 import { CATEGORIAS } from '../schema.js';
+import { icon } from '../icons.js';
 
 const P = 'nad-'; // prefijo de clases propias
 
@@ -179,7 +180,7 @@ function renderLista(container, ctx, canEdit, refresh) {
   container.replaceChildren(
     h('div', { class: P + 'head' },
       h('h1', {}, 'Nadadores'),
-      canEdit ? h('button', { class: 'btn', onclick: () => editNadador(null, ctx, refresh) }, '+ Nuevo nadador') : null),
+      canEdit ? h('button', { class: 'btn', onclick: () => editNadador(null, ctx, refresh) }, icon('mas', { size: 16 }), ' Nuevo nadador') : null),
     h('div', { class: 'card' },
       h('div', { class: P + 'filters' }, inpQ, selCat, selGrp, chk),
       count,
@@ -246,7 +247,7 @@ async function borrarNadador(n, ctx) {
 function renderFicha(container, id, ctx, canEdit, refresh) {
   const { store, ui } = ctx;
   const n = store.get('Nadadores', id);
-  const back = h('button', { class: P + 'back', onclick: () => { location.hash = '#/nadadores'; } }, '← Volver al listado');
+  const back = h('button', { class: P + 'back', onclick: () => { location.hash = '#/nadadores'; } }, icon('flecha-izq', { size: 16 }), ' Volver al listado');
   if (!n) {
     container.replaceChildren(back, h('div', { class: 'card' }, 'Nadador no encontrado.'));
     return;
@@ -325,7 +326,7 @@ function seccionMarcas(n, store, ui) {
         h('thead', {}, h('tr', {}, ['Fecha', 'Tiempo', 'Competición'].map((t) => h('th', {}, t)))),
         h('tbody', {}, [...lista].reverse().map((m) => h('tr', {},
           h('td', {}, fmtFecha(m.fecha, ui)),
-          h('td', {}, fmtTiempo(m.tiempoMs, ui), num(m.tiempoMs) === mejor ? ' ★' : ''),
+          h('td', {}, fmtTiempo(m.tiempoMs, ui), num(m.tiempoMs) === mejor ? [' ', icon('trofeo', { size: 14, class: 'icon-inline' })] : ''),
           h('td', {}, m.competicion || '')))))));
   });
   return seccion('Evolución de marcas', bloques);

@@ -41,6 +41,54 @@ function fileToLogo(file) {
   });
 }
 
+// Bloque 'Compartir': enlace/ID de la hoja de Google, copiar, abrir y compartir por email (Drive permissions).
+function buildCompartir(ctx) {
+  const { store, ui } = ctx;
+  const h = ui.h;
+  const ref = store.clubRef;
+  if (!ref || ref.local || !ref.id) {
+    return h('div', { class: 'card clb-card' }, h('h3', {}, 'Compartir'),
+      h('p', { class: 'muted' }, 'En modo local no hay hoja de Google que compartir. Inicia sesión con Google para usar un club compartido.'));
+  }
+  const url = 'https://docs.google.com/spreadsheets/d/' + ref.id + '/edit';
+  const inUrl = h('input', { type: 'text', readonly: 'readonly', value: url, 'aria-label': 'Enlace de la hoja' });
+  inUrl.addEventListener('focus', () => inUrl.select());
+  const bCopy = h('button', { type: 'button', class: 'btn' }, 'Copiar enlace');
+  bCopy.addEventListener('click', async () => {
+    try { await navigator.clipboard.writeText(url); ui.toast('Enlace copiado'); }
+    catch (e) { inUrl.select(); ui.toast('Pulsa Ctrl+C para copiar'); }
+  });
+  const bId = h('button', { type: 'button', class: 'btn' }, 'Copiar ID');
+  bId.addEventListener('click', async () => {
+    try { await navigator.clipboard.writeText(ref.id); ui.toast('ID copiado'); } catch (e) { ui.toast('ID: ' + ref.id); }
+  });
+  const bOpen = h('a', { class: 'btn', href: url, target: '_blank', rel: 'noopener' }, 'Abrir en Google Sheets');
+  const inMail = h('input', { type: 'email', placeholder: 'correo@ejemplo.com' });
+  const bShare = h('button', { type: 'button', class: 'btn btn-primary' }, 'Compartir por email');
+  bShare.addEventListener('click', async () => {
+    const email = inMail.value.trim();
+    bShare.disabled = true;
+    try {
+      const { drive } = await import('../drive.js');
+      await drive.shareWithEmail(ref.id, email, 'writer');
+      ui.toast('Hoja compartida con ' + email + ' (editor)');
+      inMail.value = '';
+    } catch (e) { ui.toast(e.message || String(e)); }
+    bShare.disabled = false;
+  });
+  return h('div', { class: 'card clb-card' }, h('h3', {}, 'Compartir'),
+    h('p', {}, 'Los datos del club viven en una hoja de Google Sheets. Para que otros entrenadores trabajen en el mismo club:'),
+    h('ol', {},
+      h('li', {}, 'Comparte la hoja desde Google Drive (botón Compartir de la hoja) con su correo de Google, como Editor; o usa el botón de abajo.'),
+      h('li', {}, 'Envíales el enlace o el ID de la hoja.'),
+      h('li', {}, 'Ellos inician sesión, eligen "Unirse con enlace o ID de hoja" y pegan el enlace.'),
+      h('li', {}, 'Añade su correo en "Usuarios y roles" para darles el rol adecuado (sin fila, serán nadadores).')),
+    h('div', { class: 'clb-row' }, h('label', {}, 'Enlace de la hoja', inUrl)),
+    h('div', { class: 'clb-actions' }, bCopy, bId, bOpen),
+    h('div', { class: 'clb-row', style: 'margin-top:12px' }, h('label', {}, 'Compartir con (rol editor en Drive)', inMail), bShare),
+    h('p', { class: 'muted' }, 'El botón de email sólo funciona para quien creó la hoja con esta app; el resto debe compartirla desde Drive. Los cambios de otros usuarios se incorporan automáticamente cada ~30 s.'));
+}
+
 export async function render(container, params, ctx) {
   const { store, auth, ui } = ctx;
   const h = ui.h;
@@ -150,5 +198,5 @@ export async function render(container, params, ctx) {
   const datos = h('div', { class: 'card clb-card' }, h('h3', {}, 'Datos y sincronización'),
     h('div', { class: 'clb-actions' }, bSync, bExp, bImp, inImp, h('span', {}, 'Estado: '), estado));
 
-  container.append(h('div', { class: 'clb-wrap' }, identidad, usuariosBox, datos));
+  container.append(h('div', { class: 'clb-wrap' }, identidad, usuariosBox, buildCompartir(ctx), datos));
 }

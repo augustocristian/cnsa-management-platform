@@ -11,7 +11,7 @@
 
 **Gestión integral de un club de natación** — nadadores, entrenamientos, asistencia, cargas, marcas, equipación y comunicaciones en una PWA que funciona desde el móvil, en la piscina.
 
-👉 **[Abrir la aplicación](https://augustocristian.github.io/cnsa-management-platform/)**
+**[Abrir la aplicación](https://augustocristian.github.io/cnsa-management-platform/)**
 
 Pensada inicialmente para el Club Natación Lugones, con identidad visual configurable para poder adaptarse a otros clubes.
 
@@ -20,7 +20,7 @@ Pensada inicialmente para el Club Natación Lugones, con identidad visual config
 | Módulo | Qué permite |
 |---|---|
 | **Inicio** | Resumen: accesos rápidos, cargas semanales frente a objetivos, alertas, próxima sesión, asistencia de hoy y comunicaciones recientes |
-| **Nadadores** | Alta, edición y ficha individual; categorías en orden (Prebenjamín → Máster) y grupos |
+| **Nadadores** | Alta, edición y ficha individual; categorías en orden (de Prebenjamín a Máster) y grupos |
 | **Grupos** | Grupos de entrenamiento y sus nadadores |
 | **Entrenamientos** | Planificación semanal: piscina, volumen objetivo, enfoque, estado planificado/realizado |
 | **Asistencia** | Pasar lista desde el móvil con un toque; historial y porcentaje por nadador |
@@ -38,9 +38,9 @@ Pensada inicialmente para el Club Natación Lugones, con identidad visual config
 
 ## Persistencia
 
-- **Con Google**: inicio de sesión con Google; los datos de cada club se guardan en un **Excel (.xlsx) dentro de la carpeta `cnl` de tu Google Drive** (una hoja por entidad). Cada club es un fichero distinto, de modo que el aislamiento entre clubes lo dan los permisos de Drive. Usa el permiso `drive.file`: la app solo ve los ficheros que ella crea.
+- **Con Google**: inicio de sesión con Google; los datos de cada club viven en una **Google Sheet compartida** (una pestaña por entidad, creada en la carpeta `cnl` de tu Drive). El propietario la comparte con los demás entrenadores desde Drive y ellos se unen con el enlace o ID de la hoja. Se usan los permisos `spreadsheets` y `drive.file`. Los cambios de otros usuarios se detectan cada ~30 s y se fusionan sin perder los tuyos.
 - **Modo local**: sin Client ID de Google la app funciona con datos de ejemplo en el navegador (localStorage), con importación/exportación de `.xlsx`.
-- Caché local y sincronización diferida para trabajar sin conexión.
+- Caché local y sincronización diferida para trabajar sin conexión; `.xlsx` exportable como copia de seguridad.
 
 Configuración del login de Google: [docs/SETUP-GOOGLE.md](docs/SETUP-GOOGLE.md).
 
@@ -68,7 +68,7 @@ Abre `http://localhost:8080` y pulsa **Probar en modo local**.
 
 ## Despliegue
 
-Cada push a `main` ejecuta [el workflow](.github/workflows/pages.yml) (`npm ci`, comprobación y despliegue en GitHub Pages). Requiere activar *Settings → Pages → Source: GitHub Actions*.
+Cada push a `main` ejecuta [el workflow](.github/workflows/pages.yml) (`npm ci`, comprobación y despliegue en GitHub Pages). Requiere activar *Settings > Pages > Source: GitHub Actions*.
 
 ## Dependencias
 

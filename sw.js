@@ -1,11 +1,11 @@
 // Service worker: cache-first del shell + vendor. Subir VERSION al cambiar ficheros.
-const VERSION = 'v1';
+const VERSION = 'v2';
 const CACHE = 'cnl-shell-' + VERSION;
 const SHELL = [
   './', './index.html', './manifest.webmanifest',
   './css/app.css',
-  './js/app.js', './js/ui.js', './js/router.js', './js/config.js', './js/schema.js',
-  './js/store.js', './js/auth.js', './js/drive.js',
+  './js/app.js', './js/ui.js', './js/icons.js','./js/router.js', './js/config.js', './js/schema.js',
+  './js/store.js', './js/auth.js', './js/drive.js', './js/sheetdata.js',
   './js/views/inicio.js', './js/views/nadadores.js', './js/views/grupos.js',
   './js/views/entrenamientos.js', './js/views/asistencia.js', './js/views/cargas.js',
   './js/views/marcas.js', './js/views/banador.js', './js/views/comunicaciones.js',

@@ -1,5 +1,6 @@
 // Vista Grupos: CRUD de grupos y nadadores por grupo.
 import { CATEGORIAS } from '../schema.js';
+import { icon } from '../icons.js';
 
 const P = 'grp-';
 
@@ -125,7 +126,7 @@ export async function render(container, params, ctx) {
   container.replaceChildren(
     h('div', { class: P + 'head' },
       h('h1', {}, 'Grupos'),
-      h('button', { class: 'btn', onclick: () => editar(null) }, '+ Nuevo grupo')),
+      h('button', { class: 'btn', onclick: () => editar(null) }, icon('mas', { size: 16 }), ' Nuevo grupo')),
     grupos.length ? h('div', { class: 'grid' }, tarjetas) : h('div', { class: 'card' }, 'Aún no hay grupos. Crea el primero.'),
     sinGrupo.length ? h('div', { class: `card ${P}card`, style: 'margin-top:1rem' },
       h('h2', {}, 'Sin grupo'),

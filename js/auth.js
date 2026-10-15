@@ -8,6 +8,7 @@ let tokenClient = null;
 let gisPromise = null;
 let tokenData = null; // {access_token, expires}
 let usersProvider = () => []; // lo registra el store: devuelve filas de Usuarios
+let ownerProvider = () => ''; // email del propietario del club (siempre admin)
 
 function emit() {
   listeners.forEach((fn) => { try { fn(auth.user); } catch (e) { console.error(e); } });
@@ -135,11 +136,13 @@ export const auth = {
     const users = usersProvider();
     if (!users.length) return 'admin'; // club recién creado: el propietario es admin
     const row = auth.currentUserRow();
+    if (!row && auth.user && String(ownerProvider() || '').toLowerCase() === String(auth.user.email || '').toLowerCase()) return 'admin';
     return row ? row.rol : 'nadador';
   },
 
   // Uso interno del store.
   _setUsersProvider(fn) { usersProvider = fn; },
+  _setOwnerProvider(fn) { ownerProvider = fn; },
 };
 
 export default auth;

@@ -12,7 +12,7 @@ const submit = (form) => form.dispatchEvent(new window.Event('submit', { cancela
 test('crear nadador desde el modal y verlo en el listado', async () => {
   await renderView('nadadores', c.container, [], c);
   const before = c.store.list('Nadadores').length;
-  buttonByText(c.container, '+ Nuevo nadador').click();
+  buttonByText(c.container, 'Nuevo nadador').click();
   const ov = document.querySelector('.nad-ov');
   assert.ok(ov, 'no se abrió el modal');
 
@@ -89,7 +89,7 @@ test('editar y eliminar nadador desde la ficha', async () => {
 
 test('grupos: crear grupo desde el modal', async () => {
   await renderView('grupos', c.container, [], c);
-  buttonByText(c.container, '+ Nuevo grupo').click();
+  buttonByText(c.container, 'Nuevo grupo').click();
   const input = document.querySelector('body > div input[type=text]');
   assert.ok(input, 'modal de grupo');
   input.value = 'Grupo Nuevo';
@@ -146,7 +146,7 @@ test('asistencia sin sesiones muestra aviso', async () => {
 test('entrenamientos: crear sesión desde el formulario', async () => {
   await renderView('entrenamientos', c.container, [], c);
   const before = c.store.list('Entrenamientos').length;
-  buttonByText(c.container, '+ Nueva sesión').click();
+  buttonByText(c.container, 'Nueva sesión').click();
   const form = document.querySelector('.ent-ov form');
   assert.ok(form);
   form.elements.titulo.value = 'Sesión creada en test';
@@ -171,7 +171,7 @@ test('entrenamientos: crear sesión desde el formulario', async () => {
 test('entrenamientos: volumen mínimo > máximo no guarda', async () => {
   await renderView('entrenamientos', c.container, [], c);
   const before = c.store.list('Entrenamientos').length;
-  buttonByText(c.container, '+ Nueva sesión').click();
+  buttonByText(c.container, 'Nueva sesión').click();
   const form = document.querySelector('.ent-ov form');
   form.elements.titulo.value = 'Mala';
   form.elements.fecha.value = today();
@@ -307,7 +307,7 @@ test('rol nadador: sin formularios ni botones de edición', async () => {
   c.auth.setDemoRole('nadador');
   await renderView('entrenamientos', c.container, [], c);
   assert.equal(c.container.querySelector('.ent-act'), null);
-  assert.equal(c.container.textContent.includes('+ Nueva sesión'), false);
+  assert.equal(c.container.textContent.includes('Nueva sesión'), false);
   for (const [name, sel] of [['cargas', 'form.cg-form'], ['marcas', 'form.mc-form'], ['comunicaciones', 'form.cm-form']]) {
     await renderView(name, c.container, [], c);
     assert.equal(c.container.querySelector(sel), null, `${name} no debería mostrar ${sel}`);
@@ -336,7 +336,7 @@ test('rol entrenador: no accede a club pero sí a nadadores', async () => {
   await renderView('club', c.container, [], c);
   assert.match(c.container.textContent, /administradores/);
   await renderView('nadadores', c.container, [], c);
-  assert.ok(buttonByText(c.container, '+ Nuevo nadador'));
+  assert.ok(buttonByText(c.container, 'Nuevo nadador'));
 });
 
 test('nadador solo ve comunicaciones generales y de su grupo', async () => {

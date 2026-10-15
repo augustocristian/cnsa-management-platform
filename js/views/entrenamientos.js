@@ -1,4 +1,5 @@
 // Vista Entrenamientos: planificación semanal, crear/editar sesiones.
+import { icon } from '../icons.js';
 const CSS = `
 .ent-bar{display:flex;flex-wrap:wrap;gap:8px;align-items:center;justify-content:space-between;margin-bottom:12px}
 .ent-nav{display:flex;gap:6px;align-items:center;flex-wrap:wrap}
@@ -159,7 +160,7 @@ export async function render(container, params, ctx) {
         h('button', { class: 'btn', onclick: () => { weekStart = addDays(weekStart, 7); draw(); } }, '›'),
         h('button', { class: 'btn', onclick: () => { weekStart = mondayOf(new Date()); draw(); } }, 'Hoy')),
       h('div', { class: 'ent-nav' }, groupSel,
-        canEdit ? h('button', { class: 'btn btn-primary', onclick: () => openForm({ fecha: todayIso, estado: 'planificado', grupoId: groupFilter }) }, '+ Nueva sesión') : null));
+        canEdit ? h('button', { class: 'btn btn-primary', onclick: () => openForm({ fecha: todayIso, estado: 'planificado', grupoId: groupFilter }) }, icon('mas', { size: 16 }), ' Nueva sesión') : null));
 
     const days = [];
     let weekTotal = 0;

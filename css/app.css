@@ -198,3 +198,9 @@ input:focus, select:focus, textarea:focus { outline: 2px solid var(--c-primary-m
 .table td { padding: .6rem .7rem; border-bottom: 1px solid var(--border); }
 .table tbody tr:hover { background: color-mix(in srgb, var(--c-primary) 6%, transparent); }
 .card { overflow-x: auto; }
+
+/* Iconos lineales */
+.icon { flex: none; vertical-align: -0.2em; }
+.btn:has(> .icon) { display: inline-flex; align-items: center; gap: .4rem; }
+.btn > .icon { margin-right: -.1rem; }
+.icon-inline { vertical-align: -0.15em; color: var(--c-primary); }

@@ -37,7 +37,7 @@ test('dashboard muestra las tarjetas', async ({ page }) => {
 test('alta de nadador aparece en listado y ficha', async ({ page }) => {
   await entrarLocal(page);
   await irA(page, 'nadadores');
-  await page.getByRole('button', { name: '+ Nuevo nadador' }).click();
+  await page.getByRole('button', { name: 'Nuevo nadador' }).click();
   await page.getByLabel('Nombre *').fill('Zacarías');
   await page.getByLabel('Apellidos *').fill('Testeo Prueba');
   await page.getByRole('button', { name: 'Guardar' }).click();
@@ -50,7 +50,7 @@ test('alta de nadador aparece en listado y ficha', async ({ page }) => {
 test('crear entrenamiento y pasar lista', async ({ page }) => {
   await entrarLocal(page);
   await irA(page, 'entrenamientos');
-  await page.getByRole('button', { name: '+ Nueva sesión' }).click();
+  await page.getByRole('button', { name: 'Nueva sesión' }).click();
   await page.getByLabel('Título').fill('Sesión E2E');
   await page.getByRole('button', { name: 'Guardar' }).click();
   await expect(page.getByText('Sesión E2E')).toBeVisible();
@@ -98,7 +98,7 @@ test('cambio de rol a Nadador oculta menús', async ({ page }) => {
 test('los datos persisten tras recargar', async ({ page }) => {
   await entrarLocal(page);
   await irA(page, 'nadadores');
-  await page.getByRole('button', { name: '+ Nuevo nadador' }).click();
+  await page.getByRole('button', { name: 'Nuevo nadador' }).click();
   await page.getByLabel('Nombre *').fill('Persistente');
   await page.getByLabel('Apellidos *').fill('Recarga');
   await page.getByRole('button', { name: 'Guardar' }).click();

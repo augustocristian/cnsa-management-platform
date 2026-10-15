@@ -1,4 +1,5 @@
 // Vista Inicio: dashboard del club.
+import { icon } from '../icons.js';
 const NS = 'http://www.w3.org/2000/svg';
 const DIAS = ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom'];
 const TIPOS = ['Aeróbico', 'Velocidad', 'Piernas', 'Técnica', 'Fuerza'];
@@ -28,7 +29,8 @@ function injectStyle() {
   .ini-card h3{margin:0 0 12px;font-size:1.05rem;color:#174ea6}
   .ini-quick{display:grid;grid-template-columns:repeat(2,1fr);gap:10px}
   .ini-quick a{display:flex;flex-direction:column;align-items:center;gap:6px;padding:14px 8px;border-radius:12px;background:#e8f0fe;color:#174ea6;text-decoration:none;font-weight:600;font-size:.9rem;text-align:center}
-  .ini-quick a span{font-size:1.5rem}
+  .ini-quick a:hover{background:#d2e3fc}
+  .ini-ico{display:grid;place-items:center;width:44px;height:44px;border-radius:12px;background:color-mix(in srgb,var(--c-primary,#1a73e8) 14%,#fff);color:var(--c-primary,#1a73e8)}
   .ini-chart svg{width:100%;height:auto}
   .ini-legend{display:flex;flex-wrap:wrap;gap:12px;font-size:.8rem;margin-top:6px;color:#555}
   .ini-legend i{display:inline-block;width:14px;height:3px;margin-right:4px;vertical-align:middle}
@@ -135,9 +137,9 @@ export async function render(container, params, ctx) {
   banner.append(swimmerSvg());
 
   // Acceso rápido
-  const atajos = [['🏊', 'Nadadores', '#/nadadores'], ['📋', 'Asistencia', '#/asistencia'], ['📈', 'Cargas', '#/cargas'], ['⏱️', 'Marcas', '#/marcas']];
+  const atajos = [['nadadores', 'Nadadores', '#/nadadores'], ['asistencia', 'Asistencia', '#/asistencia'], ['cargas', 'Cargas', '#/cargas'], ['marcas', 'Marcas', '#/marcas']];
   const quick = h('div', { class: 'card ini-card' }, h('h3', {}, 'Acceso rápido'),
-    h('div', { class: 'ini-quick' }, ...atajos.map(([ic, t, href]) => h('a', { href }, h('span', {}, ic), t))));
+    h('div', { class: 'ini-quick' }, ...atajos.map(([ic, t, href]) => h('a', { href }, h('span', { class: 'ini-ico' }, icon(ic, { size: 24 })), t))));
 
   // Gráfico
   const chart = h('div', { class: 'card ini-card ini-chart ini-wide' }, h('h3', {}, 'Control de cargas semanal del club'));
