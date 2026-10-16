@@ -3,7 +3,7 @@ export default {
   'shell.sesion': 'Signed in',
   'shell.sync.sincronizado': 'Synced',
   'acceso.login.google': 'Sign in with Google',
-  'acceso.login.nota': 'Your data is saved in the "cnl" folder of your own Google Drive. There is no server and no database.',
+  'acceso.login.nota': 'Sign in with your Google account: your data is saved in the "cnl" folder of your own Drive so you have it on all your devices. The app shares your data with nobody. There is no server and no database.',
   'acceso.tutorial': 'How to set up Google (tutorial)',
 
   'cfgreq.titulo': 'Setup required',
@@ -50,7 +50,7 @@ export default {
   'asistente.atras': 'Back',
   'asistente.crear': 'Create my club',
   'asistente.creando': 'Creating your club in Drive…',
-  'asistente.nota-carpeta': 'The app creates (or reuses) its own "cnl" folder in your Drive. If you already had a "cnl" folder made by hand, the app cannot see it (it only accesses what it creates itself): it will create its own and you can move or share yours from Drive.',
+  'asistente.nota-carpeta': 'The app creates (or reuses) its own "cnl" folder in your Drive. If you already had a "cnl" folder made by hand, the app cannot see it (it only accesses what it creates itself): it will create its own and you can move yours from Drive.',
   'asistente.nota-vacio': 'The club starts empty, without sample data. Afterwards you can add groups, swimmers and sessions.',
   'asistente.err.nombre-vacio': 'Enter the club name.',
   'asistente.err.nombre-corto': 'The name is too short.',
@@ -88,7 +88,7 @@ export default {
   'prefs.estado.sin-sesion': 'signed out',
 
   'tutorial.titulo': 'Set up Google in 5 minutes',
-  'tutorial.intro': 'Done once by whoever publishes the app. {total} steps: the app only asks for the "drive.file" permission (files it creates itself in your Drive), which is not sensitive and needs no Google verification.',
+  'tutorial.intro': 'Done once by whoever publishes the app; everyone else just signs in with their Google account. Each person has their own data in their own Drive (so they have it on all their devices) and the app shares data with nobody. {total} steps: the app only asks for the "drive.file" permission (files it creates itself in your Drive), which is not sensitive and needs no Google verification.',
   'tutorial.progreso': '{hecho} of {total} steps completed',
   'tutorial.paso-n': 'Step {n} of {total}',
   'tutorial.marcar': 'Mark as done',
@@ -146,10 +146,10 @@ export default {
   'tutorial.paso5.recargar': 'Reload',
 
   'tutorial.paso6.titulo': 'Sign in and basic use',
-  'tutorial.paso6.intro': 'This is how the app is used day to day.',
-  'tutorial.paso6.i1': 'Click "Sign in with Google" and accept the permission for files created by the app (if Google warns "app not verified", click "Advanced" and "Continue").',
+  'tutorial.paso6.intro': 'This is how the app is used day to day. It is a single-person app: no roles, no other users, no data sharing.',
+  'tutorial.paso6.i1': 'Sign in with your Google account ("Sign in with Google") and accept the permission for files created by the app (if Google warns "app not verified", click "Advanced" and "Continue").',
   'tutorial.paso6.i2': 'The first time, a two-step wizard creates your empty club (name, colours and time zone).',
-  'tutorial.paso6.i3': 'Everything stays in the "cnl" folder of your Drive: <Club>.json, preferencias.json, entrenos/ and Excel copies. If you already had a "cnl" folder made by hand, the app creates its own (it only sees what it creates): you can move or share yours from Drive.',
+  'tutorial.paso6.i3': 'Everything stays in the "cnl" folder of your Drive: <Club>.json, preferencias.json, entrenos/ and Excel copies. If you already had a "cnl" folder made by hand, the app creates its own (it only sees what it creates). Your data is saved in your Drive so you have it on all your devices (computer and phone); the app shares data with nobody.',
   'tutorial.paso6.i4': 'Add groups, swimmers and sessions: changes are saved automatically ("Synced" indicator) and work offline.',
   'tutorial.paso6.i5': 'In Settings you can export or import Excel as a backup. "Sign out" ends the session and revokes the permission.',
 

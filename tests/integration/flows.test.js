@@ -10,6 +10,7 @@ const today = () => c.ui.isoDate(new Date());
 const submit = (form) => form.dispatchEvent(new window.Event('submit', { cancelable: true, bubbles: true }));
 
 test('crear nadador desde el modal y verlo en el listado', async () => {
+  c.store.setClub({ ...c.store.club, temporadaActual: '2026-2027' });
   await renderView('nadadores', c.container, [], c);
   const before = c.store.list('Nadadores').length;
   buttonByText(c.container, 'Nuevo nadador').click();
@@ -23,7 +24,7 @@ test('crear nadador desde el modal y verlo en el listado', async () => {
 
   setValue(fieldByLabel(ov, 'Nombre'), 'Zoe');
   setValue(fieldByLabel(ov, 'Apellidos'), 'Zamora Test');
-  setValue(fieldByLabel(ov, 'Categoría'), 'Alevín');
+  setValue(fieldByLabel(ov, 'Fecha de nacimiento'), '2014-05-05'); // la categoría se calcula: Alevín en la temporada 2026-2027
   setValue(fieldByLabel(ov, 'Grupo'), 'g2');
   buttonByText(ov, 'Guardar').click();
   await tick();
@@ -32,6 +33,8 @@ test('crear nadador desde el modal y verlo en el listado', async () => {
   const nuevo = c.store.list('Nadadores').find((n) => n.nombre === 'Zoe');
   assert.ok(nuevo && nuevo.id);
   assert.equal(nuevo.grupoId, 'g2');
+  assert.equal(nuevo.categoria, 'Alevín');
+  assert.equal(nuevo.categoriaManual, '');
   assert.equal(c.store.list('Nadadores').length, before + 1);
   assert.match(c.container.textContent, /Zamora Test, Zoe/);
   assert.match(c.container.textContent, new RegExp(`${before + 1} nadadores`));
@@ -274,7 +277,7 @@ test('marcas: evolución con nadador y prueba seleccionados dibuja SVG', async (
   assert.ok(c.container.querySelector('svg.mc-svg'));
 });
 
-test('comunicaciones: publicar aviso con HTML en el título lo escapa', async () => {
+test('notices and notes: saving a notice with HTML in the title escapes it', async () => {
   await renderView('comunicaciones', c.container, [], c);
   const form = c.container.querySelector('form.cm-form');
   form.elements.titulo.value = 'Aviso <b>test</b>';
@@ -303,8 +306,8 @@ test('banador: marcar entregado exige talla y guarda fecha', async () => {
   assert.equal(b.fecha, today());
 });
 
-test('un solo usuario con todos los permisos: formularios y acciones de edición siempre disponibles', async () => {
-  assert.equal(c.auth.role(), 'entrenador');
+test('individual use: forms and edit actions are always available (no roles)', async () => {
+  assert.equal(c.auth.role, undefined, 'no hay roles');
   assert.equal(c.auth.setDemoRole, undefined, 'no hay selector de rol');
   await renderView('entrenamientos', c.container, [], c);
   assert.ok(c.container.textContent.includes('Nueva sesión'));
@@ -318,7 +321,7 @@ test('un solo usuario con todos los permisos: formularios y acciones de edición
   assert.ok(c.container.querySelector('input[type=text]'), 'Configuración abierta para el único usuario');
 });
 
-test('comunicaciones: se ven todos los avisos (sin filtro por grupo del nadador)', async () => {
+test('notices and notes: all of them are shown (no per-group filter)', async () => {
   await renderView('comunicaciones', c.container, [], c);
   assert.ok(c.container.textContent.includes('Horarios de la próxima semana'));
   assert.ok(c.container.textContent.includes('Competición en Gijón'));

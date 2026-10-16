@@ -132,7 +132,7 @@ test('meta, read y write usan modifiedTime/md5Checksum como revisión', async ()
     if (c.method === 'PATCH') return json({ id: 'F', name: 'X.json', md5Checksum: 'nuevo' });
     return json({ id: 'F', name: 'X.json', md5Checksum: 'viejo', modifiedTime: '2026-10-01T00:00:00Z' });
   };
-  assert.deepEqual(await drive.meta('F'), { rev: 'viejo', modifiedTime: '2026-10-01T00:00:00Z', name: 'X' });
+  assert.deepEqual(await drive.meta('F'), { rev: 'viejo', modifiedTime: '2026-10-01T00:00:00Z', name: 'X', version: null });
   const r = await drive.read('F');
   assert.deepEqual(r.doc, doc);
   assert.equal(r.rev, 'viejo');

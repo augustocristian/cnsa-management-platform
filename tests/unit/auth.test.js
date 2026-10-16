@@ -21,8 +21,8 @@ test('sin Client ID no se puede iniciar sesión (no existe modo local)', async (
   await assert.rejects(auth.signIn(), (e) => e.code === 'sin-client-id');
 });
 
-test('app de un solo usuario: siempre con todos los permisos', () => {
-  assert.equal(auth.role(), 'entrenador');
+test('individual use: there are no roles or role selector', () => {
+  assert.equal(auth.role, undefined);
   assert.equal(auth.setDemoRole, undefined, 'ya no hay selector de rol');
   assert.equal(auth.currentUserRow, undefined);
 });

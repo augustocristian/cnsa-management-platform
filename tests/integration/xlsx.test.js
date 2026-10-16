@@ -10,7 +10,7 @@ const snapshot = (store) => JSON.parse(JSON.stringify(Object.fromEntries(
     .map((s) => [s, store.list(s)]))));
 
 test('exportXlsx genera un libro con una hoja por entidad y cabeceras exactas', async () => {
-  const blob = c.store.exportXlsx();
+  const blob = await c.store.exportXlsx();
   assert.ok(blob.size > 1000);
   const wb = XLSX.read(await blob.arrayBuffer(), { type: 'array' });
   const { SHEETS } = await import('../../js/schema.js');
@@ -24,7 +24,7 @@ test('exportXlsx genera un libro con una hoja por entidad y cabeceras exactas', 
 test('round-trip export -> clear -> import conserva todos los datos', async () => {
   const antes = snapshot(c.store);
   const club = { ...c.store.club };
-  const blob = c.store.exportXlsx();
+  const blob = await c.store.exportXlsx();
   c.store.clear();
   assert.equal(c.store.list('Nadadores').length, 0);
   await c.store.importXlsx(blob);
@@ -47,7 +47,7 @@ test('importar un xlsx de datos mínimos rellena columnas ausentes y descarta fi
 });
 
 test('tras importar, las vistas renderizan los datos importados', async () => {
-  const blob = c.store.exportXlsx();
+  const blob = await c.store.exportXlsx();
   c.store.clear();
   await c.store.importXlsx(blob);
   await renderView('nadadores', c.container, [], c);
@@ -57,14 +57,16 @@ test('tras importar, las vistas renderizan los datos importados', async () => {
 });
 
 test('club: botón Importar reemplaza datos tras confirmar', async () => {
-  const blob = c.store.exportXlsx();
+  const blob = await c.store.exportXlsx();
   c.store.clear();
   await renderView('club', c.container, [], c);
   const input = c.container.querySelector('input[type=file][accept=".xlsx"]');
   Object.defineProperty(input, 'files', { value: [blob], configurable: true });
   input.dispatchEvent(new window.Event('change'));
-  await tick(5);
-  [...document.querySelectorAll('.modal-overlay button')].find((b) => b.textContent === 'Aceptar').click();
-  await tick(100);
+  await tick(60);
+  assert.match(document.querySelector('#import-previa').textContent, /Nadadores/, 'vista previa con el recuento por hoja');
+  assert.equal(c.store.list('Nadadores').length, 0, 'nada cambia hasta confirmar');
+  [...document.querySelectorAll('.modal-overlay button')].find((b) => b.textContent === 'Importar y sustituir').click();
+  await tick(150);
   assert.equal(c.store.list('Nadadores').length, 12);
 });

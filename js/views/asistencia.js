@@ -37,11 +37,10 @@ function injectStyle() {
 }
 
 export async function render(container, params, ctx) {
-  const { store, auth } = ctx;
+  const { store } = ctx;
   const h = ctx.ui.h;
   injectStyle();
 
-  const canEdit = auth.role() !== 'nadador';
   let tab = 'lista';
   let sessionId = (Array.isArray(params) ? params[0] : params && (params.id || params[0])) || '';
   let histGroup = '';
@@ -97,22 +96,22 @@ export async function render(container, params, ctx) {
       const r = recs.get(n.id);
       const st = r ? r.estado : '';
       return h('button', {
-        type: 'button', class: `asi-sw${st ? ' asi-' + st : ''}`, disabled: !canEdit,
+        type: 'button', class: `asi-sw${st ? ' asi-' + st : ''}`,
         onclick: () => cycle(sess, n, r),
       }, h('b', {}, fullName(n)), h('span', { class: 'asi-st' }, label(st)));
     });
 
     return h('div', {},
       h('div', { class: 'asi-bar' }, sel,
-        canEdit ? h('button', { class: 'btn', onclick: async () => {
+        h('button', { class: 'btn', onclick: async () => {
           for (const n of nadadores) if (!recs.get(n.id)) await cycle(sess, n, null);
-        } }, t('asist.todos-presentes')) : null),
+        } }, t('asist.todos-presentes'))),
       h('div', { class: 'asi-sum' },
         h('span', { class: 'badge' }, t('asist.presentes', { n: count.presente })),
         h('span', { class: 'badge' }, t('asist.ausentes', { n: count.ausente })),
         h('span', { class: 'badge' }, t('asist.justificados', { n: count.justificado })),
         h('span', { class: 'badge' }, t('asist.sin-marcar-n', { n: sin }))),
-      canEdit ? h('div', { class: 'asi-empty' }, t('asist.ayuda-ciclo')) : null,
+      h('div', { class: 'asi-empty' }, t('asist.ayuda-ciclo')),
       nadadores.length ? h('div', { class: 'asi-list' }, ...items)
         : h('div', { class: 'asi-empty' }, t('asist.sin-nadadores-grupo')));
   }

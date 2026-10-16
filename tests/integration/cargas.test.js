@@ -199,22 +199,6 @@ test('gestor: desactivar desde el aviso de "en uso" y reordenar con las flechas'
   assert.equal(c.store.list('TiposCarga').find((x) => x.nombre === 'Dos').activo, 'false');
 });
 
-test('rol nadador: ve el catálogo y los datos pero sin formulario ni acciones de gestión', async () => {
-  // Rol de sólo lectura inyectado en el ctx (la vista y el servicio consultan auth.role())
-  const ctxNadador = { ...c, auth: { role: () => 'nadador' } };
-  await renderView('cargas', c.container, [], ctxNadador);
-  assert.equal(c.container.querySelector('form.cg-form'), null);
-  await abrirGestor();
-  const g = c.container.querySelector('#cg-gestor');
-  assert.equal(g.querySelectorAll('.tc-item').length, 10);
-  assert.equal(g.querySelectorAll('button').length, 0);
-  assert.ok([...c.container.querySelectorAll('.cg-obj input')].every((i) => i.disabled));
-  // aunque se llame al servicio directamente, no escribe
-  const { crearCargasService } = await import('../../js/application/cargasService.js');
-  const svc = crearCargasService(c.store, { puedeEditar: () => ctxNadador.auth.role() !== 'nadador' });
-  assert.throws(() => svc.crear({ nombre: 'Hack' }), (e) => e.code === 'sin-permiso');
-});
-
 test('objetivos: guardar desde la tabla actualiza el contenido y las alertas usan los mismos criterios en Cargas e Inicio', async () => {
   await vista();
   const fila = [...c.container.querySelectorAll('.cg-obj tbody tr')].find((tr) => tr.firstChild.textContent === 'Brazos');
@@ -261,8 +245,8 @@ test('inicio: alertas con "Exceso de" y "Faltan" traducidos y gráfico con los c
   setLang('es', { persist: false });
 });
 
-test('configuración incluye el gestor de contenidos (editable por el admin)', async () => {
-  await renderView('club', c.container, [], { ...c, auth: { role: () => 'admin' } });
+test('settings include the training-content manager (editable)', async () => {
+  await renderView('club', c.container, [], c);
   assert.match(c.container.textContent, /Contenidos de entrenamiento/);
   assert.equal(c.container.querySelectorAll('.tc-item').length, 10);
   await crearContenido(c.container, { nombre: 'Desde configuración' });

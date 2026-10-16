@@ -82,16 +82,6 @@ test('validar: avisa si el total difiere de la carga registrada', () => {
   assert.deepEqual(a.params, { total: 700, registrada: 2100 });
 });
 
-test('permisos: un nadador no puede escribir', () => {
-  const repo = repoMem({ Entrenamientos: [sesion('e1', '2026-10-15')] });
-  const svc = mk(repo, { puedeEditar: () => false });
-  assert.equal(svc.puedeEditar(), false);
-  for (const fn of [() => svc.guardarPlan('e1', plan), () => svc.eliminarSesion('e1'), () => svc.duplicarSesion('e1'), () => svc.copiarPlan('e1', 'e1')]) {
-    assert.throws(fn, (e) => e.code === 'sin-permiso');
-  }
-  assert.doesNotThrow(() => svc.ficha('e1'));
-});
-
 test('duplicarSesion: copia sesión y plan con ids nuevos', () => {
   const repo = repoMem({ Entrenamientos: [sesion('e1', '2026-10-15', { estado: 'realizado' })] });
   const svc = mk(repo);
@@ -177,4 +167,81 @@ test('fichasSemana: sesiones de la semana (opcionalmente de un grupo) ordenadas'
   assert.deepEqual(svc.fichasSemana('2026-10-12').map((f) => f.sesion.id), ['a', 'c', 'b', 'f']);
   assert.deepEqual(svc.fichasSemana('2026-10-12', { grupoId: 'g2' }).map((f) => f.sesion.id), ['a', 'b', 'f']);
   assert.deepEqual(svc.fichasSemana('2030-01-01'), []);
+});
+
+// ---------- Contenidos y estilo por ejercicio ----------
+const PLAN_MULTI = {
+  tipoSesion: 'Mixta',
+  lineas: [
+    { set: 1, orden: 1, tiempoMin: 10, series: 1, distancia: 300, objetivo: 'Calentamiento' },
+    { set: 2, orden: 1, tiempoMin: 20, series: 4, distancia: 100, ejercicio: '4x100 Crol. 75 AeL-25 Tope', componentes: [{ contenido: 'Aeróbico ligero', metrosPorRep: 75, modo: 'auto' }, { contenido: 'Aláctico / Sprint', metrosPorRep: 25, modo: 'auto' }], estilos: [{ estilo: 'Crol', metrosPorRep: null }] },
+  ],
+};
+
+test('guardarPlan: componentes y estilo se guardan como texto en la hoja y vuelven como estructuras', () => {
+  const repo = repoMem({ Entrenamientos: [sesion('e1', '2026-10-15')] });
+  const svc = mk(repo);
+  assert.equal(svc.guardarPlan('e1', PLAN_MULTI).ok, true);
+  const fila = repo.db.EntrenoLineas.find((l) => l.ejercicio.startsWith('4x100'));
+  assert.equal(typeof fila.componentes, 'string');
+  assert.deepEqual(JSON.parse(fila.componentes).map((c) => c.metrosPorRep), [75, 25]);
+  assert.equal(fila.estilo, 'Crol');
+  assert.equal(repo.db.EntrenoLineas.find((l) => l.objetivo === 'Calentamiento').componentes, '', 'filas antiguas: sin componentes');
+  const ls = svc.lineas('e1');
+  assert.equal(ls[1].componentes.length, 2);
+  assert.equal(ls[1].estilos[0].estilo, 'Crol');
+  const d = svc.desglose('e1');
+  assert.equal(d.totalM, 700);
+  assert.deepEqual(d.porContenido.map((c) => [c.contenido, c.metros]), [['Aeróbico ligero', 600], ['Aláctico / Sprint', 100]]);
+});
+
+test('validar: el reparto incompleto avisa pero no bloquea guardar', () => {
+  const repo = repoMem({ Entrenamientos: [sesion('e1', '2026-10-15')] });
+  const svc = mk(repo);
+  const incompleto = { lineas: [{ set: 1, orden: 1, series: 4, distancia: 100, componentes: [{ contenido: 'Aeróbico ligero', metrosPorRep: 60, modo: 'manual' }] }] };
+  const av = svc.validar('e1', incompleto.lineas);
+  assert.deepEqual(av.filter((a) => a.codigo.startsWith('reparto')).map((a) => [a.codigo, a.severidad, a.params.resto]), [['reparto-incompleto', 'aviso', 40]]);
+  const r = svc.guardarPlan('e1', incompleto);
+  assert.equal(r.ok, true);
+  assert.ok(r.avisos.some((a) => a.codigo === 'reparto-incompleto'));
+});
+
+test('ficha: incluye el catálogo y el desglose para el PDF', () => {
+  const repo = repoMem({ Entrenamientos: [sesion('e1', '2026-10-15')], Grupos: [{ id: 'g2', nombre: 'Alevín' }] });
+  const svc = mk(repo);
+  svc.guardarPlan('e1', PLAN_MULTI);
+  const f = svc.ficha('e1');
+  assert.equal(f.desglose.totalM, 700);
+  assert.ok(Array.isArray(f.tipos));
+  assert.deepEqual(f.sets[1].lineas[0].estilos.map((e) => e.estilo), ['Crol']);
+});
+
+test('registrarCargasDesdePlan: una carga por contenido y nadador, sin duplicar y respetando la asistencia', () => {
+  const repo = repoMem({
+    Entrenamientos: [sesion('e1', '2026-10-15')], Grupos: [{ id: 'g2', nombre: 'Alevín' }],
+    Nadadores: [{ id: 'n1', grupoId: 'g2', activo: 'true' }, { id: 'n2', grupoId: 'g2', activo: 'true' }, { id: 'n3', grupoId: 'g2', activo: 'false' }, { id: 'n4', grupoId: 'g9', activo: 'true' }],
+    Asistencia: [],
+  });
+  const svc = mk(repo);
+  svc.guardarPlan('e1', PLAN_MULTI);
+  // sin asistencia: nadadores activos del grupo (n1, n2)
+  let r = svc.registrarCargasDesdePlan('e1');
+  assert.deepEqual([r.ok, r.creadas, r.omitidas, r.nadadores, r.contenidos], [true, 4, 0, 2, 2]);
+  const cargas = repo.db.Cargas.filter((c) => c.entrenamientoId === 'e1');
+  assert.equal(cargas.length, 4);
+  assert.deepEqual(cargas.filter((c) => c.nadadorId === 'n1').map((c) => [c.tipo, c.metros]).sort(), [['Aeróbico ligero', 600], ['Aláctico / Sprint', 100]]);
+  assert.ok(cargas.every((c) => c.fecha === '2026-10-15'));
+  assert.equal(r.sinContenidoM, 0, 'el calentamiento se clasifica por su objetivo');
+  // segunda vez: nada nuevo
+  r = svc.registrarCargasDesdePlan('e1');
+  assert.deepEqual([r.creadas, r.omitidas], [0, 4]);
+  assert.equal(repo.db.Cargas.length, 4);
+  // con asistencia: sólo los presentes
+  repo.db.Cargas = [];
+  repo.db.Asistencia = [{ id: 'a1', entrenamientoId: 'e1', nadadorId: 'n2', estado: 'presente' }, { id: 'a2', entrenamientoId: 'e1', nadadorId: 'n1', estado: 'ausente' }];
+  r = svc.registrarCargasDesdePlan('e1');
+  assert.deepEqual([r.creadas, r.nadadores], [2, 1]);
+  assert.ok(repo.db.Cargas.every((c) => c.nadadorId === 'n2'));
+  // sin sesión
+  assert.equal(svc.registrarCargasDesdePlan('nada').ok, false);
 });

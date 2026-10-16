@@ -10,7 +10,7 @@ export default {
   'nav.cargas': 'Cargas',
   'nav.marcas': 'Marcas',
   'nav.banador': 'Bañador',
-  'nav.comunicaciones': 'Comunicaciones',
+  'nav.comunicaciones': 'Avisos y notas',
   'nav.club': 'Configuración',
   'nav.tutorial': 'Tutorial',
 
@@ -38,17 +38,13 @@ export default {
   'common.sincronizar': 'Sincronizar ahora',
   'common.error': 'Se ha producido un error',
 
-  'cat.prebenjamin': 'Prebenjamín',
+  'cat.pre-benjamin': 'Pre-Benjamín',
   'cat.benjamin': 'Benjamín',
   'cat.alevin': 'Alevín',
   'cat.infantil': 'Infantil',
   'cat.junior': 'Junior',
   'cat.absoluto': 'Absoluto',
-  'cat.master': 'Máster',
-
-  'rol.admin': 'Administrador',
-  'rol.entrenador': 'Entrenador',
-  'rol.nadador': 'Nadador',
+  'cat.master': 'Master',
 
   'tipo.aerobico': 'Aeróbico',
   'tipo.velocidad': 'Velocidad',
@@ -82,7 +78,7 @@ export default {
   "shell.titulo": 'CNL Plataforma',
   "shell.lema-app": 'Gestión de tu club de natación',
   "shell.avisos": 'Avisos: {n}',
-  "shell.avisos-titulo": 'Comunicaciones recientes',
+  "shell.avisos-titulo": 'Avisos recientes',
   "shell.salir": 'Salir',
   "shell.salir-user": 'Salir ({email})',
   "shell.sync.sincronizado": 'Sincronizado',

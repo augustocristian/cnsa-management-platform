@@ -2,6 +2,7 @@
 // El repositorio (list/get/upsert/remove, p. ej. el store) se inyecta: no importa store, DOM ni red,
 // así que se prueba con un repositorio en memoria.
 import * as D from '../domain/cargas.js';
+import { renombrarEnComponentes } from '../domain/desglose.js';
 
 export const HOJA_TIPOS = 'TiposCarga';
 export const HOJA_CARGAS = 'Cargas';
@@ -9,11 +10,7 @@ export const HOJA_OBJETIVOS = 'ObjetivosCarga';
 
 const idPorDefecto = () => D.PREFIJO_ID + Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
 
-// puedeEditar: () => boolean (p. ej. el rol no es nadador). Las escrituras lanzan 'sin-permiso' si es false.
-export function crearCargasService(repo, { puedeEditar = () => true, generarId = idPorDefecto } = {}) {
-  const exigir = () => {
-    if (!puedeEditar()) { const e = new Error('sin-permiso'); e.code = 'sin-permiso'; throw e; }
-  };
+export function crearCargasService(repo, { generarId = idPorDefecto } = {}) {
   const err = (campo, codigo) => ({ ok: false, errores: [{ campo, codigo }] });
   const tipos = () => D.ordenarTipos(repo.list(HOJA_TIPOS).map(D.normalizarTipo));
   const cargasDe = (tipo) => {
@@ -21,8 +18,13 @@ export function crearCargasService(repo, { puedeEditar = () => true, generarId =
     return repo.list(HOJA_CARGAS).filter((c) => D.normalizarNombre(c.tipo) === k);
   };
 
+  // Los planes de entreno (EntrenoLineas.componentes) guardan el NOMBRE del contenido: al renombrar o fusionar se actualizan.
+  const renombrarEnPlanes = (de, a) => repo.list('EntrenoLineas').forEach((l) => {
+    const nuevo = renombrarEnComponentes(l.componentes, de, a);
+    if (nuevo != null) repo.upsert('EntrenoLineas', { ...l, componentes: nuevo });
+  });
+
   const svc = {
-    puedeEditar: () => !!puedeEditar(),
     tipos,
     activos: () => D.filtrarActivos(tipos()),
     grupos: () => D.agruparPorCategoria(tipos()),
@@ -47,7 +49,6 @@ export function crearCargasService(repo, { puedeEditar = () => true, generarId =
     // ----- Gestión de contenidos -----
     // data: {nombre, descripcion, color, min, max} -> {ok, tipo} | {ok:false, errores}
     crear(data) {
-      exigir();
       const existentes = tipos();
       const errores = D.validarTipo(data, existentes);
       if (errores.length) return { ok: false, errores };
@@ -56,6 +57,7 @@ export function crearCargasService(repo, { puedeEditar = () => true, generarId =
         color: D.colorValido(data.color) ? data.color : D.siguienteColor(existentes), categoria: 'personalizado',
         orden: D.siguienteOrden(existentes), activo: true, predefinido: false,
         min: Number(data.min) > 0 ? Number(data.min) : null, max: Number(data.max) > 0 ? Number(data.max) : null,
+        alias: D.parseAlias(data.alias),
       });
       return { ok: true, tipo: D.normalizarTipo(repo.upsert(HOJA_TIPOS, fila)) };
     },
@@ -63,13 +65,13 @@ export function crearCargasService(repo, { puedeEditar = () => true, generarId =
     // Edita un contenido. Predefinido: sólo descripción, color y objetivos (el nombre se conserva).
     // Renombrar uno personalizado actualiza las cargas que lo usan.
     editar(id, data) {
-      exigir();
       const actual = svc.tipo(id);
       if (!actual) return err('id', 'no-existe');
       const nuevo = { ...actual, nombre: actual.predefinido ? actual.nombre : String(data.nombre ?? actual.nombre).trim() };
       const propuesta = {
         nombre: nuevo.nombre, descripcion: data.descripcion ?? actual.descripcion, color: data.color ?? actual.color,
         min: 'min' in data ? data.min : actual.min, max: 'max' in data ? data.max : actual.max,
+        alias: 'alias' in data ? data.alias : actual.alias,
       };
       const errores = D.validarTipo(propuesta, tipos(), { id });
       if (errores.length) return { ok: false, errores };
@@ -77,8 +79,10 @@ export function crearCargasService(repo, { puedeEditar = () => true, generarId =
       nuevo.color = D.colorValido(propuesta.color) ? propuesta.color.toLowerCase() : actual.color;
       nuevo.min = Number(propuesta.min) > 0 ? Number(propuesta.min) : null;
       nuevo.max = Number(propuesta.max) > 0 ? Number(propuesta.max) : null;
+      nuevo.alias = D.parseAlias(propuesta.alias);
       if (!actual.predefinido && nuevo.nombre !== actual.nombre) {
         cargasDe(actual).forEach((c) => repo.upsert(HOJA_CARGAS, { ...c, tipo: nuevo.nombre }));
+        renombrarEnPlanes(actual.nombre, nuevo.nombre);
       }
       return { ok: true, tipo: D.normalizarTipo(repo.upsert(HOJA_TIPOS, D.filaTipo(nuevo))) };
     },
@@ -89,7 +93,6 @@ export function crearCargasService(repo, { puedeEditar = () => true, generarId =
     },
 
     activar(id, activo) {
-      exigir();
       const t = svc.tipo(id);
       if (!t) return err('id', 'no-existe');
       return { ok: true, tipo: D.normalizarTipo(repo.upsert(HOJA_TIPOS, D.filaTipo({ ...t, activo: !!activo }))) };
@@ -97,7 +100,6 @@ export function crearCargasService(repo, { puedeEditar = () => true, generarId =
 
     // Mueve un contenido `delta` posiciones (-1 arriba, +1 abajo) dentro de su categoría. -> {ok, movido}
     mover(id, delta) {
-      exigir();
       const t = svc.tipo(id);
       if (!t) return err('id', 'no-existe');
       const lista = tipos().filter((x) => x.categoria === t.categoria);
@@ -115,7 +117,6 @@ export function crearCargasService(repo, { puedeEditar = () => true, generarId =
 
     // Borra un contenido personalizado sin cargas. Predefinidos y en uso: no. -> {ok} | {ok:false, motivo, usos?}
     borrar(id) {
-      exigir();
       const t = svc.tipo(id);
       if (!t) return { ok: false, motivo: 'no-existe' };
       if (t.predefinido) return { ok: false, motivo: 'predefinido' };
@@ -127,13 +128,13 @@ export function crearCargasService(repo, { puedeEditar = () => true, generarId =
 
     // Reasigna las cargas del contenido personalizado `origenId` a `destinoId` y borra el origen. -> {ok, reasignadas}
     fusionar(origenId, destinoId) {
-      exigir();
       const o = svc.tipo(origenId), d = svc.tipo(destinoId);
       if (!o || !d) return { ok: false, motivo: 'no-existe' };
       if (o.id === d.id) return { ok: false, motivo: 'mismo' };
       if (o.predefinido) return { ok: false, motivo: 'predefinido' };
       const afectadas = cargasDe(o);
       afectadas.forEach((c) => repo.upsert(HOJA_CARGAS, { ...c, tipo: d.nombre }));
+      renombrarEnPlanes(o.nombre, d.nombre);
       repo.remove(HOJA_TIPOS, o.id);
       return { ok: true, reasignadas: afectadas.length };
     },
@@ -142,7 +143,6 @@ export function crearCargasService(repo, { puedeEditar = () => true, generarId =
     // data: {nadadorId, fecha, tipoId | tipo (nombre), metros, rpe, minutos, notas, entrenamientoId}
     // -> {ok, carga} | {ok:false, errores:[{campo, codigo}]}
     registrarCarga(data) {
-      exigir();
       const errores = [];
       const metros = Number(data.metros);
       if (!data.nadadorId || !repo.get('Nadadores', data.nadadorId)) errores.push({ campo: 'nadadorId', codigo: 'nadador' });
@@ -164,7 +164,7 @@ export function crearCargasService(repo, { puedeEditar = () => true, generarId =
       });
       return { ok: true, carga };
     },
-    eliminarCarga(id) { exigir(); repo.remove(HOJA_CARGAS, id); },
+    eliminarCarga(id) { repo.remove(HOJA_CARGAS, id); },
 
     // ----- Consultas -----
     // Sesiones para vincular una carga: las más recientes primero.

@@ -58,11 +58,10 @@ function injectStyle() {
 
 export async function render(container, params, ctx) {
   injectStyle();
-  const { store, auth, ui } = ctx;
+  const { store, ui } = ctx;
   const h = ui.h;
   const svc = crearServicio(ctx);
   const toast = (m) => (ui && ui.toast ? ui.toast(m) : null);
-  const canEdit = auth.role() !== 'nadador';
   const state = { week: monday(new Date()), nadadorId: '', gestor: false, draft: null };
 
   const nombre = (id) => {
@@ -227,15 +226,15 @@ export async function render(container, params, ctx) {
     if (!alerts.length) alerts.push(h('div', { class: 'cg-alert ok' }, t('cargas.sin-alertas')));
 
     const objRows = svc.activos().map((tipo) => {
-      const mn = h('input', { type: 'number', min: 0, step: 100, inputmode: 'numeric', 'aria-label': `${t('cargas.th-min')}: ${tContenido(tipo)}`, value: tipo.min || '', disabled: !canEdit });
-      const mx = h('input', { type: 'number', min: 0, step: 100, inputmode: 'numeric', 'aria-label': `${t('cargas.th-max')}: ${tContenido(tipo)}`, value: tipo.max || '', disabled: !canEdit });
+      const mn = h('input', { type: 'number', min: 0, step: 100, inputmode: 'numeric', 'aria-label': `${t('cargas.th-min')}: ${tContenido(tipo)}`, value: tipo.min || '' });
+      const mx = h('input', { type: 'number', min: 0, step: 100, inputmode: 'numeric', 'aria-label': `${t('cargas.th-max')}: ${tContenido(tipo)}`, value: tipo.max || '' });
       const save = () => {
         const r = svc.guardarObjetivo(tipo.id, mn.value, mx.value);
         if (!r.ok) { toast(t('tc.err.' + (r.errores[0].codigo === 'minmax' ? 'minmax' : r.errores[0].codigo))); return; }
         toast(t('cargas.objetivo-guardado', { tipo: tContenido(tipo) }));
         draw();
       };
-      return h('tr', {}, h('td', {}, chip(h, tipo)), h('td', {}, mn), h('td', {}, mx), canEdit ? h('td', {}, h('button', { class: 'btn', type: 'button', onclick: save }, t('cargas.guardar'))) : null);
+      return h('tr', {}, h('td', {}, chip(h, tipo)), h('td', {}, mn), h('td', {}, mx), h('td', {}, h('button', { class: 'btn', type: 'button', onclick: save }, t('cargas.guardar'))));
     });
 
     const list = rows.slice().sort((a, b) => (a.fecha < b.fecha ? 1 : -1)).map((c) => {
@@ -244,10 +243,10 @@ export async function render(container, params, ctx) {
         h('td', {}, tDate(c.fecha)), h('td', {}, nombre(c.nadadorId)), h('td', {}, chip(h, indice.get(normalizarNombre(c.tipo)), c.tipo)),
         h('td', {}, ses ? ses.titulo || tDate(ses.fecha) : '—'),
         h('td', {}, fmtM(Number(c.metros) || 0)), h('td', {}, c.rpe || ''), h('td', {}, c.minutos || ''), h('td', {}, c.notas || ''),
-        canEdit ? h('td', {}, h('button', { class: 'btn', type: 'button', onclick: async () => {
+        h('td', {}, h('button', { class: 'btn', type: 'button', onclick: async () => {
           const ok = ui && ui.confirmDialog ? await ui.confirmDialog(t('cargas.confirm-eliminar')) : true;
           if (ok) { svc.eliminarCarga(c.id); draw(); }
-        } }, t('cargas.eliminar'))) : null);
+        } }, t('cargas.eliminar'))));
     });
     const th = [['fecha', 'cargas.th-fecha'], ['nadador', 'cargas.th-nadador'], ['tipo', 'cargas.th-tipo'], ['sesion', 'tc.th-sesion'],
       ['metros', 'cargas.th-metros'], ['rpe', 'cargas.th-rpe'], ['min', 'cargas.th-min-abbr'], ['notas', 'cargas.th-notas']];
@@ -263,11 +262,11 @@ export async function render(container, params, ctx) {
         h('div', { class: 'card cg-card' }, h('h3', {}, t('cargas.chart-tipo')), chartContenidos(sem),
           h('small', {}, t('cargas.chart-leyenda'))),
         h('div', { class: 'card cg-card' }, h('h3', {}, t('cargas.chart-dia')), chartDias(sem), leyenda(sem))),
-      canEdit ? h('div', { class: 'card cg-card' }, h('h3', {}, t('cargas.registrar-titulo')), formulario(nads)) : null,
+      h('div', { class: 'card cg-card' }, h('h3', {}, t('cargas.registrar-titulo')), formulario(nads)),
       h('div', { class: 'card cg-card cg-obj' }, h('h3', {}, t('cargas.objetivos')),
-        h('table', { class: 'table' }, h('thead', {}, h('tr', {}, h('th', {}, t('cargas.th-tipo')), h('th', {}, t('cargas.th-min')), h('th', {}, t('cargas.th-max')), canEdit ? h('th', {}) : null)), h('tbody', {}, objRows))),
+        h('table', { class: 'table' }, h('thead', {}, h('tr', {}, h('th', {}, t('cargas.th-tipo')), h('th', {}, t('cargas.th-min')), h('th', {}, t('cargas.th-max')), h('th', {}))), h('tbody', {}, objRows))),
       h('div', { class: 'card cg-card' }, h('h3', {}, t('cargas.semana')),
-        list.length ? h('table', { class: 'table' }, h('thead', {}, h('tr', {}, th.map(([, k]) => h('th', {}, t(k))), canEdit ? h('th', {}) : null)), h('tbody', {}, list))
+        list.length ? h('table', { class: 'table' }, h('thead', {}, h('tr', {}, th.map(([, k]) => h('th', {}, t(k))), h('th', {}))), h('tbody', {}, list))
           : h('p', {}, t('cargas.vacio'))),
     ].filter(Boolean));
   }

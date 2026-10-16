@@ -48,12 +48,11 @@ function injectStyle() {
 }
 
 export async function render(container, params, ctx) {
-  const { store, auth } = ctx;
+  const { store } = ctx;
   const h = ctx.ui.h;
   const toast = (m) => (ctx.ui.toast ? ctx.ui.toast(m) : alert(m));
   injectStyle();
 
-  const canEdit = auth.role() !== 'nadador';
   const plan = PLAN.servicio(ctx);
   let weekStart = mondayOf(new Date());
   let groupFilter = '';
@@ -137,9 +136,8 @@ export async function render(container, params, ctx) {
           ...meta.map((m) => h('span', {}, m))),
         s.descripcion ? h('div', { class: 'ent-meta' }, s.descripcion) : null),
       h('div', { class: 'ent-act' },
-        h('button', { class: 'btn', onclick: () => abrirEditor({ ctx, sesionId: s.id, soloLectura: !canEdit }) }, icon('documento', { size: 16 }), ' ' + t(canEdit ? 'entreno.plan' : 'entreno.ver-plan')),
+        h('button', { class: 'btn', onclick: () => abrirEditor({ ctx, sesionId: s.id }) }, icon('documento', { size: 16 }), ' ' + t('entreno.plan')),
         h('button', { class: 'btn', 'aria-label': t('entreno.pdf-de', { n: s.titulo || t('entre.sesion') }), onclick: () => PLAN.pdfSesion(ctx, s.id) }, icon('descargar', { size: 16 }), ' PDF'),
-        ...(!canEdit ? [] : [
         h('button', { class: 'btn', onclick: async () => {
           await store.upsert('Entrenamientos', { ...s, estado: done ? 'planificado' : 'realizado' });
         } }, done ? t('entre.reabrir') : t('entre.marcar-realizado')),
@@ -147,7 +145,7 @@ export async function render(container, params, ctx) {
         h('button', { class: 'btn', onclick: () => openForm({ ...s, id: undefined, estado: 'planificado', copiaDe: s.id }) }, t('entre.duplicar')),
         h('button', { class: 'btn', onclick: async () => {
           if (await confirmDel(t('entre.confirm-eliminar'))) { plan.eliminarSesion(s.id); toast(t('entre.eliminada')); }
-        } }, t('common.eliminar'))])));
+        } }, t('common.eliminar'))));
   }
 
   function draw() {
@@ -169,7 +167,7 @@ export async function render(container, params, ctx) {
         h('button', { class: 'btn', onclick: () => { weekStart = mondayOf(new Date()); draw(); } }, t('entre.hoy'))),
       h('div', { class: 'ent-nav' }, groupSel,
         h('button', { class: 'btn', onclick: () => PLAN.pdfSemana(ctx, { lunes: iso(weekStart), grupoId: groupFilter, grupoNombre: groupFilter ? grupoName(groupFilter) : '' }) }, icon('descargar', { size: 16 }), ' ' + t('entreno.pdf-semana')),
-        canEdit ? h('button', { class: 'btn btn-primary', onclick: () => openForm({ fecha: todayIso, estado: 'planificado', grupoId: groupFilter }) }, icon('mas', { size: 16 }), ' ' + t('entre.nueva')) : null));
+        h('button', { class: 'btn btn-primary', onclick: () => openForm({ fecha: todayIso, estado: 'planificado', grupoId: groupFilter }) }, icon('mas', { size: 16 }), ' ' + t('entre.nueva'))));
 
     const days = [];
     let weekTotal = 0;

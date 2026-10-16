@@ -1,6 +1,6 @@
 // Vista Inicio: dashboard del club.
 import { icon } from '../icons.js';
-import { t, tDate, tRol, tContenido } from '../i18n.js';
+import { t, tDate, tContenido } from '../i18n.js';
 import { primerosPasos } from './primerospasos.js';
 import { tiposVisibles, objetivoTotal, COLOR_SIN_TIPO } from '../domain/cargas.js';
 import { crearServicio, fmtM, chip } from './cargas-contenidos.js';
@@ -119,15 +119,13 @@ function donut(parts) {
 }
 
 export async function render(container, params, ctx) {
-  const { store, auth, ui } = ctx;
+  const { store, ui } = ctx;
   const h = ui.h;
   injectStyle();
   container.replaceChildren();
 
   const now = new Date();
   const hoy = iso(now);
-  const rol = auth.role ? auth.role() : 'admin';
-  const rolTxt = tRol(rol) || rol;
   const fechaLarga = tDate(now, 'long');
 
   // Semana actual (lunes a domingo)
@@ -142,7 +140,7 @@ export async function render(container, params, ctx) {
 
   // Banner
   const banner = h('div', { class: 'ini-banner' },
-    h('div', {}, h('h1', {}, t('inicio.bienvenida', { rol: rolTxt })), h('p', {}, fechaLarga)));
+    h('div', {}, h('h1', {}, t('inicio.bienvenida')), h('p', {}, fechaLarga)));
   banner.append(swimmerSvg());
 
   // Acceso rápido

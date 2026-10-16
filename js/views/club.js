@@ -2,6 +2,8 @@
 import { t } from '../i18n.js';
 import { renderGestor } from './cargas-contenidos.js';
 import { preferencias } from '../preferencias.js';
+import { panelCategorias, servicioCategorias } from './categorias-panel.js';
+import { confirmarImportacion, textoErrorImportacion, pieRgpd } from './datos-integridad.js';
 
 function injectStyle() {
   if (document.getElementById('clb-style')) return;
@@ -123,9 +125,12 @@ export async function render(container, params, ctx) {
   inImp.addEventListener('change', async () => {
     const f = inImp.files[0];
     if (!f) return;
-    if (!(await ui.confirmDialog(t('club.confirmImportar')))) { inImp.value = ''; return; }
-    try { await store.importXlsx(f); ui.toast(t('club.importado')); await render(container, params, ctx); }
-    catch (e) { ui.toast(t('club.errImport', { msg: e.message })); }
+    try {
+      const previa = await store.previsualizarXlsx(f); // recuento por hoja; no cambia nada hasta confirmar
+      if (!(await confirmarImportacion(previa))) { inImp.value = ''; return; }
+      await store.importXlsx(previa); // antes guarda una copia en cnl/backups
+      servicioCategorias(ctx).alAbrirClub(); ui.toast(t('club.importado')); await render(container, params, ctx);
+    } catch (e) { ui.toast(t('club.errImport', { msg: textoErrorImportacion(e) })); }
     inImp.value = '';
   });
   const datos = h('div', { class: 'card clb-card' }, h('h3', {}, t('club.datos')),
@@ -159,5 +164,8 @@ export async function render(container, params, ctx) {
   renderGestor(contenidosHost, ctx);
   const contenidos = h('div', { class: 'card clb-card' }, h('h3', {}, t('tc.titulo')), contenidosHost);
 
-  container.append(h('div', { class: 'clb-wrap' }, identidad, contenidos, buildDrive(ctx, ui), datos, prefs, clubes));
+  // Categorías por temporada (tabla calculada, cambio de temporada y reglas por sexo)
+  const categorias = panelCategorias(ctx, { alCambiar: () => render(container, params, ctx) });
+
+  container.append(h('div', { class: 'clb-wrap' }, identidad, categorias, contenidos, buildDrive(ctx, ui), datos, prefs, clubes, pieRgpd()));
 }

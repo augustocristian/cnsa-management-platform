@@ -141,9 +141,29 @@ test('semana: evaluación de objetivos y permisos de sólo lectura', () => {
   assert.equal(s.agregado.metros[p.id], 1000);
   assert.deepEqual(s.evaluacion.map((e) => [e.tipo.nombre, e.estado, e.diferencia]), [['Piernas', 'bajo', 2000]]);
 
-  const ro = crearCargasService(repoMem(), { puedeEditar: () => false });
-  assert.equal(ro.puedeEditar(), false);
-  for (const fn of [() => ro.crear({ nombre: 'x' }), () => ro.registrarCarga({}), () => ro.borrar('a'), () => ro.activar('a', true), () => ro.mover('a', 1), () => ro.fusionar('a', 'b'), () => ro.editar('a', {})]) {
-    assert.throws(fn, (e) => e.code === 'sin-permiso');
-  }
+  assert.equal(svc.puedeEditar, undefined, 'no role-based permissions: the service always writes');
+});
+
+test('alias: se guardan al crear/editar (también en predefinidos) y no pueden repetirse', () => {
+  const { svc } = nuevo();
+  const r = svc.crear({ nombre: 'Fuerza en seco', alias: 'FZ, Fuer' });
+  assert.equal(r.ok, true);
+  assert.deepEqual(r.tipo.alias, ['FZ', 'Fuer']);
+  assert.equal(svc.crear({ nombre: 'Otro', alias: 'fz' }).errores[0].codigo, 'alias-duplicado');
+  const e = svc.editar('tc-piernas', { alias: 'Patada, Pn' });
+  assert.deepEqual([e.ok, e.tipo.alias], [true, ['Patada', 'Pn']]);
+  assert.equal(svc.editar('tc-brazos', { alias: 'Pn' }).errores[0].codigo, 'alias-duplicado');
+  assert.deepEqual(svc.editar('tc-piernas', { descripcion: 'x' }).tipo.alias, ['Patada', 'Pn'], 'sin tocar el alias se conserva');
+});
+
+test('renombrar o fusionar un contenido actualiza los componentes de los planes de entreno', () => {
+  const comps = (...n) => JSON.stringify(n.map((c) => ({ contenido: c, metrosPorRep: 25, modo: 'auto' })));
+  const { repo, svc } = nuevo({}, { EntrenoLineas: [{ id: 'l1', entrenamientoId: 'e1', componentes: comps('Fuerza', 'Piernas') }, { id: 'l2', entrenamientoId: 'e1', componentes: '' }] });
+  const f = svc.crear({ nombre: 'Fuerza' }).tipo;
+  svc.editar(f.id, { nombre: 'Fuerza seca' });
+  assert.deepEqual(JSON.parse(repo.db.EntrenoLineas.find((l) => l.id === 'l1').componentes).map((c) => c.contenido), ['Fuerza seca', 'Piernas']);
+  assert.equal(repo.db.EntrenoLineas.find((l) => l.id === 'l2').componentes, '', 'las filas sin componentes no se tocan');
+  const r = svc.fusionar(f.id, 'tc-piernas');
+  assert.equal(r.ok, true);
+  assert.deepEqual(JSON.parse(repo.db.EntrenoLineas.find((l) => l.id === 'l1').componentes).map((c) => [c.contenido, c.metrosPorRep]), [['Piernas', 50]]);
 });

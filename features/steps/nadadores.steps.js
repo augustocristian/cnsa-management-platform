@@ -1,4 +1,4 @@
-import { When, Then } from '@cucumber/cucumber';
+import { Given, When, Then } from '@cucumber/cucumber';
 import assert from 'node:assert/strict';
 import { regexTexto, todasLasPalabras } from '../support/world.js';
 
@@ -8,8 +8,10 @@ async function rellenarNadador(mundo, tabla) {
   await ambito.waitFor({ timeout: mundo.timeout });
   for (const [campo, valor] of tabla.raw()) {
     const c = ambito.getByLabel(etiqueta(campo)).first();
-    const tag = await c.evaluate((el) => el.tagName.toLowerCase());
-    if (tag === 'select') await c.selectOption({ label: valor }); else await c.fill(valor);
+    const tag = await c.evaluate((el) => el.tagName.toLowerCase() + (el.type === 'checkbox' ? ':checkbox' : ''));
+    if (tag === 'select') await c.selectOption({ label: valor });
+    else if (tag === 'input:checkbox') await c.setChecked(/^(s[ií]|true)$/i.test(valor));
+    else await c.fill(valor);
   }
 }
 const fila = (mundo, nombre) => mundo.vista.locator('tr.nad-row').filter({ hasText: todasLasPalabras(nombre) });
@@ -45,7 +47,7 @@ When('edito al nadador con los datos:', async function (tabla) {
 });
 
 When('elimino al nadador y lo confirmo', async function () {
-  await this.vista.getByRole('button', { name: 'Eliminar' }).click();
+  await this.vista.getByRole('button', { name: 'Eliminar', exact: true }).click();
   await this.page.locator('.modal').getByRole('button', { name: 'Aceptar' }).click();
 });
 
@@ -100,7 +102,7 @@ Then('el listado muestra {int} nadador(es)', async function (n) {
 });
 
 Then('todos los nadadores listados son de la categoría {string}', async function (c) {
-  const badges = this.vista.locator('tr.nad-row td:nth-child(2)');
+  const badges = this.vista.locator('tr.nad-row td:nth-child(2) .badge:first-child');
   await this.eventually(async () => {
     const t = await badges.allInnerTexts();
     assert.ok(t.length > 0, 'Sin filas');
@@ -121,10 +123,110 @@ Then('el filtro de categorías ofrece, en este orden:', async function (tabla) {
 });
 
 Then('en el listado los nadadores de {string} aparecen antes que los de {string}', async function (a, b) {
-  const cats = (await this.vista.locator('tr.nad-row td:nth-child(2)').allInnerTexts()).map((x) => x.trim());
+  const cats = (await this.vista.locator('tr.nad-row td:nth-child(2) .badge:first-child').allInnerTexts()).map((x) => x.trim());
   const ultimaA = cats.lastIndexOf(a), primeraB = cats.indexOf(b);
   assert.ok(ultimaA >= 0 && primeraB >= 0, `El listado no contiene ${a} y ${b}: ${[...new Set(cats)]}`);
   assert.ok(ultimaA < primeraB, `${a} debería ir antes que ${b}: ${[...new Set(cats)]}`);
+});
+
+// ---- Categorías por temporada ----
+// Fija la temporada vigente del club (configuración) y recalcula las categorías, usando los mismos módulos que la app.
+Given('que la temporada vigente es la {string}', async function (temporada) {
+  await this.page.evaluate(async (t) => {
+    const { store } = await import('/js/store.js');
+    const { crearCategoriasService } = await import('/js/application/categoriasService.js');
+    store.setClub({ ...store.club, temporadaActual: t });
+    crearCategoriasService(store).recalcular();
+  }, temporada);
+});
+
+const categoriaDe = (mundo, nombre) => fila(mundo, nombre).first().locator('td:nth-child(2) .badge').first();
+
+Then('el nadador {string} figura en la categoría {string}', async function (nombre, cat) {
+  await this.eventually(async () => assert.equal((await categoriaDe(this, nombre).innerText()).trim(), cat));
+});
+
+Then('el nadador {string} lleva la insignia {string}', async function (nombre, texto) {
+  await this.verVisible(fila(this, nombre).first().locator('.nad-manual', { hasText: texto }), `${nombre} no lleva la insignia "${texto}"`);
+});
+
+Then('el nadador {string} no lleva la insignia {string}', async function (nombre, texto) {
+  await this.verVisible(fila(this, nombre).first());
+  assert.equal(await fila(this, nombre).first().locator('.nad-manual', { hasText: texto }).count(), 0);
+});
+
+async function altaRapida(mundo, nombre, apellidos, nacido, manual) {
+  await mundo.vista.getByRole('button', { name: 'Nuevo nadador' }).click();
+  const filas = [['Nombre', nombre], ['Apellidos', apellidos], ['Fecha de nacimiento', nacido]];
+  if (manual) filas.push(['Categoría manual', 'Sí'], ['Categoría elegida', manual]);
+  await rellenarNadador(mundo, { raw: () => filas });
+  await mundo.page.locator('.nad-modal').getByRole('button', { name: 'Guardar' }).click();
+  await mundo.verVisible(mundo.page.locator('#toasts .toast', { hasText: 'Nadador guardado' }));
+}
+Given('que he dado de alta al nadador {string} nacido el {string}', async function (nombre, nacido) {
+  const [n, ...a] = nombre.split(' ');
+  await altaRapida(this, n, a.join(' '), nacido, null);
+});
+Given('que he dado de alta al nadador {string} nacido el {string} con la categoría manual {string}', async function (nombre, nacido, cat) {
+  const [n, ...a] = nombre.split(' ');
+  await altaRapida(this, n, a.join(' '), nacido, cat);
+});
+
+When('abro el formulario de nuevo nadador', async function () {
+  await this.vista.getByRole('button', { name: 'Nuevo nadador' }).click();
+  await this.verVisible(this.page.locator('.nad-modal'));
+});
+
+When('indico la fecha de nacimiento {string}', async function (fecha) {
+  await this.page.locator('.nad-modal').getByLabel('Fecha de nacimiento').fill(fecha);
+});
+
+const vivo = (mundo) => mundo.page.locator('.nad-modal [data-testid=categoria-auto]');
+Then('el formulario pide la fecha de nacimiento para calcular la categoría', async function () {
+  await this.eventually(async () => assert.match(await vivo(this).innerText(), /Indica la fecha de nacimiento/));
+});
+
+Then('el formulario muestra la categoría automática {string} para los nacidos en {string}', async function (cat, rango) {
+  await this.eventually(async () => {
+    const txt = await vivo(this).innerText();
+    assert.ok(txt.includes(`${cat} · nacidos en ${rango}`), `Texto actual: ${txt}`);
+  });
+  assert.equal(await this.page.locator('.nad-modal [data-testid=categoria-auto] input, .nad-modal [data-testid=categoria-auto] select').count(), 0, 'la categoría automática es de solo lectura');
+});
+
+// ---- Configuración: panel de categorías ----
+Then('veo el panel {string}', async function (titulo) {
+  await this.verVisible(this.vista.locator('.catp h3', { hasText: titulo }), `No se ve el panel "${titulo}"`);
+});
+
+Then('la tabla de categorías muestra:', async function (tabla) {
+  const filas = this.vista.locator('.catp table[aria-label] tbody tr');
+  for (const [cat, rango] of tabla.raw()) {
+    const f = filas.filter({ has: this.page.locator('th', { hasText: new RegExp(`^\s*${cat}\s*$`) }) }).first();
+    await this.eventually(async () => assert.equal((await f.locator('td').first().innerText()).trim(), rango, cat));
+  }
+});
+
+When('elijo la temporada {string} y pulso {string}', async function (temporada, boton) {
+  await this.vista.locator('#catp-temporada').selectOption({ label: temporada });
+  await this.vista.locator('.catp').getByRole('button', { name: boton }).click();
+});
+
+Then('la previsualización indica que {string} pasa de {string} a {string}', async function (nombre, de, a) {
+  const m = this.page.locator('.modal');
+  await this.verVisible(m.locator('tbody tr', { hasText: todasLasPalabras(nombre) }), `No se previsualiza a ${nombre}`);
+  const celdas = (await m.locator('tbody tr', { hasText: todasLasPalabras(nombre) }).first().locator('td').allInnerTexts()).map((x) => x.replace('↑', '').trim());
+  assert.deepEqual(celdas.slice(1), [de, a]);
+});
+
+Then('la previsualización no incluye a {string}', async function (nombre) {
+  await this.verVisible(this.page.locator('.modal tbody tr').first());
+  assert.equal(await this.page.locator('.modal tbody tr', { hasText: todasLasPalabras(nombre) }).count(), 0);
+});
+
+When('aplico el cambio de temporada', async function () {
+  await this.page.locator('.modal').getByRole('button', { name: 'Aplicar cambio de temporada' }).click();
+  await this.verVisible(this.page.locator('#toasts .toast', { hasText: 'aplicada' }));
 });
 
 // ---- Grupos ----

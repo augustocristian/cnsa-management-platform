@@ -2,43 +2,46 @@
 // Recibe el repositorio por parámetro (cualquier objeto con list/get/upsert/remove, p. ej. el store):
 // no importa el store, ni el DOM ni fetch, así que se puede probar con un repositorio en memoria.
 import * as D from '../domain/entreno.js';
+import * as G from '../domain/desglose.js';
+import { normalizarTipo, normalizarNombre } from '../domain/cargas.js';
 
 export const HOJA_SESIONES = 'Entrenamientos';
 export const HOJA_LINEAS = 'EntrenoLineas';
 
 const dia10 = (f) => String(f ?? '').slice(0, 10);
-const COLUMNAS_LINEA = ['id', 'entrenamientoId', 'set', 'orden', 'tiempoMin', 'objetivo', 'bloque', 'series', 'distancia', 'salida', 'ejercicio', 'material', 'notas'];
+const COLUMNAS_LINEA = ['id', 'entrenamientoId', 'set', 'orden', 'tiempoMin', 'objetivo', 'bloque', 'series', 'distancia', 'salida', 'ejercicio', 'material', 'notas', 'componentes', 'estilo'];
 
-// opciones: puedeEditar() -> boolean; genId() -> string único; club() -> {nombre, lema, logo, colorPrimario, colorSecundario}
-export function crearEntrenoService(repo, { puedeEditar = () => true, genId = defaultGenId, club = () => ({}) } = {}) {
-  const exigir = () => {
-    if (!puedeEditar()) { const e = new Error('sin-permiso'); e.code = 'sin-permiso'; throw e; }
-  };
+// opciones: genId() -> string único; club() -> {nombre, lema, logo, colorPrimario, colorSecundario}
+export function crearEntrenoService(repo, { genId = defaultGenId, club = () => ({}) } = {}) {
   const lineasDe = (id) => D.renumerar(repo.list(HOJA_LINEAS).filter((l) => String(l.entrenamientoId) === String(id)));
   const grupoNombre = (id) => { const g = id ? repo.get('Grupos', id) : null; return g ? g.nombre : ''; };
+  const tipos = () => repo.list('TiposCarga').map(normalizarTipo);
   const piscinaTexto = (s) => (s.piscina ? `${s.piscina} m` : '');
 
   const svc = {
-    puedeEditar: () => !!puedeEditar(),
     sesion: (id) => repo.get(HOJA_SESIONES, id),
     lineas: lineasDe,
     tienePlan: (id) => repo.list(HOJA_LINEAS).some((l) => String(l.entrenamientoId) === String(id)),
     resumen: (id) => D.resumen(lineasDe(id)),
+    // Contenidos activos del catálogo (con alias) para el editor; vacío si el club no tiene catálogo.
+    tipos,
+    // Desglose por contenido y estilo de la sesión guardada o de un borrador (ver domain/desglose.js).
+    desglose: (id, lineas = null) => G.desgloseSesion(lineas || lineasDe(id), { tipos: tipos() }),
 
     // Valida un borrador (lineas) de la sesión `id` con la carga registrada y los objetivos de la sesión.
     validar(id, lineas, sesion = null) {
       const s = sesion || repo.get(HOJA_SESIONES, id) || {};
-      return D.validarSesion({ sesion: s, lineas, cargaMedia: D.cargaRegistrada(repo.list('Cargas'), id) });
+      return D.validarSesion({ sesion: s, lineas, cargaMedia: D.cargaRegistrada(repo.list('Cargas'), id) })
+        .concat(G.validarRepartoSesion(lineas.filter((l) => !D.filaVacia(D.normalizarLinea(l))), { tipos: tipos() }));
     },
 
     // Guarda el plan de la sesión: campos nuevos de la sesión + líneas (sustituye las anteriores).
     // -> { ok, avisos, errores? }. Los errores (números no válidos) impiden guardar; los avisos no.
     guardarPlan(id, { tipoSesion = '', materialDia = '', notasGenerales = '', lineas = [] } = {}) {
-      exigir();
       const sesion = repo.get(HOJA_SESIONES, id);
       if (!sesion) return { ok: false, errores: [{ severidad: 'error', codigo: 'sesion-inexistente' }], avisos: [] };
       const limpias = D.renumerar(lineas.filter((l) => !D.filaVacia(D.normalizarLinea(l))));
-      const avisos = D.validarSesion({ sesion, lineas: limpias, cargaMedia: D.cargaRegistrada(repo.list('Cargas'), id) });
+      const avisos = D.validarSesion({ sesion, lineas: limpias, cargaMedia: D.cargaRegistrada(repo.list('Cargas'), id) }).concat(G.validarRepartoSesion(limpias, { tipos: tipos() }));
       if (D.hayErrores(avisos)) return { ok: false, errores: avisos.filter((a) => a.severidad === 'error'), avisos };
       repo.upsert(HOJA_SESIONES, { ...sesion, tipoSesion, materialDia, notasGenerales });
       const previas = repo.list(HOJA_LINEAS).filter((l) => String(l.entrenamientoId) === String(id));
@@ -52,16 +55,40 @@ export function crearEntrenoService(repo, { puedeEditar = () => true, genId = de
       return { ok: true, avisos, lineas: lineasDe(id) };
     },
 
+    // Crea una carga por contenido y nadador con los metros del plan (metros reales = plan). Los presentes de la asistencia o,
+    // si no hay asistencia, los nadadores activos del grupo. No duplica: salta nadador+contenido ya registrados para la sesión.
+    // -> { ok, creadas, omitidas, nadadores, contenidos, sinContenidoM }
+    registrarCargasDesdePlan(id) {
+      const s = repo.get(HOJA_SESIONES, id);
+      if (!s) return { ok: false, codigo: 'sesion-inexistente' };
+      const d = G.desgloseSesion(lineasDe(id), { tipos: tipos() });
+      const items = d.porContenido.filter((c) => c.tipoId);
+      const sinContenidoM = d.porContenido.filter((c) => !c.tipoId).reduce((a, c) => a + c.metros, 0);
+      const asist = repo.list('Asistencia').filter((a) => String(a.entrenamientoId) === String(id));
+      const activo = (n) => String(n.activo ?? 'true').toLowerCase() !== 'false';
+      const nads = repo.list('Nadadores').filter(activo);
+      const presentes = new Set(asist.filter((a) => a.estado === 'presente').map((a) => String(a.nadadorId)));
+      const destino = asist.length ? nads.filter((n) => presentes.has(String(n.id))) : nads.filter((n) => s.grupoId && String(n.grupoId) === String(s.grupoId));
+      const previas = new Set(repo.list('Cargas').filter((c) => String(c.entrenamientoId) === String(id)).map((c) => `${c.nadadorId}|${normalizarNombre(c.tipo)}`));
+      let creadas = 0, omitidas = 0;
+      destino.forEach((n) => items.forEach((c) => {
+        const clave = `${n.id}|${normalizarNombre(c.contenido)}`;
+        if (previas.has(clave)) { omitidas++; return; }
+        repo.upsert('Cargas', { entrenamientoId: String(id), nadadorId: String(n.id), fecha: dia10(s.fecha), tipo: c.contenido, metros: Math.round(c.metros), rpe: '', minutos: '', notas: '' });
+        previas.add(clave);
+        creadas++;
+      }));
+      return { ok: true, creadas, omitidas, nadadores: destino.length, contenidos: items.length, sinContenidoM };
+    },
+
     // Elimina la sesión y su plan.
     eliminarSesion(id) {
-      exigir();
       repo.list(HOJA_LINEAS).filter((l) => String(l.entrenamientoId) === String(id)).forEach((l) => repo.remove(HOJA_LINEAS, l.id));
       repo.remove(HOJA_SESIONES, id);
     },
 
     // Duplica la sesión (y su plan) con `cambios` (fecha, hora, grupoId, titulo...). -> sesión nueva
     duplicarSesion(id, cambios = {}) {
-      exigir();
       const origen = repo.get(HOJA_SESIONES, id);
       if (!origen) return null;
       const d = D.duplicarSesion(origen, lineasDe(id), cambios);
@@ -72,7 +99,6 @@ export function crearEntrenoService(repo, { puedeEditar = () => true, genId = de
 
     // Copia el plan (campos y líneas) de una sesión en otra ya existente, sustituyendo el que tuviera.
     copiarPlan(origenId, destinoId) {
-      exigir();
       const p = svc.planDesdeSesion(origenId);
       if (!p) return { ok: false };
       return svc.guardarPlan(destinoId, p);
@@ -128,6 +154,8 @@ export function crearEntrenoService(repo, { puedeEditar = () => true, genId = de
       },
       sets: D.agruparSets(llenas),
       totales: D.totales(llenas),
+      tipos: tipos(),
+      desglose: G.desgloseSesion(llenas, { tipos: tipos() }),
     };
   }
 
@@ -135,7 +163,7 @@ export function crearEntrenoService(repo, { puedeEditar = () => true, genId = de
 }
 
 function filaLinea(l) {
-  const n = D.normalizarLinea(l);
+  const n = D.serializarLinea(l);
   const o = {};
   COLUMNAS_LINEA.forEach((c) => { o[c] = n[c] === undefined || Number.isNaN(n[c]) ? '' : n[c]; });
   return o;

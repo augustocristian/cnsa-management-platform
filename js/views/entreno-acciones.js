@@ -1,11 +1,10 @@
 // Acciones de PDF del plan de entreno (descargar, vista previa, imprimir, guardar en Drive): pegamento entre
-// el servicio, el generador (carga diferida) y el navegador. Lo usan la vista Entrenamientos, el editor y Mi espacio.
+// el servicio, el generador (carga diferida) y el navegador. Used by the Entrenamientos view and the editor.
 import { t, locale } from '../i18n.js';
 import { crearEntrenoService } from '../application/entrenoService.js';
 import { nombreFichero, nombreFicheroSemana } from '../domain/entreno.js';
 
 export const servicio = (ctx) => crearEntrenoService(ctx.store, {
-  puedeEditar: () => ctx.auth.role() !== 'nadador',
   club: () => ctx.store.club,
 });
 

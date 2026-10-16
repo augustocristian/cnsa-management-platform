@@ -10,7 +10,7 @@ export default {
   'nav.cargas': 'Carichi',
   'nav.marcas': 'Primati',
   'nav.banador': 'Costumi',
-  'nav.comunicaciones': 'Comunicazioni',
+  'nav.comunicaciones': 'Avvisi e note',
   'nav.club': 'Impostazioni',
   'nav.tutorial': 'Tutorial',
 
@@ -38,17 +38,13 @@ export default {
   'common.sincronizar': 'Sincronizza ora',
   'common.error': 'Si è verificato un errore',
 
-  'cat.prebenjamin': 'Pre-Benjamin (U8)',
+  'cat.pre-benjamin': 'Pre-Benjamin (U8)',
   'cat.benjamin': 'Esordienti C (U10)',
   'cat.alevin': 'Esordienti B (U12)',
   'cat.infantil': 'Ragazzi (U14)',
   'cat.junior': 'Juniores',
   'cat.absoluto': 'Assoluti',
   'cat.master': 'Master',
-
-  'rol.admin': 'Amministratore',
-  'rol.entrenador': 'Allenatore',
-  'rol.nadador': 'Nuotatore',
 
   'tipo.aerobico': 'Aerobico',
   'tipo.velocidad': 'Velocità',
@@ -82,7 +78,7 @@ export default {
   "shell.titulo": 'Piattaforma CNL',
   "shell.lema-app": 'Gestione del tuo club di nuoto',
   "shell.avisos": 'Avvisi: {n}',
-  "shell.avisos-titulo": 'Comunicazioni recenti',
+  "shell.avisos-titulo": 'Avvisi recenti',
   "shell.salir": 'Esci',
   "shell.salir-user": 'Esci ({email})',
   "shell.sync.sincronizado": 'Sincronizzato',

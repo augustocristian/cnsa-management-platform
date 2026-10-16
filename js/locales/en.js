@@ -10,7 +10,7 @@ export default {
   'nav.cargas': 'Workloads',
   'nav.marcas': 'Personal bests',
   'nav.banador': 'Swimsuits',
-  'nav.comunicaciones': 'Messages',
+  'nav.comunicaciones': 'Notices & notes',
   'nav.club': 'Settings',
   'nav.tutorial': 'Tutorial',
 
@@ -38,17 +38,13 @@ export default {
   'common.sincronizar': 'Sync now',
   'common.error': 'An error occurred',
 
-  'cat.prebenjamin': 'Pre-Benjamin (U8)',
+  'cat.pre-benjamin': 'Pre-Benjamin (U8)',
   'cat.benjamin': 'Benjamin (U10)',
   'cat.alevin': 'Alevin (U12)',
   'cat.infantil': 'Infantile (U14)',
   'cat.junior': 'Junior',
   'cat.absoluto': 'Senior',
   'cat.master': 'Masters',
-
-  'rol.admin': 'Administrator',
-  'rol.entrenador': 'Coach',
-  'rol.nadador': 'Swimmer',
 
   'tipo.aerobico': 'Aerobic',
   'tipo.velocidad': 'Speed',
@@ -82,7 +78,7 @@ export default {
   "shell.titulo": 'CNL Platform',
   "shell.lema-app": 'Manage your swimming club',
   "shell.avisos": 'Notices: {n}',
-  "shell.avisos-titulo": 'Recent announcements',
+  "shell.avisos-titulo": 'Recent notices',
   "shell.salir": 'Sign out',
   "shell.salir-user": 'Sign out ({email})',
   "shell.sync.sincronizado": 'Synced',

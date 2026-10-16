@@ -1,4 +1,5 @@
-// Vista Comunicaciones: publicar avisos (todos o por grupo) y listado.
+// Notices and notes view: the coach's own notes and notices (for the whole club or one group). The app sends nothing
+// to anyone: each notice can be copied so the coach passes it on through their usual channel (email, messaging...).
 import { t, tDate } from '../i18n.js';
 function H(tag, attrs, ...kids) {
   const el = document.createElement(tag);
@@ -36,16 +37,10 @@ export async function render(container, params, ctx) {
   injectStyle();
   const { store, auth, ui } = ctx;
   const toast = (m) => (ui && ui.toast ? ui.toast(m) : null);
-  const role = auth.role();
-  const canPost = role !== 'nadador';
   const state = { grupo: '' };
 
-  // Nadador: sólo avisos generales y de su grupo
-  let miGrupo = null;
-  if (role === 'nadador') {
-    const u = store.list('Usuarios').find((x) => auth.user && x.email === auth.user.email);
-    const n = u && u.nadadorId ? store.get('Nadadores', u.nadadorId) : null;
-    miGrupo = n ? n.grupoId : '';
+  async function copiar(texto) {
+    try { await navigator.clipboard.writeText(texto); toast(t('common.copiado')); } catch (e) { toast(t('comu.errCopiar')); }
   }
 
   function publish(form) {
@@ -64,19 +59,18 @@ export async function render(container, params, ctx) {
     const grupos = store.list('Grupos');
     const gName = (id) => { const g = store.get('Grupos', id); return g ? g.nombre : t('comu.grupo'); };
     let items = store.list('Comunicaciones');
-    if (miGrupo !== null) items = items.filter((c) => !c.grupoId || c.grupoId === miGrupo);
-    else if (state.grupo === '__todos') items = items.filter((c) => !c.grupoId);
+    if (state.grupo === '__todos') items = items.filter((c) => !c.grupoId);
     else if (state.grupo) items = items.filter((c) => c.grupoId === state.grupo);
     items = items.slice().sort((a, b) => (a.fecha < b.fecha ? 1 : a.fecha > b.fecha ? -1 : 0));
 
-    const form = canPost && H('form', { class: 'cm-form', onsubmit: (e) => { e.preventDefault(); publish(e.target); } },
+    const form = H('form', { class: 'cm-form', onsubmit: (e) => { e.preventDefault(); publish(e.target); } },
       H('label', {}, t('comu.campoTitulo'), H('input', { type: 'text', name: 'titulo', required: true, maxlength: 120 })),
       H('label', {}, t('comu.destinatarios'), H('select', { name: 'grupoId' }, H('option', { value: '' }, t('comu.todoClub')),
         grupos.map((g) => H('option', { value: g.id }, g.nombre)))),
       H('label', {}, t('comu.mensaje'), H('textarea', { name: 'texto', required: true })),
       H('div', {}, H('button', { class: 'btn', type: 'submit' }, t('comu.publicar'))));
 
-    const filtro = miGrupo === null && H('div', { class: 'cm-bar' },
+    const filtro = H('div', { class: 'cm-bar' },
       H('select', { onchange: (e) => { state.grupo = e.target.value; draw(); } },
         H('option', { value: '' }, t('comu.todosAvisos')), H('option', { value: '__todos', selected: state.grupo === '__todos' }, t('comu.soloGenerales')),
         grupos.map((g) => H('option', { value: g.id, selected: g.id === state.grupo }, g.nombre))));
@@ -86,15 +80,17 @@ export async function render(container, params, ctx) {
       H('div', { class: 'cm-meta' },
         H('span', {}, tDate(c.fecha)), H('span', {}, c.autor ? `· ${c.autor}` : ''),
         H('span', { class: 'badge' }, c.grupoId ? gName(c.grupoId) : t('comu.todos')),
-        canPost ? H('button', { class: 'btn', type: 'button', onclick: async () => {
+        H('button', { class: 'btn', type: 'button', onclick: () => copiar(`${c.titulo}\n\n${c.texto}`) }, t('comu.copiar')),
+        H('button', { class: 'btn', type: 'button', onclick: async () => {
           const ok = ui && ui.confirmDialog ? await ui.confirmDialog(t('comu.confirmEliminar')) : true;
           if (ok) { store.remove('Comunicaciones', c.id); draw(); }
-        } }, t('comu.eliminar')) : null),
+        } }, t('comu.eliminar'))),
       H('p', { class: 'cm-text' }, c.texto)));
 
     container.replaceChildren(
       H('h2', {}, t('comu.titulo')),
-      form ? H('div', { class: 'card cm-card' }, H('h3', {}, t('comu.nuevo')), form) : null,
+      H('p', { class: 'muted' }, t('comu.ayuda')),
+      H('div', { class: 'card cm-card' }, H('h3', {}, t('comu.nuevo')), form),
       H('div', { class: 'card cm-card' }, H('h3', {}, t('comu.avisos')), filtro, list.length ? list : H('p', {}, t('comu.vacio'))));
   }
 

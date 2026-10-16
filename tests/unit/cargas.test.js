@@ -29,7 +29,7 @@ test('normalizarNombre: sin tildes, mayúsculas ni espacios de más', () => {
 
 test('normalizarTipo y filaTipo: ida y vuelta, valores por defecto y objetivos 0 = sin objetivo', () => {
   const t = D.normalizarTipo({ id: 5, nombre: ' X ', color: 'zzz', categoria: 'rara', orden: '', activo: '', predefinido: 'TRUE', minSemanalM: 0, maxSemanalM: '1500' });
-  assert.deepEqual(t, { id: '5', nombre: 'X', descripcion: '', color: D.COLOR_SIN_TIPO, categoria: 'personalizado', orden: 999, activo: true, predefinido: true, min: null, max: 1500 });
+  assert.deepEqual(t, { id: '5', nombre: 'X', descripcion: '', color: D.COLOR_SIN_TIPO, categoria: 'personalizado', orden: 999, activo: true, predefinido: true, min: null, max: 1500, alias: [] });
   const f = D.filaTipo(t);
   assert.deepEqual([f.activo, f.predefinido, f.minSemanalM, f.maxSemanalM], ['true', 'true', '', 1500]);
   assert.equal(D.normalizarTipo({ id: 'a', nombre: 'a', activo: 'FALSE' }).activo, false);

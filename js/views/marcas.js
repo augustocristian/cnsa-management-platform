@@ -71,11 +71,10 @@ function injectStyle() {
 
 export async function render(container, params, ctx) {
   injectStyle();
-  const { store, auth, ui } = ctx;
+  const { store, ui } = ctx;
   const toast = (m) => (ui && ui.toast ? ui.toast(m) : null);
   const fmt = (ms) => (ui && ui.fmtTime ? ui.fmtTime(ms) : fmtT(ms));
   const parse = (s) => (ui && ui.parseTime ? ui.parseTime(s) : parseT(s));
-  const canEdit = auth.role() !== 'nadador';
   const state = { nadadorId: '', prueba: '', piscina: '' };
 
   const nombre = (id) => {
@@ -152,7 +151,7 @@ export async function render(container, params, ctx) {
     else if (filtered.length < 1) evol = H('p', {}, t('marcas.evol-vacio'));
     else evol = chartEvol(filtered);
 
-    const form = canEdit && H('form', { class: 'mc-form', onsubmit: (e) => { e.preventDefault(); addMarca(e.target); } },
+    const form = H('form', { class: 'mc-form', onsubmit: (e) => { e.preventDefault(); addMarca(e.target); } },
       H('label', {}, t('marcas.f.nadador'), H('select', { name: 'nadadorId', required: true }, H('option', { value: '' }, '—'),
         nads.map((n) => H('option', { value: n.id, selected: n.id === state.nadadorId }, nombre(n.id))))),
       H('label', {}, t('marcas.f.fecha'), H('input', { type: 'date', name: 'fecha', required: true, value: iso(new Date()) })),
@@ -170,18 +169,18 @@ export async function render(container, params, ctx) {
 
     const hist = filtered.slice().sort((a, b) => (a.fecha < b.fecha ? 1 : -1)).slice(0, 100);
     const histTable = hist.length ? H('table', { class: 'table' },
-      H('thead', {}, H('tr', {}, ['fecha', 'nadador', 'prueba', 'piscina', 'tiempo', 'competicion', canEdit ? '' : null].map((k) => (k == null ? null : H('th', {}, k ? t('marcas.th-' + k) : ''))))),
+      H('thead', {}, H('tr', {}, ['fecha', 'nadador', 'prueba', 'piscina', 'tiempo', 'competicion', ''].map((k) => H('th', {}, k ? t('marcas.th-' + k) : '')))),
       H('tbody', {}, hist.map((m) => H('tr', {}, H('td', {}, tDate(m.fecha)), H('td', {}, nombre(m.nadadorId)), H('td', {}, pruebaLabel(m.prueba)), H('td', {}, m.piscina + ' m'),
         H('td', { class: 'mc-time' }, fmt(m.tiempoMs), bestIds.has(m.id) ? H('span', { class: 'badge mc-pb', title: t('marcas.pb-titulo') }, t('marcas.pb')) : null),
         H('td', {}, m.competicion || ''),
-        canEdit ? H('td', {}, H('button', { class: 'btn', type: 'button', onclick: async () => {
+        H('td', {}, H('button', { class: 'btn', type: 'button', onclick: async () => {
           const ok = ui && ui.confirmDialog ? await ui.confirmDialog(t('marcas.confirm-eliminar')) : true;
           if (ok) { store.remove('Marcas', m.id); draw(); }
-        } }, t('marcas.eliminar'))) : null)))) : H('p', {}, t('marcas.sin-filtros'));
+        } }, t('marcas.eliminar'))))))) : H('p', {}, t('marcas.sin-filtros'));
 
     container.replaceChildren(
       H('h2', {}, t('marcas.titulo')), filtros,
-      form ? H('div', { class: 'card mc-card' }, H('h3', {}, t('marcas.registrar-titulo')), form) : null,
+      H('div', { class: 'card mc-card' }, H('h3', {}, t('marcas.registrar-titulo')), form),
       H('div', { class: 'card mc-card' }, H('h3', {}, t('marcas.mejores')), bestTable),
       H('div', { class: 'card mc-card' }, H('h3', {}, t('marcas.evolucion')), evol),
       H('div', { class: 'card mc-card' }, H('h3', {}, t('marcas.historial')), histTable));

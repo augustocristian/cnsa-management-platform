@@ -63,7 +63,7 @@ test('la vista Entrenamientos muestra el resumen del plan de las sesiones de la 
 test('persistencia: el plan viaja en el documento del club y los datos antiguos (sin columnas nuevas) se leen', async () => {
   const { dataToDoc, docToData, hashData } = await importApp('js/sheetdata.js');
   const { SHEETS } = await importApp('js/schema.js');
-  assert.deepEqual(SHEETS.EntrenoLineas, ['id', 'entrenamientoId', 'set', 'orden', 'tiempoMin', 'objetivo', 'bloque', 'series', 'distancia', 'salida', 'ejercicio', 'material', 'notas']);
+  assert.deepEqual(SHEETS.EntrenoLineas, ['id', 'entrenamientoId', 'set', 'orden', 'tiempoMin', 'objetivo', 'bloque', 'series', 'distancia', 'salida', 'ejercicio', 'material', 'notas', 'componentes', 'estilo']);
   for (const col of ['tipoSesion', 'materialDia', 'notasGenerales']) assert.ok(SHEETS.Entrenamientos.includes(col), col);
   const data = { db: Object.fromEntries(Object.keys(SHEETS).filter((s) => s !== 'Club').map((s) => [s, c.store.list(s)])), club: { ...c.store.club } };
   const doc = dataToDoc(data);
@@ -86,7 +86,7 @@ test('persistencia: el plan viaja en el documento del club y los datos antiguos 
 });
 
 test('exportar a Excel incluye la hoja EntrenoLineas con las cabeceras del esquema', async () => {
-  const blob = c.store.exportXlsx();
+  const blob = await c.store.exportXlsx();
   const wb = XLSX.read(await blob.arrayBuffer(), { type: 'array' });
   assert.ok(wb.SheetNames.includes('EntrenoLineas'));
   const filas = XLSX.utils.sheet_to_json(wb.Sheets.EntrenoLineas, { header: 1 });

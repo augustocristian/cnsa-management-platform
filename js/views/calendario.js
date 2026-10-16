@@ -4,6 +4,7 @@
 import { icon } from '../icons.js';
 import { t, locale } from '../i18n.js';
 import * as D from '../domain/calendario.js';
+import { colorEventoCalendario } from '../domain/temporada.js';
 import { crearCalendarioService } from '../application/calendarioService.js';
 import { preferencias, CLAVES } from '../preferencias.js';
 
@@ -91,6 +92,11 @@ export const etiquetas = () => ({
   volumen: t('cal.ev.volumen'),
   grupo: t('cal.ev.grupo'),
   todos: t('cal.sin-grupo'),
+  tipoEvento: (x) => t('tp.evento.' + x),
+  prioridad: (p) => t('tp.prioridad-n', { p }),
+  pruebas: t('tp.ev.pruebas'),
+  categoria: t('tp.ev.categoria'),
+  dia: (i, n) => t('tp.ev.dia-de', { i, n }),
 });
 
 // Descarga por defecto (se puede sustituir con ctx.cal.descargar en pruebas).
@@ -130,7 +136,7 @@ export async function render(container, params, ctx) {
   };
   const grupos = svc.grupos();
   const color = (gid) => D.colorGrupo(gid, grupos);
-  const colorVars = (gid) => { const c = color(gid); return `--cal-fondo:${c.fondo};--cal-acento:${c.acento};--cal-texto:${c.texto}`; };
+  const colorVars = (gid, ev) => { const c = (ev && colorEventoCalendario(ev)) || color(gid); return `--cal-fondo:${c.fondo};--cal-acento:${c.acento};--cal-texto:${c.texto}`; };
 
   container.replaceChildren();
 
@@ -157,11 +163,12 @@ export async function render(container, params, ctx) {
     if (ev.enfoque) meta.push(h('span', null, `${t('cal.ev.enfoque')}: ${ev.enfoque}`));
     if (ev.volumenMin !== '' || ev.volumenMax !== '') meta.push(h('span', null, `${t('cal.ev.volumen')}: ${ev.volumenMin !== '' && ev.volumenMax !== '' ? `${ev.volumenMin}–${ev.volumenMax}` : (ev.volumenMax || ev.volumenMin)} m`));
     if (ev.descripcion && ev.origen === 'calle') meta.push(h('span', null, ev.descripcion));
-    return h('article', { class: 'cal-ev', style: colorVars(ev.grupoId), dataset: { origen: ev.origen, id: ev.id } },
+    return h('article', { class: 'cal-ev', style: colorVars(ev.grupoId, ev), dataset: { origen: ev.origen, id: ev.id } },
       h('div', { class: 'cal-ev-top' },
         h('span', { class: 'cal-ev-hora' }, horaTxt(ev)),
         h('span', { class: 'cal-ev-titulo' }, ev.titulo),
         ev.origen === 'calle' ? h('span', { class: 'cal-ev-badge' }, t('cal.ev.asignacion')) : null,
+        ev.origen === 'temporada' ? h('span', { class: 'cal-ev-badge' }, t('tp.evento.' + ev.tipoEvento)) : null,
         ev.estado === 'realizado' ? h('span', { class: 'cal-ev-badge' }, t('cal.ev.realizado')) : null),
       meta.length ? h('div', { class: 'cal-ev-meta' }, meta) : null);
   }
@@ -200,9 +207,9 @@ export async function render(container, params, ctx) {
         }, h('span', null, String(Number(f.slice(8)))));
         celdas.push(h('td', { class: cls, onclick: () => elegirDia(f, false) }, btn,
           h('ul', { class: 'cal-chips', 'aria-hidden': 'true' },
-            evs.slice(0, 3).map((e) => h('li', { class: 'cal-chip', style: colorVars(e.grupoId) }, `${e.hora ? e.hora + ' ' : ''}${e.titulo}`)),
+            evs.slice(0, 3).map((e) => h('li', { class: 'cal-chip', style: colorVars(e.grupoId, e) }, `${e.hora ? e.hora + ' ' : ''}${e.titulo}`)),
             evs.length > 3 ? h('li', { class: 'cal-mas' }, t('cal.ev.mas', { n: evs.length - 3 })) : null),
-          evs.length ? h('div', { class: 'cal-puntos', 'aria-hidden': 'true' }, evs.slice(0, 4).map((e) => h('span', { class: 'cal-punto', style: colorVars(e.grupoId) }))) : null));
+          evs.length ? h('div', { class: 'cal-puntos', 'aria-hidden': 'true' }, evs.slice(0, 4).map((e) => h('span', { class: 'cal-punto', style: colorVars(e.grupoId, e) }))) : null));
       }
       filas.push(h('tr', null, celdas));
     }
@@ -403,7 +410,7 @@ export async function render(container, params, ctx) {
     h('div', { class: 'cal-paneles' }, panelExport, panelSync));
   pintar();
 
-  // Repinta si cambian los datos (otro usuario, importación...) mientras la vista sigue en pantalla.
+  // Repinta si cambian los datos (another device of the same user, import...) mientras la vista sigue en pantalla.
   if (store.on) {
     const off = store.on(() => {
       if (!container.isConnected) { if (typeof off === 'function') off(); return; }

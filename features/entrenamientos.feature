@@ -71,8 +71,8 @@ Característica: Entrenamientos
     Entonces todas las sesiones mostradas son del grupo "Alevín"
 
   Escenario: La sesión de un grupo se relaciona con los nadadores de ese grupo
-    Dado que he creado la sesión "Sesión del grupo máster" para el grupo "Absoluto-Máster"
+    Dado que he creado la sesión "Sesión del grupo master" para el grupo "Absoluto-Master"
     Cuando abro el módulo "Asistencia"
-    Y selecciono la sesión "Sesión del grupo máster" para pasar lista
+    Y selecciono la sesión "Sesión del grupo master" para pasar lista
     Entonces la lista incluye a 3 nadadores
     Y veo en pantalla a alguien llamado "Javier Álvarez"

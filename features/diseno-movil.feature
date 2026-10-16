@@ -22,7 +22,7 @@ Característica: Diseño móvil primero
       | Cargas         |
       | Marcas         |
       | Bañador        |
-      | Comunicaciones |
+      | Avisos y notas |
       | Configuración  |
 
   @movil
@@ -39,7 +39,7 @@ Característica: Diseño móvil primero
       | Asistencia     |
       | Cargas         |
       | Marcas         |
-      | Comunicaciones |
+      | Avisos y notas |
 
   Esquema del escenario: La aplicación se adapta a móvil, tableta y escritorio
     Dado que uso un dispositivo de <ancho> px de ancho
@@ -97,7 +97,7 @@ Característica: Diseño móvil primero
       | modulo         |
       | Cargas         |
       | Marcas         |
-      | Comunicaciones |
+      | Avisos y notas |
 
   Esquema del escenario: Cada pantalla tiene un título claro y coherente
     Entonces la pantalla "<modulo>" tiene un título
@@ -110,7 +110,7 @@ Característica: Diseño móvil primero
       | Asistencia     |
       | Cargas         |
       | Marcas         |
-      | Comunicaciones |
+      | Avisos y notas |
 
   Escenario: La aplicación declara una vista adaptable a móviles
     Entonces la aplicación declara una vista adaptable a móviles

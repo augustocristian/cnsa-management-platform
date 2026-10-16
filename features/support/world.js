@@ -4,7 +4,7 @@ import assert from 'node:assert/strict';
 export const MODULOS = {
   'Inicio': 'inicio', 'Nadadores': 'nadadores', 'Grupos': 'grupos',
   'Entrenamientos': 'entrenamientos', 'Asistencia': 'asistencia', 'Cargas': 'cargas', 'Marcas': 'marcas',
-  'Bañador': 'banador', 'Comunicaciones': 'comunicaciones', 'Configuración': 'club',
+  'Bañador': 'banador', 'Avisos y notas': 'comunicaciones', 'Configuración': 'club',
   'Planificación': 'planificacion', 'Calendario': 'calendario',
 };
 export const DIALOGO = '.nad-modal, .grp-modal, .ent-modal, .modal';

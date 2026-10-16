@@ -65,13 +65,7 @@ function openModal(title, bodyEl, buttons) {
 
 export async function render(container, params, ctx) {
   injectStyle();
-  const { store, auth, ui } = ctx;
-  const role = auth.role();
-  const canEdit = role === 'admin' || role === 'entrenador';
-  if (!canEdit) {
-    container.replaceChildren(h('div', { class: 'card' }, t('nadadores.sin-permisos')));
-    return;
-  }
+  const { store, ui } = ctx;
   const refresh = () => render(container, params, ctx);
 
   function editar(g) {
@@ -99,7 +93,7 @@ export async function render(container, params, ctx) {
   async function borrar(g, miembros) {
     const ok = await ui.confirmDialog(t('grupos.confirmar-eliminar', { nombre: g.nombre, n: miembros.length }));
     if (!ok) return;
-    miembros.forEach((n) => store.upsert('Nadadores', { ...n, grupoId: '' }));
+    store.upsertMany('Nadadores', miembros.map((n) => ({ ...n, grupoId: '' })));
     store.remove('Grupos', g.id);
     ui.toast(t('grupos.eliminado'));
     refresh();

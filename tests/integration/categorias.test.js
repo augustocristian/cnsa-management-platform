@@ -1,0 +1,261 @@
+import base from 'node:test';
+import assert from 'node:assert/strict';
+import { fresh, renderView, tick, fieldByLabel, buttonByText, setValue } from '../helpers/app.js';
+import { temporadaDe, etiquetaTemporada } from '../../js/domain/categorias.js';
+
+let c;
+// Cada test arranca con DOM limpio y el store sembrado con la demo; la temporada se fija en el club para no depender del reloj.
+const test = (name, fn) => base(name, async (t) => {
+  c = await fresh();
+  c.store.setClub({ ...c.store.club, temporadaActual: '2026-2027', temporadaAplicada: '2026-2027' });
+  return fn(t);
+});
+
+const marcar = (el, valor) => { el.checked = valor; el.dispatchEvent(new window.Event('input', { bubbles: true })); el.dispatchEvent(new window.Event('change', { bubbles: true })); };
+const abrirAlta = async () => {
+  await renderView('nadadores', c.container, [], c);
+  buttonByText(c.container, 'Nuevo nadador').click();
+  return document.querySelector('.nad-ov');
+};
+const vivo = (ov) => ov.querySelector('[data-testid=categoria-auto]').textContent;
+const porNombre = (n) => c.store.list('Nadadores').find((x) => x.nombre === n);
+
+test('datos demo: los 12 nadadores caen en las categorías esperadas y no hace falta recalcular', async () => {
+  const esperado = { 'Lucía': 'Pre-Benjamín', 'Martina': 'Benjamín', 'Pelayo': 'Benjamín', 'Carla': 'Alevín', 'Álvaro': 'Alevín', 'Noa': 'Infantil', 'Iker': 'Infantil', 'Paula': 'Junior', 'Marcos': 'Junior', 'Claudia': 'Absoluto', 'Daniel': 'Absoluto', 'Javier': 'Master' };
+  for (const [nombre, cat] of Object.entries(esperado)) assert.equal(porNombre(nombre).categoria, cat, nombre);
+  assert.equal(porNombre('Javier').licenciaMaster, 'true');
+  assert.equal(porNombre('Daniel').licenciaMaster, 'false', 'Daniel tiene 25 años pero no licencia máster');
+  assert.ok(c.store.list('Nadadores').every((n) => n.categoriaManual === ''));
+  // la demo guarda la temporada aplicada de su reloj y las fechas son relativas a esa temporada
+  const hoy = temporadaDe(c.ui.isoDate(new Date()));
+  const demo = await fresh();
+  assert.equal(demo.store.club.temporadaAplicada, etiquetaTemporada(hoy));
+  const pelayo = demo.store.list('Nadadores').find((n) => n.nombre === 'Pelayo');
+  assert.equal(pelayo.fechaNacimiento.slice(0, 4), String(hoy - 9));
+  const { crearCategoriasService } = await import('../../js/application/categoriasService.js');
+  assert.deepEqual(crearCategoriasService(demo.store).recalcular().cambios, []);
+});
+
+test('alta: la categoría se calcula en vivo con fecha de nacimiento y sexo, solo lectura', async () => {
+  const ov = await abrirAlta();
+  assert.match(vivo(ov), /Indica la fecha de nacimiento/);
+  assert.equal(ov.querySelector('[data-testid=categoria-auto]').getAttribute('aria-live'), 'polite');
+  setValue(fieldByLabel(ov, 'Fecha de nacimiento'), '2014-05-05');
+  assert.match(vivo(ov), /Alevín · nacidos en 2014-2015 · temporada 2026-2027/);
+  setValue(fieldByLabel(ov, 'Fecha de nacimiento'), '2008-12-31');
+  assert.match(vivo(ov), /Absoluto · nacidos en 2008 y anteriores/);
+  setValue(fieldByLabel(ov, 'Fecha de nacimiento'), '2009-01-01');
+  assert.match(vivo(ov), /Junior · nacidos en 2009-2011/);
+  setValue(fieldByLabel(ov, 'Fecha de nacimiento'), '2018-06-01');
+  assert.match(vivo(ov), /Pre-Benjamín · nacidos en 2018 /);
+  setValue(fieldByLabel(ov, 'Fecha de nacimiento'), '2022-06-01');
+  assert.match(vivo(ov), /Por debajo de la edad mínima/);
+  setValue(fieldByLabel(ov, 'Sexo'), 'M');
+  assert.match(vivo(ov), /Pre-Benjamín/);
+  // la categoría automática no es un campo editable
+  assert.equal(ov.querySelector('[data-testid=categoria-auto]').querySelector('input,select'), null);
+});
+
+test('alta automática: guarda la categoría calculada y no marca manual', async () => {
+  const ov = await abrirAlta();
+  setValue(fieldByLabel(ov, 'Nombre'), 'Zoe');
+  setValue(fieldByLabel(ov, 'Apellidos'), 'Zamora Test');
+  setValue(fieldByLabel(ov, 'Fecha de nacimiento'), '2016-03-03');
+  buttonByText(ov, 'Guardar').click();
+  await tick();
+  const n = porNombre('Zoe');
+  assert.deepEqual([n.categoria, n.categoriaManual, n.licenciaMaster], ['Benjamín', '', 'false']);
+  const fila = [...c.container.querySelectorAll('tr.nad-row')].find((r) => r.textContent.includes('Zoe'));
+  assert.ok(fila.textContent.includes('Benjamín'));
+  assert.equal(fila.querySelector('.nad-manual'), null, 'sin insignia manual');
+});
+
+test('Master: sólo con licencia máster y edad mínima', async () => {
+  const ov = await abrirAlta();
+  setValue(fieldByLabel(ov, 'Fecha de nacimiento'), '1985-02-02');
+  assert.match(vivo(ov), /Absoluto/);
+  marcar(fieldByLabel(ov, 'Licencia máster'), true);
+  assert.match(vivo(ov), /Master · licencia máster y 25 años o más · temporada 2026-2027/);
+  setValue(fieldByLabel(ov, 'Fecha de nacimiento'), '2005-02-02'); // 21 años
+  assert.match(vivo(ov), /Absoluto/);
+  assert.match(vivo(ov), /requiere 25 años o más/);
+  setValue(fieldByLabel(ov, 'Nombre'), 'Mari');
+  setValue(fieldByLabel(ov, 'Apellidos'), 'Master Test');
+  setValue(fieldByLabel(ov, 'Fecha de nacimiento'), '1985-02-02');
+  buttonByText(ov, 'Guardar').click();
+  await tick();
+  const n = porNombre('Mari');
+  assert.deepEqual([n.categoria, n.licenciaMaster], ['Master', 'true']);
+});
+
+test('categoría manual: el interruptor muestra el selector, manda sobre el cálculo y se señala con una insignia', async () => {
+  const ov = await abrirAlta();
+  const chk = fieldByLabel(ov, 'Categoría manual');
+  const eleg = fieldByLabel(ov, 'Categoría elegida');
+  assert.equal(eleg.closest('label').hidden, true);
+  marcar(chk, true);
+  assert.equal(eleg.closest('label').hidden, false);
+  setValue(fieldByLabel(ov, 'Nombre'), 'Mano');
+  setValue(fieldByLabel(ov, 'Apellidos'), 'Manual Test');
+  setValue(fieldByLabel(ov, 'Fecha de nacimiento'), '2014-05-05');
+  setValue(eleg, 'Junior');
+  assert.match(vivo(ov), /Junior · fijada manualmente \(la automática sería Alevín\)/);
+  buttonByText(ov, 'Guardar').click();
+  await tick();
+  const n = porNombre('Mano');
+  assert.deepEqual([n.categoria, n.categoriaManual], ['Junior', 'Junior']);
+  const fila = [...c.container.querySelectorAll('tr.nad-row')].find((r) => r.textContent.includes('Mano'));
+  assert.equal(fila.querySelector('.nad-manual').textContent, 'manual');
+
+  // ficha: categoría vigente + insignia
+  await renderView('nadadores', c.container, [n.id], c);
+  const dd = [...c.container.querySelectorAll('dt')].find((d) => d.textContent === 'Categoría').nextElementSibling;
+  assert.match(dd.textContent, /Junior/);
+  assert.match(dd.textContent, /manual/);
+  // al cambiar de temporada no se toca
+  const { crearCategoriasService } = await import('../../js/application/categoriasService.js');
+  crearCategoriasService(c.store).cambiarTemporada(2030);
+  assert.equal(porNombre('Mano').categoria, 'Junior');
+});
+
+test('edición: se puede pasar de manual a automática', async () => {
+  const n = porNombre('Carla'); // 2014 en la demo de 2026 -> Alevín
+  c.store.upsert('Nadadores', { ...n, categoria: 'Junior', categoriaManual: 'Junior' });
+  await renderView('nadadores', c.container, [n.id], c);
+  buttonByText(c.container, 'Editar').click();
+  const ov = document.querySelector('.nad-ov');
+  assert.equal(fieldByLabel(ov, 'Categoría manual').checked, true);
+  marcar(fieldByLabel(ov, 'Categoría manual'), false);
+  buttonByText(ov, 'Guardar').click();
+  await tick();
+  const g = c.store.get('Nadadores', n.id);
+  assert.deepEqual([g.categoria, g.categoriaManual], ['Alevín', '']);
+});
+
+test('ficha: edad y categoría coherentes con la temporada, y regla de la categoría', async () => {
+  const n = porNombre('Carla');
+  await renderView('nadadores', c.container, [n.id], c);
+  const txt = c.container.textContent;
+  assert.match(txt, /Alevín/);
+  assert.match(txt, /Temporada 2026-2027: nacidos en 2014-2015/);
+  assert.match(txt, /Licencia máster/);
+});
+
+test('listado: tabla de años de la temporada, filtro y orden por el orden de categorías', async () => {
+  await renderView('nadadores', c.container, [], c);
+  const det = c.container.querySelector('details');
+  assert.match(det.querySelector('summary').textContent, /Categorías de la temporada 2026-2027/);
+  const filas = [...det.querySelectorAll('tbody tr')].map((r) => [...r.children].map((x) => x.textContent));
+  assert.deepEqual(filas.slice(0, 6), [
+    ['Pre-Benjamín', '2018'], ['Benjamín', '2016-2017'], ['Alevín', '2014-2015'], ['Infantil', '2012-2013'], ['Junior', '2009-2011'], ['Absoluto', '2008 y anteriores'],
+  ]);
+  assert.match(filas[6][1], /Licencia máster y 25 años o más \(2001 y anteriores\)/);
+  const cats = [...c.container.querySelectorAll('tr.nad-row td:nth-child(2) .badge:first-child')].map((x) => x.textContent);
+  const orden = ['Pre-Benjamín', 'Benjamín', 'Alevín', 'Infantil', 'Junior', 'Absoluto', 'Master'];
+  assert.deepEqual(cats, [...cats].sort((a, b) => orden.indexOf(a) - orden.indexOf(b)));
+  const sel = c.container.querySelectorAll('.nad-filters select')[0];
+  assert.deepEqual([...sel.options].slice(1).map((o) => o.textContent), orden);
+});
+
+// ---------- Configuración: panel de categorías ----------
+const panel = () => c.container.querySelector('.catp');
+
+test('club: panel "Categorías de la temporada 2026-2027" con la tabla calculada', async () => {
+  await renderView('club', c.container, [], c);
+  assert.match(panel().querySelector('h3').textContent, /Categorías de la temporada 2026-2027/);
+  const filas = [...panel().querySelectorAll('table[aria-label] tbody tr')].map((r) => r.textContent);
+  assert.ok(filas[0].includes('Pre-Benjamín') && filas[0].includes('2018'));
+  assert.ok(filas[4].includes('Junior') && filas[4].includes('2009-2011'));
+  assert.match(panel().textContent, /Temporada vigente: 2026-2027/);
+  assert.match(panel().textContent, /Fijada manualmente/);
+});
+
+test('cambiar de temporada: previsualiza quién cambia y aplica tras confirmar', async () => {
+  await renderView('club', c.container, [], c);
+  const sel = panel().querySelector('#catp-temporada');
+  setValue(sel, '2027');
+  panel().querySelector('#catp-cambiar').click();
+  const modal = document.querySelector('.modal');
+  assert.match(modal.textContent, /Cambiar a la temporada 2027-2028/);
+  assert.match(modal.textContent, /nadadores cambian de categoría/);
+  const filas = [...modal.querySelectorAll('tbody tr')].map((r) => r.textContent);
+  // Lucía (8) pasa a Benjamín; Pelayo (9 -> 10) sigue; Martina (10 -> 11) pasa a Alevín
+  assert.ok(filas.some((f) => f.includes('Fernández Roces') && f.includes('Pre-Benjamín') && f.includes('Benjamín')));
+  assert.ok(filas.some((f) => f.includes('Suárez Cuesta') && f.includes('Alevín')));
+  assert.equal(porNombre('Lucía').categoria, 'Pre-Benjamín', 'la previsualización no escribe');
+  assert.equal(c.store.club.temporadaActual, '2026-2027');
+  buttonByText(modal, 'Aplicar cambio de temporada').click();
+  await tick();
+  assert.equal(document.querySelector('.modal'), null);
+  assert.equal(porNombre('Lucía').categoria, 'Benjamín');
+  assert.equal(porNombre('Martina').categoria, 'Alevín');
+  assert.equal(c.store.club.temporadaActual, '2027-2028');
+  assert.equal(c.store.club.temporadaAplicada, '2027-2028');
+  assert.match(panel().querySelector('h3').textContent, /2027-2028/);
+});
+
+test('cambiar de temporada a la misma avisa y no abre previsualización; "Automática" vuelve a la temporada de hoy', async () => {
+  c.store.setClub({ ...c.store.club, temporadaActual: '2040-2041' });
+  await renderView('club', c.container, [], c);
+  panel().querySelector('#catp-cambiar').click();
+  assert.equal(document.querySelector('.modal'), null);
+  assert.match(document.body.textContent, /Ya estás en la temporada 2040-2041/);
+  const hoy = etiquetaTemporada(temporadaDe(c.ui.isoDate(new Date())));
+  setValue(panel().querySelector('#catp-temporada'), '');
+  panel().querySelector('#catp-cambiar').click();
+  buttonByText(document.querySelector('.modal'), 'Aplicar cambio de temporada').click();
+  await tick();
+  assert.equal(c.store.club.temporadaActual, '');
+  assert.match(panel().querySelector('h3').textContent, new RegExp(hoy));
+});
+
+test('recalcular a demanda corrige categorías desactualizadas', async () => {
+  const n = porNombre('Carla');
+  c.store.upsert('Nadadores', { ...n, categoria: 'Master' });
+  await renderView('club', c.container, [], c);
+  panel().querySelector('#catp-recalcular').click();
+  assert.equal(porNombre('Carla').categoria, 'Alevín');
+  assert.match(document.body.textContent, /Categorías recalculadas: 1 cambio/);
+});
+
+test('reglas por sexo: validación, guardado y recálculo', async () => {
+  await renderView('club', c.container, [], c);
+  const inp = (sexo, cat, i) => panel().querySelector(`input[aria-label="${cat} (${sexo === 'F' ? 'Femenino' : 'Masculino'}): ${i === 0 ? 'Edad desde' : 'Edad hasta'}"]`);
+  // hueco entre Junior y Absoluto -> error y no se guarda
+  setValue(inp('M', 'Junior', 1), '18');
+  panel().querySelector('#catp-guardar-reglas').click();
+  assert.match(panel().querySelector('.catp-errores').textContent, /Absoluto \(Masculino\) debe empezar justo después/);
+  assert.equal(c.store.club.categoriasConfig, undefined);
+  // tabla continua -> guarda; los chicos de 18 años siguen en Junior
+  setValue(inp('M', 'Absoluto', 0), '19');
+  panel().querySelector('#catp-guardar-reglas').click();
+  assert.ok(c.store.club.categoriasConfig);
+  assert.equal(JSON.parse(c.store.club.categoriasConfig).edades.M.Junior[1], 18);
+  // F y M distintas: la tabla muestra dos columnas
+  await renderView('club', c.container, [], c);
+  const cab = [...panel().querySelectorAll('table[aria-label] thead th')].map((x) => x.textContent);
+  assert.deepEqual(cab, ['Categoría', 'Nacidos en (Femenino)', 'Nacidos en (Masculino)']);
+  // edad mínima máster
+  setValue(panel().querySelector('#catp-master-edad'), '30');
+  panel().querySelector('#catp-guardar-reglas').click();
+  assert.equal(JSON.parse(c.store.club.categoriasConfig).edadMinimaMaster, 30);
+  assert.equal(porNombre('Javier').categoria, 'Master'); // 42 años
+  // restablecer
+  await renderView('club', c.container, [], c);
+  panel().querySelector('#catp-restablecer').click();
+  assert.equal(c.store.club.categoriasConfig, '');
+});
+
+test('esquema: Nadadores incluye licenciaMaster y categoriaManual y un club antiguo sin ellos se lee bien', async () => {
+  const { SHEETS } = await import('../../js/schema.js');
+  assert.ok(SHEETS.Nadadores.includes('licenciaMaster') && SHEETS.Nadadores.includes('categoriaManual'));
+  const antiguo = { id: 'old1', nombre: 'Vieja', apellidos: 'Fila', fechaNacimiento: '2013-02-02', sexo: 'F', categoria: 'Alevín', grupoId: '' };
+  const guardada = c.store.upsert('Nadadores', antiguo);
+  assert.equal(guardada.licenciaMaster, '');
+  assert.equal(guardada.categoriaManual, '');
+  await renderView('nadadores', c.container, ['old1'], c);
+  assert.match(c.container.textContent, /Vieja Fila/);
+  const { crearCategoriasService } = await import('../../js/application/categoriasService.js');
+  crearCategoriasService(c.store).recalcular();
+  assert.equal(c.store.get('Nadadores', 'old1').categoria, 'Infantil');
+});

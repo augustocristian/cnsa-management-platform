@@ -1,6 +1,6 @@
-// Texts for the Home, Swimmers, Groups and My space views (English).
+// Texts for the Home, Swimmers and Groups views (English).
 export default {
-  'inicio.bienvenida': 'Welcome, {rol}!',
+  'inicio.bienvenida': 'Welcome, Coach!',
   'inicio.dia.0': 'Mon', 'inicio.dia.1': 'Tue', 'inicio.dia.2': 'Wed', 'inicio.dia.3': 'Thu',
   'inicio.dia.4': 'Fri', 'inicio.dia.5': 'Sat', 'inicio.dia.6': 'Sun',
   'inicio.acceso-rapido': 'Quick access',
@@ -26,12 +26,11 @@ export default {
   'inicio.faltaron': 'Absent',
   'inicio.sin-confirmar': 'Unconfirmed',
   'inicio.hoy-sin-sesiones': 'No sessions today.',
-  'inicio.comunicaciones': 'Recent announcements',
+  'inicio.comunicaciones': 'Recent notices',
   'inicio.sin-titulo': '(untitled)',
-  'inicio.sin-comunicaciones': 'No announcements.',
+  'inicio.sin-comunicaciones': 'No notices.',
   'inicio.ver-todas': 'View all',
 
-  'nadadores.sin-permisos': 'You do not have permission to view this section.',
   'nadadores.titulo': 'Swimmers',
   'nadadores.nuevo': 'New swimmer',
   'nadadores.editar': 'Edit swimmer',

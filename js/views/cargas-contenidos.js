@@ -9,9 +9,9 @@ import { agruparPorCategoria, COLOR_SIN_TIPO, siguienteColor, NOMBRE_MAX, DESCRI
 // Metros con separador de miles también en español (2.300).
 export const fmtM = (n) => tNum(Math.round(Number(n) || 0), { useGrouping: 'always', maximumFractionDigits: 0 });
 
-// Servicio con el rol actual (ctx.cargas permite inyectar uno en pruebas).
+// Loads service (ctx.cargas lets tests inject one).
 export function crearServicio(ctx) {
-  return ctx.cargas || crearCargasService(ctx.store, { puedeEditar: () => ctx.auth.role() !== 'nadador' });
+  return ctx.cargas || crearCargasService(ctx.store);
 }
 
 export function injectStyle() {
@@ -68,6 +68,7 @@ export function abrirFormulario({ ctx, svc, tipo = null, onGuardado }) {
   const descVisible = tipo ? tContenidoDesc(tipo) : '';
   const nombre = h('input', { type: 'text', value: tipo ? tContenido(tipo) : '', maxlength: NOMBRE_MAX, disabled: fijo, required: !fijo });
   const desc = h('textarea', { rows: 3, maxlength: DESCRIPCION_MAX }, descVisible);
+  const alias = h('input', { type: 'text', value: tipo ? (tipo.alias || []).join(', ') : '', maxlength: 120, autocomplete: 'off', placeholder: 'AeL, Ae1' });
   const color = h('input', { type: 'color', value: tipo ? tipo.color : siguienteColor(svc.tipos()) });
   const min = h('input', { type: 'number', min: 0, step: 100, inputmode: 'numeric', value: tipo && tipo.min ? tipo.min : '' });
   const max = h('input', { type: 'number', min: 0, step: 100, inputmode: 'numeric', value: tipo && tipo.max ? tipo.max : '' });
@@ -76,17 +77,18 @@ export function abrirFormulario({ ctx, svc, tipo = null, onGuardado }) {
   const body = h('form', { class: 'tc-form', onsubmit: (e) => e.preventDefault() },
     campo(t('tc.f.nombre'), nombre, fijo ? t('tc.f.nombre-fijo') : null),
     campo(t('tc.f.descripcion'), desc),
+    campo(t('tc.f.alias'), alias, t('tc.f.alias-ayuda')),
     campo(t('tc.f.color'), color),
     h('div', { class: 'tc-row2' }, campo(t('tc.f.min'), min), campo(t('tc.f.max'), max)),
     h('p', { class: 'tc-hint' }, t('tc.f.objetivos-ayuda')),
     error);
 
   const guardar = () => {
-    const data = { nombre: nombre.value, descripcion: desc.value, color: color.value, min: min.value, max: max.value };
+    const data = { nombre: nombre.value, descripcion: desc.value, color: color.value, min: min.value, max: max.value, alias: alias.value };
     // Un predefinido cuya descripción no se ha tocado conserva el valor original (así sigue traduciéndose).
     if (fijo && desc.value.trim() === descVisible) data.descripcion = tipo.descripcion;
     const r = nuevo ? svc.crear(data) : svc.editar(tipo.id, data);
-    if (!r.ok) { error.textContent = textoError(r.errores); (r.errores[0].campo === 'nombre' ? nombre : desc).focus(); return false; }
+    if (!r.ok) { error.textContent = textoError(r.errores); ({ nombre, alias }[r.errores[0].campo] || desc).focus(); return false; }
     ui.toast(t(nuevo ? 'tc.creado' : 'tc.guardado', { nombre: tContenido(r.tipo) }));
     if (onGuardado) onGuardado(r.tipo);
     return true;
@@ -144,25 +146,22 @@ export function renderGestor(host, ctx, { svc = crearServicio(ctx), onChange = (
   injectStyle();
   const { ui } = ctx;
   const h = ui.h;
-  const puede = svc.puedeEditar();
   const cambio = () => { pintar(); onChange(); };
 
   function fila(tipo, i, total, usos) {
     const nombre = tContenido(tipo);
     const nUsos = usos.get(tipo.id) || 0;
-    const acts = [];
-    if (puede) {
-      acts.push(
-        h('button', { type: 'button', class: 'icon-btn', 'aria-label': t('tc.aria.subir', { nombre }), title: t('tc.a.subir'), disabled: i === 0, onclick: () => { svc.mover(tipo.id, -1); cambio(); } }, icon('flecha-arriba', { size: 16 })),
-        h('button', { type: 'button', class: 'icon-btn', 'aria-label': t('tc.aria.bajar', { nombre }), title: t('tc.a.bajar'), disabled: i === total - 1, onclick: () => { svc.mover(tipo.id, 1); cambio(); } }, icon('flecha-abajo', { size: 16 })),
-        h('button', { type: 'button', class: 'btn', 'aria-label': t('tc.aria.editar', { nombre }), onclick: () => abrirFormulario({ ctx, svc, tipo, onGuardado: cambio }) }, t('tc.a.editar')),
-        h('button', {
-          type: 'button', class: 'btn', 'aria-label': t(tipo.activo ? 'tc.aria.desactivar' : 'tc.aria.activar', { nombre }),
-          onclick: () => { svc.activar(tipo.id, !tipo.activo); ui.toast(t(tipo.activo ? 'tc.desactivado' : 'tc.activado', { nombre })); cambio(); },
-        }, t(tipo.activo ? 'tc.a.desactivar' : 'tc.a.activar')));
-      if (!tipo.predefinido) {
-        acts.push(h('button', { type: 'button', class: 'btn', 'aria-label': t('tc.aria.eliminar', { nombre }), onclick: () => eliminar({ ctx, svc, tipo, onChange: cambio }) }, t('tc.a.eliminar')));
-      }
+    const acts = [
+      h('button', { type: 'button', class: 'icon-btn', 'aria-label': t('tc.aria.subir', { nombre }), title: t('tc.a.subir'), disabled: i === 0, onclick: () => { svc.mover(tipo.id, -1); cambio(); } }, icon('flecha-arriba', { size: 16 })),
+      h('button', { type: 'button', class: 'icon-btn', 'aria-label': t('tc.aria.bajar', { nombre }), title: t('tc.a.bajar'), disabled: i === total - 1, onclick: () => { svc.mover(tipo.id, 1); cambio(); } }, icon('flecha-abajo', { size: 16 })),
+      h('button', { type: 'button', class: 'btn', 'aria-label': t('tc.aria.editar', { nombre }), onclick: () => abrirFormulario({ ctx, svc, tipo, onGuardado: cambio }) }, t('tc.a.editar')),
+      h('button', {
+        type: 'button', class: 'btn', 'aria-label': t(tipo.activo ? 'tc.aria.desactivar' : 'tc.aria.activar', { nombre }),
+        onclick: () => { svc.activar(tipo.id, !tipo.activo); ui.toast(t(tipo.activo ? 'tc.desactivado' : 'tc.activado', { nombre })); cambio(); },
+      }, t(tipo.activo ? 'tc.a.desactivar' : 'tc.a.activar')),
+    ];
+    if (!tipo.predefinido) {
+      acts.push(h('button', { type: 'button', class: 'btn', 'aria-label': t('tc.aria.eliminar', { nombre }), onclick: () => eliminar({ ctx, svc, tipo, onChange: cambio }) }, t('tc.a.eliminar')));
     }
     const desc = tContenidoDesc(tipo);
     return h('li', { class: 'tc-item' + (tipo.activo ? '' : ' tc-inactivo'), style: `border-left-color:${tipo.color}`, 'data-id': tipo.id },
@@ -171,8 +170,9 @@ export function renderGestor(host, ctx, { svc = crearServicio(ctx), onChange = (
           h('span', { class: 'tc-badge' }, t(tipo.predefinido ? 'tc.predefinido' : 'tc.personalizado')),
           tipo.activo ? null : h('span', { class: 'tc-badge tc-off' }, t('tc.inactivo'))),
         desc ? h('p', { class: 'tc-desc' }, desc) : null,
+        (tipo.alias || []).length ? h('p', { class: 'tc-meta' }, t('tc.alias-lista', { alias: tipo.alias.join(', ') })) : null,
         h('p', { class: 'tc-meta' }, `${objetivoTexto(tipo)} · ${t(nUsos === 1 ? 'tc.usos.uno' : 'tc.usos.otros', { n: nUsos })}`)),
-      acts.length ? h('div', { class: 'tc-acts' }, acts) : null);
+      h('div', { class: 'tc-acts' }, acts));
   }
 
   function pintar() {
@@ -180,8 +180,8 @@ export function renderGestor(host, ctx, { svc = crearServicio(ctx), onChange = (
     const grupos = agruparPorCategoria(svc.tipos());
     host.replaceChildren(h('div', { class: 'tc-gestor' },
       h('div', { class: 'tc-head' },
-        h('p', { class: 'tc-intro' }, t(puede ? 'tc.intro' : 'tc.intro-lectura')),
-        puede ? h('button', { type: 'button', class: 'btn btn-primary', onclick: () => abrirFormulario({ ctx, svc, onGuardado: cambio }) }, icon('mas', { size: 16 }), t('tc.nuevo')) : null),
+        h('p', { class: 'tc-intro' }, t('tc.intro')),
+        h('button', { type: 'button', class: 'btn btn-primary', onclick: () => abrirFormulario({ ctx, svc, onGuardado: cambio }) }, icon('mas', { size: 16 }), t('tc.nuevo'))),
       grupos.map((g) => [
         h('h4', { class: 'tc-grupo' }, t('tc.cat.' + g.categoria)),
         h('ul', { class: 'tc-lista', 'aria-label': `${t('tc.aria.lista')}: ${t('tc.cat.' + g.categoria)}` }, g.tipos.map((x, i) => fila(x, i, g.tipos.length, usos))),

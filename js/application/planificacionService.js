@@ -23,18 +23,13 @@ export function piscinaPorDefecto() {
   return { id: '', nombre: '', longitudM: 25, numCalles: 6, intervaloMin: 30, maxPorCalle: 8, horario: D.horarioPorDefecto() };
 }
 
-// puedeEditar: () => boolean (por defecto siempre true: app de un solo usuario). Las operaciones de escritura lanzan 'sin-permiso' si es false.
-export function crearPlanificacionService(repo, { puedeEditar = () => true } = {}) {
-  const exigir = () => {
-    if (!puedeEditar()) { const e = new Error('sin-permiso'); e.code = 'sin-permiso'; throw e; }
-  };
+export function crearPlanificacionService(repo) {
   const datos = () => ({
     piscinas: repo.list(HOJA_PISCINAS), asignaciones: repo.list(HOJA_ASIGNACIONES),
     grupos: repo.list('Grupos'), nadadores: repo.list('Nadadores'),
   });
 
   const svc = {
-    puedeEditar: () => !!puedeEditar(),
     piscinas: () => repo.list(HOJA_PISCINAS).map(D.normalizarPiscina),
     piscina: (id) => { const p = repo.get(HOJA_PISCINAS, id); return p ? D.normalizarPiscina(p) : null; },
     asignaciones: (piscinaId) => repo.list(HOJA_ASIGNACIONES).map(D.normalizarAsignacion).filter((a) => !piscinaId || a.piscinaId === String(piscinaId)),
@@ -53,7 +48,6 @@ export function crearPlanificacionService(repo, { puedeEditar = () => true } = {
     // -> { ok, errores?, piscina?, recortadas, fuera }. Al reducir calles recorta las asignaciones que sobresalen
     // (si recortar) y devuelve cuántas quedan totalmente fuera de rango (siguen guardadas y se muestran como error).
     guardarPiscina(data, { recortar = true } = {}) {
-      exigir();
       const errores = D.validarPiscina(data);
       if (errores.length) return { ok: false, errores, recortadas: 0, fuera: 0 };
       const fila = filaPiscina(data);
@@ -70,7 +64,6 @@ export function crearPlanificacionService(repo, { puedeEditar = () => true } = {
     // Previsualiza el efecto de dejar la piscina con `numCalles` calles.
     efectoReducir: (piscinaId, numCalles) => D.ajustarAlReducir(repo.list(HOJA_ASIGNACIONES), piscinaId, numCalles),
     borrarPiscina(id) {
-      exigir();
       repo.list(HOJA_ASIGNACIONES).filter((a) => a.piscinaId === String(id)).forEach((a) => repo.remove(HOJA_ASIGNACIONES, a.id));
       repo.remove(HOJA_PISCINAS, id);
     },
@@ -79,7 +72,6 @@ export function crearPlanificacionService(repo, { puedeEditar = () => true } = {
     evaluar: (data) => D.conflictosDe(filaAsignacion(data), datos()),
     // -> { ok, bloqueado?, requiereForzar?, conflictos, asignacion? }
     guardarAsignacion(data, { forzar = false } = {}) {
-      exigir();
       const fila = filaAsignacion(data);
       const conflictos = D.conflictosDe(fila, datos());
       if (D.bloqueante(conflictos)) return { ok: false, bloqueado: true, conflictos };
@@ -97,7 +89,7 @@ export function crearPlanificacionService(repo, { puedeEditar = () => true } = {
       if (!a) return { ok: false, conflictos: [], inexistente: true };
       return svc.guardarAsignacion({ ...a, ...cambios, id: '' }, opts);
     },
-    borrarAsignacion(id) { exigir(); repo.remove(HOJA_ASIGNACIONES, id); },
+    borrarAsignacion(id) { repo.remove(HOJA_ASIGNACIONES, id); },
 
     // ----- Análisis -----
     // Conflictos globales (o los que afectan a una piscina). huecos=true añade los huecos libres (info).
@@ -115,7 +107,6 @@ export function crearPlanificacionService(repo, { puedeEditar = () => true } = {
     },
     // Guarda las propuestas (sólo traen avisos, nunca errores). -> número de asignaciones creadas
     aplicarSugerencia(propuestas) {
-      exigir();
       let n = 0;
       propuestas.forEach((p) => { if (svc.guardarAsignacion(p, { forzar: true }).ok) n++; });
       return n;

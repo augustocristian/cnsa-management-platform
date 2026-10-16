@@ -10,7 +10,7 @@ const modal = () => document.querySelector('.modal');
 const cell = (calle, hora) => c.container.querySelector(`button.pl-cell[data-calle="${calle}"][data-hora="${hora}"]`);
 const click = async (el) => { el.click(); await tick(); };
 const lunes = async () => { // la vista abre en el día actual: se pasa al lunes de forma determinista
-  await click(c.container.querySelector('[role=tab]'));
+  await click(c.container.querySelector('.pl-tabs [role=tab]'));
 };
 const asignaciones = () => c.store.list('AsignacionesCalle');
 const guardarAsignacion = async () => { await click(buttonByText(modal(), 'Guardar')); };
@@ -31,7 +31,7 @@ test('datos demo: piscina de 6 calles y asignaciones coherentes sin errores', as
 });
 
 test('la vista pinta rejilla con calles, bloques del lunes, leyenda y panel', async () => {
-  await renderView('planificacion', c.container, [], c);
+  await renderView('planificacion', c.container, ['piscina'], c);
   await lunes();
   assert.match(c.container.textContent, /Planificación de la piscina/);
   assert.match(c.container.textContent, /Piscina Lugones/);
@@ -42,11 +42,11 @@ test('la vista pinta rejilla con calles, bloques del lunes, leyenda y panel', as
   assert.equal(c.container.querySelectorAll('.pl-screen .pl-legend li').length, 4);
   assert.match(c.container.querySelector('.pl-panel').textContent, /Panel de conflictos/);
   assert.match(c.container.querySelector('.pl-chip').textContent, /0 errores · 1 avisos/);
-  assert.ok(c.container.querySelectorAll('[role=tab]').length === 7);
+  assert.ok(c.container.querySelectorAll('.pl-tabs [role=tab]').length === 7);
 });
 
 test('modo semana completa lista los cursos de todos los días', async () => {
-  await renderView('planificacion', c.container, [], c);
+  await renderView('planificacion', c.container, ['piscina'], c);
   await click(buttonByText(c.container, 'Semana completa'));
   assert.equal(c.container.querySelectorAll('.pl-screen .pl-day').length, 7);
   assert.ok(c.container.querySelectorAll('.pl-screen .pl-item').length >= 10);
@@ -54,7 +54,7 @@ test('modo semana completa lista los cursos de todos los días', async () => {
 });
 
 test('crear una asignación desde un hueco de la rejilla', async () => {
-  await renderView('planificacion', c.container, [], c);
+  await renderView('planificacion', c.container, ['piscina'], c);
   await lunes();
   const n0 = asignaciones().length;
   await click(cell(5, '10:00'));
@@ -73,7 +73,7 @@ test('crear una asignación desde un hueco de la rejilla', async () => {
 });
 
 test('un conflicto de error bloquea el guardado y lo explica', async () => {
-  await renderView('planificacion', c.container, [], c);
+  await renderView('planificacion', c.container, ['piscina'], c);
   await lunes();
   const n0 = asignaciones().length;
   await click(cell(1, '17:30')); // calle 1 a las 17:30: ya ocupada por Promoción
@@ -87,7 +87,7 @@ test('un conflicto de error bloquea el guardado y lo explica', async () => {
 });
 
 test('un aviso se puede forzar con «Guardar de todos modos»', async () => {
-  await renderView('planificacion', c.container, [], c);
+  await renderView('planificacion', c.container, ['piscina'], c);
   await lunes();
   const n0 = asignaciones().length;
   await click(cell(6, '12:00'));
@@ -104,7 +104,7 @@ test('un aviso se puede forzar con «Guardar de todos modos»', async () => {
 });
 
 test('editar y eliminar una asignación desde su bloque', async () => {
-  await renderView('planificacion', c.container, [], c);
+  await renderView('planificacion', c.container, ['piscina'], c);
   await lunes();
   await click(c.container.querySelector('.pl-gridwrap .pl-block'));
   assert.match(modal().textContent, /Editar asignación/);
@@ -119,7 +119,7 @@ test('editar y eliminar una asignación desde su bloque', async () => {
 });
 
 test('duplicar abre un formulario nuevo con los mismos datos', async () => {
-  await renderView('planificacion', c.container, [], c);
+  await renderView('planificacion', c.container, ['piscina'], c);
   await lunes();
   await click(c.container.querySelector('.pl-gridwrap .pl-block'));
   await click(buttonByText(modal(), 'Duplicar'));
@@ -131,7 +131,7 @@ test('duplicar abre un formulario nuevo con los mismos datos', async () => {
 test('cambiar el nº de calles recorta las asignaciones y avisa de las que quedan fuera', async () => {
   const antes = asignaciones().length;
   c.store.upsert('AsignacionesCalle', { id: 'parcial', piscinaId: 'p1', dia: 2, fecha: '', horaInicio: '10:00', horaFin: '11:00', calleDesde: 3, calleHasta: 6, grupoId: 'g1', entrenadorId: 'Marta Valdés', notas: '' });
-  await renderView('planificacion', c.container, [], c);
+  await renderView('planificacion', c.container, ['piscina'], c);
   await click(buttonByText(c.container, 'Configurar piscina'));
   assert.match(modal().textContent, /Configuración de la piscina/);
   setValue(fieldByLabel(modal(), 'Número de calles'), '4');
@@ -149,7 +149,7 @@ test('cambiar el nº de calles recorta las asignaciones y avisa de las que queda
 });
 
 test('configuración inválida no se guarda', async () => {
-  await renderView('planificacion', c.container, [], c);
+  await renderView('planificacion', c.container, ['piscina'], c);
   await click(buttonByText(c.container, 'Configurar piscina'));
   setValue(fieldByLabel(modal(), 'Nombre'), '');
   await click(buttonByText(modal(), 'Guardar'));
@@ -160,7 +160,7 @@ test('configuración inválida no se guarda', async () => {
 test('crear una piscina nueva con el botón (sin piscinas previas)', async () => {
   c.store.clear();
   c.store.upsert('Grupos', { id: 'g1', nombre: 'A', categoria: 'Alevín', entrenador: 'X' });
-  await renderView('planificacion', c.container, [], c);
+  await renderView('planificacion', c.container, ['piscina'], c);
   assert.match(c.container.textContent, /Todavía no hay ninguna piscina/);
   await click(buttonByText(c.container, 'Crear piscina'));
   setValue(fieldByLabel(modal(), 'Nombre'), 'Municipal');
@@ -174,7 +174,7 @@ test('crear una piscina nueva con el botón (sin piscinas previas)', async () =>
 });
 
 test('un solo usuario: la planificación siempre es editable (sin modo de sólo lectura)', async () => {
-  await renderView('planificacion', c.container, [], c);
+  await renderView('planificacion', c.container, ['piscina'], c);
   await lunes();
   assert.ok(buttonByText(c.container, 'Sugerir distribución'));
   assert.ok(buttonByText(c.container, 'Configurar piscina'));
@@ -183,11 +183,11 @@ test('un solo usuario: la planificación siempre es editable (sin modo de sólo 
 });
 
 test('sugerir distribución: propone y aplica sin errores', async () => {
-  await renderView('planificacion', c.container, [], c);
+  await renderView('planificacion', c.container, ['piscina'], c);
   await click(buttonByText(c.container, 'Sugerir distribución'));
-  setValue(modal().querySelector('select'), '3'); // miércoles: Alevín y Absoluto-Máster no tienen sitio
+  setValue(modal().querySelector('select'), '3'); // miércoles: Alevín y Absoluto-Master no tienen sitio
   assert.match(modal().textContent, /Alevín/);
-  assert.match(modal().textContent, /Absoluto-Máster/);
+  assert.match(modal().textContent, /Absoluto-Master/);
   const n0 = asignaciones().length;
   await click(buttonByText(modal(), 'Aplicar propuesta'));
   assert.equal(asignaciones().length, n0 + 2);
@@ -198,7 +198,7 @@ test('sugerir distribución: propone y aplica sin errores', async () => {
 
 test('el panel de conflictos lista errores del segundo conjunto demo y abre la edición', async () => {
   c.store.seedPlanificacionConflictos();
-  await renderView('planificacion', c.container, [], c);
+  await renderView('planificacion', c.container, ['piscina'], c);
   const panel = c.container.querySelector('.pl-panel');
   assert.match(panel.textContent, /Errores \(2\)/);
   assert.match(panel.textContent, /ocupan a la vez/);
@@ -211,18 +211,18 @@ test('idiomas: la vista y los conflictos se traducen', async () => {
   const i18n = await importApp('js/i18n.js');
   i18n.setLang('en', { persist: false });
   c.store.seedPlanificacionConflictos();
-  await renderView('planificacion', c.container, [], c);
+  await renderView('planificacion', c.container, ['piscina'], c);
   assert.match(c.container.textContent, /Pool planning/);
   assert.match(c.container.querySelector('.pl-panel').textContent, /at the same time/);
   i18n.setLang('it', { persist: false });
-  await renderView('planificacion', c.container, [], c);
+  await renderView('planificacion', c.container, ['piscina'], c);
   assert.match(c.container.textContent, /Pianificazione della piscina/);
   assert.match(c.container.querySelector('.pl-panel').textContent, /contemporaneamente/);
   i18n.setLang('es', { persist: false });
 });
 
 test('la vista incluye la copia imprimible de la semana', async () => {
-  await renderView('planificacion', c.container, [], c);
+  await renderView('planificacion', c.container, ['piscina'], c);
   const imp = c.container.querySelector('.pl-print');
   assert.ok(imp);
   assert.equal(imp.querySelectorAll('.pl-day').length, 7);

@@ -6,13 +6,17 @@ import * as router from './router.js';
 import { icon } from './icons.js';
 import { t, tNav, langSelect, onLangChange, getLang, setLang } from './i18n.js';
 import * as acceso from './views/acceso.js';
+import { limpiarDatosLocales } from './cache.js';
+import { pruebasPermitidas } from './infrastructure/entornoPruebas.js';
+import * as theme from './theme.js';
+import { variablesTema } from './domain/tema.js';
 
 const DEFAULT_NAME = 'CNL Plataforma';
 const DEFAULT_LEMA = '';
 const TUTORIAL = 'tutorial';
 const ELEGIR_CLUB = 'cnl:elegir'; // sessionStorage: forzar el selector de club tras "Cambiar de club"
 
-// Menú: [ruta, etiqueta]. Usuario único: todos los módulos disponibles.
+// Menu: [route, label]. Individual use: every module is always available.
 const MENU = [
   ['inicio', 'Inicio'],
   ['nadadores', 'Nadadores'],
@@ -39,44 +43,37 @@ let redraw = null; // repinta la pantalla previa al shell (login, asistente...) 
 let langEl = null;
 const langBox = () => (langEl ||= langSelect());
 
-// ---------- Utilidades de color / tema ----------
-function parseHex(c) {
-  const m = /^#?([0-9a-f]{6})$/i.exec(String(c || '').trim());
-  if (!m) return null;
-  const n = parseInt(m[1], 16);
-  return [n >> 16, (n >> 8) & 255, n & 255];
-}
-const toHex = (a) => '#' + a.map((v) => Math.round(v).toString(16).padStart(2, '0')).join('');
-const mix = (a, b, t) => a.map((v, i) => v + (b[i] - v) * t);
-
+// ---------- Theme (club colour + light/dark) ----------
+// The variables (--c-primary, --c-secondary, --c-action, --c-on-primary, --c-accent, --c-heading) are derived in
+// domain/tema.js, which validates the colour and guarantees contrast >= 4.5:1. Recomputed when light/dark changes.
 function applyTheme() {
   const club = store?.club || {};
-  const p = parseHex(club.colorPrimario) || [26, 115, 232];
-  const s = parseHex(club.colorSecundario) || [11, 61, 145];
+  const modo = theme.effectiveTheme();
+  const vars = variablesTema({ primario: club.colorPrimario, secundario: club.colorSecundario }, modo);
   const root = document.documentElement.style;
-  root.setProperty('--c-primary', toHex(p));
-  root.setProperty('--c-secondary', toHex(s));
-  root.setProperty('--c-primary-dark', toHex(mix(p, [0, 0, 0], 0.35)));
-  root.setProperty('--c-primary-soft', toHex(mix(p, [255, 255, 255], 0.9)));
-  root.setProperty('--c-primary-mid', toHex(mix(p, [255, 255, 255], 0.75)));
+  for (const [k, v] of Object.entries(vars)) root.setProperty(k, v);
   const meta = document.querySelector('meta[name="theme-color"]');
-  if (meta) meta.setAttribute('content', toHex(p));
+  if (meta) meta.setAttribute('content', modo === 'dark' ? '#172233' : vars['--c-action']);
 }
 
-const clubName = () => (store?.club?.nombre || '').trim() || DEFAULT_NAME;
-const clubLema = () => (store?.club?.lema || '').trim() || DEFAULT_LEMA;
+// The name and the motto may arrive with any type (number, object...) from a hand-edited file: they are always treated as text.
+const texto = (x) => String(x ?? '').trim();
+const clubName = () => texto(store?.club?.nombre) || DEFAULT_NAME;
+const clubLema = () => texto(store?.club?.lema) || DEFAULT_LEMA;
 
 function logoEl(size = 44) {
   const src = store?.club?.logo;
-  if (src && /^data:image\//.test(src)) return h('img', { class: 'logo', src, alt: '', width: size, height: size });
+  if (src && /^data:image\//.test(src)) {
+    // corrupt data: URL -> fall back to the default icon instead of showing a broken image
+    return h('img', { class: 'logo', src, alt: '', width: size, height: size, onerror: (e) => { e.target.onerror = null; e.target.src = './icons/icon.svg'; } });
+  }
   return h('img', { class: 'logo', src: './icons/icon.svg', alt: '', width: size, height: size });
 }
 
 // ---------- Módulos cargados dinámicamente ----------
-const modoPruebas = () => {
-  try { if (window.__CNL_TEST__) return true; } catch (e) { /* ignorar */ }
-  return lsGet('cnl:test') === '1';
-};
+// The Google simulator is only activated on localhost/127.0.0.1 (localStorage flag) or if the test runner injects
+// window.__CNL_TEST__ (Playwright addInitScript): on a real domain a stale localStorage value never replaces Google.
+const modoPruebas = () => pruebasPermitidas(window);
 
 async function loadCore() {
   config = await import('./config.js');
@@ -110,7 +107,7 @@ function centerCard(...children) {
   root.replaceChildren(h('div', { class: 'auth-wrap' }, h('main', { class: 'card auth-card acc-card-wide' }, h('div', { class: 'auth-lang' }, langBox()), children)));
 }
 
-// Tutorial accesible sin sesión (el propietario lo necesita antes de poder iniciar sesión)
+// Tutorial available without a session (the deployment owner needs it before being able to sign in)
 async function tutorialScreen() {
   redraw = tutorialScreen;
   const box = h('div', { class: 'card auth-card tutorial-standalone', style: { maxWidth: '860px' } });
@@ -140,28 +137,63 @@ function errorScreen(tituloKey, e, { reintentar } = {}) {
   redraw = null;
   centerCard(h('h2', null, t(tituloKey)),
     e && (e.code || e.enlace) ? acceso.errorGoogle(e) : h('p', { class: 'form-error', role: 'alert' }, (e && e.message) || String(e)),
-    h('button', { class: 'btn btn-primary', type: 'button', onclick: reintentar || (() => start()) }, t('shell.club.reintentar')),
+    e && e.code === 'sesion-caducada' ? h('button', { class: 'btn btn-primary', type: 'button', onclick: () => reconectar().then((ok) => { if (ok) start(); }) }, t('dat.reconectar')) : null,
+    h('button', { class: e && e.code === 'sesion-caducada' ? 'btn' : 'btn btn-primary', type: 'button', onclick: reintentar || (() => start()) }, t('shell.club.reintentar')),
     h('button', { class: 'btn', type: 'button', onclick: doLogout }, t('shell.salir')));
 }
 
-// Cola de preferencias y cierre de sesión: intenta subir lo pendiente (máx. 1,5 s), revoca el token y limpia cachés.
+// Renews the Google session (MUST be called from a click: the browser blocks windows not opened from one). -> true if ok
+async function reconectar() {
+  try {
+    await auth.reconectar();
+    toast(t('dat.reconectado'));
+    pintarAvisos();
+    if (store?.clubRef) { store.sync().catch(() => {}); prefs?.flush().catch(() => {}); }
+    return true;
+  } catch (e) {
+    toast.error(t('dat.reconectar-error', { msg: (e && e.message) || '' }));
+    return false;
+  }
+}
+
+const SALIDA_ESPERA_MS = 10000;
+const espera = (ms) => new Promise((r) => { const id = setTimeout(r, ms); if (id && id.unref) id.unref(); });
+
+// Unsynced changes: "download copy / discard / cancel". -> 'salir' | 'cancelar'
+function dialogoSalidaConPendientes() {
+  return new Promise((resolve) => {
+    let decision = 'cancelar';
+    ui.sheet({
+      title: t('dat.logout.titulo'),
+      body: h('p', null, t('dat.logout.texto')),
+      onClose: () => resolve(decision),
+      actions: [
+        { label: t('dat.logout.cancelar'), autofocus: true },
+        { label: t('dat.logout.descargar'), onClick: async () => { try { await store.exportXlsx(); } catch (e) { store.descargarCopia(); } return false; } },
+        { label: t('dat.logout.descartar'), danger: true, onClick: () => { decision = 'salir'; } },
+      ],
+    });
+  });
+}
+
+// Sign-out: uploads what is pending (with a deadline), warns if it could not, revokes the token and erases EVERY local mirror of personal data.
 async function doLogout() {
   try {
-    if (prefs) await Promise.race([prefs.flush(), new Promise((r) => setTimeout(r, 1500))]);
+    if (store?.clubRef && !store.soloLectura) {
+      await Promise.race([store.sync().catch(() => {}), espera(SALIDA_ESPERA_MS)]);
+      if (store.pendiente) {
+        if ((await dialogoSalidaConPendientes()) !== 'salir') return;
+      }
+    }
+  } catch (e) { console.warn('Cierre de sesión', e); }
+  try {
+    if (prefs) await Promise.race([prefs.flush(), espera(1500)]);
   } catch (e) { /* sin red: la caché se descarta igualmente */ }
   try { prefs?.desconectar(); } catch (e) { /* ignorar */ }
   try { auth.signOut(); } catch (e) { /* ignorar */ }
   try { drive?.reset?.(); } catch (e) { /* ignorar */ }
-  // Cachés de datos de clubes ya sincronizadas: fuera. Las que tienen cambios sin subir se conservan.
-  try {
-    for (const k of Object.keys(localStorage)) {
-      if (!k.startsWith('cnl:club:')) continue;
-      let dirty = false;
-      try { dirty = !!JSON.parse(localStorage.getItem(k)).dirty; } catch (e) { /* corrupta */ }
-      if (!dirty) localStorage.removeItem(k);
-    }
-    sessionStorage.removeItem(ELEGIR_CLUB);
-  } catch (e) { /* ignorar */ }
+  try { store?.cerrar(); } catch (e) { /* ignorar */ }
+  try { await limpiarDatosLocales(); } catch (e) { /* ignorar */ }
   location.hash = '';
   location.reload();
 }
@@ -205,7 +237,7 @@ async function resolverClub() {
     prefs.set(CLAVES.clubes, clubes.map((c) => ({ id: c.id, name: c.name })));
   } catch (e) {
     const cache = prefs.get(CLAVES.clubes, []);
-    if (e && e.offline && cache.length) clubes = cache.map((c) => ({ ...c, unverified: true })); // sin conexión: clubes conocidos
+    if (e && (e.offline || e.code === 'sesion-caducada') && cache.length) clubes = cache.map((c) => ({ ...c, unverified: true })); // offline or expired session: known clubs
     else { await conectando; errorScreen('shell.club.error-lista', e); return null; }
   }
   await conectando;
@@ -243,6 +275,7 @@ function buildHeader() {
       h('div', { class: 'brand-text' }, h('div', { class: 'brand-name' }, clubName()), clubLema() ? h('div', { class: 'brand-lema' }, clubLema()) : null)),
     h('div', { class: 'top-actions' },
       langBox(),
+      theme.themeSelect(),
       email ? h('div', { class: 'role-box', id: 'user-box' }, h('small', null, t('shell.sesion')), h('strong', { title: email }, email)) : null,
       h('button', {
         class: 'status-chip st-' + status, type: 'button', title: t('common.sincronizar'),
@@ -271,6 +304,7 @@ function renderShell() {
   applyTheme();
   const main = h('main', { id: 'view', class: 'view', tabindex: '-1' });
   $app().replaceChildren(h('div', { class: 'shell' }, h('div', { id: 'slot-header' }), buildNav(), main, buildFooter()));
+  pintarAvisos();
   refreshHeader();
   const { name } = router.current();
   if (!name || !MENU.some(([n]) => n === name)) history.replaceState(null, '', '#/inicio');
@@ -364,18 +398,109 @@ async function abrirClub({ ref, club }) {
     errorScreen('shell.club.error-abrir', e, { reintentar: () => location.reload() });
     return false;
   }
-  if (club) store.setClub(club); // club recién creado con el asistente: identidad elegida
+  if (store.problema) await pantallaProblema(); // damaged / emptied file: a decision is needed before continuing
+  if (club && !store.soloLectura) store.setClub(club); // club recién creado con el asistente: identidad elegida
+  try { (await import('./application/categoriasService.js')).crearCategoriasService(store).alAbrirClub(); } catch (e) { console.warn('Categorías', e); } // si cambió la temporada, recalcula las categorías
   prefs.set(CLAVES.ultimoClub, ref.id);
   if (club) prefs.set(CLAVES.clubes, [...prefs.get(CLAVES.clubes, []).filter((c) => c.id !== ref.id), { id: ref.id, name: ref.name }]); // espejo para abrirlo sin conexión
   fake?.despuesDeAbrirClub?.(store);
-  renderShell();
-  if (!started) {
-    started = true;
-    router.onChange(showView);
-    store.on?.(() => { if (document.getElementById('slot-header')) refreshHeader(); });
-    router.start({ silent: true });
+  try {
+    renderShell();
+    if (!started) {
+      started = true;
+      router.onChange(showView);
+      store.on?.((evt) => {
+        if (evt && ['solo-lectura', 'cache-error', 'cache-ok'].includes(evt.type)) pintarAvisos();
+        if (evt && evt.type === 'cache-error') toast.error(t('dat.cache-llena'), 9000);
+        if (evt && evt.type === 'problema') pantallaProblema().then(() => renderShell());
+        if (document.getElementById('slot-header')) refreshHeader();
+      });
+      auth.onExpired?.(() => pintarAvisos());
+      router.start({ silent: true });
+    }
+  } catch (e) {
+    console.error(e);
+    pantallaErrorShell(e);
+    return false;
   }
   return true;
+}
+
+// ---------- Integrity notices (above the shell) ----------
+const PRIVACIDAD = 'privacidadAceptada';
+function injectAvisosStyle() {
+  if (document.getElementById('cnl-avisos-style')) return;
+  document.head.appendChild(h('style', { id: 'cnl-avisos-style' }, `
+.cnl-avisos{display:grid;gap:8px;padding:8px 16px 0}
+.cnl-aviso{display:flex;flex-wrap:wrap;gap:8px 12px;align-items:center;padding:10px 14px;border-radius:var(--r-md,12px);border:1px solid var(--border);background:var(--info-bg);color:var(--text)}
+.cnl-aviso--warn{background:var(--warn-bg)}
+.cnl-aviso--error{background:var(--danger-bg)}
+.cnl-aviso p{margin:0;flex:1 1 260px}
+.cnl-aviso .btn{min-height:40px}`));
+}
+
+function avisosActuales() {
+  const out = [];
+  if (store?.soloLectura) out.push({ tono: 'error', texto: t('dat.solo-lectura', { version: store.soloLectura.version }), boton: [t('dat.recargar'), () => location.reload()], id: 'solo-lectura' });
+  if (auth?.caducada) out.push({ tono: 'warn', texto: t('dat.sesion-caducada'), boton: [t('dat.reconectar'), () => reconectar()], id: 'sesion-caducada' });
+  if (store?.status === 'error' && store.lastError && store.lastError.code === 'cache-llena') out.push({ tono: 'error', texto: t('dat.cache-llena'), id: 'cache-llena' });
+  const dup = store?.avisos?.length || 0;
+  if (dup) out.push({ tono: 'warn', texto: t('dat.avisos-lectura', { n: dup }), id: 'avisos-lectura' });
+  if (prefs && !prefs.get(PRIVACIDAD)) out.push({ tono: 'info', texto: t('dat.privacidad'), boton: [t('dat.entendido'), () => { prefs.set(PRIVACIDAD, true); pintarAvisos(); }], id: 'privacidad' });
+  return out;
+}
+
+function pintarAvisos() {
+  const root = $app();
+  if (!root) return;
+  root.querySelector(':scope > .cnl-avisos')?.remove();
+  if (!document.getElementById('slot-header')) return; // only while the shell is open
+  const lista = avisosActuales();
+  if (!lista.length) return;
+  injectAvisosStyle();
+  root.prepend(h('div', { class: 'cnl-avisos', id: 'cnl-avisos' }, lista.map((a) =>
+    h('div', { class: 'cnl-aviso cnl-aviso--' + a.tono, role: a.tono === 'info' ? 'status' : 'alert', dataset: { aviso: a.id } },
+      h('p', null, a.texto),
+      a.boton ? h('button', { type: 'button', class: 'btn', onclick: a.boton[1] }, a.boton[0]) : null))));
+}
+
+// ---------- Recovery screens ----------
+// Failure while drawing the shell: nothing was touched; the user can retry or take a copy.
+function pantallaErrorShell(e) {
+  redraw = null;
+  centerCard(h('h2', null, t('dat.error-shell-titulo')), h('p', null, t('dat.error-shell-texto')),
+    h('p', { class: 'form-error', role: 'alert' }, (e && e.message) || String(e)),
+    h('button', { class: 'btn btn-primary', type: 'button', onclick: () => location.reload() }, t('dat.reintentar')),
+    h('button', { class: 'btn', type: 'button', onclick: () => { try { store.descargarCopia(); } catch (err) { toast.error(err.message); } } }, t('dat.descargar-copia')),
+    h('button', { class: 'btn', type: 'button', onclick: doLogout }, t('shell.salir')));
+}
+
+// Damaged or emptied club file: restore local copy / latest backup / open in Drive / start from scratch. -> resolves once fixed
+function pantallaProblema() {
+  return new Promise((resolve) => {
+    const dibujar = () => {
+      const p = store.problema;
+      if (!p) { resolve(); return; }
+      const ref = store.clubRef;
+      const accion = async (nombre, confirmKey) => {
+        if (nombre === 'copia-local' && !p.tieneCopiaLocal) { toast.error(t('dat.sin-local')); return; }
+        if (nombre === 'backup' && !(await store.listarBackups().catch(() => [])).length) { toast.error(t('dat.sin-backup')); return; }
+        if (!(await ui.confirmDialog(t(confirmKey), { okLabel: t('common.aceptar') }))) return;
+        try { await store.resolverProblema(nombre); } catch (e) { toast.error((e && e.message) || String(e)); }
+        dibujar();
+      };
+      centerCard(h('h2', null, t(p.tipo === 'danado' ? 'dat.danado.titulo' : 'dat.vacio.titulo')),
+        h('p', { role: 'alert' }, t(p.tipo === 'danado' ? 'dat.danado.texto' : 'dat.vacio.texto')),
+        p.mensaje && p.tipo === 'danado' ? h('p', { class: 'muted' }, p.mensaje) : null,
+        h('button', { class: 'btn btn-primary', type: 'button', id: 'prob-local', onclick: () => accion('copia-local', 'dat.confirmar-local') }, t('dat.restaurar-local')),
+        h('button', { class: 'btn', type: 'button', id: 'prob-backup', onclick: () => accion('backup', 'dat.confirmar-backup') }, t('dat.restaurar-backup')),
+        h('a', { class: 'btn', id: 'prob-drive', href: drive.fileUrl(ref.id), target: '_blank', rel: 'noopener noreferrer' }, t('dat.abrir-drive')),
+        h('button', { class: 'btn', type: 'button', id: 'prob-vacio', onclick: () => accion('vacio', 'dat.confirmar-vacio') }, t('dat.empezar-vacio')),
+        p.tieneCopiaLocal ? h('button', { class: 'btn', type: 'button', onclick: () => store.descargarCopia() }, t('dat.descargar-copia')) : null,
+        h('button', { class: 'btn', type: 'button', onclick: doLogout }, t('shell.salir')));
+    };
+    dibujar();
+  });
 }
 
 async function start() {
@@ -389,8 +514,19 @@ async function start() {
   await abrirClub(elegido);
 }
 
+// Skip link (index.html): moves focus to #view without touching the hash (the router uses the hash for routes)
+function enlazarSaltar() {
+  const a = document.querySelector('.skip-link');
+  if (!a) return;
+  const pintar = () => { a.textContent = t('ui.saltar'); };
+  pintar();
+  onLangChange(pintar);
+  a.addEventListener('click', (e) => { e.preventDefault(); document.getElementById('view')?.focus(); });
+}
+
 async function boot() {
   registerSW();
+  enlazarSaltar();
   setupInstall();
   onLangChange(() => {
     if (document.getElementById('slot-header')) renderShell(); // conserva la ruta actual
@@ -404,6 +540,8 @@ async function boot() {
   try {
     await loadCore();
     enlazarIdioma();
+    theme.enlazar(prefs, CLAVES);
+    theme.onThemeChange(() => applyTheme());
     await auth.init();
   } catch (e) {
     console.error(e);

@@ -6,7 +6,7 @@
 // - Los valores guardados van en español. Cargas.tipo guarda el NOMBRE del contenido (compatible con los datos
 //   antiguos y legible en Excel); la comparación es siempre por nombre normalizado (sin tildes ni mayúsculas).
 // - Los contenidos predefinidos tienen id estable `tc-<clave>`, así la siembra es idempotente aunque dos
-//   usuarios abran el club a la vez (la fusión por id no duplica).
+//   dispositivos de la misma persona abran el club a la vez (la fusión por id no duplica).
 
 export const CATEGORIAS_TIPO = ['intensidad', 'especifico', 'personalizado'];
 export const NOMBRE_MAX = 60;
@@ -20,25 +20,25 @@ export const COLORES_PERSONALIZADOS = ['#6d4c9f', '#0b7285', '#a1887f', '#c2185b
 // Catálogo predefinido. `nombre` y `descripcion` son el valor guardado (español); la vista los traduce
 // con las claves `tc.<clave>.nombre` / `tc.<clave>.desc`.
 export const CATALOGO_PREDEFINIDO = Object.freeze([
-  { clave: 'aerobico-ligero', nombre: 'Aeróbico ligero', categoria: 'intensidad', orden: 1, color: '#2e9e73',
+  { clave: 'aerobico-ligero', alias: ['AeL', 'Ae1'], nombre: 'Aeróbico ligero', categoria: 'intensidad', orden: 1, color: '#2e9e73',
     descripcion: 'Esfuerzo suave (<60-75 % de FC o Borg 4-5/10), duración larga, ideal para calentamiento y recuperación.' },
-  { clave: 'aerobico-medio', nombre: 'Aeróbico medio / Umbral anaeróbico', categoria: 'intensidad', orden: 2, color: '#1a73e8',
+  { clave: 'aerobico-medio', alias: ['AeM', 'Ae2', 'Umbral', 'CSS'], nombre: 'Aeróbico medio / Umbral anaeróbico', categoria: 'intensidad', orden: 2, color: '#1a73e8',
     descripcion: 'Ritmo sostenido (tipo CSS, Critical Swim Speed), base del fondo aeróbico.' },
-  { clave: 'aerobico-intenso', nombre: 'Aeróbico intenso / Potencia aeróbica', categoria: 'intensidad', orden: 3, color: '#7e57c2',
+  { clave: 'aerobico-intenso', alias: ['AeI', 'Ae3', 'VO2'], nombre: 'Aeróbico intenso / Potencia aeróbica', categoria: 'intensidad', orden: 3, color: '#7e57c2',
     descripcion: 'Cerca del VO2 máx, intervalos exigentes con descansos controlados.' },
-  { clave: 'anaerobico', nombre: 'Anaeróbico / Tolerancia al lactato', categoria: 'intensidad', orden: 4, color: '#e8710a',
+  { clave: 'anaerobico', alias: ['Lac', 'Lactico'], nombre: 'Anaeróbico / Tolerancia al lactato', categoria: 'intensidad', orden: 4, color: '#e8710a',
     descripcion: 'Series de alta intensidad para soportar la acumulación de ácido láctico.' },
-  { clave: 'alactico', nombre: 'Aláctico / Sprint', categoria: 'intensidad', orden: 5, color: '#d93025',
+  { clave: 'alactico', alias: ['Sprint', 'Tope', 'Alactico', 'Alac'], nombre: 'Aláctico / Sprint', categoria: 'intensidad', orden: 5, color: '#d93025',
     descripcion: 'Velocidad máxima en distancias cortas (50-100 m) con amplias recuperaciones.' },
-  { clave: 'piernas', nombre: 'Piernas', categoria: 'especifico', orden: 6, color: '#00897b',
+  { clave: 'piernas', alias: ['Pn', 'Pies'], nombre: 'Piernas', categoria: 'especifico', orden: 6, color: '#00897b',
     descripcion: 'Trabajo específico de patada, con o sin tabla y aletas.' },
-  { clave: 'brazos', nombre: 'Brazos', categoria: 'especifico', orden: 7, color: '#8d6e63',
+  { clave: 'brazos', alias: ['Br'], nombre: 'Brazos', categoria: 'especifico', orden: 7, color: '#8d6e63',
     descripcion: 'Trabajo específico de tracción, con pull buoy y palas si se desea.' },
-  { clave: 'tecnica', nombre: 'Técnica', categoria: 'especifico', orden: 8, color: '#3949ab',
+  { clave: 'tecnica', alias: ['Tec'], nombre: 'Técnica', categoria: 'especifico', orden: 8, color: '#3949ab',
     descripcion: 'Ejercicios para mejorar el gesto y la eficiencia en cada estilo.' },
-  { clave: 'salidas', nombre: 'Salidas', categoria: 'especifico', orden: 9, color: '#b08900',
+  { clave: 'salidas', alias: ['Sal'], nombre: 'Salidas', categoria: 'especifico', orden: 9, color: '#b08900',
     descripcion: 'Salidas desde el poyete y primeros metros bajo el agua.' },
-  { clave: 'virajes', nombre: 'Virajes/volteos', categoria: 'especifico', orden: 10, color: '#00acc1',
+  { clave: 'virajes', alias: ['Vir', 'Vol'], nombre: 'Virajes/volteos', categoria: 'especifico', orden: 10, color: '#00acc1',
     descripcion: 'Aproximación, giro e impulso en la pared en cada estilo.' },
 ].map((c) => Object.freeze({ ...c, id: PREFIJO_ID + c.clave })));
 
@@ -64,6 +64,27 @@ const aNumero = (v) => {
 const objetivo = (v) => { const n = aNumero(v); return n != null && Number.isFinite(n) && n > 0 ? n : null; };
 export const colorValido = (c) => /^#[0-9a-f]{6}$/i.test(String(c ?? '').trim());
 
+// ---------- Alias (abreviaturas con las que los entrenadores escriben el contenido: AeL, Tope, Pn...) ----------
+export const ALIAS_MAX = 8;
+export const ALIAS_LARGO_MAX = 24;
+// Texto "AeL, Ae1; Tope" | lista -> lista sin vacíos ni repetidos (por nombre normalizado).
+export function parseAlias(v) {
+  const lista = Array.isArray(v) ? v : String(v ?? '').split(/[,;|\n]/);
+  const vistos = new Set();
+  const out = [];
+  lista.forEach((x) => {
+    const a = String(x ?? '').trim();
+    const k = normalizarNombre(a);
+    if (a && !vistos.has(k)) { vistos.add(k); out.push(a); }
+  });
+  return out;
+}
+// Alias por defecto de un predefinido (por id estable tc-<clave>).
+export const aliasPredefinido = (id) => {
+  const c = CATALOGO_PREDEFINIDO.find((x) => x.id === String(id));
+  return c ? c.alias.slice() : [];
+};
+
 export const esPredefinido = (t) => !!t && !!t.predefinido;
 export const rangoCategoria = (c) => { const i = CATEGORIAS_TIPO.indexOf(c); return i < 0 ? CATEGORIAS_TIPO.length - 1 : i; };
 
@@ -82,6 +103,8 @@ export function normalizarTipo(r) {
     predefinido: aBool(r.predefinido, false),
     min: objetivo(r.minSemanalM),
     max: objetivo(r.maxSemanalM),
+    // Un predefinido sin alias propios usa los de fábrica (así los clubes ya creados también los tienen).
+    alias: (() => { const a = parseAlias(r.alias); return a.length ? a : (aBool(r.predefinido, false) ? aliasPredefinido(r.id) : []); })(),
   };
 }
 
@@ -91,6 +114,7 @@ export function filaTipo(t) {
     id: t.id, nombre: t.nombre, descripcion: t.descripcion || '', color: t.color, categoria: t.categoria,
     orden: t.orden, activo: t.activo ? 'true' : 'false', predefinido: t.predefinido ? 'true' : 'false',
     minSemanalM: t.min == null ? '' : t.min, maxSemanalM: t.max == null ? '' : t.max,
+    alias: parseAlias(t.alias).join(', '),
   };
 }
 
@@ -147,6 +171,15 @@ export function validarTipo(data, existentes, { id = '' } = {}) {
   if (Number.isNaN(mn) || (mn != null && mn < 0)) errores.push({ campo: 'min', codigo: 'objetivo-invalido' });
   if (Number.isNaN(mx) || (mx != null && mx < 0)) errores.push({ campo: 'max', codigo: 'objetivo-invalido' });
   if (mn > 0 && mx > 0 && mn > mx) errores.push({ campo: 'max', codigo: 'minmax' });
+  if ('alias' in data) {
+    const alias = parseAlias(data.alias);
+    const propio = normalizarNombre(nombre);
+    const otros = new Set();
+    existentes.filter((t) => t.id !== String(id)).forEach((t) => { otros.add(normalizarNombre(t.nombre)); (t.alias || []).forEach((a) => otros.add(normalizarNombre(a))); });
+    if (alias.length > ALIAS_MAX) errores.push({ campo: 'alias', codigo: 'alias-muchos' });
+    else if (alias.some((a) => a.length > ALIAS_LARGO_MAX)) errores.push({ campo: 'alias', codigo: 'alias-largo' });
+    else if (alias.some((a) => otros.has(normalizarNombre(a)) && normalizarNombre(a) !== propio)) errores.push({ campo: 'alias', codigo: 'alias-duplicado' });
+  }
   return errores;
 }
 
@@ -157,7 +190,7 @@ export function sembrarCatalogo(existentes) {
   const ids = new Set(existentes.map((t) => t.id));
   const nombres = new Set(existentes.map((t) => normalizarNombre(t.nombre)));
   return CATALOGO_PREDEFINIDO.filter((c) => !ids.has(c.id) && !nombres.has(normalizarNombre(c.nombre)))
-    .map((c) => ({ id: c.id, nombre: c.nombre, descripcion: c.descripcion, color: c.color, categoria: c.categoria, orden: c.orden, activo: true, predefinido: true, min: null, max: null }));
+    .map((c) => ({ id: c.id, nombre: c.nombre, descripcion: c.descripcion, color: c.color, categoria: c.categoria, orden: c.orden, activo: true, predefinido: true, min: null, max: null, alias: c.alias.slice() }));
 }
 
 // Migración de datos antiguos (idempotente):

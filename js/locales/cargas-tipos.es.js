@@ -14,7 +14,6 @@ export default {
   'tc.cat.personalizado': 'Personalizados',
   'tc.titulo': 'Contenidos de entrenamiento',
   'tc.intro': 'Contenidos con los que se registran las cargas. Los predefinidos se pueden desactivar y ajustar (descripción, color y objetivos), pero no borrar; los personalizados los defines tú.',
-  'tc.intro-lectura': 'Contenidos de entrenamiento con los que se registran las cargas.',
   'tc.mostrar': 'Contenidos de entrenamiento',
   'tc.ocultar': 'Ocultar contenidos',
   'tc.nuevo': 'Nuevo contenido',
@@ -91,4 +90,10 @@ export default {
   'tc.chart.objetivo-min': 'objetivo ≥ {min} m',
   'tc.chart.objetivo-max': 'objetivo ≤ {max} m',
   'tc.mie.por-contenido': 'Por contenido',
+  'tc.f.alias': 'Alias (abreviaturas)',
+  'tc.f.alias-ayuda': 'Cómo lo abrevia el entrenador al escribir un ejercicio (AeL, Tope, Pn…), separados por comas. Se usan para repartir los metros automáticamente.',
+  'tc.alias-lista': 'Alias: {alias}',
+  'tc.err.alias-duplicado': 'Ese alias ya lo usa otro contenido',
+  'tc.err.alias-largo': 'Cada alias puede tener como máximo 24 caracteres',
+  'tc.err.alias-muchos': 'Como máximo 8 alias por contenido',
 };

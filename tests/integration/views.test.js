@@ -15,7 +15,7 @@ const EXPECT = {
   cargas: /Cargas/,
   marcas: /Marcas/,
   banador: /Bañador/,
-  comunicaciones: /Comunicaciones/,
+  comunicaciones: /Avisos y notas/,
   club: /Identidad del club/,
 };
 

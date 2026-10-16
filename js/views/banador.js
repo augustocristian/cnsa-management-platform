@@ -31,9 +31,8 @@ function injectStyle() {
 
 export async function render(container, params, ctx) {
   injectStyle();
-  const { store, auth, ui } = ctx;
+  const { store, ui } = ctx;
   const toast = (m) => (ui && ui.toast ? ui.toast(m) : null);
-  const canEdit = auth.role() !== 'nadador';
   const state = { soloPendientes: false, q: '' };
 
   const nombre = (n) => `${n.nombre} ${n.apellidos || ''}`.trim();
@@ -61,18 +60,16 @@ export async function render(container, params, ctx) {
       return H('tr', {},
         H('td', {}, nombre(n)),
         H('td', {}, grupo ? grupo.nombre : ''),
-        H('td', {}, canEdit
-          ? H('select', { onchange: (e) => save(n, b, { talla: e.target.value }) }, H('option', { value: '' }, '—'), tallas.map((sz) => H('option', { value: sz, selected: sz === talla }, sz)))
-          : talla || '—'),
+        H('td', {}, H('select', { onchange: (e) => save(n, b, { talla: e.target.value }) }, H('option', { value: '' }, '—'), tallas.map((sz) => H('option', { value: sz, selected: sz === talla }, sz)))),
         H('td', {}, H('span', { class: `badge ${estado === 'entregado' ? 'bn-ok' : 'bn-pend'}` }, tEstado(estado))),
         H('td', {}, b && b.fecha ? tDate(b.fecha) : ''),
-        H('td', {}, canEdit ? H('input', { type: 'text', value: b ? b.notas || '' : '', onchange: (e) => store.upsert('Banador', { ...(b || { nadadorId: n.id, talla: '', estado: 'pendiente', fecha: '' }), notas: e.target.value }) }) : (b && b.notas) || ''),
-        canEdit ? H('td', {}, estado === 'entregado'
+        H('td', {}, H('input', { type: 'text', value: b ? b.notas || '' : '', onchange: (e) => store.upsert('Banador', { ...(b || { nadadorId: n.id, talla: '', estado: 'pendiente', fecha: '' }), notas: e.target.value }) })),
+        H('td', {}, estado === 'entregado'
           ? H('button', { class: 'btn', type: 'button', onclick: () => save(n, b, { estado: 'pendiente', fecha: '' }) }, t('banador.marcarPendiente'))
           : H('button', { class: 'btn', type: 'button', onclick: () => {
             if (!talla) { toast(t('banador.indicaTalla')); return; }
             save(n, b, { estado: 'entregado', fecha: iso(new Date()) });
-          } }, t('banador.marcarEntregado'))) : null);
+          } }, t('banador.marcarEntregado'))));
     });
 
     container.replaceChildren(
@@ -83,7 +80,7 @@ export async function render(container, params, ctx) {
         H('span', { class: 'bn-count' }, t('banador.contador', { n: pendientes, total: nads.length }))),
       H('div', { class: 'card bn-table' }, rows.length
         ? H('table', { class: 'table' },
-          H('thead', {}, H('tr', {}, [t('banador.colNadador'), t('banador.colGrupo'), t('banador.colTalla'), t('banador.colEstado'), t('banador.colFecha'), t('banador.colNotas'), canEdit ? '' : null].map((x) => (x == null ? null : H('th', {}, x))))),
+          H('thead', {}, H('tr', {}, [t('banador.colNadador'), t('banador.colGrupo'), t('banador.colTalla'), t('banador.colEstado'), t('banador.colFecha'), t('banador.colNotas'), ''].map((x) => H('th', {}, x)))),
           H('tbody', {}, rows))
         : H('p', {}, t('banador.vacio'))));
   }

@@ -5,11 +5,11 @@ import { regexTexto, todasLasPalabras } from '../support/world.js';
 // ---- Comunicaciones ----
 const aviso = (mundo, titulo) => mundo.vista.locator('.cm-item').filter({ has: mundo.page.locator('h4', { hasText: regexTexto(titulo) }) });
 
-When('publico un aviso con los datos:', async function (tabla) {
+When('guardo un aviso con los datos:', async function (tabla) {
   const form = this.vista.locator('form.cm-form');
   await this.rellenarTabla(form, tabla);
-  await form.getByRole('button', { name: 'Publicar aviso' }).click();
-  await this.verVisible(this.page.locator('#toasts .toast', { hasText: 'Aviso publicado' }));
+  await form.getByRole('button', { name: 'Guardar aviso' }).click();
+  await this.verVisible(this.page.locator('#toasts .toast', { hasText: 'Aviso guardado' }));
 });
 
 When('filtro los avisos por {string}', async function (opcion) {
@@ -21,21 +21,16 @@ When('elimino el aviso {string} y lo confirmo', async function (titulo) {
   await this.page.locator('.modal').getByRole('button', { name: 'Aceptar' }).click();
 });
 
-Then('veo el aviso publicado {string}', async function (titulo) {
+Then('veo el aviso guardado {string}', async function (titulo) {
   await this.verVisible(aviso(this, titulo), `No se ve el aviso ${titulo}`);
 });
 
-Then('no veo el aviso publicado {string}', async function (titulo) {
+Then('no veo el aviso guardado {string}', async function (titulo) {
   await this.eventually(async () => assert.equal(await aviso(this, titulo).count(), 0));
 });
 
 Then('el aviso {string} va dirigido a {string}', async function (titulo, destino) {
   await this.verVisible(aviso(this, titulo).first().locator('.badge', { hasText: new RegExp(`^${destino}$`) }));
-});
-
-Then('no puedo publicar avisos', async function () {
-  await this.verVisible(this.vista.getByText('Avisos').first());
-  assert.equal(await this.vista.locator('form.cm-form').count(), 0);
 });
 
 When('pulso la campana de avisos', async function () {
@@ -110,12 +105,12 @@ Then('la configuración no ofrece usuarios, roles ni compartir la hoja', async f
 });
 
 // ---- Comunicaciones: preparación ----
-Given('que he publicado el aviso {string} para {string}', async function (titulo, destino) {
+Given('que he guardado el aviso {string} para {string}', async function (titulo, destino) {
   await this.irA('comunicaciones');
   const form = this.vista.locator('form.cm-form');
   await this.rellenar(form, 'Título', titulo);
-  await this.rellenar(form, 'Destinatarios', destino);
-  await this.rellenar(form, 'Mensaje', `Texto de ${titulo}`);
-  await form.getByRole('button', { name: 'Publicar aviso' }).click();
-  await this.verVisible(this.page.locator('#toasts .toast', { hasText: 'Aviso publicado' }));
+  await this.rellenar(form, 'Grupo', destino);
+  await this.rellenar(form, 'Texto', `Texto de ${titulo}`);
+  await form.getByRole('button', { name: 'Guardar aviso' }).click();
+  await this.verVisible(this.page.locator('#toasts .toast', { hasText: 'Aviso guardado' }));
 });

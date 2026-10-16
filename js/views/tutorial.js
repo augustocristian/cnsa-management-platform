@@ -1,4 +1,5 @@
-// Tutorial paso a paso (5 minutos) para que el propietario configure Google una sola vez y para el uso básico.
+// Step-by-step tutorial (5 minutes): the deployment owner sets up Google once; end users only sign in. Ends with the basic
+// individual-use model (own Google account, data in the user's own Drive, nothing shared with anyone).
 // El progreso es una preferencia del usuario (cnl/preferencias.json en su Drive; localStorage sólo como caché).
 import { h, toast } from '../ui.js';
 import { icon } from '../icons.js';

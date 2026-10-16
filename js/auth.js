@@ -1,18 +1,21 @@
 // Autenticación con Google Identity Services (token OAuth, scope drive.file). Sin Client ID la app no puede iniciar sesión.
-// App de uso individual: quien inicia sesión es el entrenador y tiene todos los permisos (no hay roles ni usuarios).
+// Individual-use app: each person signs in with their own Google account and only sees their own data (in their Drive).
 import * as cfg from './config.js';
 import { SCOPES } from './config.js';
 import { clasificarErrorLogin } from './domain/erroresGoogle.js';
 
 const scopeTokens = new Map(); // scope adicional -> {access_token, expires} (consentimiento incremental, sólo en memoria)
 
-const TOKEN_KEY = 'cnl:token';
+const TOKEN_KEY = 'cnl:token'; // LEGACY: the token is no longer stored anywhere (memory only); it is deleted if present
 const USER_KEY = 'cnl:user';
+const tiempos = { silencioso: 20000, interactivo: 180000 }; // ms; silencioso = renewal without interaction (fails if Google does not answer); interactivo = consent window (the user takes a while)
 const listeners = new Set();
+const expiredListeners = new Set();
 let tokenClient = null;
 let tokenClientId = '';
 let gisPromise = null;
-let tokenData = null; // {access_token, expires}
+let tokenData = null; // {access_token, expires} IN MEMORY ONLY
+let tokenInFlight = null; // token request in flight: concurrent ones share a single promise
 
 function emit() {
   listeners.forEach((fn) => { try { fn(auth.user); } catch (e) { console.error(e); } });
@@ -34,7 +37,7 @@ function loadGis() {
 
 function saveToken(t) {
   tokenData = t;
-  try { sessionStorage.setItem(TOKEN_KEY, JSON.stringify(t)); } catch (e) { /* ignorar */ }
+  if (auth.caducada) { auth.caducada = false; expiredListeners.forEach((fn) => { try { fn(false); } catch (e) { console.error(e); } }); }
 }
 
 function validToken() {
@@ -57,17 +60,25 @@ async function buildTokenClient(clientId) {
   return tokenClient;
 }
 
-// Solicita un token; prompt '' = silencioso si ya hay consentimiento.
+// Requests a token; prompt '' = silent if consent already exists. Concurrent requests share a single promise
+// (GIS only supports one callback at a time) and all of them time out: if Google does not answer it is rejected with code 'timeout'.
 function requestToken(prompt) {
-  return new Promise((resolve, reject) => {
+  if (tokenInFlight) return tokenInFlight;
+  const limite = prompt ? tiempos.interactivo : tiempos.silencioso;
+  tokenInFlight = new Promise((resolve, reject) => {
+    const timer = setTimeout(() => reject(loginError({ code: 'timeout', message: 'Google no responde' })), limite);
+    const fin = (fn, v) => { clearTimeout(timer); fn(v); };
     tokenClient.callback = (resp) => {
-      if (resp.error) return reject(loginError(resp));
+      if (resp.error) return fin(reject, loginError(resp));
       saveToken({ access_token: resp.access_token, expires: Date.now() + (Number(resp.expires_in) || 3600) * 1000 });
-      resolve(resp.access_token);
+      fin(resolve, resp.access_token);
     };
-    tokenClient.error_callback = (err) => reject(loginError(err));
-    try { tokenClient.requestAccessToken({ prompt }); } catch (e) { reject(loginError(e)); }
+    tokenClient.error_callback = (err) => fin(reject, loginError(err));
+    try { tokenClient.requestAccessToken({ prompt }); } catch (e) { fin(reject, loginError(e)); }
   });
+  const libera = () => { tokenInFlight = null; };
+  tokenInFlight.then(libera, libera);
+  return tokenInFlight;
 }
 
 async function fetchUser(token) {
@@ -79,6 +90,7 @@ async function fetchUser(token) {
 
 export const auth = {
   user: null,
+  tiempos,
 
   // true si hay Client ID configurado (sin él no se puede iniciar sesión).
   get enabled() { return !!cfg.GOOGLE_CLIENT_ID; },
@@ -87,12 +99,12 @@ export const auth = {
     // Sin Client ID aún se precarga Google: así 'Probar y guardar' abre el popup dentro del clic (si no, el navegador lo bloquea).
     if (!cfg.GOOGLE_CLIENT_ID) { loadGis().catch(() => {}); return; }
     try {
-      const saved = JSON.parse(sessionStorage.getItem(TOKEN_KEY) || 'null');
-      if (saved && saved.expires > Date.now() + 30000) tokenData = saved;
+      try { sessionStorage.removeItem(TOKEN_KEY); } catch (e) { /* ignore */ } // earlier versions stored the token here
       const u = JSON.parse(localStorage.getItem(USER_KEY) || 'null');
-      // Sesión recordada; sin conexión se acepta el usuario guardado para abrir los datos en caché.
-      if (u && (tokenData || (typeof navigator !== 'undefined' && navigator.onLine === false))) { auth.user = u; emit(); }
-    } catch (e) { /* ignorar */ }
+      // Remembered session: the token lives in memory only, so after a reload it is renewed silently and, if Google requires it,
+      // the UI shows "Session expired: Reconnect" (a click is needed: the browser blocks windows not opened from one).
+      if (u) { auth.user = u; emit(); }
+    } catch (e) { /* ignore */ }
     try { await buildTokenClient(cfg.GOOGLE_CLIENT_ID); } catch (e) { console.warn(e); }
   },
 
@@ -107,7 +119,7 @@ export const auth = {
     const token = await requestToken('consent');
     auth.user = await fetchUser(token).catch((e) => { throw loginError(e); });
     if (id !== cfg.GOOGLE_CLIENT_ID) cfg.setClientId(id);
-    try { localStorage.setItem(USER_KEY, JSON.stringify(auth.user)); } catch (e) { /* ignorar */ }
+    try { localStorage.setItem(USER_KEY, JSON.stringify(auth.user)); } catch (e) { /* ignore */ }
     emit();
     return auth.user;
   },
@@ -116,13 +128,30 @@ export const auth = {
   signOut() {
     const tokens = [validToken(), ...[...scopeTokens.values()].map((x) => x.access_token)].filter(Boolean);
     if (window.google && window.google.accounts && window.google.accounts.oauth2) {
-      tokens.forEach((tk) => { try { window.google.accounts.oauth2.revoke(tk, () => {}); } catch (e) { /* ignorar */ } });
+      tokens.forEach((tk) => { try { window.google.accounts.oauth2.revoke(tk, () => {}); } catch (e) { /* ignore */ } });
     }
     scopeTokens.clear();
     tokenData = null;
     auth.user = null;
-    try { sessionStorage.removeItem(TOKEN_KEY); localStorage.removeItem(USER_KEY); } catch (e) { /* ignorar */ }
+    auth.caducada = false;
+    try { sessionStorage.removeItem(TOKEN_KEY); localStorage.removeItem(USER_KEY); } catch (e) { /* ignore */ }
     emit();
+  },
+
+  // Expired session: Drive returned 401 after renewing. The UI shows a notice with "Reconnect".
+  caducada: false,
+  marcarCaducada() {
+    if (auth.caducada) return;
+    auth.caducada = true;
+    expiredListeners.forEach((fn) => { try { fn(true); } catch (e) { console.error(e); } });
+  },
+  onExpired(fn) { expiredListeners.add(fn); return () => expiredListeners.delete(fn); },
+
+  // Renews the token for the already consenting user; call FROM A CLICK (opens a window if Google needs one). -> token
+  async reconectar() {
+    if (!cfg.GOOGLE_CLIENT_ID) throw loginError({ code: 'sin-client-id', message: 'Falta el Client ID' });
+    if (!tokenClient) await buildTokenClient(cfg.GOOGLE_CLIENT_ID);
+    return requestToken('');
   },
 
   // Token vigente (síncrono) o null.
@@ -166,12 +195,9 @@ export const auth = {
     } catch (e) { if (interactive) throw e; return null; }
   },
 
-  invalidate() { tokenData = null; try { sessionStorage.removeItem(TOKEN_KEY); } catch (e) { /* ignorar */ } },
+  invalidate() { tokenData = null; },
 
   on(fn) { listeners.add(fn); return () => listeners.delete(fn); },
-
-  // Compatibilidad: app de un solo usuario, siempre con todos los permisos.
-  role() { return 'entrenador'; },
 };
 
 export default auth;

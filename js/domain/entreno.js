@@ -1,8 +1,12 @@
 // Dominio del plan de entreno detallado: lógica pura (sin DOM, sin store, sin fetch, sin i18n).
 // Una sesión (hoja Entrenamientos) tiene líneas (hoja EntrenoLineas) agrupadas en SETS:
 //   { id, entrenamientoId, set, orden, tiempoMin, objetivo, bloque, series, distancia, salida, ejercicio, material, notas }
+// Cada fila puede llevar además `componentes` (reparto de la distancia por repetición entre varios contenidos) y `estilos`;
+// su lógica (parser, reparto, porcentajes) está en desglose.js; aquí sólo se leen/escriben las columnas.
 // Dist. Bloque = series x distancia de la fila; Dist. Set = suma de las filas del set; los TOTALES suman toda la sesión.
 // Los avisos de validación se devuelven como códigos + parámetros; la presentación los traduce.
+
+import { CATALOGO_PREDEFINIDO } from './cargas.js';
 
 export const CAMPOS_TEXTO = ['objetivo', 'bloque', 'salida', 'ejercicio', 'material', 'notas'];
 export const CAMPOS_SUGERIBLES = ['objetivo', 'bloque', 'salida', 'ejercicio', 'material'];
@@ -53,6 +57,40 @@ export function textoSalida(tipo, seg) {
   return (tipo === 'descanso' ? 'd/' : 'C/') + t;
 }
 
+// ---------- Columnas componentes y estilo ----------
+// componentes: JSON [{contenido, metrosPorRep, modo: 'auto'|'manual', pct?}]. Un componente 'auto' sin metrosPorRep (null)
+// recibe su parte del resto de la distancia; uno manual con pct usa ese porcentaje de la distancia por repetición.
+const r2 = (n) => Math.round(n * 100) / 100;
+const numPos = (v) => { const n = num(v); return Number.isFinite(n) && n >= 0 ? r2(n) : null; };
+function jsonLista(v) {
+  if (Array.isArray(v)) return v;
+  const s = String(v ?? '').trim();
+  if (!s.startsWith('[')) return null;
+  try { const a = JSON.parse(s); return Array.isArray(a) ? a : null; } catch (e) { return null; }
+}
+export function leerComponentes(v) {
+  return (jsonLista(v) || []).filter((c) => c && typeof c === 'object' && String(c.contenido ?? '').trim()).map((c) => {
+    const pct = numPos(c.pct);
+    return { contenido: String(c.contenido).trim(), metrosPorRep: numPos(c.metrosPorRep), modo: c.modo === 'manual' ? 'manual' : 'auto', pct: pct > 0 ? pct : null };
+  });
+}
+export function escribirComponentes(arr) {
+  const l = leerComponentes(arr);
+  return l.length ? JSON.stringify(l.map((c) => ({ contenido: c.contenido, metrosPorRep: c.metrosPorRep, modo: c.modo, ...(c.pct ? { pct: c.pct } : {}) }))) : '';
+}
+// estilo: "Crol" (toda la distancia) | JSON [{estilo, metrosPorRep}] (reparto por repetición entre varios estilos)
+export function leerEstilos(v) {
+  const lista = jsonLista(v);
+  if (lista) return lista.filter((e) => e && typeof e === 'object' && String(e.estilo ?? '').trim()).map((e) => ({ estilo: String(e.estilo).trim(), metrosPorRep: numPos(e.metrosPorRep) }));
+  const s = String(v ?? '').trim();
+  return s ? [{ estilo: s, metrosPorRep: null }] : [];
+}
+export function escribirEstilos(arr) {
+  const l = leerEstilos(arr);
+  if (!l.length) return '';
+  return l.length === 1 && l[0].metrosPorRep == null ? l[0].estilo : JSON.stringify(l);
+}
+
 // ---------- Normalización ----------
 // Vacío -> ''; número válido -> número; otro texto se conserva tal cual (para poder avisar de que no es numérico).
 function numOTexto(v) {
@@ -78,7 +116,15 @@ export function normalizarLinea(l = {}) {
     ejercicio: String(l.ejercicio ?? ''),
     material: String(l.material ?? ''),
     notas: String(l.notas ?? ''),
+    componentes: leerComponentes(l.componentes),
+    estilos: leerEstilos(l.estilos ?? l.estilo),
   };
+}
+
+// Fila normalizada -> fila de la hoja (componentes y estilo como texto: JSON o nombre).
+export function serializarLinea(l) {
+  const { estilos, ...resto } = normalizarLinea(l);
+  return { ...resto, componentes: escribirComponentes(resto.componentes), estilo: escribirEstilos(estilos) };
 }
 
 export const lineaVacia = (set = 1, orden = 1) => normalizarLinea({ set, orden });
@@ -294,49 +340,58 @@ export const camposPlan = (s = {}) => Object.fromEntries(CAMPOS_PLAN.map((c) => 
 const L = (set, tiempoMin, objetivo, bloque, series, distancia, salida, ejercicio, material = '', notas = '', ajusta = false) =>
   ({ set, tiempoMin, objetivo, bloque, series, distancia, salida, ejercicio, material, notas, ajusta });
 
+// Contenidos (nombres del catálogo predefinido) y reparto por repetición de las filas de las plantillas.
+const N = Object.fromEntries(CATALOGO_PREDEFINIDO.map((c) => [c.clave, c.nombre]));
+const C = (clave, metrosPorRep = null) => ({ contenido: N[clave], metrosPorRep, modo: 'auto' });
+// con(fila, [componentes], estilo | [{estilo, metrosPorRep}]): añade contenidos y estilo a una fila de plantilla
+const con = (fila, componentes, estilo = '') => ({
+  ...fila, componentes,
+  estilos: Array.isArray(estilo) ? estilo : estilo ? [{ estilo, metrosPorRep: null }] : [],
+});
+
 // Plantillas integradas. El nombre visible se traduce con la clave `entreno.pl.<id>`; el contenido es texto libre.
 export const PLANTILLAS = [
   {
     id: 'aerobico', tipoSesion: 'Aer+Ritmo', materialDia: 'Tabla, pull',
     lineas: [
-      L(1, 7, 'Calentamiento', '', 1, 300, '', '100 suave + 100 ligero + 100 progresivo'),
-      L(1, 6, '', '', 4, 50, '', '25 técnica / 25 normal'),
-      L(1, 4, '', '', 2, 50, '', 'Pn. 25 flecha crol / 25 Pn'),
-      L(2, 12, 'Piernas', '', 8, 50, "C/1'10\"", 'Piernas con tabla', 'Tabla'),
-      L(3, 14, 'Aeróbico', '', 6, 100, 'd/15"', 'Ritmo uniforme', '', 'Contar brazadas', true),
-      L(3, 10, '', 'Tec Prueba', 4, 100, '', 'Técnica de la prueba'),
-      L(4, 5, 'Vuelta a la calma', '', 1, 200, '', 'Suave'),
+      con(L(1, 7, 'Calentamiento', '', 1, 300, '', '100 suave + 100 ligero + 100 progresivo'), [C('aerobico-ligero')], 'Crol'),
+      con(L(1, 6, '', '', 4, 50, '', '25 técnica / 25 normal'), [C('tecnica', 25), C('aerobico-ligero', 25)], 'Crol'),
+      con(L(1, 4, '', '', 2, 50, '', 'Pn. 25 flecha crol / 25 Pn'), [C('piernas')], 'Crol'),
+      con(L(2, 12, 'Piernas', '', 8, 50, "C/1'10\"", 'Piernas con tabla', 'Tabla'), [C('piernas')], 'Crol'),
+      con(L(3, 14, 'Aeróbico', '', 6, 100, 'd/15"', 'Ritmo uniforme', '', 'Contar brazadas', true), [C('aerobico-medio')], 'Crol'),
+      con(L(3, 10, '', 'Tec Prueba', 4, 100, '', '4x100 Crol. 75 AeL-25 Tope'), [C('aerobico-ligero', 75), C('alactico', 25)], 'Crol'),
+      con(L(4, 5, 'Vuelta a la calma', '', 1, 200, '', 'Suave'), [C('aerobico-ligero')], 'Estilos'),
     ],
   },
   {
     id: 'tecnica', tipoSesion: 'Técnica', materialDia: 'Aletas, tubo',
     lineas: [
-      L(1, 8, 'Calentamiento', '', 1, 400, '', 'Mixto suave'),
-      L(2, 16, 'Técnica', 'Brazada', 8, 100, "C/2'00\"", '25 ejercicio / 75 nadando', 'Aletas', '', true),
-      L(2, 12, '', 'Virajes', 6, 50, 'd/20"', 'Virajes y salidas bajo el agua'),
-      L(3, 10, 'Aeróbico', '', 4, 100, 'd/15"', 'Ritmo cómodo'),
-      L(4, 4, 'Vuelta a la calma', '', 1, 200, '', 'Suave'),
+      con(L(1, 8, 'Calentamiento', '', 1, 400, '', 'Mixto suave'), [C('aerobico-ligero')], 'Estilos'),
+      con(L(2, 16, 'Técnica', 'Brazada', 8, 100, "C/2'00\"", '25 ejercicio / 75 nadando', 'Aletas', '', true), [C('tecnica', 25), C('aerobico-ligero', 75)], 'Crol'),
+      con(L(2, 12, '', 'Virajes', 6, 50, 'd/20"', 'Virajes y salidas bajo el agua'), [C('virajes', 35), C('salidas', 15)], 'Crol'),
+      con(L(3, 10, 'Aeróbico', '', 4, 100, 'd/15"', 'Ritmo cómodo'), [C('aerobico-medio')], 'Crol'),
+      con(L(4, 4, 'Vuelta a la calma', '', 1, 200, '', 'Suave'), [C('aerobico-ligero')], 'Estilos'),
     ],
   },
   {
     id: 'velocidad', tipoSesion: 'Velocidad', materialDia: 'Aletas',
     lineas: [
-      L(1, 7, 'Calentamiento', '', 1, 400, '', 'Mixto progresivo'),
-      L(2, 6, 'Activación', '', 4, 50, "C/1'00\"", 'Progresivos 1-4'),
-      L(3, 12, 'Velocidad', 'Series rápidas', 8, 25, 'd/45"', 'Máxima velocidad con salida', '', 'Registrar tiempos'),
-      L(3, 6, '', '', 4, 50, "d/1'00\"", 'Ritmo de prueba'),
-      L(4, 7, 'Aeróbico', '', 4, 100, 'd/15"', 'Suave, respiración cada 3', '', '', true),
-      L(5, 4, 'Vuelta a la calma', '', 1, 200, '', 'Suave'),
+      con(L(1, 7, 'Calentamiento', '', 1, 400, '', 'Mixto progresivo'), [C('aerobico-ligero')], 'Estilos'),
+      con(L(2, 6, 'Activación', '', 4, 50, "C/1'00\"", 'Progresivos 1-4'), [C('aerobico-ligero')], 'Crol'),
+      con(L(3, 12, 'Velocidad', 'Series rápidas', 8, 25, 'd/45"', 'Máxima velocidad con salida', '', 'Registrar tiempos'), [C('alactico', 15), C('salidas', 10)], 'Crol'),
+      con(L(3, 6, '', '', 4, 50, "d/1'00\"", 'Ritmo de prueba'), [C('anaerobico')], 'Crol'),
+      con(L(4, 7, 'Aeróbico', '', 4, 100, 'd/15"', 'Suave, respiración cada 3', '', '', true), [C('aerobico-ligero')], 'Crol'),
+      con(L(5, 4, 'Vuelta a la calma', '', 1, 200, '', 'Suave'), [C('aerobico-ligero')], 'Estilos'),
     ],
   },
   {
     id: 'mixta', tipoSesion: 'Mixta', materialDia: 'Tabla, pull, aletas',
     lineas: [
-      L(1, 8, 'Calentamiento', '', 1, 400, '', '200 crol + 200 estilos'),
-      L(2, 18, 'Aeróbico', '', 5, 200, "C/3'30\"", 'Crol, respiración alterna', '', '', true),
-      L(3, 12, 'Piernas', '', 6, 50, "C/1'10\"", 'Batido con tabla', 'Tabla'),
-      L(3, 10, 'Velocidad', '', 4, 25, 'd/30"', 'Sprint desde salida'),
-      L(4, 5, 'Vuelta a la calma', '', 1, 200, '', 'Suave'),
+      con(L(1, 8, 'Calentamiento', '', 1, 400, '', '200 crol + 200 estilos'), [C('aerobico-ligero')], [{ estilo: 'Crol', metrosPorRep: 200 }, { estilo: 'Estilos', metrosPorRep: 200 }]),
+      con(L(2, 18, 'Aeróbico', '', 5, 200, "C/3'30\"", 'Crol, respiración alterna', '', '', true), [C('aerobico-medio')], 'Crol'),
+      con(L(3, 12, 'Piernas', '', 6, 50, "C/1'10\"", 'Batido con tabla', 'Tabla'), [C('piernas')], 'Crol'),
+      con(L(3, 10, 'Velocidad', '', 4, 25, 'd/30"', 'Sprint desde salida'), [C('alactico', 15), C('salidas', 10)], 'Mariposa'),
+      con(L(4, 5, 'Vuelta a la calma', '', 1, 200, '', 'Suave'), [C('aerobico-ligero')], 'Estilos'),
     ],
   },
 ];

@@ -3,7 +3,7 @@ export default {
   'shell.sesion': 'Sessione',
   'shell.sync.sincronizado': 'Sincronizzato',
   'acceso.login.google': 'Accedi con Google',
-  'acceso.login.nota': 'I tuoi dati sono salvati nella cartella «cnl» del tuo Google Drive. Non c\'è nessun server né database.',
+  'acceso.login.nota': 'Accedi con il tuo account Google: i tuoi dati sono salvati nella cartella «cnl» del tuo Drive per averli su tutti i tuoi dispositivi. L\'app non condivide dati con nessuno. Non c\'è nessun server né database.',
   'acceso.tutorial': 'Come configurare Google (tutorial)',
 
   'cfgreq.titulo': 'Configurazione necessaria',
@@ -50,7 +50,7 @@ export default {
   'asistente.atras': 'Indietro',
   'asistente.crear': 'Crea il mio club',
   'asistente.creando': 'Creazione del club su Drive…',
-  'asistente.nota-carpeta': 'L\'app crea (o riutilizza) la propria cartella «cnl» nel tuo Drive. Se avevi già una cartella «cnl» creata a mano, l\'app non può vederla (accede solo a ciò che crea lei): ne creerà una sua e potrai spostare o condividere la tua da Drive.',
+  'asistente.nota-carpeta': 'L\'app crea (o riutilizza) la propria cartella «cnl» nel tuo Drive. Se avevi già una cartella «cnl» creata a mano, l\'app non può vederla (accede solo a ciò che crea lei): ne creerà una sua e potrai spostare la tua da Drive.',
   'asistente.nota-vacio': 'Il club parte vuoto, senza dati di esempio. Poi potrai aggiungere gruppi, nuotatori e sessioni.',
   'asistente.err.nombre-vacio': 'Scrivi il nome del club.',
   'asistente.err.nombre-corto': 'Il nome è troppo corto.',
@@ -88,7 +88,7 @@ export default {
   'prefs.estado.sin-sesion': 'sessione chiusa',
 
   'tutorial.titulo': 'Configurare Google in 5 minuti',
-  'tutorial.intro': 'Lo fa una sola volta chi pubblica l\'app. Sono {total} passi: l\'app chiede solo il permesso «drive.file» (file che crea lei stessa nel tuo Drive), che non è sensibile e non richiede la verifica di Google.',
+  'tutorial.intro': 'Lo fa una sola volta chi pubblica l\'app; chi la usa dopo accede solo con il proprio account Google. Ogni persona ha i propri dati nel proprio Drive (per averli su tutti i suoi dispositivi) e l\'app non condivide dati con nessuno. Sono {total} passi: l\'app chiede solo il permesso «drive.file» (file che crea lei stessa nel tuo Drive), che non è sensibile e non richiede la verifica di Google.',
   'tutorial.progreso': '{hecho} di {total} passi completati',
   'tutorial.paso-n': 'Passo {n} di {total}',
   'tutorial.marcar': 'Segna come fatto',
@@ -146,10 +146,10 @@ export default {
   'tutorial.paso5.recargar': 'Ricarica',
 
   'tutorial.paso6.titulo': 'Accedere e uso di base',
-  'tutorial.paso6.intro': 'Così si usa l\'app ogni giorno.',
-  'tutorial.paso6.i1': 'Premi «Accedi con Google» e accetta il permesso sui file creati dall\'app (se Google avvisa «app non verificata», premi «Avanzate» e «Continua»).',
+  'tutorial.paso6.intro': 'Così si usa l\'app ogni giorno. È un\'app a uso individuale: niente ruoli, altri utenti o condivisione dei dati.',
+  'tutorial.paso6.i1': 'Accedi con il tuo account Google («Accedi con Google») e accetta il permesso sui file creati dall\'app (se Google avvisa «app non verificata», premi «Avanzate» e «Continua»).',
   'tutorial.paso6.i2': 'La prima volta, una procedura in due passi crea il tuo club vuoto (nome, colori e fuso orario).',
-  'tutorial.paso6.i3': 'Tutto resta nella cartella «cnl» del tuo Drive: <Club>.json, preferencias.json, entrenos/ e le copie Excel. Se avevi già una cartella «cnl» creata a mano, l\'app ne crea una sua (vede solo ciò che crea): puoi spostare o condividere la tua da Drive.',
+  'tutorial.paso6.i3': 'Tutto resta nella cartella «cnl» del tuo Drive: <Club>.json, preferencias.json, entrenos/ e le copie Excel. Se avevi già una cartella «cnl» creata a mano, l\'app ne crea una sua (vede solo ciò che crea). I tuoi dati sono salvati nel tuo Drive per averli su tutti i tuoi dispositivi (computer e telefono); l\'app non condivide dati con nessuno.',
   'tutorial.paso6.i4': 'Aggiungi gruppi, nuotatori e sessioni: le modifiche si salvano da sole (indicatore «Sincronizzato») e funzionano offline.',
   'tutorial.paso6.i5': 'In Configurazione puoi esportare o importare Excel come copia di sicurezza. «Esci» chiude la sessione e revoca il permesso.',
 

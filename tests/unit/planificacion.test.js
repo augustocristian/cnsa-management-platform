@@ -401,19 +401,6 @@ test('servicio: mover, duplicar, borrar y borrar piscina en cascada', () => {
   assert.equal(svc.piscinas().length, 0);
 });
 
-test('servicio: sin permiso de edición no escribe (solo lectura)', () => {
-  const repo = repoMemoria();
-  let edita = true;
-  const svc = crearPlanificacionService(repo, { puedeEditar: () => edita });
-  svc.guardarPiscina(piscina());
-  edita = false;
-  assert.equal(svc.puedeEditar(), false);
-  for (const f of [() => svc.guardarPiscina(piscina()), () => svc.guardarAsignacion({}), () => svc.borrarAsignacion('x'), () => svc.borrarPiscina('p1'), () => svc.aplicarSugerencia([])]) {
-    assert.throws(f, (e) => e.code === 'sin-permiso');
-  }
-  assert.equal(svc.piscinas().length, 1); // la lectura sigue funcionando
-});
-
 test('servicio: sugerir y aplicar crea asignaciones sin errores; entrenadores sin duplicados', () => {
   const repo = repoMemoria();
   repo.db.Nadadores = [...nad('g1', 10), ...nad('g2', 5)];

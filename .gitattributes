@@ -1,0 +1,6 @@
+# Normalise line endings in the repository; keep vendored third-party files byte-exact
+# (their SHA-384 integrity hashes in vendor/integrity.json must match on every platform).
+* text=auto eol=lf
+vendor/** -text
+*.png binary
+*.pdf binary

@@ -3,7 +3,7 @@
 
 export const CODIGOS = [
   'popup-bloqueado', 'popup-cerrado', 'acceso-denegado', 'origen-no-autorizado', 'sin-gis', 'sin-conexion',
-  'api-desactivada', 'sin-permiso', 'sesion-caducada', 'limite', 'no-encontrado', 'desconocido',
+  'api-desactivada', 'sin-permiso', 'sesion-caducada', 'limite', 'no-encontrado', 'timeout', 'cuota-drive', 'desconocido',
 ];
 
 const texto = (x) => String((x && (x.message || x.error_description || x.error || x.type)) || x || '').toLowerCase();
@@ -44,6 +44,8 @@ export function clasificarErrorApi(status, cuerpo) {
     return { codigo: 'api-desactivada', enlace: enlace || (proyecto ? `https://console.cloud.google.com/apis/library/drive.googleapis.com?project=${proyecto}` : 'https://console.cloud.google.com/apis/library/drive.googleapis.com'), servicio: servicio || 'Google Drive API' };
   }
   if (status === 401) return { codigo: 'sesion-caducada' };
+  // Drive full (account storage): different from a request rate limit, waiting will not fix it.
+  if (status === 403 && razones.some((r) => /storageQuotaExceeded/i.test(r))) return { codigo: 'cuota-drive' };
   if (status === 403 && razones.some((r) => /rateLimitExceeded|userRateLimitExceeded|quotaExceeded/i.test(r))) return { codigo: 'limite' };
   if (status === 429) return { codigo: 'limite' };
   if (status === 403) return { codigo: 'sin-permiso' };

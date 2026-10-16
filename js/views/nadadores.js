@@ -4,6 +4,10 @@ import { icon } from '../icons.js';
 import { t, tDate, tNum, tCat, tEstado } from '../i18n.js';
 import { indicePorNombre, normalizarNombre } from '../domain/cargas.js';
 import { crearServicio, chip, injectStyle as injectTc } from './cargas-contenidos.js';
+import { servicioCategorias, textoRango, tablaAnios } from './categorias-panel.js';
+import { edadCumplida, esVerdadero, etiquetaTemporada } from '../domain/categorias.js';
+import { fechaDeDate } from '../domain/calendario.js';
+import { accionesRgpd, textoValidacion } from './datos-integridad.js';
 
 const P = 'nad-'; // prefijo de clases propias
 
@@ -29,18 +33,14 @@ function h(tag, attrs, ...children) {
 
 const isActivo = (n) => !['false', 'no', '0', 'n', ''].includes(String(n.activo ?? 'true').toLowerCase());
 const catIdx = (c) => { const i = CATEGORIAS.indexOf(c); return i < 0 ? 99 : i; };
+const manualBadge = (n) => (String(n.categoriaManual || '').trim() ? h('span', { class: `badge ${P}manual`, title: t('categorias.manual-titulo') }, t('categorias.manual')) : null);
 const nombreCompleto = (n) => `${n.nombre || ''} ${n.apellidos || ''}`.trim();
 const norm = (s) => String(s || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '');
 const num = (v) => Number(String(v ?? '').replace(',', '.')) || 0;
 
-function edad(f) {
-  const d = new Date(f);
-  if (!f || isNaN(d)) return '';
-  const t = new Date();
-  let a = t.getFullYear() - d.getFullYear();
-  if (t.getMonth() < d.getMonth() || (t.getMonth() === d.getMonth() && t.getDate() < d.getDate())) a--;
-  return a;
-}
+// Edad cumplida a fecha de hoy (el reloj puede inyectarse con ctx.ahora en las pruebas)
+const hoyIso = (ctx) => fechaDeDate((ctx && ctx.ahora ? ctx.ahora : () => new Date())());
+const edad = (f, ctx) => edadCumplida(f, hoyIso(ctx));
 
 function fmtTiempo(ms, ui) {
   if (ui && ui.fmtTime) return ui.fmtTime(ms);
@@ -92,6 +92,14 @@ function injectStyle() {
 .nad-form .nad-full{grid-column:1/-1}
 .nad-form input,.nad-form select,.nad-form textarea{padding:.5rem;border:1px solid #cfd8e6;border-radius:8px;font:inherit}
 .nad-mfoot{display:flex;justify-content:flex-end;gap:.5rem;margin-top:1rem}
+.nad-form [hidden]{display:none!important}
+.nad-catvivo{padding:.5rem .7rem;border-radius:8px;background:#f1f6fe;font-size:.9rem}
+.nad-catvivo p{margin:0}
+.nad-catvivo .nad-aviso{color:#8a5a00;margin-top:.3rem}
+.nad-check{flex-direction:row!important;align-items:center;gap:.5rem!important;min-height:44px}
+.nad-manual{margin-left:.3rem}
+.nad-catdet{margin-bottom:1rem}
+.nad-catdet summary{cursor:pointer;min-height:44px;display:flex;align-items:center;font-weight:600}
 .nad-chart{width:100%;height:auto;max-width:560px}
 .nad-chartbox{margin-bottom:1rem}
 .nad-chartbox h3{margin:.2rem 0;font-size:.95rem}
@@ -118,15 +126,6 @@ function openModal(title, bodyEl, buttons) {
 // ---------- render ----------
 export async function render(container, params, ctx) {
   injectStyle();
-  const { store, auth, ui } = ctx;
-  const role = auth.role();
-  const canEdit = role === 'admin' || role === 'entrenador';
-
-  if (!canEdit) {
-    container.replaceChildren(h('div', { class: 'card' }, t('nadadores.sin-permisos')));
-    return;
-  }
-
   // id desde params (string, array u objeto) o desde el hash
   let id = null;
   if (typeof params === 'string') id = params;
@@ -138,12 +137,12 @@ export async function render(container, params, ctx) {
   }
 
   const refresh = () => render(container, params, ctx);
-  if (id) renderFicha(container, id, ctx, canEdit, refresh);
-  else renderLista(container, ctx, canEdit, refresh);
+  if (id) renderFicha(container, id, ctx, refresh);
+  else renderLista(container, ctx, refresh);
 }
 
 // ---------- listado ----------
-function renderLista(container, ctx, canEdit, refresh) {
+function renderLista(container, ctx, refresh) {
   const { store, ui } = ctx;
   const grupos = store.list('Grupos');
   const grupoNombre = (gid) => (grupos.find((g) => g.id === gid) || {}).nombre || '';
@@ -164,12 +163,13 @@ function renderLista(container, ctx, canEdit, refresh) {
     tbody.replaceChildren(...(rows.length ? rows.map((n) =>
       h('tr', { class: `${P}row ${isActivo(n) ? '' : P + 'inactivo'}`, onclick: () => { location.hash = `#/nadadores/${n.id}`; } },
         h('td', {}, `${n.apellidos || ''}, ${n.nombre || ''}`),
-        h('td', {}, h('span', { class: 'badge' }, tCat(n.categoria) || '-')),
+        h('td', {}, h('span', { class: 'badge' }, tCat(n.categoria) || '-'), manualBadge(n)),
         h('td', {}, grupoNombre(n.grupoId) || '-'),
-        h('td', {}, edad(n.fechaNacimiento)),
+        h('td', {}, edad(n.fechaNacimiento, ctx)),
         h('td', {}, n.licencia || ''))) : [h('tr', {}, h('td', { colspan: 5, class: P + 'muted' }, t('nadadores.sin-resultados')))]));
   };
 
+  const temporadaTxt = etiquetaTemporada(servicioCategorias(ctx).temporadaActual());
   const inpQ = h('input', { type: 'search', placeholder: t('nadadores.buscar'), oninput: (e) => { state.q = e.target.value; paint(); } });
   const selCat = h('select', { onchange: (e) => { state.cat = e.target.value; paint(); } },
     h('option', { value: '' }, t('nadadores.todas-cat')), CATEGORIAS.map((c) => h('option', { value: c }, tCat(c))));
@@ -180,7 +180,9 @@ function renderLista(container, ctx, canEdit, refresh) {
   container.replaceChildren(
     h('div', { class: P + 'head' },
       h('h1', {}, t('nadadores.titulo')),
-      canEdit ? h('button', { class: 'btn', onclick: () => editNadador(null, ctx, refresh) }, icon('mas', { size: 16 }), ' ' + t('nadadores.nuevo')) : null),
+      h('button', { class: 'btn', onclick: () => editNadador(null, ctx, refresh) }, icon('mas', { size: 16 }), ' ' + t('nadadores.nuevo'))),
+    h('details', { class: `card ${P}catdet` }, h('summary', {}, t('categorias.titulo', { temporada: temporadaTxt })), tablaAnios(ctx),
+      h('p', { class: P + 'muted' }, h('a', { href: '#/club' }, t('categorias.panel.ver-en-config')))),
     h('div', { class: 'card' },
       h('div', { class: P + 'filters' }, inpQ, selCat, selGrp, chk),
       count,
@@ -197,24 +199,61 @@ function editNadador(n, ctx, done) {
   const isNew = !n;
   n = n || { activo: 'true', sexo: 'F' };
   const grupos = store.list('Grupos');
+  const svc = servicioCategorias(ctx);
   const f = {};
   const field = (key, label, el, full) => { f[key] = el; return h('label', { class: full ? P + 'full' : '' }, label, el); };
   const inp = (key, type = 'text') => h('input', { type, value: n[key] ?? '' });
   const sel = (opts, cur) => h('select', {}, opts.map(([v, t]) => h('option', { value: v, selected: v === cur }, t)));
+
+  // Categoría: automática (calculada en vivo por año de nacimiento, sexo y temporada) o manual
+  const manualInicial = String(n.categoriaManual || '').trim();
+  const chkMaster = h('input', { type: 'checkbox', checked: esVerdadero(n.licenciaMaster) });
+  const chkManual = h('input', { type: 'checkbox', checked: !!manualInicial });
+  const selManual = sel(CATEGORIAS.map((c) => [c, tCat(c)]), manualInicial || n.categoria || CATEGORIAS[0]);
+  const manualWrap = h('label', { class: P + 'full' }, t('categorias.f-elegida'), selManual);
+  const vivo = h('div', { class: P + 'catvivo ' + P + 'full', role: 'status', 'aria-live': 'polite', 'data-testid': 'categoria-auto' });
+  const datosCat = () => ({
+    fechaNacimiento: f.fechaNacimiento.value, sexo: f.sexo.value, licenciaMaster: chkMaster.checked, categoriaManual: chkManual.checked ? selManual.value : '',
+  });
+  const pintaVivo = () => {
+    const p = svc.previsualizar(datosCat());
+    const temporada = etiquetaTemporada(p.temporada);
+    manualWrap.hidden = !chkManual.checked;
+    let texto;
+    if (p.manual) texto = p.calculada ? t('categorias.vivo.manual', { categoria: tCat(p.categoria), auto: tCat(p.calculada) }) : t('categorias.vivo.manual-sola', { categoria: tCat(p.categoria) });
+    else if (!p.categoria) texto = t(p.origen === 'sin-sexo' ? 'categorias.vivo.sin-sexo' : 'categorias.vivo.sin-fecha');
+    else if (p.origen === 'master') texto = t('categorias.vivo.master', { categoria: tCat(p.categoria), edad: p.rango ? p.rango.edadMin : '', temporada });
+    else texto = t('categorias.vivo.auto', { categoria: tCat(p.categoria), rango: textoRango(p.rango), temporada });
+    const avisos = [];
+    if (p.avisos.includes('por-debajo-edad')) avisos.push(t('categorias.aviso.por-debajo', { categoria: tCat(p.calculada || p.categoria) }));
+    if (p.avisos.includes('master-edad-insuficiente')) avisos.push(t('categorias.aviso.master-edad', { edad: svc.config().edadMinimaMaster }));
+    vivo.replaceChildren(h('p', {}, h('strong', {}, t('categorias.f-auto') + ': '), texto), ...avisos.map((a) => h('p', { class: P + 'aviso' }, a)));
+  };
 
   const body = h('div', { class: P + 'form' },
     field('nombre', t('nadadores.f-nombre'), inp('nombre')),
     field('apellidos', t('nadadores.f-apellidos'), inp('apellidos')),
     field('fechaNacimiento', t('nadadores.f-nacimiento'), inp('fechaNacimiento', 'date')),
     field('sexo', t('nadadores.f-sexo'), sel([['F', t('nadadores.femenino')], ['M', t('nadadores.masculino')]], n.sexo)),
-    field('categoria', t('nadadores.f-categoria'), sel([['', '—'], ...CATEGORIAS.map((c) => [c, tCat(c)])], n.categoria || '')),
+    vivo,
+    h('label', { class: `${P}check ${P}full` }, chkMaster, t('categorias.f-master')),
+    h('label', { class: `${P}check ${P}full` }, chkManual, t('categorias.f-manual')),
+    manualWrap,
     field('grupoId', t('nadadores.f-grupo'), sel([['', t('nadadores.sin-grupo')], ...grupos.map((g) => [g.id, g.nombre])], n.grupoId || '')),
     field('email', t('nadadores.f-email'), inp('email', 'email')),
     field('telefono', t('nadadores.f-telefono'), inp('telefono', 'tel')),
     field('tutor', t('nadadores.f-tutor'), inp('tutor'), true),
     field('licencia', t('nadadores.f-licencia'), inp('licencia')),
     field('activo', t('nadadores.f-estado'), sel([['true', t('nadadores.activo')], ['false', t('nadadores.inactivo')]], isActivo(n) ? 'true' : 'false')),
-    field('notas', t('nadadores.f-notas'), h('textarea', { rows: 3 }, n.notas || ''), true));
+    field('notas', h('span', {}, t('nadadores.f-notas'), ' ', h('small', { class: P + 'muted' }, '(' + t('dat.notas.aviso') + ')')), h('textarea', { rows: 3 }, n.notas || ''), true));
+  // al activar el modo manual se propone la categoría que saldría automáticamente
+  chkManual.addEventListener('change', () => {
+    if (!chkManual.checked || manualInicial) return;
+    const auto = svc.previsualizar({ ...datosCat(), categoriaManual: '' }).categoria;
+    if (CATEGORIAS.includes(auto)) selManual.value = auto;
+  });
+  [f.fechaNacimiento, f.sexo, chkMaster, chkManual, selManual].forEach((el) => { el.addEventListener('input', pintaVivo); el.addEventListener('change', pintaVivo); });
+  pintaVivo();
 
   openModal(isNew ? t('nadadores.nuevo') : t('nadadores.editar'), body, [
     { label: t('common.cancelar') },
@@ -223,7 +262,12 @@ function editNadador(n, ctx, done) {
         const row = { ...n };
         for (const k of Object.keys(f)) row[k] = f[k].value.trim();
         if (!row.nombre || !row.apellidos) { ui.toast(t('nadadores.obligatorios')); return false; }
-        store.upsert('Nadadores', row);
+        row.licenciaMaster = chkMaster.checked ? 'true' : 'false';
+        row.categoriaManual = chkManual.checked ? selManual.value : '';
+        try { svc.guardarNadador(row); } catch (e) { // materializa la categoría vigente (manual o calculada)
+          if (e && e.code === 'validacion') { ui.toast.error(textoValidacion(e)); return false; }
+          throw e;
+        }
         ui.toast(t('nadadores.guardado'));
         done();
       },
@@ -236,7 +280,7 @@ async function borrarNadador(n, ctx) {
   const ok = await ui.confirmDialog(t('nadadores.confirmar-eliminar', { nombre: nombreCompleto(n) }));
   if (!ok) return false;
   for (const sheet of ['Asistencia', 'Cargas', 'Marcas', 'Banador']) {
-    store.list(sheet).filter((r) => r.nadadorId === n.id).forEach((r) => store.remove(sheet, r.id));
+    store.removeMany(sheet, store.list(sheet).filter((r) => r.nadadorId === n.id).map((r) => r.id)); // un solo guardado por hoja
   }
   store.remove('Nadadores', n.id);
   ui.toast(t('nadadores.eliminado'));
@@ -244,8 +288,9 @@ async function borrarNadador(n, ctx) {
 }
 
 // ---------- ficha ----------
-function renderFicha(container, id, ctx, canEdit, refresh) {
+function renderFicha(container, id, ctx, refresh) {
   const { store, ui } = ctx;
+  const svcCat = servicioCategorias(ctx);
   const n = store.get('Nadadores', id);
   const back = h('button', { class: P + 'back', onclick: () => { location.hash = '#/nadadores'; } }, icon('flecha-izq', { size: 16 }), t('nadadores.volver'));
   if (!n) {
@@ -258,18 +303,28 @@ function renderFicha(container, id, ctx, canEdit, refresh) {
   const datos = h('div', { class: 'card' },
     h('div', { class: P + 'head' },
       h('h1', {}, nombreCompleto(n), ' ', isActivo(n) ? null : h('span', { class: 'badge' }, t('nadadores.inactivo'))),
-      canEdit ? h('div', { class: P + 'actions' },
+      h('div', { class: P + 'actions' },
         h('button', { class: 'btn', onclick: () => editNadador(n, ctx, refresh) }, t('common.editar')),
-        h('button', { class: 'btn', onclick: async () => { if (await borrarNadador(n, ctx)) location.hash = '#/nadadores'; } }, t('common.eliminar'))) : null),
+        h('button', { class: 'btn', onclick: async () => { if (await borrarNadador(n, ctx)) location.hash = '#/nadadores'; } }, t('common.eliminar')),
+        accionesRgpd(n, ctx))),
     h('dl', { class: P + 'data' },
-      dato(t('nadadores.f-categoria'), tCat(n.categoria)), dato(t('nadadores.f-grupo'), grupo && grupo.nombre),
-      dato(t('nadadores.f-nacimiento'), fmtFecha(n.fechaNacimiento) + (n.fechaNacimiento ? ` (${t('nadadores.anios', { n: edad(n.fechaNacimiento) })})` : '')),
+      dato(t('nadadores.f-categoria'), n.categoria ? [tCat(n.categoria), manualBadge(n), reglaFicha(n, svcCat)] : ''), dato(t('nadadores.f-grupo'), grupo && grupo.nombre),
+      dato(t('nadadores.f-nacimiento'), fmtFecha(n.fechaNacimiento) + (edad(n.fechaNacimiento, ctx) !== '' ? ` (${t('nadadores.anios', { n: edad(n.fechaNacimiento, ctx) })})` : '')),
       dato(t('nadadores.f-sexo'), n.sexo === 'M' ? t('nadadores.masculino') : n.sexo === 'F' ? t('nadadores.femenino') : n.sexo),
       dato(t('nadadores.f-email'), n.email), dato(t('nadadores.f-telefono'), n.telefono), dato(t('nadadores.d-tutor'), n.tutor),
-      dato(t('nadadores.f-licencia'), n.licencia), dato(t('nadadores.d-notas'), n.notas)));
+      dato(t('nadadores.f-licencia'), n.licencia), dato(t('categorias.d-master'), esVerdadero(n.licenciaMaster) ? t('common.si') : t('common.no')), dato(t('nadadores.d-notas'), n.notas)));
 
   container.replaceChildren(back, datos,
     seccionAsistencia(n, store, ui), seccionCargas(n, store, ui, ctx), seccionMarcas(n, store, ui));
+}
+
+// Cómo se obtiene la categoría automática (año de nacimiento y temporada); vacío si es manual o no se puede calcular
+function reglaFicha(n, svc) {
+  if (String(n.categoriaManual || '').trim()) return null;
+  const p = svc.previsualizar(n);
+  if (!p.categoria || !p.rango) return null;
+  const rango = p.origen === 'master' ? null : textoRango(p.rango);
+  return rango ? h('small', { class: P + 'muted' }, ' ', t('categorias.ficha-regla', { temporada: etiquetaTemporada(p.temporada), rango })) : null;
 }
 
 function seccion(titulo, ...contenido) {

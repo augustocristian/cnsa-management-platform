@@ -54,7 +54,7 @@ export default {
   'cal.exp.zona-ok': 'Time zone saved: {zona}.',
   'cal.exp.alcance': 'The export follows the filters shown on screen.',
   'cal.sync.titulo': 'Sync with Google Calendar',
-  'cal.sync.desc': 'Creates and keeps your sessions in your primary Google calendar (with an internal marker so they can be updated and removed without touching your other events). Calendar permission is only requested when you enable this. The events that apply to you by role are synced.',
+  'cal.sync.desc': 'Creates and keeps your sessions in your primary Google calendar (with an internal marker so they can be updated and removed without touching your other events). Calendar permission is only requested when you enable this. Your sessions are synced.',
   'cal.sync.sin-sesion': 'Sign in with Google to be able to sync.',
   'cal.sync.ventana': 'Sync window',
   'cal.sync.ventana.30': 'Next 30 days',

@@ -1,6 +1,6 @@
-// Textos de las vistas Inicio, Nadadores, Grupos y Mi espacio (español).
+// Textos de las vistas Inicio, Nadadores, Grupos (español).
 export default {
-  'inicio.bienvenida': '¡Bienvenido, {rol}!',
+  'inicio.bienvenida': '¡Bienvenido, Entrenador!',
   'inicio.dia.0': 'Lun', 'inicio.dia.1': 'Mar', 'inicio.dia.2': 'Mié', 'inicio.dia.3': 'Jue',
   'inicio.dia.4': 'Vie', 'inicio.dia.5': 'Sáb', 'inicio.dia.6': 'Dom',
   'inicio.acceso-rapido': 'Acceso rápido',
@@ -26,12 +26,11 @@ export default {
   'inicio.faltaron': 'Faltaron',
   'inicio.sin-confirmar': 'Sin confirmar',
   'inicio.hoy-sin-sesiones': 'Hoy no hay sesiones.',
-  'inicio.comunicaciones': 'Comunicaciones recientes',
+  'inicio.comunicaciones': 'Avisos recientes',
   'inicio.sin-titulo': '(sin título)',
-  'inicio.sin-comunicaciones': 'Sin comunicaciones.',
+  'inicio.sin-comunicaciones': 'Sin avisos.',
   'inicio.ver-todas': 'Ver todas',
 
-  'nadadores.sin-permisos': 'No tienes permisos para ver esta sección.',
   'nadadores.titulo': 'Nadadores',
   'nadadores.nuevo': 'Nuevo nadador',
   'nadadores.editar': 'Editar nadador',

@@ -1,6 +1,6 @@
 // Internacionalización ligera: es | en | it. Sin dependencias.
-// Los valores guardados en Excel/Sheet (categorías, estados, tipos, roles) siguen en español:
-// las traducciones son sólo de visualización (tCat, tEstado, tTipo, tRol, tNav).
+// Los valores guardados en Excel/Sheet (categorías, estados, tipos) siguen en español:
+// las traducciones son sólo de visualización (tCat, tEstado, tTipo, tNav).
 import es from './locales/es.js';
 import en from './locales/en.js';
 import it from './locales/it.js';
@@ -25,9 +25,21 @@ import calIT from './locales/calendario.it.js';
 import accES from './locales/acceso.es.js';
 import accEN from './locales/acceso.en.js';
 import accIT from './locales/acceso.it.js';
+import catES from './locales/categorias.es.js';
+import catEN from './locales/categorias.en.js';
+import catIT from './locales/categorias.it.js';
 import tcES from './locales/cargas-tipos.es.js';
 import tcEN from './locales/cargas-tipos.en.js';
 import tcIT from './locales/cargas-tipos.it.js';
+import disES from './locales/diseno.es.js';
+import datES from './locales/datos.es.js';
+import datEN from './locales/datos.en.js';
+import datIT from './locales/datos.it.js';
+import disEN from './locales/diseno.en.js';
+import disIT from './locales/diseno.it.js';
+import tpES from './locales/temporada.es.js';
+import tpEN from './locales/temporada.en.js';
+import tpIT from './locales/temporada.it.js';
 import { normalizarNombre } from './domain/cargas.js';
 
 export const LANGS = [
@@ -36,7 +48,7 @@ export const LANGS = [
   { code: 'it', label: 'Italiano' }
 ];
 export const LANG_KEY = 'cnl:lang';
-const DICTS = { es: { ...es, ...vistasAes, ...vistasBes, ...vistasCes, ...planES, ...calES, ...entES, ...tcES , ...accES }, en: { ...en, ...vistasAen, ...vistasBen, ...vistasCen, ...planEN, ...calEN, ...entEN, ...tcEN , ...accEN }, it: { ...it, ...vistasAit, ...vistasBit, ...vistasCit, ...planIT, ...calIT, ...entIT, ...tcIT , ...accIT } };
+const DICTS = { es: { ...es, ...vistasAes, ...vistasBes, ...vistasCes, ...planES, ...calES, ...entES, ...tcES , ...accES, ...disES, ...tpES, ...catES, ...datES }, en: { ...en, ...vistasAen, ...vistasBen, ...vistasCen, ...planEN, ...calEN, ...entEN, ...tcEN , ...accEN, ...disEN, ...tpEN, ...catEN, ...datEN }, it: { ...it, ...vistasAit, ...vistasBit, ...vistasCit, ...planIT, ...calIT, ...entIT, ...tcIT , ...accIT, ...disIT, ...tpIT, ...catIT, ...datIT } };
 const INTL = { es: 'es-ES', en: 'en-GB', it: 'it-IT' };
 const listeners = new Set();
 
@@ -131,7 +143,6 @@ export function tContenidoDesc(r) {
   if (r.predefinido && hasKey(k) && (!r.descripcion || r.descripcion === DICTS.es[k])) return t(k);
   return r.descripcion || '';
 }
-export const tRol = (v) => tVal('rol', v);
 export const tNav = (v) => tVal('nav', v);
 
 // --- Intl por idioma ---

@@ -19,6 +19,7 @@ export const CLAVES = {
   calVista: 'calendario.vista',
   calVentana: 'calendario.ventanaDias',
   calAlarma: 'calendario.alarmaMin',
+  tema: 'tema', // 'light' | 'dark' (absent = automatic, follows the system)
   calSync: 'calSync.', // prefijo: calSync.<clave del mapa por club y usuario>
 };
 
@@ -29,6 +30,7 @@ const entero = (x) => Number.isInteger(x);
 // Validadores por clave: devuelven el valor limpio o undefined si no vale (se ignora).
 const SANEADORES = {
   idioma: (v) => (IDIOMAS.includes(v) ? v : undefined),
+  tema: (v) => (v === 'light' || v === 'dark' ? v : undefined),
   ultimoClub: (v) => (esTexto(v) ? v : undefined),
   clubes: (v) => {
     if (!Array.isArray(v)) return undefined;

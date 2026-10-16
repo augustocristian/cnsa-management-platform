@@ -202,7 +202,7 @@ test('textos entreno: es/en/it con las mismas claves y variables, sin vacíos', 
 test('todas las claves entreno.* usadas en el código existen en el diccionario', async () => {
   const es = (await importApp('js/locales/entreno.es.js')).default;
   const ficheros = ['js/views/entreno-editor.js', 'js/views/entreno-acciones.js', 'js/views/entrenamientos.js', 'js/infrastructure/pdfEntreno.js'];
-  const dinamicas = { 'entreno.av.': D_CODIGOS(), 'entreno.col.': ['tiempo', 'objetivo', 'bloque', 'series', 'distancia', 'salida', 'ejercicio', 'dist-bloque', 'material', 'notas'], 'entreno.pl.': D.PLANTILLAS.map((p) => p.id),
+  const dinamicas = { 'entreno.av.': D_CODIGOS(), 'entreno.col.': ['tiempo', 'objetivo', 'bloque', 'series', 'distancia', 'salida', 'ejercicio', 'contenidos', 'dist-bloque', 'material', 'notas'], 'entreno.estilo.': ['crol', 'espalda', 'braza', 'mariposa', 'estilos'], 'entreno.pl.': D.PLANTILLAS.map((p) => p.id),
     'entreno.pdf.': ['dia', 'fecha', 'hora', 'grupo', 'tipo-sesion', 'piscina', 'material-dia', 'notas-generales', 'tiempo', 'objetivo', 'bloques', 'series', 'distancia', 'salida', 'ejercicio', 'dist-bloque', 'dist-set', 'material', 'notas', 'totales', 'sin-plan'] };
   const usadas = new Set();
   for (const f of ficheros) for (const m of readFileSync(path.join(ROOT, f), 'utf8').matchAll(/'(entreno\.[a-z0-9._-]+)'/g)) usadas.add(m[1]);
@@ -213,7 +213,7 @@ test('todas las claves entreno.* usadas en el código existen en el diccionario'
 });
 
 function D_CODIGOS() {
-  return ['sin-lineas', 'series-no-numerica', 'distancia-no-numerica', 'tiempo-no-numerico', 'numero-negativo', 'salida-invalida', 'sin-distancia', 'distancia-difiere-carga', 'fuera-volumen-objetivo', 'tiempo-supera-duracion', 'sesion-inexistente'];
+  return ['sin-lineas', 'series-no-numerica', 'distancia-no-numerica', 'tiempo-no-numerico', 'numero-negativo', 'salida-invalida', 'sin-distancia', 'distancia-difiere-carga', 'fuera-volumen-objetivo', 'tiempo-supera-duracion', 'sesion-inexistente', 'reparto-incompleto', 'reparto-excede', 'reparto-sin-distancia', 'estilo-incompleto', 'estilo-excede'];
 }
 
 test('jsPDF y jspdf-autotable son dependencias de producción y están copiadas a vendor/', () => {
@@ -230,7 +230,65 @@ test('jsPDF y jspdf-autotable son dependencias de producción y están copiadas 
 
 test('service worker: precachea los módulos del plan de entreno y las librerías PDF', () => {
   const sw = readFileSync(path.join(ROOT, 'sw.js'), 'utf8');
-  for (const f of ['js/domain/entreno.js', 'js/application/entrenoService.js', 'js/infrastructure/pdfEntreno.js', 'js/infrastructure/driveEntrenos.js', 'js/views/entreno-editor.js', 'js/views/entreno-acciones.js', 'js/locales/entreno.es.js', 'js/locales/entreno.en.js', 'js/locales/entreno.it.js', 'vendor/jspdf.umd.min.js', 'vendor/jspdf.plugin.autotable.min.js']) {
+  for (const f of ['js/domain/entreno.js', 'js/domain/desglose.js', 'js/application/entrenoService.js', 'js/infrastructure/pdfEntreno.js', 'js/infrastructure/driveEntrenos.js', 'js/views/entreno-editor.js', 'js/views/entreno-acciones.js', 'js/locales/entreno.es.js', 'js/locales/entreno.en.js', 'js/locales/entreno.it.js', 'vendor/jspdf.umd.min.js', 'vendor/jspdf.plugin.autotable.min.js']) {
     assert.ok(sw.includes('./' + f), 'sw.js sin ' + f);
   }
+});
+
+// ---------- Contenidos por ejercicio y bloque resumen ----------
+const GD = await importApp('js/domain/desglose.js');
+const comp = (contenido, metrosPorRep = null, modo = 'auto') => ({ contenido, metrosPorRep, modo });
+const lineasMulti = D.renumerar([
+  { set: 1, orden: 1, tiempoMin: 7, objetivo: 'Calentamiento', series: 1, distancia: 300, ejercicio: 'Suave' },
+  { set: 2, orden: 1, tiempoMin: 20, series: 4, distancia: 100, ejercicio: '4x100 Crol. 75 AeL-25 Tope', componentes: [comp('Aeróbico ligero', 75), comp('Aláctico / Sprint', 25)], estilos: [{ estilo: 'Crol', metrosPorRep: null }] },
+  { set: 2, orden: 2, tiempoMin: 8, series: 4, distancia: 50, ejercicio: 'Mixto', estilos: [{ estilo: 'Mariposa', metrosPorRep: 25 }, { estilo: 'Espalda', metrosPorRep: 25 }] },
+]);
+const fichaMulti = (extra = {}) => {
+  const tipos = GD.catalogoBase();
+  return { ...ficha({}, lineasMulti), tipos, desglose: GD.desgloseSesion(lineasMulti, { tipos }), ...extra };
+};
+
+test('PDF con contenidos: línea «75 AeL + 25 Sprint · Crol» en el ejercicio y bloque resumen con m y %', async () => {
+  I18N.setLang('es', { persist: false });
+  const r = await generar([fichaMulti()]);
+  const info = infoPdf(r.bytes);
+  assert.equal(info.paginas, 1);
+  const t = plano(info.texto);
+  const c = compacto(info.texto);
+  assert.ok(c.includes(compacto('75 AeL + 25 Sprint')), 'contenidos de la fila');
+  assert.ok(c.includes('Crol'));
+  assert.ok(c.includes('RESUMENDELASESIÓN'));
+  assert.ok(c.includes('Volumentotal:'));
+  assert.ok(c.includes('900m'), 'volumen total de la sesión: 300 + 400 + 200');
+  for (const e of ['POR CONTENIDO', 'POR ESTILO', 'Aeróbico ligero', 'Aláctico / Sprint', 'Sin contenido', 'Crol', 'Mariposa', 'Espalda', 'Sin estilo']) assert.ok(c.includes(compacto(e)), e);
+  // metros y % de cada contenido y estilo (los % suman 100)
+  for (const e of ['600 m', '66,7 %', '100 m', '11,1 %', '200 m', '22,2 %', '400 m', '44,5 %', '33,3 %']) assert.ok(t.includes(e), e);
+  const d = GD.desgloseSesion(lineasMulti);
+  assert.deepEqual(d.porContenido.map((x) => [x.contenido, x.metros, x.pct]), [['Aeróbico ligero', 600, 66.7], ['Aláctico / Sprint', 100, 11.1], ['', 200, 22.2]]);
+  assert.equal(Math.round(d.porEstilo.reduce((s, x) => s + x.pct, 0) * 10) / 10, 100);
+});
+
+test('PDF con contenidos: etiquetas traducidas (inglés) y nombres inyectables', async () => {
+  I18N.setLang('en', { persist: false });
+  const r = await generar([fichaMulti()], { t: I18N.t, locale: 'en-GB' });
+  const c = compacto(infoPdf(r.bytes).texto);
+  for (const e of ['SESSION SUMMARY', 'Total volume:', 'BY CONTENT', 'BY STROKE', 'Freestyle', 'Butterfly', 'Backstroke', 'No stroke']) assert.ok(c.includes(compacto(e)), e);
+  assert.ok(c.includes('66.7%') && c.includes('600m'), 'números con el formato del idioma');
+  I18N.setLang('es', { persist: false });
+  const inj = await generar([fichaMulti()], { nombreContenido: (it) => 'C-' + it.tipoId, nombreEstilo: (e) => 'E-' + e });
+  const ci = compacto(infoPdf(inj.bytes).texto);
+  assert.ok(ci.includes('C-tc-aerobico-ligero') && ci.includes('E-Crol'));
+});
+
+test('PDF sin desglose (fichas antiguas) no dibuja el resumen; con muchos contenidos sigue siendo válido', async () => {
+  I18N.setLang('es', { persist: false });
+  const sin = await generar([ficha()]);
+  assert.ok(!compacto(infoPdf(sin.bytes).texto).includes('RESUMENDELASESIÓN'));
+  const tipos = GD.catalogoBase();
+  const muchas = D.renumerar(tipos.map((tp, i) => ({ set: 1, orden: i + 1, series: 2, distancia: 100, ejercicio: 'x' + i, componentes: [comp(tp.nombre)], estilos: [{ estilo: ['Crol', 'Espalda', 'Braza', 'Mariposa', 'Estilos', 'Tortuga'][i % 6], metrosPorRep: null }] })));
+  const r = await generar([{ ...ficha({}, muchas), tipos, desglose: GD.desgloseSesion(muchas, { tipos }) }]);
+  const info = infoPdf(r.bytes);
+  assert.ok(info.paginas >= 1);
+  const c = compacto(info.texto);
+  assert.ok(c.includes('Tortuga') && c.includes('Virajes/volteos'));
 });

@@ -1,6 +1,6 @@
-// Testi delle viste Home, Nuotatori, Gruppi e Il mio spazio (italiano).
+// Testi delle viste Home, Nuotatori e Gruppi (italiano).
 export default {
-  'inicio.bienvenida': 'Benvenuto, {rol}!',
+  'inicio.bienvenida': 'Benvenuto, Allenatore!',
   'inicio.dia.0': 'Lun', 'inicio.dia.1': 'Mar', 'inicio.dia.2': 'Mer', 'inicio.dia.3': 'Gio',
   'inicio.dia.4': 'Ven', 'inicio.dia.5': 'Sab', 'inicio.dia.6': 'Dom',
   'inicio.acceso-rapido': 'Accesso rapido',
@@ -26,12 +26,11 @@ export default {
   'inicio.faltaron': 'Assenti',
   'inicio.sin-confirmar': 'Non confermati',
   'inicio.hoy-sin-sesiones': 'Oggi non ci sono sessioni.',
-  'inicio.comunicaciones': 'Comunicazioni recenti',
+  'inicio.comunicaciones': 'Avvisi recenti',
   'inicio.sin-titulo': '(senza titolo)',
-  'inicio.sin-comunicaciones': 'Nessuna comunicazione.',
+  'inicio.sin-comunicaciones': 'Nessun avviso.',
   'inicio.ver-todas': 'Vedi tutte',
 
-  'nadadores.sin-permisos': 'Non hai i permessi per vedere questa sezione.',
   'nadadores.titulo': 'Nuotatori',
   'nadadores.nuevo': 'Nuovo nuotatore',
   'nadadores.editar': 'Modifica nuotatore',

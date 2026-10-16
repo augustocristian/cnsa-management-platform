@@ -125,13 +125,12 @@ export function mensajeConflicto(c) {
   return t(key, { ...p, calles, dia: c.dia >= 1 && c.dia <= 7 ? nombreDia(c.dia) : '?' });
 }
 
-export async function render(container, params, ctx) {
+async function renderPiscina(container, params, ctx) {
   const { store } = ctx;
   const h = ctx.ui.h;
   const toast = (m) => ctx.ui.toast(m);
   injectStyle();
   const svc = crearPlanificacionService(store);
-  const canEdit = () => svc.puedeEditar();
 
   const hoy = hoyIso();
   let semana = D.lunesDe(hoy);
@@ -257,19 +256,7 @@ export async function render(container, params, ctx) {
     refrescar();
   }
 
-  // Detalle de sólo lectura (nadador).
-  function abrirDetalle(a) {
-    const p = svc.piscina(a.piscinaId);
-    abrirModal({
-      title: nombreGrupo(a.grupoId),
-      body: h('dl', { class: 'pl-detail' },
-        ...[[t('plan.f.piscina'), p ? p.nombre : '?'], [t('plan.f.dia'), a.fecha ? `${nombreDia(a.dia)} (${fmtCorta(a.fecha)})` : nombreDia(a.dia)],
-          [t('plan.f.horario'), `${a.horaInicio}–${a.horaFin}`], [t('plan.f.calles'), textoCalles(a.calleDesde, a.calleHasta)],
-          [t('plan.f.entrenador'), a.entrenadorId || '—'], [t('plan.f.notas'), a.notas || '—']]
-          .flatMap(([k, v]) => [h('dt', { class: 'muted' }, k), h('dd', { style: { margin: '0 0 .5rem' } }, v)])),
-    });
-  }
-  const abrirAsignacion = (a) => (canEdit() ? abrirFormulario(a) : abrirDetalle(a));
+  const abrirAsignacion = (a) => abrirFormulario(a);
 
   // Configuración de piscina
   function abrirConfig(base) {
@@ -419,10 +406,8 @@ export async function render(container, params, ctx) {
     };
     if (!interactivo) return h('div', attrs, kids);
     const b = h('button', { ...attrs, type: 'button', onclick: () => { ultimoFoco = a.id; abrirAsignacion(a); } }, kids);
-    if (canEdit()) {
-      b.draggable = true;
-      b.addEventListener('dragstart', (e) => { e.dataTransfer?.setData('text/plain', a.id); if (e.dataTransfer) e.dataTransfer.effectAllowed = 'move'; });
-    }
+    b.draggable = true;
+    b.addEventListener('dragstart', (e) => { e.dataTransfer?.setData('text/plain', a.id); if (e.dataTransfer) e.dataTransfer.effectAllowed = 'move'; });
     return b;
   }
 
@@ -449,7 +434,6 @@ export async function render(container, params, ctx) {
     const horario = pool.horario[dia];
     const abre = horario ? D.aMin(horario.abre) : NaN, cierra = horario ? D.aMin(horario.cierra) : NaN;
     const abierta = (m) => !Number.isNaN(abre) && m >= abre && m + pool.intervaloMin <= cierra;
-    const editar = canEdit();
     const grid = h('div', {
       class: 'pl-grid', role: 'group', 'aria-label': t('plan.rejilla-aria', { piscina: pool.nombre, dia: nombreDia(dia) }),
       style: { gridTemplateColumns: `52px repeat(${pool.numCalles}, minmax(64px, 1fr))`, gridTemplateRows: `auto repeat(${filas.length}, 26px)` },
@@ -463,7 +447,6 @@ export async function render(container, params, ctx) {
         const off = !abierta(m);
         const pos = { gridRow: i + 2, gridColumn: c + 1 };
         const cls = 'pl-cell' + (off ? ' pl-off' : '');
-        if (!editar) { grid.append(h('div', { class: cls, style: pos })); continue; }
         const fin = Math.min(m + 60, rango.hasta);
         const btn = h('button', {
           type: 'button', class: cls, style: pos, disabled: off, dataset: { calle: c, hora: D.deMin(m) },
@@ -540,21 +523,20 @@ export async function render(container, params, ctx) {
   // ---------- Pantalla ----------
   function draw() {
     const pools = svc.piscinas();
-    const editar = canEdit();
     if (!pools.some((p) => p.id === piscinaId)) piscinaId = pools.length ? pools[0].id : '';
     const pool = pools.find((p) => p.id === piscinaId);
 
     if (!pool) {
       container.replaceChildren(h('h2', null, t('plan.titulo')), h('div', { class: 'card' },
-        h('p', null, editar ? t('plan.sin-piscinas') : t('plan.sin-piscinas-lectura')),
-        editar ? h('button', { class: 'btn btn-primary', type: 'button', onclick: () => abrirConfig(null) }, icon('mas', { size: 16 }), t('plan.crear-piscina')) : null));
+        h('p', null, t('plan.sin-piscinas')),
+        h('button', { class: 'btn btn-primary', type: 'button', onclick: () => abrirConfig(null) }, icon('mas', { size: 16 }), t('plan.crear-piscina'))));
       return;
     }
 
     const grupoFiltro = '';
     const todas = svc.asignaciones(pool.id);
     const visibles = grupoFiltro ? todas.filter((a) => a.grupoId === grupoFiltro) : todas;
-    const globales = editar ? svc.conflictos({ huecos: true }) : [];
+    const globales = svc.conflictos({ huecos: true });
     const sev = D.severidadPorAsignacion(globales);
     const resumen = D.resumenConflictos(globales);
     const gsLey = grupos().filter((g) => (grupoFiltro ? g.id === grupoFiltro : true));
@@ -563,16 +545,14 @@ export async function render(container, params, ctx) {
       pools.map((p) => h('option', { value: p.id, selected: p.id === piscinaId }, `${p.nombre} (${p.longitudM} m)`)));
     const finSemana = D.sumarDias(semana, 6);
     const irSemana = (n) => { semana = D.sumarDias(semana, n * 7); draw(); };
-    const chip = editar
-      ? h('a', { class: 'pl-chip ' + (resumen.error ? 'err' : resumen.aviso ? 'warn' : 'ok'), href: '#pl-panel-h', onclick: (e) => { e.preventDefault(); document.getElementById('pl-panel-h')?.scrollIntoView?.({ block: 'center' }); } },
+    const chip = h('a', { class: 'pl-chip ' + (resumen.error ? 'err' : resumen.aviso ? 'warn' : 'ok'), href: '#pl-panel-h', onclick: (e) => { e.preventDefault(); document.getElementById('pl-panel-h')?.scrollIntoView?.({ block: 'center' }); } },
         iconoSev(resumen.error ? 'error' : resumen.aviso ? 'aviso' : 'info'),
-        resumen.error || resumen.aviso ? t('plan.conflictos-resumen', { errores: resumen.error, avisos: resumen.aviso }) : t('plan.sin-conflictos'))
-      : null;
+        resumen.error || resumen.aviso ? t('plan.conflictos-resumen', { errores: resumen.error, avisos: resumen.aviso }) : t('plan.sin-conflictos'));
 
     const barra = h('div', { class: 'pl-bar' },
       poolSel,
-      editar ? h('button', { class: 'btn', type: 'button', onclick: () => abrirConfig(pool) }, icon('ajustes', { size: 16 }), t('plan.configurar')) : null,
-      editar ? h('button', { class: 'btn', type: 'button', onclick: () => abrirConfig(null) }, icon('mas', { size: 16 }), t('plan.nueva-piscina')) : null,
+      h('button', { class: 'btn', type: 'button', onclick: () => abrirConfig(pool) }, icon('ajustes', { size: 16 }), t('plan.configurar')),
+      h('button', { class: 'btn', type: 'button', onclick: () => abrirConfig(null) }, icon('mas', { size: 16 }), t('plan.nueva-piscina')),
       h('span', { class: 'grow' }), chip);
     const barra2 = h('div', { class: 'pl-bar' },
       h('div', { class: 'pl-seg', role: 'group', 'aria-label': t('plan.modo') },
@@ -583,12 +563,11 @@ export async function render(container, params, ctx) {
       h('button', { class: 'btn', type: 'button', 'aria-label': t('plan.semana-siguiente'), onclick: () => irSemana(1) }, icon('flecha-dcha', { size: 16 })),
       h('button', { class: 'btn', type: 'button', onclick: () => { semana = D.lunesDe(hoy); dia = D.diaDeFecha(hoy); draw(); } }, t('plan.hoy')),
       h('span', { class: 'grow' }),
-      editar ? h('button', { class: 'btn btn-primary', type: 'button', onclick: () => abrirFormulario({ piscinaId: pool.id, dia }) }, icon('mas', { size: 16 }), t('plan.nueva-asignacion')) : null,
-      editar ? h('button', { class: 'btn', type: 'button', onclick: () => abrirSugerencia(pool) }, icon('estrella', { size: 16 }), t('plan.sugerir')) : null,
+      h('button', { class: 'btn btn-primary', type: 'button', onclick: () => abrirFormulario({ piscinaId: pool.id, dia }) }, icon('mas', { size: 16 }), t('plan.nueva-asignacion')),
+      h('button', { class: 'btn', type: 'button', onclick: () => abrirSugerencia(pool) }, icon('estrella', { size: 16 }), t('plan.sugerir')),
       h('button', { class: 'btn', type: 'button', onclick: () => window.print() }, icon('descargar', { size: 16 }), t('plan.imprimir')));
 
     const pantalla = [barra, barra2];
-    if (!editar) pantalla.push(h('p', { class: 'hint' }, t('plan.solo-lectura')));
 
     if (modo === 'dia') {
       const tabs = h('div', { class: 'pl-tabs', role: 'tablist', 'aria-label': t('plan.dias') },
@@ -614,9 +593,9 @@ export async function render(container, params, ctx) {
       semanaEl(pool, visibles, new Map(), false), leyenda(gsLey));
 
     container.replaceChildren(
-      h('h2', { class: 'pl-screen' }, t('plan.titulo')),
+      h('h3', { class: 'pl-screen' }, t('plan.titulo')),
       h('div', { class: 'pl-screen' }, pantalla),
-      editar ? h('div', { class: 'pl-screen' }, panelConflictos(globales)) : null,
+      h('div', { class: 'pl-screen' }, panelConflictos(globales)),
       imprimible);
 
     const wrap = container.querySelector('.pl-gridwrap');
@@ -634,4 +613,59 @@ export async function render(container, params, ctx) {
     const off = store.on(() => { if (container.isConnected) draw(); else if (typeof off === 'function') off(); });
     return off;
   }
+}
+
+// ---------- Planificación: apartados Temporada (por defecto) y Piscina ----------
+const APARTADOS = ['temporada', 'piscina'];
+export async function render(container, params, ctx) {
+  const h = ctx.ui.h;
+  let actual = APARTADOS.includes(params && params[0]) ? params[0] : 'temporada';
+  let panelOff = null;
+  const tabs = new Map();
+  const panel = h('div', { role: 'tabpanel', class: 'pl-apartado', tabindex: 0 });
+  const bar = h('div', { class: 'pl-apartados', role: 'tablist', 'aria-label': t('plan.apartados') });
+  const marcar = () => {
+    APARTADOS.forEach((a) => {
+      const b = tabs.get(a);
+      b.setAttribute('aria-selected', a === actual ? 'true' : 'false');
+      b.setAttribute('tabindex', a === actual ? '0' : '-1');
+    });
+    panel.setAttribute('aria-labelledby', 'pl-tab-' + actual);
+    panel.id = 'pl-panel-' + actual;
+  };
+  async function mostrar(a, foco) {
+    actual = a;
+    marcar();
+    if (typeof panelOff === 'function') panelOff();
+    const inner = h('div', { class: 'pl-apartado-in' });
+    panel.replaceChildren(inner);
+    try { history.replaceState(null, '', '#/planificacion' + (a === 'piscina' ? '/piscina' : '')); } catch (e) { /* ignorar */ }
+    const mod = a === 'piscina' ? { render: renderPiscina } : await import('./temporada.js');
+    panelOff = await mod.render(inner, [], ctx);
+    if (foco) tabs.get(a).focus();
+  }
+  APARTADOS.forEach((a, i) => {
+    const b = h('button', {
+      type: 'button', role: 'tab', id: 'pl-tab-' + a, class: 'pl-apt', 'aria-controls': 'pl-panel-' + a,
+      onclick: () => mostrar(a, false),
+      onkeydown: (e) => {
+        const d = e.key === 'ArrowRight' ? 1 : e.key === 'ArrowLeft' ? -1 : 0;
+        if (d) { e.preventDefault(); mostrar(APARTADOS[(i + d + APARTADOS.length) % APARTADOS.length], true); }
+        else if (e.key === 'Home') { e.preventDefault(); mostrar(APARTADOS[0], true); } else if (e.key === 'End') { e.preventDefault(); mostrar(APARTADOS[APARTADOS.length - 1], true); }
+      },
+    }, icon(a === 'temporada' ? 'grafica' : 'planificacion', { size: 16 }), t('plan.apartado.' + a));
+    tabs.set(a, b);
+    bar.appendChild(b);
+  });
+  const style = document.getElementById('pl-apt-style') || Object.assign(document.createElement('style'), { id: 'pl-apt-style' });
+  style.textContent = `.pl-apartados{display:flex;gap:6px;margin:0 0 12px;border-bottom:2px solid var(--border)}
+.pl-apt{font:inherit;font-weight:700;display:inline-flex;gap:6px;align-items:center;padding:.55rem 1rem;border:0;border-bottom:3px solid transparent;margin-bottom:-2px;background:none;color:var(--muted);cursor:pointer;border-radius:10px 10px 0 0}
+.pl-apt:hover{background:var(--c-primary-soft)}
+.pl-apt[aria-selected=true]{color:var(--c-primary-dark);border-bottom-color:var(--c-primary)}
+.pl-apartado:focus-visible{outline:2px solid var(--c-primary);outline-offset:2px}
+@media print{.pl-apartados{display:none}}`;
+  if (!style.isConnected) document.head.appendChild(style);
+  container.replaceChildren(h('h2', null, t('nav.planificacion')), bar, panel);
+  await mostrar(actual, false);
+  return () => { if (typeof panelOff === 'function') panelOff(); };
 }

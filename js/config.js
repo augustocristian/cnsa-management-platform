@@ -1,6 +1,6 @@
 // Configuración global.
 // El Client ID de Google es obligatorio (la app sólo funciona con una cuenta de Google y guarda todo en su Drive).
-// Lo fija el propietario UNA vez en BUILTIN_CLIENT_ID (publicación). Mientras esté vacío, la pantalla "Configuración necesaria"
+// The deployment owner sets it ONCE in BUILTIN_CLIENT_ID (publication); end users only sign in. Mientras esté vacío, la pantalla "Configuración necesaria"
 // y el tutorial permiten probar uno en este navegador (localStorage 'cnl:clientId'). No puede vivir en Drive: hace falta
 // ANTES de iniciar sesión.
 const BUILTIN_CLIENT_ID = '';

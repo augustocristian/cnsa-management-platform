@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import es from '../../js/locales/es.js';
 import en from '../../js/locales/en.js';
 import it from '../../js/locales/it.js';
-import { t, setLang, getLang, tCat, tEstado, tTipo, tRol, tDate, LANGS } from '../../js/i18n.js';
+import { t, setLang, getLang, tCat, tEstado, tTipo, tDate, LANGS } from '../../js/i18n.js';
 
 const vars = (s) => [...s.matchAll(/\{(\w+)\}/g)].map((m) => m[1]).sort().join(',');
 
@@ -45,19 +45,18 @@ test('helpers de valores internos', () => {
   setLang('en', { persist: false });
   assert.equal(tTipo('Aeróbico'), 'Aerobic');
   assert.equal(tEstado('justificado'), 'Excused');
-  assert.equal(tRol('entrenador'), 'Coach');
-  assert.equal(tCat('Máster'), 'Masters');
+  assert.equal(tCat('Master'), 'Masters');
   assert.equal(tCat('Desconocida'), 'Desconocida');
   assert.equal(tCat(''), '');
   setLang('es', { persist: false });
-  assert.equal(tCat('Prebenjamín'), 'Prebenjamín');
+  assert.equal(tCat('Pre-Benjamín'), 'Pre-Benjamín');
 });
 
 test('categorías, estados y tipos del schema tienen traducción', async () => {
   const s = await import('../../js/schema.js');
   setLang('it', { persist: false });
   for (const c of s.CATEGORIAS) assert.notEqual(tCat(c), '', c);
-  for (const [fn, list] of [[tTipo, s.TIPOS_CARGA], [tRol, ['entrenador']],
+  for (const [fn, list] of [[tTipo, s.TIPOS_CARGA],
     [tEstado, [...s.ESTADOS_ENTRENAMIENTO, ...s.ESTADOS_ASISTENCIA, ...s.ESTADOS_BANADOR]]]) {
     for (const v of list) assert.notEqual(fn(v), v, v);
   }

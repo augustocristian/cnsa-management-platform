@@ -25,7 +25,6 @@ export default {
   'tc.cat.personalizado': 'Custom',
   'tc.titulo': 'Training content',
   'tc.intro': 'Content used to record loads. Predefined items can be deactivated and adjusted (description, colour and targets) but not deleted; custom ones are yours to define.',
-  'tc.intro-lectura': 'Training content used to record loads.',
   'tc.mostrar': 'Training content',
   'tc.ocultar': 'Hide content',
   'tc.nuevo': 'New content',
@@ -102,4 +101,10 @@ export default {
   'tc.chart.objetivo-min': 'target ≥ {min} m',
   'tc.chart.objetivo-max': 'target ≤ {max} m',
   'tc.mie.por-contenido': 'By content',
+  'tc.f.alias': 'Aliases (abbreviations)',
+  'tc.f.alias-ayuda': 'How the coach abbreviates it when writing an exercise (AeL, Tope, Pn…), comma-separated. Used to split the metres automatically.',
+  'tc.alias-lista': 'Aliases: {alias}',
+  'tc.err.alias-duplicado': 'Another content already uses that alias',
+  'tc.err.alias-largo': 'Each alias can have at most 24 characters',
+  'tc.err.alias-muchos': 'At most 8 aliases per content',
 };

@@ -1,4 +1,4 @@
-// Integración del plan de entreno: vista Entrenamientos, editor, PDF (descarga/vista previa/imprimir/Drive) y Mi espacio,
+// Integración del plan de entreno: vista Entrenamientos, editor, PDF (descarga/vista previa/imprimir/Drive),
 // sobre jsdom y un repositorio en memoria (independiente del store real).
 import base from 'node:test';
 import assert from 'node:assert/strict';
@@ -13,7 +13,7 @@ const diaNombre = (f) => new Intl.DateTimeFormat('es-ES', { weekday: 'long' }).f
 const ascii = (s) => s.normalize('NFD').replace(/[̀-ͯ]/g, '');
 
 function fakeStore(datos = {}) {
-  const db = { Entrenamientos: [], EntrenoLineas: [], Grupos: [], Cargas: [], Nadadores: [], Asistencia: [], Usuarios: [], Marcas: [], Comunicaciones: [], ...datos };
+  const db = { Entrenamientos: [], EntrenoLineas: [], Grupos: [], Cargas: [], Nadadores: [], Asistencia: [], Marcas: [], Comunicaciones: [], ...datos };
   const oyentes = new Set();
   let n = 0;
   const emit = () => oyentes.forEach((f) => f({ type: 'change' }));
@@ -41,7 +41,7 @@ const PLAN = [
 ];
 
 // Entorno: DOM nuevo, i18n en español, PDF con la librería de Node, descargas y blobs interceptados
-async function montar({ rol = 'admin', user = null, conPlan = true, extraDatos = {} } = {}) {
+async function montar({ user = null, conPlan = true, extraDatos = {} } = {}) {
   setupEnv();
   const i18n = await importApp('js/i18n.js');
   i18n.setLang('es', { persist: false });
@@ -59,7 +59,7 @@ async function montar({ rol = 'admin', user = null, conPlan = true, extraDatos =
     Nadadores: [{ id: 'n1', nombre: 'Carla', apellidos: 'Menéndez', grupoId: 'g2', categoria: 'Alevín' }],
     ...extraDatos,
   });
-  const auth = { user, role: () => rol, ensureToken: async () => 'tok-test', demoRole: null, on: () => () => {} };
+  const auth = { user, ensureToken: async () => 'tok-test', on: () => () => {} };
   const blobs = [];
   const descargas = [];
   globalThis.URL.createObjectURL = (b) => { blobs.push(b); return 'blob:test/' + blobs.length; };
@@ -354,25 +354,6 @@ test('duplicar una sesión copia también su plan; eliminar la sesión borra el 
   await esperar(() => c.store.db.Entrenamientos.length === 3);
   const quedan = new Set(c.store.db.Entrenamientos.map((e) => e.id));
   assert.ok(c.store.db.EntrenoLineas.every((l) => quedan.has(l.entrenamientoId)), 'no quedan líneas huérfanas');
-});
-
-test('modo sólo lectura (sin permiso de edición): ve el plan y descarga el PDF', async () => {
-  const c = await montar({ rol: 'nadador' });
-  const s = sesion(c, 'Sesión Alevín');
-  assert.throws(() => botonTexto(s, 'Editar'));
-  assert.throws(() => botonTexto(s, 'Eliminar'));
-  botonTexto(s, 'Ver plan').click();
-  const ed = editor();
-  assert.ok(ed);
-  assert.equal(ed.querySelectorAll('input').length, 0, 'sin campos editables');
-  assert.equal(ed.querySelectorAll('table.enp-ro').length, 2);
-  assert.match(ed.textContent, /Calentamiento/);
-  assert.match(ed.querySelector('.enp-tot').textContent, /Total: 900 m · 25 min · 2 sets/);
-  assert.throws(() => botonTexto(ed, 'Guardar'));
-  botonTexto(ed, 'Generar PDF').click();
-  const d = await pdfDescargado(c);
-  assert.match(d.nombre, /^Alevin-/);
-  assert.ok(d.info.texto.includes('TOTALES'));
 });
 
 test('en inglés la interfaz y el PDF salen en inglés', async () => {

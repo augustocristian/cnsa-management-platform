@@ -54,7 +54,7 @@ export default {
   'cal.exp.zona-ok': 'Zona horaria guardada: {zona}.',
   'cal.exp.alcance': 'La exportación respeta los filtros que ves en pantalla.',
   'cal.sync.titulo': 'Sincronizar con Google Calendar',
-  'cal.sync.desc': 'Crea y mantiene tus sesiones en tu calendario principal de Google (con una marca interna para actualizarlas y borrarlas sin tocar tus otros eventos). Sólo se pide permiso para Calendar al activarlo. Se sincronizan los eventos que te corresponden por tu rol.',
+  'cal.sync.desc': 'Crea y mantiene tus sesiones en tu calendario principal de Google (con una marca interna para actualizarlas y borrarlas sin tocar tus otros eventos). Sólo se pide permiso para Calendar al activarlo. Se sincronizan tus sesiones.',
   'cal.sync.sin-sesion': 'Inicia sesión con Google para poder sincronizar.',
   'cal.sync.ventana': 'Ventana de sincronización',
   'cal.sync.ventana.30': 'Próximos 30 días',

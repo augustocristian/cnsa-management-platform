@@ -15,6 +15,9 @@
 //   sinClientId  true  -> simula que js/config.js no tiene Client ID (pantalla "Configuración necesaria")
 //   fallos       { listarClubs: 'offline'|'api', escribir: ... }  errores forzados para pruebas de resiliencia
 //
+// It also simulates what the store uses to avoid losing data: the file's monotonic `version`, revision history,
+// the cnl/backups folder, permanent deletion and test hooks (escribirAntes, corromperClub, vaciarClub, caducarSesion).
+//
 // app.js lo carga con import() dinámico sólo si el indicador está activo; en producción este módulo no se descarga.
 
 const CLAVE_ESTADO = 'cnl:test:drive';
@@ -63,18 +66,33 @@ export function instalarFakeGoogle({ auth, drive, config, opciones, almacen } = 
     if (f === 'offline') throw Object.assign(new Error('Sin conexión'), { offline: true, code: 'sin-conexion' });
     throw Object.assign(new Error('Fallo simulado de Drive'), { status: 500, code: 'desconocido' });
   };
+  let sesionCaducada = false;
+  let antesDeEscribir = null; // one-shot hook: simulates another device writing right before our write
   const requiereSesion = () => {
+    if (sesionCaducada) throw Object.assign(new Error('La sesión de Google ha caducado. Vuelve a iniciar sesión.'), { status: 401, code: 'sesion-caducada' });
     if (!auth.user) throw Object.assign(new Error('Sin sesión de Google. Inicia sesión.'), { status: 401, code: 'sesion-caducada' });
   };
 
   if (opts.demo && !Object.keys(estado.clubs).length) {
     const id = nuevoId('club');
-    estado.clubs[id] = { id, name: opts.club, doc: { version: 1, club: {}, hojas: {} }, rev: 1, modified: ahora() };
+    estado.clubs[id] = { id, name: opts.club, doc: { version: 1, club: {}, hojas: {} }, rev: 1, version: 1, revisiones: [], modified: ahora() };
     estado.demoPendiente = id;
   }
   persistir();
 
-  const meta = (c) => ({ rev: 'r' + c.rev, modifiedTime: c.modified, name: c.name });
+  const meta = (c) => ({ rev: 'r' + c.rev, modifiedTime: c.modified, name: c.name, version: c.version || c.rev });
+  // Every change to the file bumps its rev (content) and its version (any change, including renames) and leaves a revision.
+  const cambiar = (c, doc, { contenido = true } = {}) => {
+    c.version = (c.version || c.rev) + 1;
+    if (contenido) {
+      c.rev++;
+      c.doc = clon(doc);
+      delete c.docRaw;
+      (c.revisiones ||= []).push({ id: 'rev-' + c.version, modified: ahora(), doc: clon(doc) });
+      if (c.revisiones.length > 100) c.revisiones.shift();
+    }
+    c.modified = ahora();
+  };
   const clubDe = (id) => {
     const c = estado.clubs[id];
     if (!c) throw Object.assign(new Error('No se encuentra el fichero en tu Drive.'), { status: 404, code: 'no-encontrado' });
@@ -99,7 +117,11 @@ export function instalarFakeGoogle({ auth, drive, config, opciones, almacen } = 
     async findFile(name, parentId) {
       requiereSesion();
       const f = Object.values(estado.archivos).find((a) => a.name === name && (!parentId || a.parentId === parentId));
-      return f ? { id: f.id, name: f.name, rev: 'a' + f.rev, modifiedTime: f.modified } : null;
+      return f ? { id: f.id, name: f.name, rev: 'a' + f.rev, modifiedTime: f.modified, version: f.rev } : null;
+    },
+    async listFiles(parentId) {
+      requiereSesion();
+      return Object.values(estado.archivos).filter((a) => a.parentId === parentId).map((a) => ({ id: a.id, name: a.name, createdTime: a.created || a.modified, modifiedTime: a.modified }));
     },
     async upload({ name, mimeType = 'application/json', body, parentId, id, appProperties }) {
       requiereSesion(); falla('subir');
@@ -109,19 +131,42 @@ export function instalarFakeGoogle({ auth, drive, config, opciones, almacen } = 
         const a = estado.archivos[id];
         a.rev++; a.modified = ahora(); a.contenido = contenido; if (name) a.name = name;
         persistir();
-        return { id, name: a.name, rev: 'a' + a.rev };
+        return { id, name: a.name, rev: 'a' + a.rev, version: a.rev };
       }
       const nid = nuevoId('archivo');
-      estado.archivos[nid] = { id: nid, name, mimeType, parentId: parentId || await driveFalso.ensureFolder(), contenido, appProperties: appProperties || {}, rev: 1, modified: ahora() };
+      estado.archivos[nid] = { id: nid, name, mimeType, parentId: parentId || await driveFalso.ensureFolder(), contenido, appProperties: appProperties || {}, rev: 1, created: ahora(), modified: ahora() };
       persistir();
-      return { id: nid, name, rev: 'a1' };
+      return { id: nid, name, rev: 'a1', version: 1 };
     },
     async renameFile(id, name) {
+      let version = null;
       if (estado.archivos[id]) estado.archivos[id].name = name;
-      else if (estado.clubs[id]) estado.clubs[id].name = String(name).replace(/\.json$/i, '');
+      else if (estado.clubs[id]) { estado.clubs[id].name = String(name).replace(/\.json$/i, ''); cambiar(estado.clubs[id], null, { contenido: false }); version = estado.clubs[id].version; }
       persistir();
+      return { version };
     },
     async deleteFile(id) { delete estado.archivos[id]; delete estado.clubs[id]; persistir(); },
+    async eliminarDefinitivo(id) { delete estado.archivos[id]; delete estado.clubs[id]; persistir(); },
+    async leerFichero(id) {
+      requiereSesion();
+      const a = estado.archivos[id];
+      if (!a) throw Object.assign(new Error('No se encuentra el fichero en tu Drive.'), { status: 404, code: 'no-encontrado' });
+      return JSON.parse(typeof a.contenido === 'string' ? a.contenido : 'null');
+    },
+    async revisiones(id) { requiereSesion(); return (clubDe(id).revisiones || []).map((r) => ({ id: r.id, modifiedTime: r.modified })); },
+    async leerRevision(id, revId) { requiereSesion(); const r = (clubDe(id).revisiones || []).find((x) => x.id === revId); return r ? clon(r.doc) : null; },
+    async revisionPrevia(id) {
+      requiereSesion();
+      const rs = clubDe(id).revisiones || [];
+      return rs.length < 2 ? null : clon(rs[rs.length - 2].doc);
+    },
+    async borrarRevisionesAntiguas(id) {
+      const c = clubDe(id);
+      const n = Math.max(0, (c.revisiones || []).length - 1);
+      c.revisiones = (c.revisiones || []).slice(-1);
+      persistir();
+      return n;
+    },
     async listClubs() {
       requiereSesion(); falla('listarClubs');
       return Object.values(estado.clubs).map((c) => ({ id: c.id, name: c.name, url: driveFalso.fileUrl(c.id), modified: c.modified, rev: 'r' + c.rev }))
@@ -130,24 +175,26 @@ export function instalarFakeGoogle({ auth, drive, config, opciones, almacen } = 
     async createClub(nombre) {
       requiereSesion(); falla('crearClub');
       const id = nuevoId('club');
-      const c = { id, name: String(nombre), doc: { version: 1, club: {}, hojas: {} }, rev: 1, modified: ahora() };
+      const c = { id, name: String(nombre), doc: { version: 1, club: {}, hojas: {} }, rev: 1, version: 1, revisiones: [], modified: ahora() };
       estado.clubs[id] = c;
       persistir();
       return { id, name: c.name, url: driveFalso.fileUrl(id), rev: 'r1' };
     },
-    async renameClub(id, nombre) { clubDe(id).name = String(nombre); persistir(); },
+    async renameClub(id, nombre) { const c = clubDe(id); c.name = String(nombre); cambiar(c, null, { contenido: false }); persistir(); return { version: c.version }; },
     async meta(id) { requiereSesion(); falla('leer'); return meta(clubDe(id)); },
     async read(id) {
       requiereSesion(); falla('leer');
       const c = clubDe(id);
-      return { doc: clon(c.doc), rev: 'r' + c.rev, name: c.name };
+      if (c.docRaw !== undefined) throw Object.assign(new Error('El fichero del club no es un JSON válido.'), { code: 'fichero-danado', raw: c.docRaw });
+      return { doc: clon(c.doc), rev: 'r' + c.rev, version: c.version || c.rev, name: c.name };
     },
     async write(id, doc) {
       requiereSesion(); falla('escribir');
+      if (antesDeEscribir) { const f = antesDeEscribir; antesDeEscribir = null; f(); }
       const c = clubDe(id);
-      c.doc = clon(doc); c.rev++; c.modified = ahora();
+      cambiar(c, doc);
       persistir();
-      return { rev: 'r' + c.rev };
+      return { rev: 'r' + c.rev, version: c.version };
     },
     async leerPreferencias() { requiereSesion(); falla('preferencias'); return clon(estado.prefs); },
     async guardarPreferencias(obj) { requiereSesion(); falla('preferencias'); estado.prefs = clon(obj); persistir(); },
@@ -168,7 +215,7 @@ export function instalarFakeGoogle({ auth, drive, config, opciones, almacen } = 
     persistir();
     try { ls && ls.setItem(USER_KEY, JSON.stringify(auth.user)); ss && ss.setItem(TOKEN_KEY, JSON.stringify({ fake: true })); } catch (e) { /* ignorar */ }
   };
-  guardar(auth, ['enabled', 'init', 'signIn', 'signOut', 'token', 'ensureToken', 'tokenForScope', 'invalidate']);
+  guardar(auth, ['enabled', 'init', 'signIn', 'signOut', 'token', 'ensureToken', 'tokenForScope', 'invalidate', 'reconectar']);
   const userAntes = auth.user;
   Object.defineProperty(auth, 'enabled', { get: () => !opts.sinClientId, configurable: true });
   Object.assign(auth, {
@@ -195,6 +242,7 @@ export function instalarFakeGoogle({ auth, drive, config, opciones, almacen } = 
       auth.user = null;
       try { ls && ls.removeItem(USER_KEY); ss && ss.removeItem(TOKEN_KEY); } catch (e) { /* ignorar */ }
     },
+    async reconectar() { sesionCaducada = false; auth.caducada = false; return auth.user ? 'fake-token' : null; },
     token: () => (auth.user ? 'fake-token' : null),
     async ensureToken() { return auth.user ? 'fake-token' : null; },
     async tokenForScope() { return null; }, // Google Calendar no se simula
@@ -208,8 +256,18 @@ export function instalarFakeGoogle({ auth, drive, config, opciones, almacen } = 
     club: (id) => clon(estado.clubs[id] || null),
     prefs: () => clon(estado.prefs),
     archivos: () => Object.values(estado.archivos).map(clon),
-    // Simula que OTRO dispositivo cambia el fichero del club: aplica `fn(doc)` y sube la revisión.
-    editarClubExterno(id, fn) { const c = clubDe(id); const d = clon(c.doc); fn(d); c.doc = d; c.rev++; c.modified = ahora(); persistir(); },
+    // Simulates ANOTHER device changing the club file: applies `fn(doc)` and bumps the revision.
+    editarClubExterno(id, fn) { const c = clubDe(id); const d = clon(c.doc) || {}; fn(d); cambiar(c, d); persistir(); },
+    // One-shot hook: `fn` runs right before the app's next write is applied (another device writes between
+    // our metadata read and our PATCH).
+    escribirAntes(fn) { antesDeEscribir = fn; },
+    // The club file now contains text that is not JSON.
+    corromperClub(id, texto = '{ esto no es json') { const c = clubDe(id); c.docRaw = String(texto); c.rev++; c.version = (c.version || c.rev) + 1; c.modified = ahora(); persistir(); },
+    // The club file now contains valid but empty JSON ({}, null...).
+    vaciarClub(id, valor = {}) { const c = clubDe(id); cambiar(c, valor); c.doc = valor; persistir(); },
+    revisionesDe: (id) => (clubDe(id).revisiones || []).map(clon),
+    // Simulates the Google token expiring and not being renewable without a click: every Drive call returns 401.
+    caducarSesion() { sesionCaducada = true; if (auth.marcarCaducada) auth.marcarCaducada(); else auth.caducada = true; },
     // Simula otro dispositivo cambiando las preferencias.
     editarPrefsExterno(fn) { const p = clon(estado.prefs) || { version: 1, valores: {}, marcas: {} }; fn(p); estado.prefs = p; persistir(); },
     abrirSesion,
