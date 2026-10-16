@@ -1,6 +1,8 @@
-// Dominio de la planificación de piscina: lógica pura (sin DOM, sin store, sin fetch, sin i18n).
+// Pool planning domain: pure logic (no DOM, no store, no fetch, no i18n, no clock).
 // Días de la semana: 1 = lunes ... 7 = domingo. Horas "HH:MM". Calles numeradas desde 1.
 // Los conflictos se devuelven como códigos + parámetros; la presentación los traduce.
+
+import { parseFecha, diaSemana, addDias, lunesDe as lunesDeCal } from './calendario.js';
 
 export const DIAS = [1, 2, 3, 4, 5, 6, 7];
 export const LONGITUDES = [25, 50];
@@ -27,24 +29,13 @@ export function deMin(n) {
   n = Math.max(0, Math.round(Number(n) || 0));
   return String(Math.floor(n / 60)).padStart(2, '0') + ':' + String(n % 60).padStart(2, '0');
 }
-const utc = (f) => {
-  const m = /^(\d{4})-(\d{2})-(\d{2})/.exec(String(f ?? ''));
-  if (!m) return null;
-  const d = new Date(Date.UTC(+m[1], +m[2] - 1, +m[3]));
-  return d.getUTCMonth() === +m[2] - 1 ? d : null; // rechaza 2026-02-31
-};
-export const fechaValida = (f) => !!utc(f);
-export function diaDeFecha(f) {
-  const d = utc(f);
-  return d ? ((d.getUTCDay() + 6) % 7) + 1 : NaN;
-}
-export function sumarDias(f, n) {
-  const d = utc(f);
-  if (!d) return '';
-  d.setUTCDate(d.getUTCDate() + n);
-  return d.toISOString().slice(0, 10);
-}
-export const lunesDe = (f) => { const d = diaDeFecha(f); return isNaN(d) ? '' : sumarDias(f, -(d - 1)); };
+// Date arithmetic is shared with the calendar domain (one implementation of Monday-of-week, add-days, validity).
+const valida = (f) => parseFecha(f) !== null;
+export const fechaValida = valida;
+// 1 = Monday ... 7 = Sunday (NaN for an invalid date)
+export const diaDeFecha = (f) => (valida(f) ? diaSemana(String(f).slice(0, 10)) + 1 : NaN);
+export const sumarDias = (f, n) => (valida(f) ? addDias(String(f).slice(0, 10), n) : '');
+export const lunesDe = (f) => (valida(f) ? lunesDeCal(String(f).slice(0, 10)) : '');
 export const fechaDeDia = (lunes, dia) => sumarDias(lunes, dia - 1);
 
 // ---------- Normalización ----------
@@ -379,3 +370,46 @@ export function sugerirDistribucion({ piscina, dia, grupos = [], nadadores = [],
   });
   return { propuestas, sinHueco };
 }
+
+// ---------- View model helpers (pure; moved out of the view) ----------
+// Usual start time of each group according to its sessions (the most frequent one; ties resolved by the earliest). It guides the
+// distribution suggestion. sesiones: rows of Entrenamientos -> {grupoId: 'HH:MM'}
+export function preferenciasHora(sesiones = []) {
+  const cuenta = {};
+  sesiones.forEach((e) => {
+    if (!e.grupoId || !/^\d{1,2}:\d{2}$/.test(String(e.hora || ''))) return;
+    const c = (cuenta[e.grupoId] ||= {});
+    c[e.hora] = (c[e.hora] || 0) + 1;
+  });
+  return Object.fromEntries(Object.entries(cuenta).map(([g, c]) => [g, Object.entries(c).sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]))[0][0]]));
+}
+
+// Conflicts split by severity for the panel: {errores, avisos, infos}
+export function agruparConflictos(conflictos = []) {
+  return {
+    errores: conflictos.filter((c) => c.severidad === 'error'),
+    avisos: conflictos.filter((c) => c.severidad === 'aviso'),
+    infos: conflictos.filter((c) => c.severidad === 'info'),
+  };
+}
+
+// An assignment fits the grid when its lanes are inside the pool and its times are valid.
+export const cabeEnRejilla = (a, piscina) => !Number.isNaN(a.ini) && a.fin > a.ini && a.calleDesde >= 1 && a.calleHasta <= piscina.numCalles && a.calleHasta >= a.calleDesde;
+// Lanes that do not exist in the pool at all (shown apart as a problem).
+export const fueraDeCalles = (a, piscina) => !(a.calleDesde >= 1 && a.calleHasta <= piscina.numCalles && a.calleHasta >= a.calleDesde);
+
+// Grid row (0-based from the first slot) and number of rows of an assignment.
+export function posicionBloque(a, desde, intervalo) {
+  return { fila: Math.floor((a.ini - desde) / intervalo), filas: Math.max(1, Math.round((a.fin - a.ini) / intervalo)) };
+}
+
+// Is the pool open for the whole slot starting at minute m on this day?
+export function franjaAbierta(piscina, dia, m) {
+  const h = piscina.horario[dia];
+  if (!h) return false;
+  const abre = aMin(h.abre), cierra = aMin(h.cierra);
+  return !Number.isNaN(abre) && m >= abre && m + piscina.intervaloMin <= cierra;
+}
+
+// Default end of a new assignment started from an empty slot: one hour, never past the visible range.
+export const finPorDefecto = (m, hastaRango, intervalo) => Math.max(Math.min(m + 60, hastaRango), m + intervalo);

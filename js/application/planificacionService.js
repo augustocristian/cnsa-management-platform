@@ -1,6 +1,6 @@
-// Servicio de aplicación de la planificación de piscina: orquesta el dominio y la persistencia.
-// Recibe el repositorio por parámetro (cualquier objeto con list/get/upsert/remove, p. ej. el store):
-// no importa el store, ni el DOM ni fetch, así que se puede probar con un repositorio en memoria.
+// Pool planning use cases: orchestrates the domain and persistence.
+// The repository is injected (any object with list/get/upsert/remove, e.g. the store): this module imports no store, no DOM and
+// no fetch, so it can be tested with an in-memory repository.
 import * as D from '../domain/planificacion.js';
 
 export const HOJA_PISCINAS = 'Piscinas';
@@ -44,6 +44,9 @@ export function crearPlanificacionService(repo) {
       return [...set.values()].sort((a, b) => a.localeCompare(b));
     },
 
+    // Usual start time of each group according to its sessions; guides the distribution suggestion.
+    preferenciasHora: () => D.preferenciasHora(repo.list('Entrenamientos')),
+
     // ----- Piscinas -----
     // -> { ok, errores?, piscina?, recortadas, fuera }. Al reducir calles recorta las asignaciones que sobresalen
     // (si recortar) y devuelve cuántas quedan totalmente fuera de rango (siguen guardadas y se muestran como error).
@@ -63,9 +66,19 @@ export function crearPlanificacionService(repo) {
     },
     // Previsualiza el efecto de dejar la piscina con `numCalles` calles.
     efectoReducir: (piscinaId, numCalles) => D.ajustarAlReducir(repo.list(HOJA_ASIGNACIONES), piscinaId, numCalles),
+    // Deletes the pool and its assignments. -> snapshot for restaurarPiscina() (Undo) or null
     borrarPiscina(id) {
-      repo.list(HOJA_ASIGNACIONES).filter((a) => a.piscinaId === String(id)).forEach((a) => repo.remove(HOJA_ASIGNACIONES, a.id));
+      const piscina = repo.get(HOJA_PISCINAS, id);
+      if (!piscina) return null;
+      const asignaciones = repo.list(HOJA_ASIGNACIONES).filter((a) => a.piscinaId === String(id));
+      asignaciones.forEach((a) => repo.remove(HOJA_ASIGNACIONES, a.id));
       repo.remove(HOJA_PISCINAS, id);
+      return { piscina, asignaciones };
+    },
+    restaurarPiscina(snap) {
+      if (!snap) return;
+      repo.upsert(HOJA_PISCINAS, snap.piscina);
+      snap.asignaciones.forEach((a) => repo.upsert(HOJA_ASIGNACIONES, a));
     },
 
     // ----- Asignaciones -----
@@ -89,7 +102,14 @@ export function crearPlanificacionService(repo) {
       if (!a) return { ok: false, conflictos: [], inexistente: true };
       return svc.guardarAsignacion({ ...a, ...cambios, id: '' }, opts);
     },
-    borrarAsignacion(id) { repo.remove(HOJA_ASIGNACIONES, id); },
+    // Deletes an assignment. -> the removed row for restaurarAsignacion() (Undo) or null
+    borrarAsignacion(id) {
+      const fila = repo.get(HOJA_ASIGNACIONES, id);
+      if (!fila) return null;
+      repo.remove(HOJA_ASIGNACIONES, id);
+      return fila;
+    },
+    restaurarAsignacion(fila) { if (fila) repo.upsert(HOJA_ASIGNACIONES, fila); },
 
     // ----- Análisis -----
     // Conflictos globales (o los que afectan a una piscina). huecos=true añade los huecos libres (info).

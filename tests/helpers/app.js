@@ -4,7 +4,7 @@ import { setupEnv, importApp, tick } from './env.js';
 
 export { tick };
 
-export const VIEWS = ['inicio', 'nadadores', 'grupos', 'entrenamientos', 'asistencia', 'cargas', 'marcas', 'banador', 'comunicaciones', 'club'];
+export const VIEWS = ['inicio', 'nadadores', 'grupos', 'entrenamientos', 'asistencia', 'cargas', 'marcas', 'comunicaciones', 'club'];
 
 let ctxCache = null;
 
@@ -15,15 +15,15 @@ export function boot({ xlsx = false } = {}) {
 
 async function doBoot(xlsx) {
   setupEnv({ loadXlsx: true });
-  const [{ store }, { auth }, { drive }, config, ui, { instalarFakeGoogle }, { preferencias }] = await Promise.all([
-    importApp('js/store.js'), importApp('js/auth.js'), importApp('js/drive.js'), importApp('js/config.js'), importApp('js/ui.js'),
+  const [{ store }, { driveConnection: auth }, { drive }, config, ui, { instalarFakeGoogle }, { preferencias }] = await Promise.all([
+    importApp('js/store.js'), importApp('js/infrastructure/driveConnection.js'), importApp('js/drive.js'), importApp('js/config.js'), importApp('js/ui.js'),
     importApp('js/infrastructure/fakeGoogle.js'), importApp('js/preferencias.js'),
   ]);
-  ctxCache = { store, auth, drive, ui, config, instalarFakeGoogle, preferencias };
+  ctxCache = { store, auth, conexion: auth, drive, ui, config, instalarFakeGoogle, preferencias };
   return ctxCache;
 }
 
-// Estado limpio: DOM vacío, Drive simulado nuevo con sesión iniciada, un club abierto con la demo (o vacío).
+// Estado limpio: DOM vacío, Drive simulado nuevo con Drive conectado, un club abierto con la demo (o vacío).
 export async function fresh({ demo = true, xlsx = false, club = 'Club Test' } = {}) {
   await boot({ xlsx });
   const ctx = ctxCache;
@@ -34,7 +34,7 @@ export async function fresh({ demo = true, xlsx = false, club = 'Club Test' } = 
   (await importApp('js/i18n.js')).setLang('es');
   location.hash = '';
   ctx.preferencias.desconectar();
-  const fake = ctx.instalarFakeGoogle({ auth: ctx.auth, drive: ctx.drive, config: ctx.config, opciones: { sesion: true } });
+  const fake = ctx.instalarFakeGoogle({ auth: ctx.auth, drive: ctx.drive, config: ctx.config, opciones: { conectado: true } });
   await ctx.auth.init();
   const ref = await ctx.drive.createClub(club);
   await ctx.store.init(ref);

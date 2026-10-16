@@ -61,6 +61,7 @@ Then('el fichero del club en Drive no contiene al nadador {string}', async funct
 });
 
 Then('el indicador de sincronización muestra {string}', async function (texto) {
+  await this.abrirMenuCuenta();
   await this.eventually(async () => assert.equal((await this.page.locator('.status-chip .status-text').innerText()).trim(), texto));
 });
 
@@ -69,5 +70,5 @@ When('recupero la conexión', async function () {
 });
 
 When('cierro la sesión', async function () {
-  await this.page.locator('.topbar').getByRole('button', { name: 'Salir' }).click();
+  await this.desconectarDrive();
 });

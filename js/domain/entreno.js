@@ -464,3 +464,36 @@ export function horaTexto(v) {
   const m = /^(\d{1,2}):(\d{2})/.exec(String(v ?? '').trim());
   return m ? m[1].padStart(2, '0') + ':' + m[2] : String(v ?? '');
 }
+
+// ---------- Estado del borrador (cambios sin guardar) ----------
+const CAMPOS_FIRMA = ['set', 'orden', 'tiempoMin', 'objetivo', 'bloque', 'series', 'distancia', 'salida', 'ejercicio', 'material', 'notas', 'componentes', 'estilo'];
+
+// Texto estable que identifica el contenido de un plan: ignora ids, filas vacías y diferencias de formato (3 vs '3').
+// Dos borradores con la misma firma son el mismo plan, así que "hay cambios sin guardar" = la firma difiere de la guardada.
+export function firmaPlan({ tipoSesion = '', materialDia = '', notasGenerales = '', lineas = [] } = {}) {
+  const filas = renumerar(lineas).filter((l) => !filaVacia(l)).map((l) => {
+    const s = serializarLinea(l);
+    return CAMPOS_FIRMA.map((c) => s[c]);
+  });
+  return JSON.stringify([String(tipoSesion ?? '').trim(), String(materialDia ?? '').trim(), String(notasGenerales ?? '').trim(), filas]);
+}
+export const planCambiado = (guardado, actual) => firmaPlan(guardado) !== firmaPlan(actual);
+
+// ¿Ninguna fila tiene contenido? (un PDF de ese plan saldría en blanco)
+export const planVacio = (lineas) => (lineas || []).every((l) => filaVacia(normalizarLinea(l)));
+
+// Totales por set sobre todas las filas del borrador (también las vacías) -> [{ set, metros, tiempoMin }]
+export function totalesPorSet(lineas) {
+  return agruparSets(lineas || []).map((s) => ({ set: s.set, metros: s.distSet, tiempoMin: s.tiempoMin }));
+}
+
+// Resumen de una fila para sus chips: qué campos de la segunda línea tienen valor.
+// -> { salida, material, tiempoMin, objetivo, contenidos (n), mas: bloque o notas con texto }
+export function resumenFila(l) {
+  const n = normalizarLinea(l);
+  const txt = (v) => String(v ?? '').trim();
+  return {
+    salida: txt(n.salida), material: txt(n.material), tiempoMin: txt(n.tiempoMin), objetivo: txt(n.objetivo),
+    contenidos: n.componentes.length + n.estilos.length, mas: !!(txt(n.bloque) || txt(n.notas)),
+  };
+}

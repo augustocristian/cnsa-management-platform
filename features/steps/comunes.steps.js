@@ -55,7 +55,7 @@ Given('que estoy en el módulo {string}', async function (m) { await this.irA(ru
 When('abro el módulo {string}', async function (m) { await this.irA(ruta(m)); });
 
 When('pulso {string} en el menú', async function (m) {
-  await this.page.locator(`.nav-item[data-route="${ruta(m)}"]`).click();
+  await this.pulsarEnMenu(ruta(m));
 });
 
 When('intento abrir directamente el módulo {string}', async function (m) {
@@ -64,11 +64,11 @@ When('intento abrir directamente el módulo {string}', async function (m) {
 });
 
 Then('estoy en el módulo {string}', async function (m) {
-  await this.page.locator(`.nav-item[data-route="${ruta(m)}"].active`).waitFor({ timeout: this.timeout });
+  await this.esperarRutaActiva(ruta(m));
 });
 
 Then('la pantalla {string} se muestra completa y sin errores', async function (m) {
-  await this.page.locator(`.nav-item[data-route="${ruta(m)}"].active`).waitFor({ timeout: this.timeout });
+  await this.esperarRutaActiva(ruta(m));
   await this.page.locator('#view .loading').waitFor({ state: 'detached', timeout: this.timeout });
   await this.noVer(this.page.getByText('Error al mostrar la vista'));
   await this.noVer(this.page.getByText('Próximamente'));

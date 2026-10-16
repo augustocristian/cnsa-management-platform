@@ -116,14 +116,14 @@ test('servicio: una caché corrupta se ignora sin romper', () => {
   almacen.setItem('cnl:prefs', '{no json');
   const s = crearPreferencias({ almacen });
   assert.equal(s.get('idioma', 'es'), 'es');
-  almacen.setItem('cnl:prefs', JSON.stringify({ email: 5, prefs: { valores: { idioma: 'xx' } }, pendientes: 'mal' }));
+  almacen.setItem('cnl:prefs', JSON.stringify({ prefs: { valores: { idioma: 'xx' } }, pendientes: 'mal' }));
   assert.equal(crearPreferencias({ almacen }).get('idioma', 'es'), 'es');
 });
 
 // ---------- servicio: debounce ----------
 test('servicio: debounce — varios cambios seguidos producen UNA escritura tras la espera', async () => {
   const { svc, rj, rem } = nuevo();
-  await svc.conectar({ remoto: rem.puerto, email: 'a@b.c' });
+  await svc.conectar({ remoto: rem.puerto });
   const escritasIniciales = rem.escrituras;
   svc.set('idioma', 'en');
   svc.set('calendario.vista', 'semana');
@@ -141,7 +141,7 @@ test('servicio: debounce — varios cambios seguidos producen UNA escritura tras
 
 test('servicio: flush() sube de inmediato sin esperar al debounce', async () => {
   const { svc, rem } = nuevo();
-  await svc.conectar({ remoto: rem.puerto, email: 'a@b.c' });
+  await svc.conectar({ remoto: rem.puerto });
   svc.set('idioma', 'it');
   await svc.flush();
   assert.equal(rem.dato.valores.idioma, 'it');
@@ -152,7 +152,7 @@ test('servicio: sin sesión nada se sube; al conectar se sincroniza lo elegido a
   svc.set('idioma', 'en'); // elegido en la pantalla de acceso
   assert.deepEqual(rj.pendientes(), [], 'sin sesión no hay temporizador');
   assert.equal(svc.estado, 'sin-sesion');
-  await svc.conectar({ remoto: rem.puerto, email: 'a@b.c' });
+  await svc.conectar({ remoto: rem.puerto });
   assert.equal(rem.dato.valores.idioma, 'en');
   assert.equal(svc.estado, 'sincronizado');
 });
@@ -165,7 +165,7 @@ test('servicio: lo remoto más reciente gana, se aplica y se notifica; lo local 
   svc.set('ultimoClub', 'LOC'); // más reciente que la remota (1)
   const evts = [];
   svc.on((e) => { if (e.tipo === 'cambio') evts.push(e); });
-  await svc.conectar({ remoto: rem.puerto, email: 'a@b.c' });
+  await svc.conectar({ remoto: rem.puerto });
   assert.equal(svc.get('idioma'), 'en', 'remoto más reciente');
   assert.equal(svc.get('ultimoClub'), 'LOC', 'local más reciente');
   assert.deepEqual(evts.map((e) => [e.origen, e.claves]), [['remoto', ['idioma']]]);
@@ -176,7 +176,7 @@ test('servicio: lo remoto más reciente gana, se aplica y se notifica; lo local 
 test('servicio: dos dispositivos que cambian claves distintas no se pisan', async () => {
   const remoto = { version: 1, valores: { idioma: 'en' }, marcas: { idioma: 1 } };
   const { svc, rem, rj } = nuevo({ remoto });
-  await svc.conectar({ remoto: rem.puerto, email: 'a@b.c' });
+  await svc.conectar({ remoto: rem.puerto });
   // otro dispositivo cambia la vista del calendario
   rem.dato = { version: 1, valores: { idioma: 'en', 'calendario.vista': 'agenda' }, marcas: { idioma: 1, 'calendario.vista': 99999999 } };
   svc.set('ultimoClub', 'X');
@@ -189,7 +189,7 @@ test('servicio: dos dispositivos que cambian claves distintas no se pisan', asyn
 test('servicio: un fichero remoto corrupto o de versión futura no se degrada ni pierde claves', async () => {
   const futuro = { version: 7, valores: { idioma: 'en', cosaNueva: { x: 1 } }, marcas: { idioma: 1, cosaNueva: 1 } };
   const a = nuevo({ remoto: futuro });
-  await a.svc.conectar({ remoto: a.rem.puerto, email: 'a@b.c' });
+  await a.svc.conectar({ remoto: a.rem.puerto });
   a.svc.set('calendario.vista', 'mes');
   await a.svc.flush();
   assert.equal(a.rem.dato.version, 7);
@@ -198,38 +198,39 @@ test('servicio: un fichero remoto corrupto o de versión futura no se degrada ni
 
   const b = nuevo({ remoto: 'basura {{' });
   b.svc.set('idioma', 'it');
-  await b.svc.conectar({ remoto: b.rem.puerto, email: 'a@b.c' });
+  await b.svc.conectar({ remoto: b.rem.puerto });
   assert.equal(b.rem.dato.valores.idioma, 'it', 'se reescribe un fichero ilegible');
 });
 
-test('servicio: cuenta distinta -> se descarta la caché de la anterior', async () => {
+test('servicio: no guarda ninguna identidad (ni e-mail ni nombre) en la caché local', async () => {
   const a = nuevo();
-  await a.svc.conectar({ remoto: a.rem.puerto, email: 'ana@x.com' });
-  a.svc.set('ultimoClub', 'CLUB-ANA');
+  await a.svc.conectar({ remoto: a.rem.puerto });
+  a.svc.set('ultimoClub', 'CLUB-1');
   await a.svc.flush();
-  const b = crearPreferencias({ almacen: a.almacen, temporizador: a.rj.temporizador, ahora: a.rj.ahora });
-  const remB = remotoSim(null);
-  await b.conectar({ remoto: remB.puerto, email: 'luis@x.com' });
-  assert.equal(b.get('ultimoClub', null), null);
-  assert.equal(remB.dato === null || !remB.dato.valores.ultimoClub, true, 'no se filtra nada de la otra cuenta');
+  const guardado = a.almacen.getItem('cnl:prefs');
+  assert.ok(guardado, 'la caché existe');
+  assert.deepEqual(Object.keys(JSON.parse(guardado)).sort(), ['pendientes', 'prefs']);
+  assert.equal(a.svc.email, undefined);
+  a.svc.desconectar();
+  assert.equal(a.almacen.getItem('cnl:prefs'), null, 'al desconectar Drive la caché local se borra');
 });
 
 test('servicio: migra las claves antiguas de localStorage sólo si Drive no las tiene', async () => {
-  const legado = () => ({ idioma: 'it', 'calendario.vista': 'semana', tutorial: { done: [1], current: 2 }, 'calSync.cnl:cal-sync:c1:a@b.c': { items: { e1: { gid: 'g' } }, ultima: null } });
+  const legado = () => ({ idioma: 'it', 'calendario.vista': 'semana', tutorial: { done: [1], current: 2 }, 'calSync.cnl:cal-sync:c1': { items: { e1: { gid: 'g' } }, ultima: null } });
   const remoto = { version: 1, valores: { idioma: 'en' }, marcas: { idioma: 5 } };
   const { svc, rem } = nuevo({ remoto, legado });
-  await svc.conectar({ remoto: rem.puerto, email: 'a@b.c' });
+  await svc.conectar({ remoto: rem.puerto });
   assert.equal(svc.get('idioma'), 'en', 'lo de Drive manda sobre el espejo antiguo');
   assert.equal(svc.get('calendario.vista'), 'semana');
   assert.deepEqual(svc.get('tutorial'), { done: [1], current: 2 });
   assert.equal(rem.dato.valores['calendario.vista'], 'semana', 'y se sube a Drive');
-  assert.ok(rem.dato.valores['calSync.cnl:cal-sync:c1:a@b.c'].items.e1);
+  assert.ok(rem.dato.valores['calSync.cnl:cal-sync:c1'].items.e1);
 });
 
 // ---------- servicio: fallos de red ----------
 test('servicio: fallo de red -> estado offline, los cambios quedan en la cola y se reintentan', async () => {
   const { svc, rem, rj, almacen } = nuevo();
-  await svc.conectar({ remoto: rem.puerto, email: 'a@b.c' });
+  await svc.conectar({ remoto: rem.puerto });
   rem.fallo = offline();
   svc.set('idioma', 'en');
   await rj.avanza();
@@ -247,7 +248,7 @@ test('servicio: fallo de red -> estado offline, los cambios quedan en la cola y 
 
 test('servicio: un error del servidor (no de red) deja estado error y conserva la cola', async () => {
   const { svc, rem, rj } = nuevo();
-  await svc.conectar({ remoto: rem.puerto, email: 'a@b.c' });
+  await svc.conectar({ remoto: rem.puerto });
   rem.fallo = Object.assign(new Error('500'), { status: 500 });
   svc.set('idioma', 'it');
   const r = await svc.flush();
@@ -263,7 +264,7 @@ test('servicio: un error del servidor (no de red) deja estado error y conserva l
 test('servicio: sin conexión no se llama a Drive; al volver la red se sube la cola', async () => {
   let enLinea = true;
   const { svc, rem } = nuevo({ enLinea: () => enLinea });
-  await svc.conectar({ remoto: rem.puerto, email: 'a@b.c' });
+  await svc.conectar({ remoto: rem.puerto });
   const lecturas = rem.lecturas;
   enLinea = false;
   svc.set('idioma', 'en');
@@ -278,7 +279,7 @@ test('servicio: sin conexión no se llama a Drive; al volver la red se sube la c
 
 test('servicio: un cambio hecho mientras se sube sigue pendiente', async () => {
   const { svc, rem } = nuevo();
-  await svc.conectar({ remoto: rem.puerto, email: 'a@b.c' });
+  await svc.conectar({ remoto: rem.puerto });
   const escribir = rem.puerto.escribir;
   rem.puerto.escribir = async (o) => { svc.set('ultimoClub', 'durante'); await escribir(o); };
   svc.set('idioma', 'en');
@@ -294,7 +295,7 @@ test('servicio: un cambio hecho mientras se sube sigue pendiente', async () => {
 // ---------- servicio: varios ----------
 test('servicio: desconectar() corta la sincronización y borra la caché de la cuenta', async () => {
   const { svc, rem, almacen } = nuevo();
-  await svc.conectar({ remoto: rem.puerto, email: 'a@b.c' });
+  await svc.conectar({ remoto: rem.puerto });
   svc.set('idioma', 'it');
   svc.desconectar();
   assert.equal(svc.estado, 'sin-sesion');
@@ -305,10 +306,10 @@ test('servicio: desconectar() corta la sincronización y borra la caché de la c
 test('servicio: comoAlmacenamiento hace de "storage" (JSON ida y vuelta) sobre un prefijo', () => {
   const { svc } = nuevo();
   const st = svc.comoAlmacenamiento(P.CLAVES.calSync);
-  assert.equal(st.getItem('cnl:cal-sync:c1:a@b.c'), null);
-  st.setItem('cnl:cal-sync:c1:a@b.c', JSON.stringify({ items: { e1: { gid: 'g1' } }, ultima: null }));
-  assert.deepEqual(JSON.parse(st.getItem('cnl:cal-sync:c1:a@b.c')).items.e1, { gid: 'g1' });
-  assert.deepEqual(svc.pendientes, ['calSync.cnl:cal-sync:c1:a@b.c']);
+  assert.equal(st.getItem('cnl:cal-sync:c1'), null);
+  st.setItem('cnl:cal-sync:c1', JSON.stringify({ items: { e1: { gid: 'g1' } }, ultima: null }));
+  assert.deepEqual(JSON.parse(st.getItem('cnl:cal-sync:c1')).items.e1, { gid: 'g1' });
+  assert.deepEqual(svc.pendientes, ['calSync.cnl:cal-sync:c1']);
   st.setItem('x', 'no es json');
   assert.equal(st.getItem('x'), null);
 });

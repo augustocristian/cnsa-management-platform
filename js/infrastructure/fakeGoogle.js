@@ -1,19 +1,22 @@
 // HERRAMIENTA DE PRUEBAS. No forma parte del producto y el usuario nunca la ve.
 //
-// Adaptador en memoria que sustituye a Google (inicio de sesión + Drive) para poder probar la app sin cuenta real:
-// implementa las mismas interfaces que js/auth.js y js/drive.js (sesión simulada, carpeta cnl, ficheros de club,
-// preferencias.json, subida de ficheros) con un "Drive" que vive en memoria y se espeja en localStorage
+// Adaptador en memoria que sustituye a Google (conexión con Drive + Drive) para poder probar la app sin cuenta real:
+// implementa las mismas interfaces que js/infrastructure/driveConnection.js y js/drive.js (conexión simulada, carpeta cnl,
+// ficheros de club, preferencias.json, subida de ficheros) con un "Drive" que vive en memoria y se espeja en localStorage
 // ('cnl:test:drive') sólo para sobrevivir a una recarga de página dentro de la misma prueba.
+// No hay usuario ni identidad: la conexión es sólo una autorización (bandera 'cnl:drive-auth', igual que la real).
 //
 // Activación (únicamente así):
 //   localStorage['cnl:test'] = '1'   o   window.__CNL_TEST__ = true | {opciones}
 // Opciones (objeto en window.__CNL_TEST__ o JSON en localStorage['cnl:test:opts']):
-//   sesion       true  -> arranca con la sesión ya iniciada (una sola vez por Drive simulado)
-//   usuario      email de la cuenta simulada (por defecto entrenador@club.test)
-//   demo         true  -> el Drive simulado ya contiene un club con datos de demostración (store.seedDemo)
-//   club         nombre de ese club de demostración (por defecto "Club Natación Lugones")
-//   sinClientId  true  -> simula que js/config.js no tiene Client ID (pantalla "Configuración necesaria")
-//   fallos       { listarClubs: 'offline'|'api', escribir: ... }  errores forzados para pruebas de resiliencia
+//   conectado      true  -> arranca con Google Drive ya conectado (una sola vez por Drive simulado). Alias antiguo: sesion
+//   errorConexion  código de error ('popup-cerrado', 'acceso-denegado'...) que lanza connect() en modo interactivo. Alias: errorLogin
+//   demo           true  -> el Drive simulado ya contiene un club con datos de demostración (store.seedDemo). NO es el modo demo
+//                           del producto (js/infrastructure/demoStorage.js): es un Drive de pruebas con un club de ejemplo.
+//   club           nombre de ese club de demostración (por defecto "Club Natación Lugones")
+//   sinClientId    true  -> simula que js/config.js no tiene Client ID (pantalla "Configuración necesaria")
+//   fallos         { listarClubs: 'offline'|'api', escribir: ... }  errores forzados para pruebas de resiliencia
+// La opción antigua `usuario` ya no existe (no hay identidad) y se ignora.
 //
 // It also simulates what the store uses to avoid losing data: the file's monotonic `version`, revision history,
 // the cnl/backups folder, permanent deletion and test hooks (escribirAntes, corromperClub, vaciarClub, caducarSesion).
@@ -22,10 +25,19 @@
 
 const CLAVE_ESTADO = 'cnl:test:drive';
 const CLAVE_OPCIONES = 'cnl:test:opts';
-const USER_KEY = 'cnl:user';
-const TOKEN_KEY = 'cnl:token';
+const AUTH_FLAG_KEY = 'cnl:drive-auth'; // same flag as the real connection: authorization only, no identity
 
 const clon = (x) => (x === undefined ? undefined : JSON.parse(JSON.stringify(x)));
+
+// Legacy names (sesion, errorLogin) still work; the removed `usuario` option is ignored (there is no identity).
+function normalizarOpciones(o = {}) {
+  const { sesion, errorLogin, usuario, nombreUsuario, ...resto } = o; // eslint-disable-line no-unused-vars
+  return {
+    demo: false, club: 'Club Natación Lugones', sinClientId: false, fallos: {}, ...resto,
+    conectado: resto.conectado ?? sesion ?? false,
+    errorConexion: resto.errorConexion ?? errorLogin,
+  };
+}
 
 // -> opciones normalizadas si el modo de pruebas está activo; null si no.
 export function leerOpciones(entorno = globalThis) {
@@ -38,25 +50,23 @@ export function leerOpciones(entorno = globalThis) {
   let o = {};
   try { o = JSON.parse((ls && ls.getItem(CLAVE_OPCIONES)) || '{}') || {}; } catch (e) { o = {}; }
   if (flag && typeof flag === 'object') o = { ...o, ...flag };
-  return {
-    sesion: false, usuario: 'entrenador@club.test', nombreUsuario: 'Entrenador de prueba', demo: false,
-    club: 'Club Natación Lugones', sinClientId: false, fallos: {}, ...o,
-  };
+  return normalizarOpciones(o);
 }
 
-// Instala el adaptador sobre los singletons `auth` y `drive` (sustituye sus métodos).
+// Instala el adaptador sobre los singletons de conexión (`conexion`, antes `auth`) y `drive` (sustituye sus métodos).
 // Devuelve un objeto de inspección/control (también en window.__CNL_FAKE__).
-export function instalarFakeGoogle({ auth, drive, config, opciones, almacen } = {}) {
-  const opts = { sesion: false, usuario: 'entrenador@club.test', nombreUsuario: 'Entrenador de prueba', demo: false, club: 'Club Natación Lugones', sinClientId: false, fallos: {}, ...opciones };
+export function instalarFakeGoogle({ auth: authParam, conexion, drive, config, opciones, almacen } = {}) {
+  const auth = conexion || authParam;
+  const opts = normalizarOpciones(opciones);
   let ls = almacen;
   if (ls === undefined) { try { ls = globalThis.localStorage || null; } catch (e) { ls = null; } }
-  let ss = null;
-  try { ss = globalThis.sessionStorage || null; } catch (e) { ss = null; }
+  let conectado = false; // simulated Drive connection (authorization only)
 
   // ---- "Drive" en memoria ----
   let estado = null;
   try { estado = ls && JSON.parse(ls.getItem(CLAVE_ESTADO) || 'null'); } catch (e) { estado = null; }
-  if (!estado || typeof estado !== 'object') estado = { clubs: {}, prefs: null, archivos: {}, carpetas: {}, seq: 0, sesionIniciada: false, demoSembrado: {} };
+  const estadoVacio = () => ({ clubs: {}, prefs: null, archivos: {}, carpetas: {}, seq: 0, yaConectado: false, demoSembrado: {} });
+  if (!estado || typeof estado !== 'object') estado = estadoVacio();
   const persistir = () => { if (ls) { try { ls.setItem(CLAVE_ESTADO, JSON.stringify(estado)); } catch (e) { /* ignorar */ } } };
   const nuevoId = (p) => p + '-' + (++estado.seq);
   const ahora = () => new Date().toISOString();
@@ -69,8 +79,8 @@ export function instalarFakeGoogle({ auth, drive, config, opciones, almacen } = 
   let sesionCaducada = false;
   let antesDeEscribir = null; // one-shot hook: simulates another device writing right before our write
   const requiereSesion = () => {
-    if (sesionCaducada) throw Object.assign(new Error('La sesión de Google ha caducado. Vuelve a iniciar sesión.'), { status: 401, code: 'sesion-caducada' });
-    if (!auth.user) throw Object.assign(new Error('Sin sesión de Google. Inicia sesión.'), { status: 401, code: 'sesion-caducada' });
+    if (sesionCaducada) throw Object.assign(new Error('La conexión con Google Drive ha caducado. Vuelve a conectar.'), { status: 401, code: 'sesion-caducada' });
+    if (!conectado) throw Object.assign(new Error('Google Drive no está conectado. Conéctalo de nuevo.'), { status: 401, code: 'sesion-caducada' });
   };
 
   if (opts.demo && !Object.keys(estado.clubs).length) {
@@ -207,44 +217,53 @@ export function instalarFakeGoogle({ auth, drive, config, opciones, almacen } = 
   Object.assign(drive, driveFalso);
   Object.defineProperty(drive, 'preferencias', { get: () => ({ leer: () => drive.leerPreferencias(), escribir: (o) => drive.guardarPreferencias(o) }), configurable: true });
 
-  // ---- Sesión simulada: misma interfaz que js/auth.js ----
-  const usuarioSimulado = (email) => ({ email, name: opts.nombreUsuario, picture: '' });
-  const abrirSesion = (email) => {
-    auth.user = usuarioSimulado(email || opts.usuario);
-    estado.sesionIniciada = true;
+  // ---- Conexión simulada: misma interfaz que js/infrastructure/driveConnection.js ----
+  const abrirConexion = () => {
+    conectado = true;
+    estado.yaConectado = true;
     persistir();
-    try { ls && ls.setItem(USER_KEY, JSON.stringify(auth.user)); ss && ss.setItem(TOKEN_KEY, JSON.stringify({ fake: true })); } catch (e) { /* ignorar */ }
+    try { ls && ls.setItem(AUTH_FLAG_KEY, '1'); } catch (e) { /* ignorar */ }
   };
-  guardar(auth, ['enabled', 'init', 'signIn', 'signOut', 'token', 'ensureToken', 'tokenForScope', 'invalidate', 'reconectar']);
-  const userAntes = auth.user;
+  guardar(auth, ['enabled', 'init', 'isConnected', 'connect', 'disconnect', 'token', 'ensureToken', 'tokenForScope', 'invalidate']);
+  const expiradoAntes = auth.expired;
   Object.defineProperty(auth, 'enabled', { get: () => !opts.sinClientId, configurable: true });
   Object.assign(auth, {
     async init() {
-      auth.user = null;
-      let guardado = null;
-      try { guardado = ls && JSON.parse(ls.getItem(USER_KEY) || 'null'); } catch (e) { guardado = null; }
-      const fakeToken = ss && ss.getItem(TOKEN_KEY);
-      if (guardado && fakeToken) auth.user = guardado;
-      else if (opts.sesion && !estado.sesionIniciada && !opts.sinClientId) abrirSesion(opts.usuario);
+      conectado = false;
+      if (opts.sinClientId) return;
+      let marca = false;
+      try { marca = !!ls && ls.getItem(AUTH_FLAG_KEY) === '1'; } catch (e) { marca = false; }
+      if (marca) conectado = true; // silent reconnect: the flag is all that is remembered
+      else if (opts.conectado && !estado.yaConectado) abrirConexion();
     },
-    async signIn({ clientId } = {}) {
+    isConnected: () => conectado,
+    async connect({ interactive = true, clientId } = {}) {
       if (opts.sinClientId) {
-        if (!clientId) throw Object.assign(new Error('Falta el Client ID'), { code: 'sin-client-id' });
+        if (!clientId) {
+          if (!interactive) return false;
+          throw Object.assign(new Error('Falta el Client ID'), { code: 'sin-client-id' });
+        }
         if (opts.clientIdInvalido) throw Object.assign(new Error('origin_mismatch'), { code: 'origen-no-autorizado', origin: location.origin });
         opts.sinClientId = false;
         try { config && config.setClientId && config.setClientId(clientId); } catch (e) { /* ignorar */ }
       }
-      if (opts.errorLogin) throw Object.assign(new Error(opts.errorLogin), { code: opts.errorLogin, origin: location.origin });
-      abrirSesion(opts.usuario);
-      return auth.user;
+      if (opts.errorConexion) {
+        if (!interactive) return false;
+        throw Object.assign(new Error(opts.errorConexion), { code: opts.errorConexion, origin: location.origin });
+      }
+      if (!interactive && !conectado) return false;
+      sesionCaducada = false;
+      auth.expired = false;
+      abrirConexion();
+      return true;
     },
-    signOut() {
-      auth.user = null;
-      try { ls && ls.removeItem(USER_KEY); ss && ss.removeItem(TOKEN_KEY); } catch (e) { /* ignorar */ }
+    disconnect() {
+      conectado = false;
+      auth.expired = false;
+      try { ls && ls.removeItem(AUTH_FLAG_KEY); } catch (e) { /* ignorar */ }
     },
-    async reconectar() { sesionCaducada = false; auth.caducada = false; return auth.user ? 'fake-token' : null; },
-    token: () => (auth.user ? 'fake-token' : null),
-    async ensureToken() { return auth.user ? 'fake-token' : null; },
+    token: () => (conectado ? 'fake-token' : null),
+    async ensureToken() { return conectado ? 'fake-token' : null; },
     async tokenForScope() { return null; }, // Google Calendar no se simula
     invalidate() {},
   });
@@ -266,11 +285,12 @@ export function instalarFakeGoogle({ auth, drive, config, opciones, almacen } = 
     // The club file now contains valid but empty JSON ({}, null...).
     vaciarClub(id, valor = {}) { const c = clubDe(id); cambiar(c, valor); c.doc = valor; persistir(); },
     revisionesDe: (id) => (clubDe(id).revisiones || []).map(clon),
-    // Simulates the Google token expiring and not being renewable without a click: every Drive call returns 401.
-    caducarSesion() { sesionCaducada = true; if (auth.marcarCaducada) auth.marcarCaducada(); else auth.caducada = true; },
+    // Simulates the Drive connection expiring (token not renewable without a click): every Drive call returns 401.
+    caducarSesion() { sesionCaducada = true; if (auth.markExpired) auth.markExpired(); else auth.expired = true; },
     // Simula otro dispositivo cambiando las preferencias.
     editarPrefsExterno(fn) { const p = clon(estado.prefs) || { version: 1, valores: {}, marcas: {} }; fn(p); estado.prefs = p; persistir(); },
-    abrirSesion,
+    // Connects Drive from the test side (no click needed).
+    conectar: abrirConexion,
     // Tras abrir un club: siembra los datos de demostración una sola vez (store.seedDemo).
     despuesDeAbrirClub(store) {
       const ref = store.clubRef;
@@ -281,14 +301,14 @@ export function instalarFakeGoogle({ auth, drive, config, opciones, almacen } = 
       store.seedDemo();
       return true;
     },
-    // Quita el adaptador: vuelven los métodos reales de auth y drive.
+    // Quita el adaptador: vuelven los métodos reales de la conexión y de drive.
     desinstalar() {
       originales.reverse().forEach(([obj, k, d]) => { if (d) Object.defineProperty(obj, k, d); else delete obj[k]; });
-      auth.user = userAntes;
+      auth.expired = expiradoAntes;
       try { delete globalThis.__CNL_FAKE__; } catch (e) { /* ignorar */ }
     },
-    // Borra el Drive simulado (nueva cuenta, sin nada).
-    vaciar() { estado = { clubs: {}, prefs: null, archivos: {}, carpetas: {}, seq: 0, sesionIniciada: false, demoSembrado: {} }; persistir(); },
+    // Borra el Drive simulado (un Drive nuevo, sin nada).
+    vaciar() { estado = estadoVacio(); persistir(); },
   };
   try { globalThis.__CNL_FAKE__ = control; } catch (e) { /* ignorar */ }
   return control;

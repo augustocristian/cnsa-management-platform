@@ -119,7 +119,6 @@ The calendar has **Month / Week / Agenda** views, a colour per group, and filter
 | <img src="docs/screenshots/escritorio-grupos.png" width="620" alt="Training groups and their swimmers"> | <img src="docs/screenshots/movil-grupos.png" width="200" alt="Mobile training groups"> |
 | <img src="docs/screenshots/escritorio-marcas.png" width="620" alt="Personal bests per event and pool length"> | <img src="docs/screenshots/movil-marcas.png" width="200" alt="Mobile personal bests"> |
 | <img src="docs/screenshots/escritorio-marcas-evolucion.png" width="620" alt="Evolution chart of a swimmer in one event and the history of times"> | <img src="docs/screenshots/movil-marcas-evolucion.png" width="200" alt="Mobile evolution chart of a swimmer"> |
-| <img src="docs/screenshots/escritorio-banador.png" width="620" alt="Swimsuit and kit control by size and delivery status"> | <img src="docs/screenshots/movil-banador.png" width="200" alt="Mobile swimsuit control"> |
 | <img src="docs/screenshots/escritorio-comunicaciones.png" width="620" alt="Notices and notes for the whole club or for one group"> | <img src="docs/screenshots/movil-comunicaciones.png" width="200" alt="Mobile notices and notes"> |
 
 ### 8. Settings and tutorial
@@ -158,7 +157,7 @@ The language is chosen from the selector in the header and saved in your Drive p
 | **Attendance** | Take attendance from your phone with one tap; history and percentage per swimmer |
 | **Loads** | Metres per training content (predefined catalogue of intensities and specific work, plus your own), optional session, RPE and minimum/maximum targets with alerts |
 | **Personal bests** | Times mm:ss.cc, best times and evolution per event (25 m / 50 m) |
-| **Swimsuit** | Delivery control of swimsuit/kit by size and status |
+| **Swimsuit-aware marks** | A club catalogue of swimsuits (training suits and competition fast skins, with brand and model); each time can record the suit it was set with, and the times can be filtered by suit type, brand and model |
 | **Notices & notes** | Your own notices and notes for the whole club or per group, saved in your Drive; copy the text to pass it on through your usual channel (the app sends nothing to anyone) |
 | **Settings** | Club name, motto, logo and colours; season categories; training contents; where the data lives in Drive; Excel backup (export, import and save to `cnl/`); preferences; switch club |
 
@@ -216,7 +215,7 @@ index.html · manifest.webmanifest · sw.js
 css/  tokens.css app.css components.css
 js/  app.js router.js ui.js store.js auth.js drive.js preferencias.js schema.js config.js theme.js i18n.js
 js/domain/ (pure logic)  js/application/ (services)  js/infrastructure/ (external APIs; fakeGoogle.js = test tool)
-js/views/  acceso (login, wizard, configuration needed) inicio nadadores grupos entrenamientos planificacion calendario asistencia cargas marcas banador comunicaciones club tutorial
+js/views/  acceso (login, wizard, configuration needed) inicio nadadores grupos entrenamientos planificacion calendario asistencia cargas marcas comunicaciones club tutorial
 vendor/  xlsx.full.min.js  jspdf.umd.min.js  jspdf.plugin.autotable.min.js   (generated from npm; jsPDF is loaded lazily, only when a PDF is requested)
 scripts/  serve.mjs check.mjs e2e.mjs capturas.mjs ...
 ```

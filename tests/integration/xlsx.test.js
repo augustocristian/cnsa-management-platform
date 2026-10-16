@@ -6,7 +6,7 @@ let c;
 const test = (name, fn) => base(name, async (t) => { c = await fresh(); return fn(t); });
 
 const snapshot = (store) => JSON.parse(JSON.stringify(Object.fromEntries(
-  ['Nadadores', 'Grupos', 'Entrenamientos', 'Asistencia', 'Cargas', 'Marcas', 'Comunicaciones', 'ObjetivosCarga', 'Banador']
+  ['Nadadores', 'Grupos', 'Entrenamientos', 'Asistencia', 'Cargas', 'Marcas', 'Comunicaciones', 'ObjetivosCarga', 'Banadores']
     .map((s) => [s, store.list(s)]))));
 
 test('exportXlsx genera un libro con una hoja por entidad y cabeceras exactas', async () => {

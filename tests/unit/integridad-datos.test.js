@@ -165,11 +165,10 @@ test('merge: orphans of a deleted parent are removed (loads, attendance, times, 
   local.db.Nadadores = base.db.Nadadores;
   local.db.Cargas = con('Cargas', [{ id: 'c1', nadadorId: 'n1', metros: 100 }, { id: 'c2', nadadorId: 'n1', metros: 50 }]).db.Cargas;
   local.db.Marcas = con('Marcas', [{ id: 'm1', nadadorId: 'n1', tiempoMs: 30000 }]).db.Marcas;
-  local.db.Banador = con('Banador', [{ id: 'b1', nadadorId: 'n1' }]).db.Banador;
   local.db.Asistencia = con('Asistencia', [{ id: 'a1', nadadorId: 'n1', entrenamientoId: 'e9' }]).db.Asistencia;
   const m = mergeData(base, local, remote);
   assert.deepEqual(m.db.Nadadores, []);
-  for (const h of ['Cargas', 'Marcas', 'Banador', 'Asistencia']) assert.deepEqual(m.db[h], [], h + ' has no orphans');
+  for (const h of ['Cargas', 'Marcas', 'Asistencia']) assert.deepEqual(m.db[h], [], h + ' has no orphans');
   assert.ok(m.meta.lapidas.Cargas.c2, 'removed orphans also leave a tombstone');
 });
 

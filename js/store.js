@@ -8,6 +8,7 @@ import { temporadaDemo } from './domain/temporada.js';
 import { categoriaDe, temporadaDe, etiquetaTemporada } from './domain/categorias.js';
 import { drive, nombreBackup } from './drive.js';
 import { cache } from './cache.js';
+import { demoStorage, DEMO_CACHE_PREFIX } from './infrastructure/demoStorage.js'; // demo mode: local adapter + namespace of its mirror ('cnl:demo:club:')
 import { loadXLSX } from './lazy.js';
 import { validarFila, errorValidacion } from './domain/validacion.js';
 import { dataToDoc, docToData, mergeData, isEmptyData, pareceDocumentoClub, normalizarValor, normalizarClub, metaVacia, purgarLapidas, RELACIONES, DOC_VERSION } from './sheetdata.js';
@@ -34,6 +35,10 @@ let meta = metaVacia(); // logical clock + per-row stamps + tombstones (see shee
 let extra = { top: {}, hojas: {}, cols: {} }; // what a newer version wrote and this one does not understand: it is preserved
 let avisos = []; // duplicated ids / rows without id found while reading
 let ref = null; // {name, id}
+// Storage backend of the open club: the real Drive client ('drive' mode) or the local demo adapter ('demo' mode, never touches Drive).
+let puerto = drive;
+let modo = 'drive'; // 'drive' | 'demo'
+let cachePrefijo = CACHE_PREFIX;
 let dirty = false;
 let timer = null;
 let syncing = null;
@@ -59,7 +64,7 @@ const diaHoy = () => nombreBackup('x').slice(2, 10);
 
 // Reads the remote file -> {data, rev, version, empty, doc, esClub}
 async function readRemote() {
-  const { doc, rev: r, version } = await drive.read(ref.id);
+  const { doc, rev: r, version } = await puerto.read(ref.id);
   const data = docToData(doc);
   return { data, rev: r, version, empty: isEmptyData(data), doc, esClub: pareceDocumentoClub(doc) };
 }
@@ -80,7 +85,7 @@ function setStatus(s) {
   emit({ type: 'status', status: s });
 }
 
-const cacheKey = () => CACHE_PREFIX + ref.id;
+const cacheKey = () => cachePrefijo + ref.id;
 const cacheExiste = () => {
   try { return localStorage.getItem(cacheKey()) !== null || cache._enIdb.has(cacheKey()); } catch (e) { return false; }
 };
@@ -296,6 +301,7 @@ async function sondear() {
 }
 
 function startPolling() {
+  if (modo === 'demo') return;
   pollFallos = 0;
   programarSondeo(POLL_MS);
 }
@@ -305,7 +311,7 @@ async function renameIfNeeded() {
   const nombre = String(club.nombre || '').trim();
   if (!nombre || nombre === ref.name) return;
   try {
-    const r = await drive.renameClub(ref.id, nombre);
+    const r = await puerto.renameClub(ref.id, nombre);
     ref.name = nombre;
     if (r && r.version) lastVersion = r.version; // renaming also bumps the file's `version`
   } catch (e) { console.warn('No se pudo renombrar el fichero del club', e); }
@@ -318,7 +324,7 @@ const docVacio = (doc) => !doc || !doc.hojas
   || (Object.keys(doc.hojas).every((k) => k === 'TiposCarga' || !Array.isArray(doc.hojas[k]) || !doc.hojas[k].length) && Object.keys(doc.club || {}).every((k) => k === 'nombre'));
 async function respaldoDiario(docPrevio) {
   if (omitirRespaldo || !ref || docVacio(docPrevio) || respaldos.get(ref.id) === diaHoy()) return;
-  try { await drive.backupClub(ref.name, docPrevio); respaldos.set(ref.id, diaHoy()); } catch (e) { console.warn('Copia de seguridad diaria no realizada', e); }
+  try { await puerto.backupClub(ref.name, docPrevio); respaldos.set(ref.id, diaHoy()); } catch (e) { console.warn('Copia de seguridad diaria no realizada', e); }
 }
 
 function ponerProblema(tipo, e) {
@@ -337,7 +343,7 @@ function entrarSoloLectura(version) {
 }
 
 async function hayRespaldos() {
-  try { return (await drive.listarBackups(ref.name)).length > 0; } catch (e) { return false; }
+  try { return (await puerto.listarBackups(ref.name)).length > 0; } catch (e) { return false; }
 }
 
 // Two tabs of the same browser share the local cache: if the other one saved changes they are merged with our own
@@ -390,7 +396,7 @@ async function sincronizar(gen) {
   const vivo = () => { if (gen !== syncGen) throw Object.assign(new Error('Sincronización obsoleta'), { obsoleta: true }); };
   let merged = false;
   for (let vuelta = 0; ; vuelta++) {
-    const m = await drive.meta(ref.id);
+    const m = await puerto.meta(ref.id);
     vivo();
     let remote = null;
     let docPrevio = null;
@@ -419,12 +425,12 @@ async function sincronizar(gen) {
     const data = snapshot();
     await respaldoDiario(docPrevio);
     vivo();
-    const w = await drive.write(ref.id, dataToDoc(data));
+    const w = await puerto.write(ref.id, dataToDoc(data));
     vivo();
     if (vBase != null && w.version != null && w.version !== vBase + 1 && vuelta < MAX_VUELTAS) {
       // Drive's `version` jumped by more than 1: another device wrote between our read and our write and we overwrote it.
       // Its revision (the one before ours) is recovered, merged with ours and written again.
-      const prev = await drive.revisionPrevia(ref.id).catch(() => null);
+      const prev = await puerto.revisionPrevia(ref.id).catch(() => null);
       vivo();
       if (prev && !docToData(prev).versionFutura) {
         lastRev = w.rev;
@@ -454,8 +460,10 @@ export const store = {
   lastError: null,
   config,
 
-  // clubRef: {id, name} (id of the cnl/<Club>.json file in Drive)
-  async init(clubRef) {
+  // clubRef: {id, name} (id of the cnl/<Club>.json file in Drive).
+  // opciones.demo = the demo adapter (js/infrastructure/demoStorage.js): the club is read/written there instead of Drive,
+  // its local mirror lives under 'cnl:demo:club:' and store.mode is 'demo'.
+  async init(clubRef, { demo = null } = {}) {
     clearTimeout(timer);
     if (!clubRef || !clubRef.id) throw new Error('Falta el club (id del fichero en Drive).');
     enlazarEventosDeVentana();
@@ -465,6 +473,9 @@ export const store = {
       if (cachePendiente && ref.id === clubRef.id && !cacheExiste()) { cachePendiente = false; clearTimeout(cacheTimer); } else await flushCache();
     }
     ref = { name: clubRef.name, id: clubRef.id };
+    puerto = demo || drive;
+    modo = demo ? 'demo' : 'drive';
+    cachePrefijo = demo ? DEMO_CACHE_PREFIX : CACHE_PREFIX;
     syncGen++; // a sync left hanging from before can no longer touch the state
     syncing = null;
     dirty = false;
@@ -551,6 +562,9 @@ export const store = {
     syncing = null;
     dirty = false;
     ref = null;
+    puerto = drive;
+    modo = 'drive';
+    cachePrefijo = CACHE_PREFIX;
     db = emptyDb();
     club = {};
     base = null;
@@ -559,6 +573,19 @@ export const store = {
     meta = metaVacia();
     visto = new Map();
   },
+
+  // Opens the DEMO club (store.mode becomes 'demo'): sample data kept only in this browser, Drive is never touched. The first time
+  // the club is created and seeded (dates relative to `hoy`); afterwards it reopens what the person had. Prefer
+  // application/modoService.js `enterDemo()`, which also remembers the choice. -> store
+  async initDemo({ hoy, demo = demoStorage } = {}) {
+    const { ref: demoRef, nuevo } = demo.asegurar();
+    await store.init(demoRef, { demo });
+    if (nuevo) { store.seedDemo({ hoy: hoy || new Date() }); await store.sync(); }
+    return store;
+  },
+
+  // 'drive' (the club lives in the person's Google Drive) | 'demo' (sample data kept only in this browser; Drive is never touched)
+  get mode() { return modo; },
 
   // Data of the open club: {name, id}
   get clubRef() { return ref ? { name: ref.name, id: ref.id } : null; },
@@ -573,7 +600,7 @@ export const store = {
   // incorporates the changes. Returns true if anything changed.
   async refresh() {
     if (!ref || syncing || dirty || problema || !navigator.onLine) return false;
-    const m = await drive.meta(ref.id);
+    const m = await puerto.meta(ref.id);
     if (m.rev === lastRev || dirty || syncing) return false;
     let remote;
     try { remote = await readRemote(); } catch (e) {
@@ -693,11 +720,12 @@ export const store = {
 
   // Saves an .xlsx copy in the cnl folder in Drive (overwrites the previous one for the same club).
   async guardarXlsxEnDrive() {
+    if (modo === 'demo') throw Object.assign(new Error('Demo mode does not use Google Drive.'), { code: 'demo-sin-drive' });
     const name = nombreXlsx();
     const body = await workbookBlob();
-    const fid = await drive.ensureFolder();
-    const prev = await drive.findFile(name, fid);
-    return drive.upload({ name, mimeType: XLSX_MIME, body, parentId: fid, id: prev && prev.id });
+    const fid = await puerto.ensureFolder();
+    const prev = await puerto.findFile(name, fid);
+    return puerto.upload({ name, mimeType: XLSX_MIME, body, parentId: fid, id: prev && prev.id });
   },
 
   // Preview of an .xlsx (changes nothing): per-sheet count against the current data, duplicates and doubtful rows.
@@ -709,7 +737,7 @@ export const store = {
     guardaEscritura();
     const prev = file && file.data && file.hojas ? file : await parseWorkbook(file);
     if (!sinCopia) {
-      try { await drive.backupClub(ref.name, dataToDoc({ db, club, meta, extra }), { etiqueta: 'import' }); } catch (e) {
+      try { await puerto.backupClub(ref.name, dataToDoc({ db, club, meta, extra }), { etiqueta: 'import' }); } catch (e) {
         throw Object.assign(new Error('No se pudo guardar la copia previa a la importación; no se ha importado nada. ' + (e.message || '')), { code: 'import-sin-copia', causa: e });
       }
     }
@@ -778,15 +806,15 @@ export const store = {
       await store.sync();
       res.sincronizado = !dirty;
     } catch (e) { res.errores.push(e.message || String(e)); } finally { omitirRespaldo = false; }
-    if (borrarEnDrive && res.sincronizado) {
+    if (borrarEnDrive && res.sincronizado && modo === 'drive') {
       try {
-        const fid = await drive.ensureFolder();
+        const fid = await puerto.ensureFolder();
         for (const nombre of new Set([nombreXlsx(), String(ref.name) + '.xlsx'])) {
-          const f = await drive.findFile(nombre, fid);
-          if (f) { await drive.eliminarDefinitivo(f.id); res.copiasBorradas++; }
+          const f = await puerto.findFile(nombre, fid);
+          if (f) { await puerto.eliminarDefinitivo(f.id); res.copiasBorradas++; }
         }
-        for (const b of await drive.listarBackups(ref.name)) { await drive.eliminarDefinitivo(b.id); res.copiasBorradas++; }
-        res.revisionesBorradas = await drive.borrarRevisionesAntiguas(ref.id);
+        for (const b of await puerto.listarBackups(ref.name)) { await puerto.eliminarDefinitivo(b.id); res.copiasBorradas++; }
+        res.revisionesBorradas = await puerto.borrarRevisionesAntiguas(ref.id);
       } catch (e) { res.errores.push(e.message || String(e)); }
     }
     return res;
@@ -797,12 +825,12 @@ export const store = {
   async resolverProblema(accion) {
     if (!problema) return false;
     const p = problema;
-    const m = await drive.meta(ref.id);
-    if (p.raw) { try { await drive.backupClub(ref.name, { ficheroDanado: p.raw }, { etiqueta: 'danado' }); } catch (e) { console.warn('No se pudo guardar el fichero dañado', e); } }
+    const m = await puerto.meta(ref.id);
+    if (p.raw) { try { await puerto.backupClub(ref.name, { ficheroDanado: p.raw }, { etiqueta: 'danado' }); } catch (e) { console.warn('No se pudo guardar el fichero dañado', e); } }
     if (accion === 'backup') {
-      const lista = await drive.listarBackups(ref.name);
+      const lista = await puerto.listarBackups(ref.name);
       if (!lista.length) throw Object.assign(new Error('No hay copias de seguridad de este club en Drive.'), { code: 'sin-backups' });
-      applyData(docToData(await drive.leerFichero(lista[0].id)));
+      applyData(docToData(await puerto.leerFichero(lista[0].id)));
     } else if (accion === 'vacio') {
       applyData({ db: emptyDb(), club: {} });
       club.nombre = ref.name;
@@ -819,7 +847,7 @@ export const store = {
   },
 
   // Backups of this club in Drive, most recent first -> [{id, name}]
-  listarBackups() { return drive.listarBackups(ref.name); },
+  listarBackups() { return puerto.listarBackups(ref.name); },
 
   // Añade (sin tocar el resto) conflictos de ejemplo a la planificación de piscina: varios errores y avisos.
   seedPlanificacionConflictos() {
@@ -834,9 +862,9 @@ export const store = {
     return filas.length;
   },
 
-  // Reemplaza los datos por una demo del Club Natación Lugones.
-  seedDemo() {
-    const d = buildDemo();
+  // Reemplaza los datos por una demo del Club Natación Lugones. `hoy` (Date) = reloj de la demo: todas las fechas son relativas a él.
+  seedDemo({ hoy } = {}) {
+    const d = buildDemo(hoy);
     db = d.db;
     ensureCatalog();
     club = Object.assign({}, club, d.club);
@@ -847,7 +875,8 @@ export const store = {
 };
 
 // ---------- Datos demo ----------
-function buildDemo() {
+function buildDemo(hoyBase) {
+  const reloj = () => (hoyBase instanceof Date && !Number.isNaN(hoyBase.getTime()) ? new Date(hoyBase) : new Date());
   let seed = 20251;
   const rnd = () => { // mulberry32 determinista
     seed = (seed + 0x6D2B79F5) | 0;
@@ -879,7 +908,7 @@ function buildDemo() {
 
   // Nacimiento = año de la temporada actual (según el reloj) - edad en esa temporada: así cada nadador cae en la categoría
   // indicada aunque pase el tiempo. La categoría NO se fija a mano: se calcula con las reglas de domain/categorias.js.
-  const temporadaDemoCat = temporadaDe(ymd(new Date()));
+  const temporadaDemoCat = temporadaDe(ymd(reloj()));
   const nad = [
     // nombre, apellidos, edad en la temporada (año de inicio - año de nacimiento), mes-día, sexo, grupo, licencia máster
     ['Lucía', 'Fernández Roces', 8, '03-12', 'F', 'g1'], // Pre-Benjamín
@@ -917,7 +946,7 @@ function buildDemo() {
   });
 
   // Entrenamientos: de hace 3 semanas a la próxima semana
-  const today = new Date(); today.setHours(0, 0, 0, 0);
+  const today = reloj(); today.setHours(0, 0, 0, 0);
   const monday = addDays(today, -((today.getDay() + 6) % 7));
   const enfoques = ['Resistencia aeróbica', 'Velocidad y salidas', 'Técnica de viraje', 'Trabajo de piernas', 'Series mixtas', 'Fuerza en seco'];
   const tipoDe = { 'Resistencia aeróbica': 'Aeróbico medio / Umbral anaeróbico', 'Velocidad y salidas': 'Aláctico / Sprint', 'Técnica de viraje': 'Virajes/volteos', 'Trabajo de piernas': 'Piernas', 'Series mixtas': 'Aeróbico intenso / Potencia aeróbica', 'Fuerza en seco': 'Anaeróbico / Tolerancia al lactato' };
@@ -971,7 +1000,15 @@ function buildDemo() {
   // Marcas (tiempos en ms)
   const pruebas = [['50 libre', 28500], ['100 libre', 62000], ['50 espalda', 33000], ['100 braza', 80000], ['50 mariposa', 31000], ['200 estilos', 150000]];
   const mult = { 'Pre-Benjamín': 1.45, 'Benjamín': 1.3, 'Alevín': 1.2, 'Infantil': 1.08, 'Junior': 1.0, 'Absoluto': 0.97, 'Master': 1.12 };
-  const comps = ['Trofeo Ciudad de Gijón', 'Campeonato Asturias', 'Copa Federación', 'Torneo Lugones'];
+  // Catálogo de bañadores del club: 2 de entrenamiento y 3 técnicos (fast skin) de competición.
+  [
+    ['bn1', 'entrenamiento', 'Speedo', 'Endurance+'], ['bn2', 'entrenamiento', 'Arena', 'Solid'],
+    ['bn3', 'competicion', 'Arena', 'Powerskin Carbon Core FX'], ['bn4', 'competicion', 'Speedo', 'Fastskin LZR Pure Intent'], ['bn5', 'competicion', 'Mizuno', 'GX Sonic V'],
+  ].forEach(([id, tipo, marca, modelo]) => out.Banadores.push({ id, tipo, marca, modelo, activo: 'true', notas: '' }));
+  const entreno = out.Banadores.filter((b) => b.tipo === 'entrenamiento');
+  const tecnicos = out.Banadores.filter((b) => b.tipo === 'competicion');
+  // Cuatro competiciones y, como quinta opción, un test de control en entrenamiento (sin competición, bañador de entrenamiento).
+  const comps = ['Trofeo Ciudad de Gijón', 'Campeonato Asturias', 'Copa Federación', 'Torneo Lugones', ''];
   let nm = 0;
   out.Nadadores.forEach((n) => {
     const ps = [0, 1, 2, 3, 4, 5].sort(() => rnd() - 0.5).slice(0, 3);
@@ -979,19 +1016,15 @@ function buildDemo() {
       for (let k = 0; k < 2; k++) { // dos marcas: la reciente mejora la anterior
         const fecha = addDays(today, -(k === 0 ? 20 + Math.floor(rnd() * 40) : 150 + Math.floor(rnd() * 120)));
         const base = pruebas[pi][1] * mult[n.categoria] * (n.sexo === 'F' ? 1.04 : 1) * (0.96 + rnd() * 0.08) * (k === 0 ? 1 : 1.04);
+        const comp = pick(comps);
+        // Bañador coherente con la marca: técnico en competición, de entrenamiento en los tests; alguna marca sin bañador registrado.
+        const banador = nm % 7 === 6 ? null : (comp ? tecnicos : entreno)[nm % (comp ? tecnicos : entreno).length];
         out.Marcas.push({
           id: 'm' + (++nm), nadadorId: n.id, fecha: ymd(fecha), prueba: pruebas[pi][0], piscina: pi === 5 ? '50' : pick(['25', '50']),
-          tiempoMs: Math.round(base / 10) * 10, competicion: pick(comps), notas: '',
+          tiempoMs: Math.round(base / 10) * 10, competicion: comp, notas: comp ? '' : 'Test de control', banadorId: banador ? banador.id : '',
         });
       }
     });
-  });
-
-  // Bañador / equipación
-  const tallas = { 'Pre-Benjamín': 'XS', 'Benjamín': 'S', 'Alevín': 'S', 'Infantil': 'M', 'Junior': 'M', 'Absoluto': 'L', 'Master': 'L' };
-  out.Nadadores.forEach((n, i) => {
-    const ent = i % 3 !== 0;
-    out.Banador.push({ id: 'b' + (i + 1), nadadorId: n.id, talla: tallas[n.categoria], estado: ent ? 'entregado' : 'pendiente', fecha: ent ? ymd(addDays(today, -30 - i)) : '', notas: '' });
   });
 
   // Planificación de piscina: una piscina de 6 calles y asignaciones recurrentes coherentes con los grupos.

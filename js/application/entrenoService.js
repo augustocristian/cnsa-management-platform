@@ -1,9 +1,10 @@
-// Servicio de aplicación del plan de entreno: orquesta el dominio y la persistencia.
-// Recibe el repositorio por parámetro (cualquier objeto con list/get/upsert/remove, p. ej. el store):
-// no importa el store, ni el DOM ni fetch, así que se puede probar con un repositorio en memoria.
+// Application service of the detailed training plan: orchestrates the domain and persistence.
+// The repository is a parameter (any object with list/get/upsert/remove, e.g. the store): this module imports no store,
+// DOM or fetch, so it is tested with an in-memory repository.
 import * as D from '../domain/entreno.js';
 import * as G from '../domain/desglose.js';
 import { normalizarTipo, normalizarNombre } from '../domain/cargas.js';
+import { sumarDias } from '../domain/planificacion.js';
 
 export const HOJA_SESIONES = 'Entrenamientos';
 export const HOJA_LINEAS = 'EntrenoLineas';
@@ -81,7 +82,21 @@ export function crearEntrenoService(repo, { genId = defaultGenId, club = () => (
       return { ok: true, creadas, omitidas, nadadores: destino.length, contenidos: items.length, sinContenidoM };
     },
 
-    // Elimina la sesión y su plan.
+    // Raw rows of a session and its plan, to undo a deletion. -> { sesion, lineas } | null
+    instantanea(id) {
+      const sesion = repo.get(HOJA_SESIONES, id);
+      if (!sesion) return null;
+      return { sesion: { ...sesion }, lineas: repo.list(HOJA_LINEAS).filter((l) => String(l.entrenamientoId) === String(id)).map((l) => ({ ...l })) };
+    },
+    // Puts back what `instantanea` captured (same ids). -> the restored session
+    restaurar(snap) {
+      if (!snap || !snap.sesion) return null;
+      const sesion = repo.upsert(HOJA_SESIONES, snap.sesion);
+      snap.lineas.forEach((l) => repo.upsert(HOJA_LINEAS, l));
+      return sesion;
+    },
+
+    // Deletes the session and its plan.
     eliminarSesion(id) {
       repo.list(HOJA_LINEAS).filter((l) => String(l.entrenamientoId) === String(id)).forEach((l) => repo.remove(HOJA_LINEAS, l.id));
       repo.remove(HOJA_SESIONES, id);
@@ -133,7 +148,7 @@ export function crearEntrenoService(repo, { genId = defaultGenId, club = () => (
     },
     // Fichas de todas las sesiones de la semana que empieza en `lunes` (YYYY-MM-DD) (opcional: de un grupo).
     fichasSemana(lunes, { grupoId = '' } = {}) {
-      const fin = sumar(lunes, 6);
+      const fin = sumarDias(lunes, 6);
       return repo.list(HOJA_SESIONES)
         .filter((s) => dia10(s.fecha) >= lunes && dia10(s.fecha) <= fin && (!grupoId || s.grupoId === grupoId))
         .sort((a, b) => dia10(a.fecha).localeCompare(dia10(b.fecha)) || D.horaTexto(a.hora).localeCompare(D.horaTexto(b.hora)))
@@ -169,14 +184,10 @@ function filaLinea(l) {
   return o;
 }
 
-function sumar(f, n) {
-  const [y, m, d] = String(f).slice(0, 10).split('-').map(Number);
-  const x = new Date(Date.UTC(y, m - 1, d + n));
-  return x.toISOString().slice(0, 10);
-}
-
+// Ids for new plan rows. Inject `genId` for deterministic tests; the default needs no clock.
 let contador = 0;
 function defaultGenId() {
   contador++;
-  return 'l' + Date.now().toString(36) + contador.toString(36) + Math.random().toString(36).slice(2, 6);
+  const azar = globalThis.crypto && globalThis.crypto.randomUUID ? globalThis.crypto.randomUUID() : Math.random().toString(36).slice(2, 10);
+  return 'l' + contador.toString(36) + azar.replace(/-/g, '').slice(0, 12);
 }

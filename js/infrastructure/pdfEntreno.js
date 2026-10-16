@@ -1,7 +1,8 @@
-// Generación del PDF de entreno (A4 apaisado) con jsPDF + jspdf-autotable. Las librerías se cargan de forma
-// diferida (vendor/) sólo la primera vez que se pide un PDF. Sin DOM propio: recibe fichas ya calculadas
-// (ver entrenoService.ficha) y devuelve el PDF; los textos salen del idioma activo (i18n) salvo que se inyecte `t`.
-import { t as tActual, locale as localeActual, tContenido } from '../i18n.js';
+// Training PDF adapter (A4 landscape) with jsPDF + jspdf-autotable. It is the implementation of the PDF port:
+//     PdfPort.generar(fichas, etiquetas) -> { blob, bytes, paginas }
+// `fichas` are computed sessions (entrenoService.ficha) and `etiquetas` is the already translated labels object built by
+// application/etiquetasPdf.js (no i18n import here, no clock: `etiquetas.ahora` is the generation date).
+// The libraries (vendor/) are loaded lazily the first time a PDF is requested.
 import * as G from '../domain/desglose.js';
 import { integridad } from './vendorIntegridad.js';
 
@@ -11,11 +12,11 @@ const ALTO_CABECERA = 27;
 const ALTO_PIE = 9;
 const TAMANOS = [11, 10, 9, 8];
 
-// ---------- Carga diferida de librerías ----------
+// ---------- Lazy loading of the libraries ----------
 let promesa = null;
 let override = null;
 
-// Para pruebas: inyecta { jsPDF, autoTable(doc, opciones) } y evita la carga de scripts.
+// For tests: injects { jsPDF, autoTable(doc, options) } and skips loading the scripts.
 export function usarLibreria(lib) { override = lib; promesa = null; }
 
 async function cargarScript(src) {
@@ -26,7 +27,7 @@ async function cargarScript(src) {
     if (sri) { s.integrity = sri; s.crossOrigin = 'anonymous'; }
     s.async = true;
     s.onload = () => ok();
-    s.onerror = () => ko(new Error('No se pudo cargar ' + src));
+    s.onerror = () => ko(new Error('Could not load ' + src));
     document.head.appendChild(s);
   });
 }
@@ -51,7 +52,7 @@ export function cargarLibreria() {
   return promesa;
 }
 
-// ---------- Utilidades de color y texto ----------
+// ---------- Colour and text helpers ----------
 function parseHex(c) {
   const m = /^#?([0-9a-f]{6})$/i.exec(String(c || '').trim());
   if (!m) return null;
@@ -65,7 +66,7 @@ const luminancia = ([r, g, b]) => {
 };
 const textoSobre = (fondo) => (luminancia(fondo) > 0.45 ? [25, 30, 40] : [255, 255, 255]);
 
-// Las fuentes estándar de PDF sólo cubren Latin-1 (+ algunos signos de WinAnsi): el resto se sustituye.
+// The standard PDF fonts only cover Latin-1 (+ some WinAnsi signs): anything else is replaced.
 const EXTRA = new Set('–—‘’“”•€…'.split(''));
 export function limpiar(s) {
   return String(s ?? '').replace(/\r/g, '').replace(/[^\n\x20-\x7e\xa0-\xff]/gu, (c) => (EXTRA.has(c) ? c : '?'));
@@ -88,22 +89,9 @@ function fechaDe(f) {
   return m ? new Date(+m[1], +m[2] - 1, +m[3]) : null;
 }
 
-// ---------- Etiquetas ----------
-function etiquetas(t) {
-  const k = (c) => t('entreno.pdf.' + c);
-  return {
-    dia: k('dia'), fecha: k('fecha'), hora: k('hora'), grupo: k('grupo'), tipo: k('tipo-sesion'), piscina: k('piscina'),
-    materialDia: k('material-dia'), notasGenerales: k('notas-generales'),
-    cols: ['tiempo', 'objetivo', 'bloques', 'series', 'distancia', 'salida', 'ejercicio', 'dist-bloque', 'dist-set', 'material', 'notas'].map(k),
-    resumen: k('resumen'), resTotal: k('res-total'), resContenidos: k('res-contenidos'), resEstilos: k('res-estilos'),
-    sinContenido: k('sin-contenido'), sinEstilo: k('sin-estilo'),
-    totales: k('totales'), sinPlan: k('sin-plan'), sets: (n) => t('entreno.pdf.n-sets', { n }), filas: (n) => t('entreno.pdf.n-filas', { n }),
-  };
-}
-
 const nf = (n) => (Number.isFinite(n) && n !== 0 ? String(Math.round(n * 100) / 100) : '');
 
-// ---------- Dibujo ----------
+// ---------- Drawing ----------
 function dibujarCabecera(doc, ficha, c, L, loc) {
   const { sesion, club } = ficha;
   const W = MM_PAGINA.w;
@@ -111,7 +99,7 @@ function dibujarCabecera(doc, ficha, c, L, loc) {
   doc.setFillColor(...c.primario);
   doc.roundedRect(x0, y0, w, ALTO_CABECERA, 2, 2, 'F');
   let x = x0 + 4;
-  // Logo del club (si existe y es PNG/JPEG)
+  // Club logo (if present and PNG/JPEG)
   const logo = club && club.logo;
   if (logo && /^data:image\/(png|jpe?g);base64,/i.test(logo)) {
     try {
@@ -123,7 +111,7 @@ function dibujarCabecera(doc, ficha, c, L, loc) {
       doc.roundedRect(x, y0 + 3.5, caja + 2, caja + 2, 1.5, 1.5, 'F');
       doc.addImage(logo, /png/i.test(logo.slice(0, 20)) ? 'PNG' : 'JPEG', x + 1 + (caja - iw) / 2, y0 + 4.5 + (caja - ih) / 2, iw, ih);
       x += caja + 6;
-    } catch (e) { /* logo ilegible: se omite */ }
+    } catch (e) { /* unreadable logo: skipped */ }
   }
   const f = fechaDe(sesion.fecha);
   const dia = f ? new Intl.DateTimeFormat(loc, { weekday: 'long' }).format(f).toLocaleUpperCase(loc) : '';
@@ -141,7 +129,7 @@ function dibujarCabecera(doc, ficha, c, L, loc) {
   doc.text(limpiar(fechaTxt), x, y0 + 21.5);
   x += 50;
 
-  // Celdas de datos
+  // Data cells
   const derecha = x0 + w - 4;
   const fijas = [
     [L.hora, sesion.hora, 16], [L.grupo, sesion.grupo, 38], [L.tipo, sesion.tipoSesion, 30],
@@ -172,7 +160,7 @@ function dibujarCabecera(doc, ficha, c, L, loc) {
   });
 }
 
-function dibujarPies(doc, ficha, c, ahoraTxt, paginasTotal, t) {
+function dibujarPies(doc, ficha, c, ahoraTxt, paginasTotal, L) {
   const club = ficha.club || {};
   const W = MM_PAGINA.w, H = MM_PAGINA.h;
   doc.setDrawColor(...c.linea);
@@ -181,13 +169,13 @@ function dibujarPies(doc, ficha, c, ahoraTxt, paginasTotal, t) {
   doc.setFont('helvetica', 'normal');
   doc.setFontSize(7.5);
   doc.setTextColor(...c.gris);
-  const izq = `${club.nombre || ''}${club.nombre ? '  ·  ' : ''}${t('entreno.pdf.generado', { fecha: ahoraTxt })}`;
+  const izq = `${club.nombre || ''}${club.nombre ? '  ·  ' : ''}${L.generado(ahoraTxt)}`;
   doc.text(limpiar(izq), MARGEN, H - MARGEN - 1.5);
-  doc.text(limpiar(t('entreno.pdf.pagina', { n: ficha._pagina, total: paginasTotal })), W - MARGEN, H - MARGEN - 1.5, { align: 'right' });
+  doc.text(limpiar(L.pagina(ficha._pagina, paginasTotal)), W - MARGEN, H - MARGEN - 1.5, { align: 'right' });
 }
 
-// Dibuja una sesión (puede ocupar varias páginas). Devuelve las páginas usadas (números de página del documento).
-function dibujarSesion(doc, lib, ficha, c, L, loc, tam, paginas, opc) {
+// Draws one session (it may take several pages) and records the pages it used.
+function dibujarSesion(doc, lib, ficha, c, L, loc, tam, paginas) {
   const topTabla = MARGEN + ALTO_CABECERA + (ficha.sesion.titulo ? 9 : 4);
   const margen = { left: MARGEN, right: MARGEN, top: topTabla, bottom: MARGEN + ALTO_PIE };
   const marcarPagina = () => { const n = doc.getCurrentPageInfo().pageNumber; if (!paginas.has(n)) paginas.set(n, ficha); };
@@ -216,7 +204,7 @@ function dibujarSesion(doc, lib, ficha, c, L, loc, tam, paginas, opc) {
     return;
   }
 
-  // Cuerpo: una fila por línea; Dist. Set en la última fila de cada set; marca de fin de set.
+  // Body: one row per line; Dist. Set on the last row of each set; thick rule at the end of a set.
   const body = [];
   ficha.sets.forEach((s, si) => {
     s.lineas.forEach((l, i) => {
@@ -226,7 +214,7 @@ function dibujarSesion(doc, lib, ficha, c, L, loc, tam, paginas, opc) {
         celdas: [
           nf(Number(l.tiempoMin)) || (String(l.tiempoMin) && !Number.isFinite(Number(l.tiempoMin)) ? String(l.tiempoMin) : ''),
           limpiar(l.objetivo), limpiar(l.bloque), l.series === '' ? '' : limpiar(String(l.series)), l.distancia === '' ? '' : limpiar(String(l.distancia)),
-          limpiar(l.salida), limpiar(textoEjercicioPdf(l, ficha, opc)),
+          limpiar(l.salida), limpiar(textoEjercicioPdf(l, ficha, L)),
           nf(l.distBloque),
           fin ? nf(s.distSet) : '',
           limpiar(l.material), limpiar(l.notas),
@@ -257,8 +245,8 @@ function dibujarSesion(doc, lib, ficha, c, L, loc, tam, paginas, opc) {
   [0, 3, 4, 5, 7, 8].forEach((i) => { columnStyles[i].halign = 'center'; });
   columnStyles[8].fontStyle = 'bold';
 
-  const gruesas = new Map(); // página -> [y]
-  const cajas = new Map(); // página -> {y0, y1}
+  const gruesas = new Map(); // page -> [y]
+  const cajas = new Map(); // page -> {y0, y1}
   lib.autoTable(doc, {
     startY: topTabla,
     margin: margen,
@@ -276,7 +264,7 @@ function dibujarSesion(doc, lib, ficha, c, L, loc, tam, paginas, opc) {
     didParseCell(d) {
       if (d.section !== 'body') return;
       const meta = body[d.row.index].meta;
-      if (meta.set % 2 === 1) d.cell.styles.fillColor = c.zebra; // alterna el fondo por set
+      if (meta.set % 2 === 1) d.cell.styles.fillColor = c.zebra; // alternate background per set
       if (d.column.index === 8 && meta.fin) d.cell.styles.fillColor = c.claro;
     },
     didDrawCell(d) {
@@ -305,7 +293,7 @@ function dibujarSesion(doc, lib, ficha, c, L, loc, tam, paginas, opc) {
       }
     },
   });
-  // Bloque resumen al pie: totales por contenido y por estilo (m y %)
+  // Summary block at the bottom: totals per content and per stroke (m and %)
   const d = ficha.desglose;
   if (d && d.totalM > 0 && d.porContenido.length) {
     const alto = alturaResumen(d, tam);
@@ -315,28 +303,18 @@ function dibujarSesion(doc, lib, ficha, c, L, loc, tam, paginas, opc) {
       cabeceraYTitulo();
       y = topTabla;
     }
-    dibujarResumen(doc, d, c, L, loc, y, tam, opc);
+    dibujarResumen(doc, d, c, L, loc, y, tam);
   }
 }
 
-// ---------- Contenidos y bloque resumen ----------
-const nombreEstiloPdf = (e, opc) => {
-  if (!e) return opc.t('entreno.pdf.sin-estilo');
-  if (opc.nombreEstilo) return opc.nombreEstilo(e);
-  const k = 'entreno.estilo.' + G.claveEstilo(e);
-  const v = opc.t(k);
-  return v && v !== k ? v : e;
-};
-const nombreContenidoPdf = (it, opc) => {
-  if (!it.contenido) return opc.t('entreno.pdf.sin-contenido');
-  if (opc.nombreContenido) return opc.nombreContenido(it);
-  return it.tipoId ? tContenido({ id: it.tipoId, nombre: it.contenido, predefinido: it.predefinido }) : it.contenido;
-};
-// "75 AeL + 25 Sprint  ·  Crol" bajo el texto del ejercicio (sólo si la fila reparte contenidos o tiene estilo)
-function textoEjercicioPdf(l, ficha, opc) {
+// ---------- Contents and summary block ----------
+const nombreEstiloPdf = (e, L) => (e ? L.nombreEstilo(e) : L.sinEstilo);
+const nombreContenidoPdf = (it, L) => (it.contenido ? L.nombreContenido(it) : L.sinContenido);
+// "75 AeL + 25 Sprint  ·  Crol" under the exercise text (only if the row splits contents or has a stroke)
+function textoEjercicioPdf(l, ficha, L) {
   const base = String(l.ejercicio ?? '');
   if (!((l.componentes && l.componentes.length) || (l.estilos && l.estilos.length))) return base;
-  const extra = G.textoEjercicio(l, { tipos: ficha.tipos, etiquetaEstilo: (e) => nombreEstiloPdf(e, opc) });
+  const extra = G.textoEjercicio(l, { tipos: ficha.tipos, etiquetaEstilo: (e) => nombreEstiloPdf(e, L) });
   return extra ? (base ? base + '\n' : '') + extra : base;
 }
 
@@ -349,7 +327,7 @@ function alturaResumen(d, tam) {
   return 4 + 6 + 4.5 + 4.5 + filas * LINEA + 3;
 }
 
-function dibujarResumen(doc, d, c, L, loc, y0, tam, opc) {
+function dibujarResumen(doc, d, c, L, loc, y0, tam) {
   const nf = new Intl.NumberFormat(loc, { maximumFractionDigits: 1 });
   const m = (v) => limpiar(nf.format(Math.round(v * 10) / 10)) + ' m';
   const pc = (v) => limpiar(nf.format(v)) + ' %';
@@ -372,7 +350,7 @@ function dibujarResumen(doc, d, c, L, loc, y0, tam, opc) {
     doc.setFontSize(7.5);
     doc.setTextColor(...c.secundario);
     doc.text(limpiar(String(titulo).toLocaleUpperCase(loc)), x, y0 + 10);
-    // barra apilada
+    // stacked bar
     let bx = x;
     doc.setLineWidth(0.1);
     items.forEach((it) => {
@@ -383,7 +361,7 @@ function dibujarResumen(doc, d, c, L, loc, y0, tam, opc) {
       doc.rect(bx, y0 + 11.5, bw, 3.5, 'FD');
       bx += bw;
     });
-    // lista
+    // list
     const cw = ancho / cols;
     doc.setFontSize(7.5);
     items.forEach((it, i) => {
@@ -393,7 +371,7 @@ function dibujarResumen(doc, d, c, L, loc, y0, tam, opc) {
       doc.rect(cx, cy - 2.3, 2.4, 2.4, 'F');
       doc.setFont('helvetica', 'normal');
       doc.setTextColor(...c.texto);
-      // nombre en una línea: si no cabe se usa el tramo anterior a «/» o se recorta con «...»
+      // name on one line: if it does not fit, use the part before «/» or truncate with «...»
       const cabe = cw - 31;
       let nom = limpiar(nombre(it));
       if (doc.getTextWidth(nom) > cabe && nom.includes('/')) nom = nom.split('/')[0].trim();
@@ -407,30 +385,29 @@ function dibujarResumen(doc, d, c, L, loc, y0, tam, opc) {
     });
   };
   const anchoC = 168, anchoE = w - 8 - anchoC - 8;
-  grupo(L.resContenidos, d.porContenido, x0 + 4, anchoC, COLS_CONT, (it) => it.color || '#9aa4b2', (it) => nombreContenidoPdf(it, opc));
-  if (d.porEstilo.length) grupo(L.resEstilos, d.porEstilo, x0 + 4 + anchoC + 8, anchoE, COLS_EST, (it) => G.colorEstilo(it.estilo), (it) => nombreEstiloPdf(it.estilo, opc));
+  grupo(L.resContenidos, d.porContenido, x0 + 4, anchoC, COLS_CONT, (it) => it.color || '#9aa4b2', (it) => nombreContenidoPdf(it, L));
+  if (d.porEstilo.length) grupo(L.resEstilos, d.porEstilo, x0 + 4 + anchoC + 8, anchoE, COLS_EST, (it) => G.colorEstilo(it.estilo), (it) => nombreEstiloPdf(it.estilo, L));
 }
 
-// ---------- API ----------
-// fichas: [ficha] (ver entrenoService.ficha). Una página (o más) por sesión.
-// -> { blob, bytes, paginas, tamanoFuente }
-// nombreContenido(item) / nombreEstilo(estilo): nombres visibles de los contenidos y estilos (por defecto, los del idioma activo).
-export async function generarPdfEntreno(fichas, { t = tActual, locale = localeActual(), lib = null, ahora = new Date(), titulo = '', nombreContenido = null, nombreEstilo = null } = {}) {
-  const opc = { t, nombreContenido, nombreEstilo };
+// ---------- API (PdfPort) ----------
+// fichas: [ficha] (see entrenoService.ficha), one page (or more) per session. etiquetas: see application/etiquetasPdf.js.
+// opciones.lib: jsPDF library override (tests). -> { blob, bytes, paginas }
+export async function generar(fichas, etiquetas, { lib = null } = {}) {
   if (!fichas || !fichas.length) throw new Error('sin-fichas');
+  if (!etiquetas) throw new Error('sin-etiquetas');
+  const L = etiquetas;
   const L0 = lib || (await cargarLibreria());
-  const L = etiquetas(t);
   const club = fichas[0].club || {};
   const c = paleta(club);
-  const loc = typeof locale === 'string' ? locale : 'es-ES';
-  const ahoraTxt = new Intl.DateTimeFormat(loc, { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' }).format(ahora);
+  const loc = typeof L.locale === 'string' ? L.locale : 'es-ES';
+  const ahoraTxt = new Intl.DateTimeFormat(loc, { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' }).format(L.ahora);
 
   const nuevo = () => new L0.jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4', compress: true });
-  // Mayor tamaño de letra con el que cada sesión cabe en una página (mínimo el menor de TAMANOS)
+  // Largest font size at which each session fits on one page (never below the smallest of TAMANOS)
   const tamanoPara = (f) => {
     for (const tam of TAMANOS) {
       const prueba = nuevo();
-      dibujarSesion(prueba, L0, f, c, L, loc, tam, new Map(), opc);
+      dibujarSesion(prueba, L0, f, c, L, loc, tam, new Map());
       if (prueba.getNumberOfPages() === 1) return tam;
     }
     return TAMANOS[TAMANOS.length - 1];
@@ -440,22 +417,25 @@ export async function generarPdfEntreno(fichas, { t = tActual, locale = localeAc
   const paginas = new Map();
   fichas.forEach((f, i) => {
     if (i > 0) doc.addPage();
-    dibujarSesion(doc, L0, f, c, L, loc, tamanoPara(f), paginas, opc);
+    dibujarSesion(doc, L0, f, c, L, loc, tamanoPara(f), paginas);
   });
   const total = doc.getNumberOfPages();
   for (let n = 1; n <= total; n++) {
     doc.setPage(n);
     const f = paginas.get(n) || fichas[0];
-    dibujarPies(doc, { ...f, _pagina: n }, c, ahoraTxt, total, t);
+    dibujarPies(doc, { ...f, _pagina: n }, c, ahoraTxt, total, L);
   }
   const f0 = fichas[0].sesion;
   try {
     doc.setProperties({
-      title: limpiar(titulo || (fichas.length === 1 ? `${f0.grupo || ''} ${f0.fecha}`.trim() : t('entreno.pdf.semana'))),
-      subject: t('entreno.pdf.titulo-doc'), author: limpiar(club.nombre || ''), creator: 'CNL Plataforma',
+      title: limpiar(L.titulo || (fichas.length === 1 ? `${f0.grupo || ''} ${f0.fecha}`.trim() : L.tituloSemana)),
+      subject: L.tituloDoc, author: limpiar(club.nombre || ''), creator: 'CNL Plataforma',
     });
     doc.setLanguage(loc);
-  } catch (e) { /* ignorar */ }
+  } catch (e) { /* ignore */ }
   const bytes = doc.output('arraybuffer');
   return { blob: new Blob([bytes], { type: 'application/pdf' }), bytes, paginas: total };
 }
+
+// The port as an object, for injection into the services.
+export const pdfEntreno = { generar };

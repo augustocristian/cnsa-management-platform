@@ -41,7 +41,7 @@ When('I change the club motto to {string}', async function (motto) {
 });
 
 When('I sign out', async function () {
-  await this.page.locator('.topbar').getByRole('button', { name: 'Salir' }).click();
+  await this.desconectarDrive();
 });
 
 Then('the browser holds no local club or session copies', async function () {
@@ -80,7 +80,7 @@ When('I press {string} in the notices bar', async function (name) {
 });
 
 Then('I am in the {string} module', async function (module) {
-  await this.page.locator(`.nav-item[data-route="${ruta(module)}"].active`).waitFor({ timeout: this.timeout });
+  await this.esperarRutaActiva(ruta(module));
 });
 
 When('I open the {string} module', async function (module) {
@@ -99,7 +99,7 @@ When('the club file in Drive gets damaged and the page reloads', async function 
 
 Then('the app shell opens', async function () {
   await this.esperarShell();
-  await this.verVisible(this.page.locator('.nav-item.active'), 'The menu has no active item');
+  await this.verVisible(this.page.locator('.nav-item.active:visible'), 'The menu has no active item');
 });
 
 When('another device saves the club with the name {int} and a non-text motto', async function (n) {

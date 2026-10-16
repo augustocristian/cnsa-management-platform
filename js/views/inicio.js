@@ -1,221 +1,204 @@
-// Vista Inicio: dashboard del club.
+// Home dashboard view. Presentation only: the model comes from application/inicioService.js (clock and repository
+// injected: ctx.ahora, ctx.inicio, ctx.prefs) and the rules live in domain/inicio.js. Styles: css/views/inicio.css.
 import { icon } from '../icons.js';
-import { t, tDate, tContenido } from '../i18n.js';
+import { t, tDate, tNum, tContenido, locale } from '../i18n.js';
+import { useStyles } from '../styles.js';
+import { crearInicioService } from '../application/inicioService.js';
+import { fechaDe } from '../domain/inicio.js';
+import preferencias from '../preferencias.js';
 import { primerosPasos } from './primerospasos.js';
-import { tiposVisibles, objetivoTotal, COLOR_SIN_TIPO } from '../domain/cargas.js';
-import { crearServicio, fmtM, chip } from './cargas-contenidos.js';
-const NS = 'http://www.w3.org/2000/svg';
-const dias = () => [0, 1, 2, 3, 4, 5, 6].map((i) => t('inicio.dia.' + i));
+import { graficoSemanal, donutAsistencia } from './inicio-grafico.js';
 
-function svg(tag, attrs = {}, ...kids) {
-  const el = document.createElementNS(NS, tag);
-  for (const [k, v] of Object.entries(attrs)) el.setAttribute(k, v);
-  for (const k of kids) if (k != null) el.append(k);
-  return el;
-}
-const iso = (d) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
-const num = (v) => Number(v) || 0;
+const fmtM = (n) => tNum(Math.round(Number(n) || 0), { useGrouping: 'always', maximumFractionDigits: 0 });
+const plural = (base, n) => t(`${base}.${n === 1 ? 'uno' : 'otros'}`, { n: tNum(n) });
+const capital = (s) => s.charAt(0).toUpperCase() + s.slice(1);
 
-function injectStyle() {
-  if (document.getElementById('ini-style')) return;
-  const s = document.createElement('style');
-  s.id = 'ini-style';
-  s.textContent = `
-  .ini-banner{display:flex;align-items:center;justify-content:space-between;gap:12px;background:linear-gradient(135deg,#1a73e8,#4a9af5);color:#fff;border-radius:16px;padding:20px 24px;margin-bottom:16px;overflow:hidden}
-  .ini-banner h1{margin:0 0 4px;font-size:1.6rem}
-  .ini-banner p{margin:0;opacity:.9}
-  .ini-banner svg{width:150px;height:70px;flex:none}
-  .ini-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:16px}
-  .ini-wide{grid-column:1/-1}
-  @media(min-width:900px){.ini-wide{grid-column:span 2}}
-  .ini-card h3{margin:0 0 12px;font-size:1.05rem;color:#174ea6}
-  .ini-quick{display:grid;grid-template-columns:repeat(2,1fr);gap:10px}
-  .ini-quick a{display:flex;flex-direction:column;align-items:center;gap:6px;padding:14px 8px;border-radius:12px;background:#e8f0fe;color:#174ea6;text-decoration:none;font-weight:600;font-size:.9rem;text-align:center}
-  .ini-quick a:hover{background:#d2e3fc}
-  .ini-ico{display:grid;place-items:center;width:44px;height:44px;border-radius:12px;background:color-mix(in srgb,var(--c-primary,#1a73e8) 14%,#fff);color:var(--c-primary,#1a73e8)}
-  .ini-chart svg{width:100%;height:auto}
-  .ini-legend{display:flex;flex-wrap:wrap;gap:12px;font-size:.8rem;margin-top:6px;color:#555}
-  .ini-legend i{display:inline-block;width:14px;height:3px;margin-right:4px;vertical-align:middle}
-  .ini-alert{display:flex;justify-content:space-between;align-items:center;gap:8px;padding:8px 0;border-bottom:1px solid #eee;font-size:.9rem}
-  .ini-alert:last-child{border:0}
-  .ini-up{color:#d93025}.ini-down{color:#e37400}.ini-ok{color:#188038}
-  .ini-sess dl{display:grid;grid-template-columns:auto 1fr;gap:6px 14px;margin:0}
-  .ini-sess dt{color:#666}.ini-sess dd{margin:0;font-weight:600}
-  .ini-donut{display:flex;align-items:center;gap:16px;flex-wrap:wrap}
-  .ini-donut svg{width:140px;height:140px;flex:none}
-  .ini-donut ul{list-style:none;margin:0;padding:0;font-size:.9rem}
-  .ini-donut li i{display:inline-block;width:10px;height:10px;border-radius:50%;margin-right:6px}
-  .ini-com{padding:8px 0;border-bottom:1px solid #eee}
-  .ini-com:last-child{border:0}
-  .ini-com small{color:#777}
-  .ini-empty{color:#888;font-size:.9rem}
-  `;
-  document.head.append(s);
+// "Today", "Tomorrow" or "Thursday 22 October" for a session `dias` days from today.
+function cuando(dias, fecha) {
+  if (dias === 0) return t('home.hoy-palabra');
+  if (dias === 1) return t('home.manana');
+  return capital(new Intl.DateTimeFormat(locale(), { weekday: 'long', day: 'numeric', month: 'long' }).format(fechaDe(fecha)));
 }
 
-function swimmerSvg() {
-  const g = svg('g', { fill: 'none', stroke: '#fff', 'stroke-width': 4, 'stroke-linecap': 'round' });
-  g.append(
-    svg('path', { d: 'M5 58 q10 -8 20 0 t20 0 t20 0 t20 0 t20 0 t20 0', opacity: '.7' }),
-    svg('path', { d: 'M5 68 q10 -8 20 0 t20 0 t20 0 t20 0 t20 0 t20 0', opacity: '.4' }),
-    svg('circle', { cx: 60, cy: 34, r: 8, fill: '#fff' }),
-    svg('path', { d: 'M68 36 L95 26 M60 42 L40 52' })
-  );
-  return svg('svg', { viewBox: '0 0 130 75', 'aria-hidden': 'true' }, g);
+function relativo(dias, fecha) {
+  if (dias == null) return '';
+  if (dias > 30) return tDate(fecha);
+  return new Intl.RelativeTimeFormat(locale(), { numeric: 'auto' }).format(-dias, 'day');
 }
 
-function weeklyChart(agregado, tipos, minD, maxD) {
-  const DIAS = dias();
-  const W = 560, H = 240, L = 50, R = 12, T = 14, B = 28;
-  const top = Math.max(1000, ...agregado.porDia, maxD) * 1.15;
-  const slot = (W - L - R) / 7;
-  const y = (v) => T + (H - T - B) * (1 - v / top);
-  const color = Object.fromEntries(tipos.map((x) => [x.id, x.color]));
-  const orden = tiposVisibles(agregado, tipos).map((x) => x.id).concat('');
-  const root = svg('svg', { viewBox: `0 0 ${W} ${H}`, role: 'img', 'aria-label': t('inicio.grafico-aria') });
-  for (let k = 0; k <= 4; k++) {
-    const v = (top * k) / 4;
-    root.append(
-      svg('line', { x1: L, x2: W - R, y1: y(v), y2: y(v), stroke: '#e5e7eb' }),
-      Object.assign(svg('text', { x: L - 6, y: y(v) + 4, 'text-anchor': 'end', 'font-size': 10, fill: '#666' }), { textContent: fmtM(v) })
-    );
-  }
-  DIAS.forEach((d, i) => root.append(Object.assign(svg('text', { x: L + slot * (i + 0.5), y: H - 8, 'text-anchor': 'middle', 'font-size': 11, fill: '#666' }), { textContent: d })));
-  // Barras apiladas por contenido (media por nadador con carga esa semana)
-  agregado.porDia.forEach((total, i) => {
-    const x = L + slot * i + slot * 0.2, w = slot * 0.6;
-    let acum = 0;
-    for (const id of orden) {
-      const v = agregado.porDiaTipo[i][id] || 0;
-      if (!v) continue;
-      const tp = tipos.find((x2) => x2.id === id);
-      root.append(svg('rect', { x, y: y(acum + v), width: w, height: y(acum) - y(acum + v), fill: id ? color[id] : COLOR_SIN_TIPO },
-        Object.assign(svg('title'), { textContent: `${DIAS[i]} · ${tp ? tContenido(tp) : t('tc.sin-clasificar')}: ${fmtM(v)} m` })));
-      acum += v;
-    }
-    if (total) root.append(Object.assign(svg('text', { x: x + w / 2, y: y(total) - 4, 'text-anchor': 'middle', 'font-size': 10, fill: '#444' }), { textContent: fmtM(total) }));
-  });
-  // Objetivo diario por nadador (suma de los objetivos semanales entre 7)
-  if (minD > 0) root.append(svg('line', { x1: L, x2: W - R, y1: y(minD), y2: y(minD), stroke: '#e37400', 'stroke-width': 2, 'stroke-dasharray': '5 4' }));
-  if (maxD > 0) root.append(svg('line', { x1: L, x2: W - R, y1: y(maxD), y2: y(maxD), stroke: '#d93025', 'stroke-width': 2, 'stroke-dasharray': '5 4' }));
-  return root;
-}
+const volumenTexto = (s) => {
+  if (s.volumenMin && s.volumenMax && s.volumenMin !== s.volumenMax) return `${fmtM(s.volumenMin)}-${fmtM(s.volumenMax)} m`;
+  const v = s.volumenMax || s.volumenMin;
+  return v ? `${fmtM(v)} m` : '';
+};
+const detalleSesion = (s) => [s.piscina ? t('home.piscina-m', { m: s.piscina }) : '', volumenTexto(s), s.enfoque || s.titulo].filter(Boolean).join(' · ');
 
-function donut(parts) {
-  const total = parts.reduce((a, p) => a + p.v, 0);
-  const R = 50, C = 2 * Math.PI * R;
-  const root = svg('svg', { viewBox: '0 0 140 140', role: 'img', 'aria-label': t('inicio.asistencia-hoy') });
-  root.append(svg('circle', { cx: 70, cy: 70, r: R, fill: 'none', stroke: '#eee', 'stroke-width': 20 }));
-  let off = 0;
-  if (total > 0) {
-    for (const p of parts) {
-      const len = (p.v / total) * C;
-      if (len > 0) root.append(svg('circle', { cx: 70, cy: 70, r: R, fill: 'none', stroke: p.color, 'stroke-width': 20, 'stroke-dasharray': `${len} ${C - len}`, 'stroke-dashoffset': -off, transform: 'rotate(-90 70 70)' }));
-      off += len;
-    }
-  }
-  root.append(Object.assign(svg('text', { x: 70, y: 76, 'text-anchor': 'middle', 'font-size': 22, 'font-weight': 700, fill: '#174ea6' }), { textContent: total }));
-  return root;
-}
+const MOMENTOS = { pasada: ['neutral', 'home.momento.pasada'], 'en-curso': ['ok', 'home.momento.en-curso'], pendiente: ['info', 'home.momento.pendiente'] };
 
 export async function render(container, params, ctx) {
-  const { store, ui } = ctx;
-  const h = ui.h;
-  injectStyle();
-  container.replaceChildren();
+  useStyles('inicio');
+  const { h, empty } = ctx.ui;
+  const prefs = ctx.prefs || preferencias;
+  const svc = ctx.inicio || crearInicioService(ctx.store, { ahora: ctx.ahora, prefs, cargas: ctx.cargas });
+  const M = svc.panel();
 
-  const now = new Date();
-  const hoy = iso(now);
-  const fechaLarga = tDate(now, 'long');
+  const enlace = (href, texto, clase = 'btn btn--primary', ic = null) => h('a', { class: clase, href }, ic ? icon(ic, { size: 18 }) : null, texto);
+  const tarjeta = (id, titulo, clase, ...hijos) => h('section', { class: `card ini-card ${clase || ''}`.trim(), id: `ini-${id}`, 'aria-labelledby': `ini-${id}-t` },
+    h('div', { class: 'card-head' }, h('h2', { id: `ini-${id}-t` }, titulo)), ...hijos);
+  const vacio = (ic, titulo, texto, href, cta) => empty({ icon: ic, title: titulo, text: texto, action: enlace(href, cta) });
 
-  // Semana actual (lunes a domingo)
-  const lun = new Date(now); lun.setHours(0, 0, 0, 0);
-  lun.setDate(lun.getDate() - ((lun.getDay() + 6) % 7));
+  const barra = (pct, etiqueta) => {
+    const b = h('div', { class: 'progress progress--ok', role: 'progressbar', 'aria-label': etiqueta, 'aria-valuenow': pct, 'aria-valuemin': 0, 'aria-valuemax': 100 }, h('span'));
+    b.style.setProperty('--value', `${pct}%`);
+    return b;
+  };
 
-  // Mismo criterio que la vista Cargas: metros MEDIOS por nadador (con carga esa semana) frente al objetivo por nadador.
-  const svc = crearServicio(ctx);
-  const sem = svc.semana(lun);
-  const { min: minTot, max: maxTot } = objetivoTotal(sem.tipos);
-  const hayObjetivos = sem.tipos.some((x) => x.activo && (x.min || x.max));
+  // ----- Banner -----
+  const titular = M.titular.sesiones
+    ? t('home.titular.hoy', { sesiones: plural('home.n-sesiones', M.titular.sesiones), esperados: plural('home.n-esperados', M.titular.esperados) })
+    : M.proxima ? t('home.titular.sin-hoy', { cuando: cuando(M.proxima.dias, M.proxima.fecha), hora: M.proxima.hora || '-' }) : t('home.titular.nada');
+  const kpi = (valor, etiqueta) => h('div', { class: 'ini-kpi' }, h('dd', null, tNum(valor)), h('dt', null, etiqueta));
+  const titulo = h('h1', { tabindex: '-1' }, M.club.nombre || t('nav.inicio'));
+  const wave = (d, clase) => h('path', { class: clase, d });
+  const banner = h('header', { class: 'ini-banner' },
+    h('svg', { class: 'ini-wave', viewBox: '0 0 400 80', preserveAspectRatio: 'none', 'aria-hidden': 'true', focusable: 'false' },
+      wave('M0 30 q25 -16 50 0 t50 0 t50 0 t50 0 t50 0 t50 0 t50 0 t50 0', 'ini-wave-1'),
+      wave('M0 52 q25 -16 50 0 t50 0 t50 0 t50 0 t50 0 t50 0 t50 0 t50 0', 'ini-wave-2'),
+      wave('M0 74 q25 -16 50 0 t50 0 t50 0 t50 0 t50 0 t50 0 t50 0 t50 0', 'ini-wave-3')),
+    h('div', { class: 'ini-banner-main' },
+      h('p', { class: 'ini-eyebrow' }, capital(tDate(fechaDe(M.hoy), 'long'))),
+      titulo,
+      h('p', { class: 'ini-headline' }, titular)),
+    h('dl', { class: 'ini-kpis' },
+      kpi(M.kpis.nadadoresActivos, t('home.kpi.nadadores')),
+      kpi(M.kpis.semana.total, t('home.kpi.semana'))));
 
-  // Banner
-  const banner = h('div', { class: 'ini-banner' },
-    h('div', {}, h('h1', {}, t('inicio.bienvenida')), h('p', {}, fechaLarga)));
-  banner.append(swimmerSvg());
-
-  // Acceso rápido
-  const atajos = [['nadadores', t('nav.nadadores'), '#/nadadores'], ['asistencia', t('nav.asistencia'), '#/asistencia'], ['cargas', t('nav.cargas'), '#/cargas'], ['marcas', t('nav.marcas'), '#/marcas']];
-  const quick = h('div', { class: 'card ini-card' }, h('h3', {}, t('inicio.acceso-rapido')),
-    h('div', { class: 'ini-quick' }, ...atajos.map(([ic, txt, href]) => h('a', { href }, h('span', { class: 'ini-ico' }, icon(ic, { size: 24 })), txt))));
-
-  // Gráfico
-  const chart = h('div', { class: 'card ini-card ini-chart ini-wide' }, h('h3', {}, t('inicio.grafico-titulo')));
-  chart.append(weeklyChart(sem.agregado, sem.tipos, minTot / 7, maxTot / 7));
-  chart.append(h('div', { class: 'ini-legend' },
-    h('span', {}, t('inicio.leyenda-real')),
-    ...sem.tipos.filter((x) => (sem.agregado.metros[x.id] || 0) > 0).map((x) => chip(h, x)),
-    h('span', {}, h('i', { style: 'background:#e37400' }), t('inicio.leyenda-min')),
-    h('span', {}, h('i', { style: 'background:#d93025' }), t('inicio.leyenda-max'))));
-
-  // Alertas de cargas
-  const alertas = h('div', { class: 'card ini-card' }, h('h3', {}, t('inicio.alertas')));
-  let nAlert = 0;
-  for (const e of sem.evaluacion) {
-    if (e.estado !== 'alto' && e.estado !== 'bajo') continue;
-    nAlert++;
-    const alto = e.estado === 'alto';
-    alertas.append(h('div', { class: 'ini-alert' }, h('span', {}, chip(h, e.tipo), `: ${fmtM(e.metros)} m`),
-      h('span', { class: `badge ${alto ? 'ini-up' : 'ini-down'}` }, t(alto ? 'tc.exceso' : 'tc.faltan', { m: fmtM(e.diferencia) }))));
+  // ----- Today -----
+  const hoyCard = tarjeta('hoy', t('home.hoy.titulo'), '');
+  const bloqueProxima = (p) => h('div', { class: 'ini-proxima' },
+    h('h3', null, t('home.proxima.titulo')),
+    h('p', { class: 'ini-proxima-cuando' }, h('strong', null, `${cuando(p.dias, p.fecha)}${p.hora ? ` · ${p.hora}` : ''}`), p.grupoNombre ? ` · ${p.grupoNombre}` : ` · ${t('home.todos')}`),
+    detalleSesion(p) ? h('p', { class: 'muted' }, detalleSesion(p)) : null);
+  if (M.hoySesiones.length) {
+    hoyCard.append(h('ul', { class: 'ini-sesiones' }, M.hoySesiones.map((s) => {
+      const [tono, clave] = MOMENTOS[s.momento];
+      return h('li', { class: `ini-sesion ini-sesion--${s.momento}` },
+        h('div', { class: 'ini-sesion-hora' }, h('time', null, s.hora || '--:--')),
+        h('div', { class: 'ini-sesion-info' },
+          h('p', { class: 'ini-sesion-titulo' }, s.grupoNombre || t('home.todos')),
+          detalleSesion(s) ? h('p', { class: 'muted ini-sesion-detalle' }, detalleSesion(s)) : null),
+        h('span', { class: `badge badge--${tono}` }, t(clave)));
+    })));
+    const aSesion = M.sesionAsistencia;
+    hoyCard.append(h('div', { class: 'ini-acciones-card' }, enlace(`#/asistencia/${aSesion.id}`, t('home.hoy.pasar-lista'), 'btn btn--primary', 'asistencia')));
+    if (M.proxima && !M.hoySesiones.some((s) => s.momento !== 'pasada')) hoyCard.append(bloqueProxima(M.proxima));
+  } else if (M.proxima) {
+    hoyCard.append(h('p', { class: 'muted' }, t('home.hoy.sin-sesiones')), bloqueProxima(M.proxima),
+      h('div', { class: 'ini-acciones-card' }, enlace('#/entrenamientos', t('home.hoy.ver-sesiones'), 'btn', 'entrenamientos')));
+  } else {
+    hoyCard.append(vacio('entrenamientos', t('home.hoy.sin-sesiones'), t('home.hoy.sin-sesiones-texto'), '#/entrenamientos', t('home.hoy.programar')));
   }
-  if (!hayObjetivos) alertas.append(h('p', { class: 'ini-empty' }, t('inicio.sin-objetivos')));
-  else if (!nAlert) alertas.append(h('p', { class: 'ini-ok' }, t('inicio.todo-ok')));
 
-  // Próxima sesión
-  const grupos = store.list('Grupos');
-  const grupoNombre = (id) => (grupos.find((g) => g.id === id) || {}).nombre || t('inicio.todos');
-  const entrenos = store.list('Entrenamientos');
-  const prox = entrenos
-    .filter((e) => String(e.fecha).slice(0, 10) >= hoy && e.estado !== 'realizado')
-    .sort((a, b) => (String(a.fecha) + String(a.hora)).localeCompare(String(b.fecha) + String(b.hora)))[0];
-  const sesion = h('div', { class: 'card ini-card ini-sess' }, h('h3', {}, t('inicio.proxima-sesion')));
-  if (prox) {
-        const vol = prox.volumenMin || prox.volumenMax ? `${fmtM(num(prox.volumenMin))} – ${fmtM(num(prox.volumenMax))} m` : '—';
-    sesion.append(h('dl', {},
-      h('dt', {}, t('inicio.dia')), h('dd', {}, tDate(String(prox.fecha).slice(0, 10), 'long')),
-      h('dt', {}, t('inicio.hora')), h('dd', {}, prox.hora || '—'),
-      h('dt', {}, t('inicio.grupo')), h('dd', {}, grupoNombre(prox.grupoId)),
-      h('dt', {}, t('inicio.piscina')), h('dd', {}, prox.piscina ? `${prox.piscina} m` : '—'),
-      h('dt', {}, t('inicio.volumen')), h('dd', {}, vol),
-      h('dt', {}, t('inicio.enfoque')), h('dd', {}, prox.enfoque || prox.titulo || '—')));
-  } else sesion.append(h('p', { class: 'ini-empty' }, t('inicio.sin-sesiones')));
+  // ----- Attendance today -----
+  const asisCard = tarjeta('asistencia', t('home.asis.titulo'), '');
+  const A = M.asistencia;
+  if (!M.hoySesiones.length) {
+    asisCard.append(vacio('asistencia', t('home.asis.sin-sesiones'), t('home.asis.sin-sesiones-texto'), '#/asistencia', t('home.asis.abrir')));
+  } else if (!A.total.esperados) {
+    asisCard.append(vacio('nadadores', t('home.asis.sin-nadadores'), t('home.asis.sin-nadadores-texto'), '#/nadadores', t('home.asis.anadir-nadadores')));
+  } else {
+    const fila = (clase, etiqueta, n) => h('li', null, h('span', { class: `ini-dot ini-dot--${clase}`, 'aria-hidden': 'true' }), h('span', { class: 'ini-leg-et' }, etiqueta), h('strong', { class: 'num' }, tNum(n)));
+    asisCard.append(
+      h('div', { class: 'ini-asis' },
+        donutAsistencia(A.total),
+        h('ul', { class: 'ini-leg' },
+          fila('presente', t('home.asis.presentes'), A.total.presentes), fila('ausente', t('home.asis.ausentes'), A.total.ausentes),
+          fila('justificado', t('home.asis.justificados'), A.total.justificados), fila('sin', t('home.asis.sin-confirmar'), A.total.sinConfirmar))),
+      h('ul', { class: 'ini-asis-sesiones' }, M.hoySesiones.map((s) => {
+        const a = s.asistencia;
+        return h('li', null,
+          h('div', { class: 'ini-asis-linea' }, h('span', null, `${s.hora || '--:--'} · ${s.grupoNombre || t('home.todos')}`),
+            h('span', { class: 'num' }, t('home.asis.de', { presentes: a.presentes, esperados: a.esperados }) + (a.porcentaje == null ? '' : ` · ${a.porcentaje}%`))),
+          barra(a.porcentaje ?? 0, `${s.hora || ''} ${s.grupoNombre || t('home.todos')}`.trim()));
+      })));
+  }
 
-  // Asistencia hoy
-  const sesHoy = entrenos.filter((e) => String(e.fecha).slice(0, 10) === hoy);
-  const idsHoy = new Set(sesHoy.map((e) => e.id));
-  const asis = store.list('Asistencia').filter((a) => idsHoy.has(a.entrenamientoId));
-  const presentes = asis.filter((a) => a.estado === 'presente').length;
-  const faltan = asis.filter((a) => a.estado === 'ausente' || a.estado === 'justificado').length;
-  const gruposHoy = new Set(sesHoy.map((e) => e.grupoId));
-  const esperados = sesHoy.length
-    ? sesHoy.reduce((a, e) => a + store.list('Nadadores').filter((n) => String(n.activo) !== 'false' && (!e.grupoId || n.grupoId === e.grupoId)).length, 0)
-    : 0;
-  const sinConf = Math.max(0, esperados - presentes - faltan);
-  const parts = [{ n: t('inicio.asistieron'), v: presentes, color: '#34a853' }, { n: t('inicio.faltaron'), v: faltan, color: '#d93025' }, { n: t('inicio.sin-confirmar'), v: sinConf, color: '#bdc1c6' }];
-  const asisCard = h('div', { class: 'card ini-card' }, h('h3', {}, t('inicio.asistencia-hoy')));
-  if (sesHoy.length) {
-    const wrap = h('div', { class: 'ini-donut' });
-    wrap.append(donut(parts), h('ul', {}, ...parts.map((p) => h('li', {}, h('i', { style: `background:${p.color}` }), `${p.n}: ${p.v}`))));
-    asisCard.append(wrap);
-  } else asisCard.append(h('p', { class: 'ini-empty' }, t('inicio.hoy-sin-sesiones')));
+  // ----- Load alerts -----
+  const alertCard = tarjeta('alertas', t('home.alertas.titulo'), '');
+  const C = M.carga;
+  const dot = (tipo) => { const d = h('span', { class: 'ini-dot', 'aria-hidden': 'true' }); d.style.setProperty('--dot', tipo.color); return d; };
+  if (!C.hayObjetivos) {
+    alertCard.append(vacio('cargas', t('home.alertas.sin-objetivos'), t('home.alertas.sin-objetivos-texto'), '#/cargas', t('home.alertas.definir')));
+  } else if (!C.serie.hayCargas) {
+    alertCard.append(h('div', { class: 'alert alert--info' }, icon('info', { size: 20 }), h('div', null, h('p', { class: 'alert-title' }, t('home.alertas.sin-cargas')), h('p', null, t('home.alertas.sin-cargas-texto')))),
+      h('div', { class: 'ini-acciones-card' }, enlace('#/cargas/nueva', t('home.acc.carga'), 'btn', 'cargas')));
+  } else if (!C.alertas.length) {
+    alertCard.append(h('div', { class: 'alert alert--ok' }, icon('check', { size: 20 }), h('div', null, h('p', { class: 'alert-title' }, t('home.alertas.todo-ok')))));
+  } else {
+    alertCard.append(h('ul', { class: 'ini-alertas' }, C.alertas.map((a) => h('li', { class: `alert alert--${a.estado === 'alto' ? 'danger' : 'warn'}` },
+      icon('aviso', { size: 20 }),
+      h('div', null, h('p', { class: 'alert-title ini-alert-tipo' }, dot(a.tipo), tContenido(a.tipo)),
+        h('p', null, t(a.estado === 'alto' ? 'tc.exceso' : 'tc.faltan', { m: fmtM(a.diferencia) })),
+        h('p', { class: 'muted ini-alert-detalle' }, t('home.alertas.detalle', { m: fmtM(a.metros) })))))),
+    h('div', { class: 'ini-acciones-card' }, enlace('#/cargas', t('home.alertas.ver-cargas'), 'btn btn-sm', 'cargas')));
+  }
 
-  // Comunicaciones recientes
-  const coms = store.list('Comunicaciones').sort((a, b) => String(b.fecha).localeCompare(String(a.fecha))).slice(0, 4);
-  const comCard = h('div', { class: 'card ini-card' }, h('h3', {}, t('inicio.comunicaciones')));
-  if (coms.length) for (const c of coms) {
-    comCard.append(h('div', { class: 'ini-com' }, h('strong', {}, c.titulo || t('inicio.sin-titulo')), h('br'),
-      h('small', {}, `${tDate(String(c.fecha).slice(0, 10))} · ${c.grupoId ? grupoNombre(c.grupoId) : t('inicio.todos')}`)));
-  } else comCard.append(h('p', { class: 'ini-empty' }, t('inicio.sin-comunicaciones')));
-  comCard.append(h('a', { href: '#/comunicaciones', class: 'btn' }, t('inicio.ver-todas')));
+  // ----- Quick actions (things you DO; the modules are already in the menu) -----
+  const acciones = [
+    ['asistencia', t('home.acc.asistencia'), M.sesionAsistencia ? `#/asistencia/${M.sesionAsistencia.id}` : '#/asistencia'],
+    ['cargas', t('home.acc.carga'), '#/cargas/nueva'],
+    ['marcas', t('home.acc.marca'), '#/marcas/nueva'],
+    ['comunicaciones', t('home.acc.aviso'), '#/comunicaciones/nueva'],
+  ];
+  const accCard = tarjeta('acciones', t('home.acc.titulo'), '',
+    h('ul', { class: 'ini-acciones' }, acciones.map(([ic, txt, href]) => h('li', null,
+      h('a', { class: 'ini-accion', href }, h('span', { class: 'ini-accion-ico' }, icon(ic, { size: 22 })), h('span', null, txt))))));
 
-  container.append(banner, ...[primerosPasos(ctx)].filter(Boolean), h('div', { class: 'grid ini-grid' }, quick, alertas, chart, sesion, asisCard, comCard));
+  // ----- Weekly load chart -----
+  const chartCard = tarjeta('grafico', t('home.grafico.titulo'), 'ini-span-2');
+  chartCard.querySelector('.card-head').append(h('div', { class: 'card-head-actions' }, enlace('#/cargas', t('home.alertas.ver-cargas'), 'btn btn-sm btn--ghost')));
+  if (!C.serie.hayCargas && !C.hayObjetivos) {
+    chartCard.append(vacio('grafica', t('home.grafico.vacio'), t('home.grafico.vacio-texto'), '#/cargas/nueva', t('home.acc.carga')));
+  } else {
+    chartCard.append(h('p', { class: 'muted ini-sub' }, t('home.grafico.sub')), graficoSemanal(h, C));
+    if (!C.serie.hayCargas) chartCard.append(h('p', { class: 'muted' }, t('home.grafico.sin-cargas')));
+  }
+
+  // ----- Recent notes -----
+  const avisosCard = tarjeta('avisos', t('home.avisos.titulo'), 'ini-span-2');
+  if (!M.avisos.length) {
+    avisosCard.append(vacio('comunicaciones', t('home.avisos.vacio'), t('home.avisos.vacio-texto'), '#/comunicaciones/nueva', t('home.avisos.escribir')));
+  } else {
+    avisosCard.append(h('ul', { class: 'ini-avisos' }, M.avisos.map((a) => h('li', { class: 'ini-aviso' },
+      h('div', { class: 'ini-aviso-cab' },
+        h('p', { class: 'ini-aviso-titulo' }, a.titulo || t('home.avisos.sin-titulo')),
+        h('time', { class: 'muted', datetime: a.fecha }, relativo(a.dias, a.fecha))),
+      h('p', { class: 'ini-aviso-texto muted' }, a.vistaPrevia),
+      h('span', { class: 'badge badge--info' }, a.destino.tipo === 'grupo' ? a.destino.nombre : t('home.todos'))))),
+    h('div', { class: 'ini-acciones-card' }, enlace('#/comunicaciones', t('home.avisos.ver-todos'), 'btn btn-sm', 'comunicaciones')));
+  }
+
+  // ----- Next season event -----
+  const evCard = tarjeta('evento', t('home.evento.titulo'), '');
+  const E = M.evento;
+  if (!E) {
+    evCard.append(vacio('calendario', t('home.evento.vacio'), t('home.evento.vacio-texto'), '#/planificacion', t('home.evento.planificar')));
+  } else {
+    const rango = E.fin && E.fin !== E.inicio ? `${tDate(E.inicio)} - ${tDate(E.fin)}` : tDate(E.inicio);
+    const cuandoEv = E.dias > 0 ? t('home.evento.en-dias', { n: E.dias }) : t(E.dias === 0 ? 'home.evento.hoy' : 'home.evento.en-curso');
+    evCard.append(h('div', { class: 'ini-evento' },
+      h('p', { class: 'ini-evento-nombre' }, E.nombre),
+      h('p', { class: 'ini-evento-cuando' }, h('strong', null, cuandoEv), ` · ${rango}`),
+      E.lugar ? h('p', { class: 'muted' }, E.lugar) : null,
+      h('p', null, h('span', { class: 'badge badge--neutral' }, t(`tp.evento.${E.tipo}`)), E.prioridad ? ' ' : null, E.prioridad ? h('span', { class: 'badge badge--info' }, t('tp.prioridad-n', { p: E.prioridad })) : null)),
+      h('div', { class: 'ini-acciones-card' }, enlace('#/planificacion', t('home.evento.ver'), 'btn btn-sm', 'planificacion')));
+  }
+
+  // ----- First steps (dismissible, ticks itself) -----
+  const pasos = primerosPasos(ctx, M.primerosPasos, {
+    onOcultar: () => { svc.ocultarPasos(); pasos.remove(); titulo.focus(); },
+  });
+
+  container.replaceChildren(h('div', { class: 'ini-page' }, banner, pasos,
+    h('div', { class: 'ini-host' }, h('div', { class: 'ini-grid' }, hoyCard, asisCard, alertCard, accCard, chartCard, avisosCard, evCard))));
 }

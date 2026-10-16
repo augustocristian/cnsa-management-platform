@@ -1,0 +1,143 @@
+/* Home dashboard (js/views/inicio.js, inicio-grafico.js, primerospasos.js). Tokens only: no hard-coded colours. */
+
+.ini-page { display: grid; gap: var(--sp-4); min-width: 0; }
+
+/* ---------- Banner: compact, club colour, subtle wave pattern ---------- */
+.ini-banner {
+  position: relative; isolation: isolate; overflow: hidden;
+  display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--sp-3) var(--sp-5);
+  padding: var(--sp-4) var(--sp-5); border-radius: var(--r-lg);
+  background: var(--c-action); color: var(--c-on-primary);
+}
+.ini-wave { position: absolute; inset: auto 0 0 0; width: 100%; height: 100%; z-index: -1; opacity: .08; pointer-events: none; }
+.ini-wave path { fill: none; stroke: var(--c-on-primary); stroke-width: 3; stroke-linecap: round; vector-effect: non-scaling-stroke; }
+.ini-banner-main { min-width: 0; flex: 1 1 280px; }
+.ini-eyebrow { margin: 0; font-size: var(--fs-sm); font-weight: 600; }
+.ini-banner h1 { margin: 2px 0; color: inherit; overflow-wrap: anywhere; }
+.ini-banner h1:focus { outline: none; }
+.ini-headline { margin: 0; font-size: var(--fs-h3); }
+.ini-kpis { display: flex; gap: var(--sp-5); margin: 0; }
+.ini-kpi { display: flex; flex-direction: column; min-width: 0; }
+.ini-kpi dd { order: -1; margin: 0; font-size: 1.75rem; font-weight: 700; line-height: 1.1; font-variant-numeric: tabular-nums; }
+.ini-kpi dt { font-size: var(--fs-sm); }
+
+/* ---------- Grid: 1 column, 2 on medium, 3 on wide containers. No holes: spans add up to full rows. ---------- */
+.ini-host { container-type: inline-size; min-width: 0; }
+.ini-grid { display: grid; grid-template-columns: minmax(0, 1fr); gap: var(--sp-4); align-items: stretch; }
+.ini-card { display: flex; flex-direction: column; gap: var(--sp-3); min-width: 0; overflow-x: visible; }
+.ini-card > .card-head { margin-bottom: 0; }
+@container (min-width: 640px) {
+  .ini-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .ini-span-2 { grid-column: span 2; }
+  /* 7 cards: Today | Attendance / Alerts | Actions / Chart (2) / Notes | Event */
+  #ini-avisos { grid-column: span 1; }
+}
+@container (min-width: 960px) {
+  .ini-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  /* Rows: Today | Attendance | Alerts / Actions | Chart (2) / Notes (2) | Event */
+  #ini-avisos { grid-column: span 2; }
+}
+.ini-acciones-card { margin-top: auto; display: flex; flex-wrap: wrap; gap: var(--sp-2); }
+.ini-sub { margin: 0; font-size: var(--fs-sm); }
+
+/* ---------- Dots, swatches ---------- */
+.ini-dot { display: inline-block; flex: none; width: .75rem; height: .75rem; border-radius: 50%; background: var(--dot, var(--neutral)); border: 1px solid var(--border); }
+.ini-dot--presente { --dot: var(--ok); }
+.ini-dot--ausente { --dot: var(--danger); }
+.ini-dot--justificado { --dot: var(--warn); }
+.ini-dot--sin { --dot: var(--field-border); }
+
+/* ---------- Today ---------- */
+.ini-sesiones { list-style: none; margin: 0; padding: 0; display: grid; gap: var(--sp-2); }
+.ini-sesion { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: center; gap: var(--sp-3); padding: var(--sp-2) var(--sp-3); border: 1px solid var(--border); border-radius: var(--r-md); background: var(--surface-2); }
+.ini-sesion--en-curso { border-color: var(--ok); background: var(--ok-bg); }
+.ini-sesion--pasada { opacity: .85; }
+.ini-sesion-hora { font-weight: 700; font-variant-numeric: tabular-nums; }
+.ini-sesion-titulo, .ini-sesion-detalle { margin: 0; overflow-wrap: anywhere; }
+.ini-sesion-titulo { font-weight: 650; }
+.ini-sesion-detalle { font-size: var(--fs-sm); }
+.ini-proxima h3 { margin: 0 0 var(--sp-1); }
+.ini-proxima p { margin: 0; }
+
+/* ---------- Attendance ---------- */
+.ini-asis { display: flex; flex-wrap: wrap; align-items: center; gap: var(--sp-4); }
+.ini-donut { width: 128px; height: 128px; flex: none; }
+.ini-donut-pista { fill: none; stroke: var(--surface-2); stroke-width: 20; }
+.ini-donut-seg { fill: none; stroke-width: 20; }
+.ini-donut-seg--presente { stroke: var(--ok); }
+.ini-donut-seg--ausente { stroke: var(--danger); }
+.ini-donut-seg--justificado { stroke: var(--warn); }
+.ini-donut-seg--sin { stroke: var(--field-border); }
+.ini-donut-num { font-size: 22px; font-weight: 700; fill: var(--text); }
+.ini-leg { list-style: none; margin: 0; padding: 0; display: grid; gap: var(--sp-1); flex: 1 1 140px; font-size: var(--fs-sm); }
+.ini-leg li { display: flex; align-items: center; gap: var(--sp-2); }
+.ini-leg-et { flex: 1 1 auto; }
+.ini-asis-sesiones { list-style: none; margin: 0; padding: 0; display: grid; gap: var(--sp-3); }
+.ini-asis-linea { display: flex; justify-content: space-between; gap: var(--sp-2); margin-bottom: var(--sp-1); font-size: var(--fs-sm); }
+
+/* ---------- Alerts (shared .alert component) ---------- */
+.ini-alertas { list-style: none; margin: 0; padding: 0; display: grid; gap: var(--sp-2); }
+.ini-alert-tipo { display: flex; align-items: center; gap: var(--sp-2); }
+.ini-alert-detalle { font-size: var(--fs-sm); }
+
+/* ---------- Quick actions ---------- */
+.ini-acciones { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--sp-2); }
+.ini-accion {
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: var(--sp-2); text-align: center;
+  min-height: 84px; padding: var(--sp-3); border: 1px solid var(--field-border); border-radius: var(--r-md);
+  background: var(--surface); color: var(--text); font-weight: 600; text-decoration: none;
+}
+.ini-accion:hover { background: var(--c-primary-soft); border-color: var(--c-accent); }
+.ini-accion-ico { display: grid; place-items: center; width: 40px; height: 40px; border-radius: var(--r-md); background: var(--c-primary-soft); color: var(--c-accent); }
+
+/* ---------- Weekly chart ---------- */
+.ini-chart { margin: 0; display: grid; gap: var(--sp-2); min-width: 0; }
+.ini-chart-scroll { overflow-x: auto; border-radius: var(--r-sm); }
+.ini-svg { display: block; width: 100%; min-width: 520px; height: auto; }
+.ini-gridline { stroke: var(--border); stroke-width: 1; }
+.ini-base { stroke: var(--field-border); stroke-width: 1; }
+.ini-axis { font-size: 12px; fill: var(--muted); }
+.ini-axis--hoy { fill: var(--text); font-weight: 700; }
+.ini-val { font-size: 12px; font-weight: 600; fill: var(--text); }
+.ini-bar { stroke: var(--surface); stroke-width: 1; }
+.ini-band { fill: var(--ok); fill-opacity: .14; }
+.ini-band-edge { stroke: var(--ok); stroke-width: 1.5; stroke-dasharray: 5 4; }
+.ini-future { fill: none; stroke: var(--field-border); stroke-width: 1; stroke-dasharray: 4 4; }
+.ini-legend { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: var(--sp-1) var(--sp-4); font-size: var(--fs-sm); color: var(--text); }
+.ini-legend li { display: inline-flex; align-items: center; gap: var(--sp-2); }
+.ini-swatch { display: inline-block; width: 18px; height: 10px; border-radius: 2px; }
+.ini-swatch--banda { background: color-mix(in srgb, var(--ok) 25%, var(--surface)); border: 1.5px dashed var(--ok); }
+.ini-swatch--futuro { border: 1px dashed var(--field-border); }
+
+/* ---------- Recent notes ---------- */
+.ini-avisos { list-style: none; margin: 0; padding: 0; display: grid; gap: var(--sp-3); }
+.ini-aviso { display: grid; gap: var(--sp-1); padding-bottom: var(--sp-3); border-bottom: 1px solid var(--border); justify-items: start; }
+.ini-aviso:last-child { border-bottom: 0; padding-bottom: 0; }
+.ini-aviso-cab { display: flex; justify-content: space-between; gap: var(--sp-3); width: 100%; font-size: var(--fs-sm); }
+.ini-aviso-titulo { margin: 0; font-weight: 650; font-size: var(--fs-body); overflow-wrap: anywhere; }
+.ini-aviso-texto { margin: 0; overflow-wrap: anywhere; }
+
+/* ---------- Next event ---------- */
+.ini-evento p { margin: 0 0 var(--sp-1); }
+.ini-evento-nombre { font-size: var(--fs-h2); font-weight: 650; overflow-wrap: anywhere; }
+
+/* ---------- First steps ---------- */
+.pp-card { border-left: 4px solid var(--c-accent); }
+.pp-texto { margin: 0; }
+.pp-progreso { margin: 0; font-size: var(--fs-sm); font-weight: 600; }
+.pp-lista { list-style: none; margin: 0; padding: 0; display: grid; gap: var(--sp-2); }
+.pp-lista a {
+  display: flex; align-items: center; gap: var(--sp-3); min-height: var(--touch); padding: var(--sp-2) var(--sp-3);
+  border: 1px solid var(--border); border-radius: var(--r-md); text-decoration: none; color: var(--text); background: var(--surface);
+}
+.pp-lista a:hover { background: var(--c-primary-soft); border-color: var(--c-accent); }
+.pp-n { display: inline-grid; place-items: center; width: 1.75rem; height: 1.75rem; flex: none; border-radius: 50%; background: var(--c-primary-soft); color: var(--text); border: 1px solid var(--c-primary-mid); font-weight: 700; }
+.pp-hecho .pp-n { background: var(--ok); border-color: var(--ok); color: var(--surface); }
+.pp-hecho .pp-et { color: var(--muted); text-decoration: line-through; }
+@media (min-width: 700px) { .pp-lista { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+
+@media (max-width: 520px) {
+  .ini-banner { padding: var(--sp-4); }
+  .ini-sesion { grid-template-columns: auto minmax(0, 1fr); }
+  .ini-sesion .badge { grid-column: 2; justify-self: start; }
+}

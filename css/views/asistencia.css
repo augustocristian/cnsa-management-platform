@@ -1,0 +1,67 @@
+/* Attendance view (js/views/asistencia.js). Tokens only; works in light and dark. */
+.asi-session { display: grid; gap: var(--sp-3); margin-bottom: var(--sp-3); }
+.asi-pick { display: flex; align-items: flex-end; gap: var(--sp-2); }
+.asi-pick .field { flex: 1 1 auto; }
+.asi-pick .btn-icon { width: var(--touch); min-height: var(--touch); }
+.asi-search { max-width: 360px; }
+.asi-meta { margin: 0; color: var(--muted); font-size: var(--fs-sm); }
+
+/* Sticky summary: progress + coloured numeric chips (stays visible while scrolling the list) */
+.asi-sticky {
+  position: sticky; top: var(--sticky-top, var(--topbar-h)); z-index: var(--z-sticky);
+  display: grid; gap: var(--sp-2); padding: var(--sp-2) 0 var(--sp-3); margin-bottom: var(--sp-2); background: var(--bg);
+  border-bottom: 1px solid var(--border);
+}
+.asi-progress { display: flex; align-items: center; justify-content: space-between; gap: var(--sp-3); flex-wrap: wrap; }
+.asi-progress p { margin: 0; font-weight: 600; }
+.asi-progress .progress { flex: 1 1 140px; min-width: 100px; }
+.asi-sum { display: flex; flex-wrap: wrap; gap: var(--sp-2); }
+.asi-sum .badge { font-size: var(--fs-sm); padding: 2px 12px; }
+.asi-n { font-weight: 800; font-variant-numeric: tabular-nums; }
+.asi-help { margin: 0 0 var(--sp-3); color: var(--muted); font-size: var(--fs-sm); }
+
+/* Swimmer cards: two big targets (Present / Absent) + a "more" button */
+.asi-list { list-style: none; margin: 0; padding: 0; display: grid; gap: var(--sp-3); grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); }
+.asi-card {
+  --st: var(--border); --st-bg: var(--surface);
+  display: grid; gap: var(--sp-3); padding: var(--sp-3); background: var(--st-bg); color: var(--text);
+  border: 1px solid var(--border); border-left: 5px solid var(--st); border-radius: var(--r-md);
+}
+.asi-card[data-estado="presente"] { --st: var(--ok); --st-bg: var(--ok-bg); }
+.asi-card[data-estado="ausente"] { --st: var(--danger); --st-bg: var(--danger-bg); }
+.asi-card[data-estado="justificado"] { --st: var(--warn); --st-bg: var(--warn-bg); }
+.asi-who { display: flex; align-items: center; gap: var(--sp-3); min-width: 0; }
+.asi-name { flex: 1 1 auto; min-width: 0; font-weight: 650; overflow-wrap: anywhere; }
+.asi-state { flex: none; }
+.asi-note { margin: 0; color: var(--muted); font-size: var(--fs-sm); overflow-wrap: anywhere; }
+.asi-actions { display: grid; grid-template-columns: 1fr 1fr var(--touch); gap: var(--sp-2); }
+.asi-btn, .asi-more {
+  display: inline-flex; align-items: center; justify-content: center; gap: var(--sp-2); min-height: 48px; padding: 0 var(--sp-2);
+  font: inherit; font-weight: 600; color: var(--text); background: var(--surface); border: 1px solid var(--field-border); border-radius: var(--r-md);
+  cursor: pointer; touch-action: manipulation; -webkit-tap-highlight-color: transparent;
+}
+.asi-more { width: var(--touch); padding: 0; }
+.asi-btn:hover, .asi-more:hover { background: var(--c-primary-soft); }
+.asi-btn[aria-pressed="true"] { font-weight: 800; border-width: 2px; }
+.asi-btn[data-estado="presente"][aria-pressed="true"] { background: var(--ok); border-color: var(--ok); color: var(--surface); }
+.asi-btn[data-estado="ausente"][aria-pressed="true"] { background: var(--danger); border-color: var(--danger); color: var(--surface); }
+
+/* Detail sheet (state chips + note) */
+.asi-estados { display: flex; flex-wrap: wrap; gap: var(--sp-2); margin-bottom: var(--sp-3); }
+
+/* History */
+.asi-filter { max-width: 320px; margin-bottom: var(--sp-3); }
+.asi-name-btn { display: inline-flex; align-items: center; gap: var(--sp-2); min-height: var(--touch); padding: 0; border: 0; background: none; font: inherit; font-weight: 600; color: var(--c-accent); cursor: pointer; text-align: left; }
+.asi-name-btn:hover { text-decoration: underline; }
+.asi-pct { display: flex; align-items: center; gap: var(--sp-2); justify-content: flex-end; }
+.asi-pct .num { min-width: 3.2em; font-weight: 700; }
+.asi-pct .progress { width: 90px; }
+.asi-det td { color: var(--text); font-size: var(--fs-sm); background: var(--surface-2); height: auto; }
+.asi-det ul { margin: 0; padding-left: var(--sp-4); }
+.asi-det li { padding: 2px 0; }
+@media (max-width: 820px) {
+  .asi-sticky { top: var(--sticky-top, 0); }
+  .asi-pct { justify-content: flex-end; flex: 1 1 auto; }
+  .table--cards tr.asi-det { padding: var(--sp-2) var(--sp-3); }
+  .table--cards tr.asi-det td { display: block; text-align: left; border: 0; }
+}

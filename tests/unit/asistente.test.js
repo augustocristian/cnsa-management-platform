@@ -3,10 +3,10 @@ import test, { describe, afterEach } from 'node:test';
 import assert from 'node:assert/strict';
 import { setupEnv, importApp } from '../helpers/env.js';
 import { PASOS, validar, datosDelClub, crearClub, zonaDelNavegador, COLOR_PRIMARIO } from '../../js/application/asistenteClub.js';
-import { clasificarErrorLogin, clasificarErrorApi, CODIGOS } from '../../js/domain/erroresGoogle.js';
+import { clasificarErrorConexion, clasificarErrorLogin, clasificarErrorApi, CODIGOS } from '../../js/domain/erroresGoogle.js';
 
 setupEnv();
-const { auth } = await importApp('js/auth.js');
+const { driveConnection: auth } = await importApp('js/infrastructure/driveConnection.js');
 const { drive } = await importApp('js/drive.js');
 const { instalarFakeGoogle } = await importApp('js/infrastructure/fakeGoogle.js');
 let fake = null;
@@ -44,7 +44,7 @@ test('asistente: datosDelClub rellena valores por defecto y limpia espacios', ()
 });
 
 test('asistente: crearClub crea el fichero en cnl y devuelve la identidad elegida', async () => {
-  fake = instalarFakeGoogle({ auth, drive, opciones: { sesion: true } });
+  fake = instalarFakeGoogle({ auth, drive, opciones: { conectado: true } });
   await auth.init();
   const r = await crearClub({ drive, datos: { nombre: ' Club Nuevo ', lema: 'Lema', colorPrimario: '#e91e63' } });
   assert.equal(r.ref.name, 'Club Nuevo');
@@ -55,31 +55,33 @@ test('asistente: crearClub crea el fichero en cnl y devuelve la identidad elegid
 });
 
 test('asistente: crearClub rechaza datos inválidos sin tocar Drive', async () => {
-  fake = instalarFakeGoogle({ auth, drive, opciones: { sesion: true } });
+  fake = instalarFakeGoogle({ auth, drive, opciones: { conectado: true } });
   await auth.init();
   await assert.rejects(crearClub({ drive, datos: { nombre: '' } }), (e) => e.code === 'datos-invalidos' && e.errores.nombre === 'nombre-vacio');
   assert.equal(fake.clubs().length, 0);
 });
 
 test('asistente: si Drive falla el error se propaga con su código (para mostrar la ayuda)', async () => {
-  fake = instalarFakeGoogle({ auth, drive, opciones: { sesion: true, fallos: { crearClub: 'offline' } } });
+  fake = instalarFakeGoogle({ auth, drive, opciones: { conectado: true, fallos: { crearClub: 'offline' } } });
   await auth.init();
   await assert.rejects(crearClub({ drive, datos: { nombre: 'Club' } }), (e) => e.offline === true);
 });
 
 // ---------- errores de Google ----------
-test('errores de login: popup bloqueado, cerrado, acceso denegado, origen y red', () => {
-  assert.equal(clasificarErrorLogin({ type: 'popup_failed_to_open' }), 'popup-bloqueado');
-  assert.equal(clasificarErrorLogin({ type: 'popup_closed' }), 'popup-cerrado');
-  assert.equal(clasificarErrorLogin({ error: 'access_denied' }), 'acceso-denegado');
-  assert.equal(clasificarErrorLogin(new Error('access_blocked: app not verified')), 'acceso-denegado');
-  assert.equal(clasificarErrorLogin({ error: 'invalid_request', error_description: 'origin_mismatch' }), 'origen-no-autorizado');
-  assert.equal(clasificarErrorLogin(new Error('Error 400: redirect_uri_mismatch')), 'origen-no-autorizado');
-  assert.equal(clasificarErrorLogin(new Error('No se pudo cargar Google Identity Services')), 'sin-gis');
-  assert.equal(clasificarErrorLogin(new TypeError('Failed to fetch')), 'sin-conexion');
-  assert.equal(clasificarErrorLogin({ offline: true }), 'sin-conexion');
-  assert.equal(clasificarErrorLogin(null), 'desconocido');
-  assert.equal(clasificarErrorLogin('algo raro'), 'desconocido');
+test('errores de conexión con Drive: popup bloqueado, cerrado, acceso denegado, origen y red', () => {
+  assert.equal(clasificarErrorConexion({ type: 'popup_failed_to_open' }), 'popup-bloqueado');
+  assert.equal(clasificarErrorConexion({ type: 'popup_closed' }), 'popup-cerrado');
+  assert.equal(clasificarErrorConexion({ error: 'access_denied' }), 'acceso-denegado');
+  assert.equal(clasificarErrorConexion(new Error('access_blocked: app not verified')), 'acceso-denegado');
+  assert.equal(clasificarErrorConexion({ error: 'invalid_request', error_description: 'origin_mismatch' }), 'origen-no-autorizado');
+  assert.equal(clasificarErrorConexion(new Error('Error 400: redirect_uri_mismatch')), 'origen-no-autorizado');
+  assert.equal(clasificarErrorConexion(new Error('No se pudo cargar Google Identity Services')), 'sin-gis');
+  assert.equal(clasificarErrorConexion(new Error('Could not load Google Identity Services')), 'sin-gis');
+  assert.equal(clasificarErrorLogin, clasificarErrorConexion, 'alias antiguo');
+  assert.equal(clasificarErrorConexion(new TypeError('Failed to fetch')), 'sin-conexion');
+  assert.equal(clasificarErrorConexion({ offline: true }), 'sin-conexion');
+  assert.equal(clasificarErrorConexion(null), 'desconocido');
+  assert.equal(clasificarErrorConexion('algo raro'), 'desconocido');
 });
 
 test('errores de la API: API no activada con enlace de activación, permisos, límite', () => {
@@ -112,7 +114,7 @@ test('todos los códigos de error tienen texto en es, en e it', async () => {
 
 // ---------- Drive simulado ----------
 test('Drive simulado: misma interfaz que drive.js (clubes, lectura/escritura, preferencias, ficheros)', async () => {
-  fake = instalarFakeGoogle({ auth, drive, opciones: { sesion: true } });
+  fake = instalarFakeGoogle({ auth, drive, opciones: { conectado: true } });
   await auth.init();
   assert.deepEqual(await drive.listClubs(), []);
   const c = await drive.createClub('Mi Club');
@@ -134,11 +136,11 @@ test('Drive simulado: misma interfaz que drive.js (clubes, lectura/escritura, pr
   await assert.rejects(drive.read('nada'), (e) => e.status === 404);
 });
 
-test('Drive simulado: sin sesión pide iniciar sesión; los datos sobreviven a recargar (espejo en localStorage)', async () => {
+test('Drive simulado: sin conectar Drive no se puede usar; los datos sobreviven a recargar (espejo en localStorage)', async () => {
   fake = instalarFakeGoogle({ auth, drive, opciones: {} });
   await auth.init();
   await assert.rejects(drive.listClubs(), (e) => e.status === 401);
-  await auth.signIn();
+  await auth.connect();
   const c = await drive.createClub('Persistente');
   fake.desinstalar();
   fake = instalarFakeGoogle({ auth, drive, opciones: {} }); // "recarga": lee 'cnl:test:drive'
@@ -148,7 +150,7 @@ test('Drive simulado: sin sesión pide iniciar sesión; los datos sobreviven a r
 
 test('Drive simulado: opción demo prepara un club y siembra los datos de demostración una sola vez', async () => {
   const { store } = await importApp('js/store.js');
-  fake = instalarFakeGoogle({ auth, drive, opciones: { sesion: true, demo: true, club: 'Club Demo' } });
+  fake = instalarFakeGoogle({ auth, drive, opciones: { conectado: true, demo: true, club: 'Club Demo' } });
   await auth.init();
   const [club] = await drive.listClubs();
   assert.equal(club.name, 'Club Demo');

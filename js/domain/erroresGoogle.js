@@ -1,4 +1,4 @@
-// Clasificación PURA de los errores típicos de Google (login con GIS y REST de Drive) en códigos estables.
+// Clasificación PURA de los errores típicos de Google (autorización con GIS y REST de Drive) en códigos estables.
 // La interfaz traduce cada código con la clave i18n 'gerr.<codigo>' (y puede añadir ayuda: origen actual, enlaces).
 
 export const CODIGOS = [
@@ -8,9 +8,9 @@ export const CODIGOS = [
 
 const texto = (x) => String((x && (x.message || x.error_description || x.error || x.type)) || x || '').toLowerCase();
 
-// Error del flujo de inicio de sesión (GIS) -> código.
+// Error del flujo de conexión con Google Drive (GIS, sólo autorización) -> código.
 // GIS entrega `type` ('popup_failed_to_open' | 'popup_closed' | 'unknown') en error_callback y `error` en la respuesta.
-export function clasificarErrorLogin(err) {
+export function clasificarErrorConexion(err) {
   const s = texto(err);
   const tipo = String((err && (err.type || err.code || err.error)) || '').toLowerCase();
   if (err && err.offline) return 'sin-conexion';
@@ -18,10 +18,13 @@ export function clasificarErrorLogin(err) {
   if (s.includes('origin_mismatch') || s.includes('redirect_uri_mismatch') || s.includes('invalid_request') || s.includes('idpiframe_initialization_failed')) return 'origen-no-autorizado';
   if (tipo === 'access_denied' || s.includes('access_denied') || s.includes('access_blocked') || s.includes('app_not_verified')) return 'acceso-denegado';
   if (tipo === 'popup_closed' || s.includes('popup_closed')) return 'popup-cerrado';
-  if (s.includes('no se pudo cargar google identity') || s.includes('google no disponible') || s.includes('sin-gis')) return 'sin-gis';
+  if (s.includes('no se pudo cargar google identity') || s.includes('could not load google identity') || s.includes('google no disponible') || s.includes('sin-gis')) return 'sin-gis';
   if (s.includes('failed to fetch') || s.includes('network') || s.includes('sin conexión')) return 'sin-conexion';
   return 'desconocido';
 }
+
+// Deprecated alias (kept so views written before the sign-in removal keep working).
+export const clasificarErrorLogin = clasificarErrorConexion;
 
 // Respuesta HTTP de error de la API de Drive/Calendar -> {codigo, enlace?, servicio?}
 // `cuerpo` es el texto o el objeto JSON de la respuesta.

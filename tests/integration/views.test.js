@@ -7,14 +7,13 @@ let c;
 const test = (name, fn) => base(name, async (t) => { c = await fresh(); return fn(t); });
 
 const EXPECT = {
-  inicio: /Bienvenido/,
+  inicio: /Nadadores activos/,
   nadadores: /Nadadores/,
   grupos: /Grupos/,
   entrenamientos: /Entrenamientos/,
   asistencia: /Asistencia/,
   cargas: /Cargas/,
   marcas: /Marcas/,
-  banador: /Bañador/,
   comunicaciones: /Avisos y notas/,
   club: /Identidad del club/,
 };
@@ -45,7 +44,7 @@ for (const name of VIEWS) {
 test('inicio muestra datos del club: tarjetas y SVG', async () => {
   await renderView('inicio', c.container, [], c);
   assert.ok(c.container.querySelectorAll('svg').length >= 2);
-  assert.match(c.container.textContent, /Bienvenido, Entrenador/);
+  assert.match(c.container.textContent, /Acciones rápidas/);
   assert.equal(c.container.querySelector('#primeros-pasos'), null, 'con datos no se muestran los primeros pasos');
 });
 
@@ -53,12 +52,6 @@ test('grupos lista los 4 grupos demo con sus nadadores', async () => {
   await renderView('grupos', c.container, [], c);
   for (const g of c.store.list('Grupos')) assert.ok(c.container.textContent.includes(g.nombre));
   assert.ok(c.container.querySelectorAll('a[href^="#/nadadores/"]').length >= 12);
-});
-
-test('banador cuenta pendientes', async () => {
-  await renderView('banador', c.container, [], c);
-  const pend = c.store.list('Banador').filter((b) => b.estado !== 'entregado').length;
-  assert.ok(c.container.textContent.includes(`${pend} pendiente(s) de 12`));
 });
 
 test('comunicaciones lista los avisos demo', async () => {
@@ -98,7 +91,7 @@ test('club nuevo y vacío: el inicio muestra los primeros pasos (estado vacío c
   await renderView('inicio', c.container, [], c);
   const pp = c.container.querySelector('#primeros-pasos');
   assert.ok(pp, 'tarjeta de primeros pasos');
-  assert.deepEqual([...pp.querySelectorAll('a')].map((a) => a.getAttribute('href')), ['#/grupos', '#/nadadores', '#/planificacion', '#/entrenamientos']);
+  assert.deepEqual([...pp.querySelectorAll('a')].map((a) => a.getAttribute('href')), ['#/grupos', '#/nadadores', '#/planificacion/piscina', '#/entrenamientos']);
   assert.equal(c.store.list('Nadadores').length, 0);
   assert.doesNotMatch(c.container.textContent, /undefined|NaN|[[]object/);
 });

@@ -1,8 +1,8 @@
-// Guarda el PDF de un entreno en Drive, en la carpeta cnl/entrenos (scope drive.file: sólo ficheros creados por la app).
-// Recibe el cliente de Drive (js/drive.js o el adaptador de pruebas) para poder probarse sin red.
+// Saves a training PDF to Drive in the cnl/entrenos folder (drive.file scope: only files created by the app).
+// Receives the Drive client (js/drive.js or the test adapter) so it can be tested without a network.
 export const SUBCARPETA_ENTRENOS = 'entrenos';
 
-// -> { id, name, actualizado, url } (actualizado = ya existía un PDF con ese nombre y se ha sustituido, sin duplicarlo)
+// -> { id, name, actualizado, url } (actualizado = a PDF with that name already existed and was replaced, not duplicated)
 export async function guardarPdfEnDrive({ drive, blob, nombre }) {
   if (!drive || !blob || !nombre) throw new Error('datos-incompletos');
   const carpeta = await drive.ensureFolderPath([SUBCARPETA_ENTRENOS]);

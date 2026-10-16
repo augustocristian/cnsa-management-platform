@@ -78,5 +78,6 @@ export default {
   'dat.nad.purgado': 'Datos de {nombre} eliminados ({n} filas).',
   'dat.nad.purgado-revisiones': 'Drive puede conservar versiones antiguas del fichero del club. Se han borrado {n}; revisa «Administrar versiones» y la papelera de Drive.',
   'dat.nad.purgado-pendiente': 'Los datos se han borrado en este dispositivo pero aún no se han podido subir a Drive: reconéctate y sincroniza.',
+  'dat.nad.demo-nota': 'Estás en la demostración: se borra de este dispositivo; no hay copias en Drive.',
   'dat.notas.aviso': 'Evita datos de salud salvo que sea imprescindible.',
 };

@@ -8,6 +8,8 @@
 // - Los contenidos predefinidos tienen id estable `tc-<clave>`, así la siembra es idempotente aunque dos
 //   dispositivos de la misma persona abran el club a la vez (la fusión por id no duplica).
 
+import { lunesDe as lunesDeIso, addDias, fechaValida } from './calendario.js';
+
 export const CATEGORIAS_TIPO = ['intensidad', 'especifico', 'personalizado'];
 export const NOMBRE_MAX = 60;
 export const DESCRIPCION_MAX = 240;
@@ -305,4 +307,93 @@ export function objetivoTotal(tipos) {
 // Contenidos a mostrar en un gráfico: los activos más los inactivos con metros esa semana.
 export function tiposVisibles(agregado, tipos) {
   return ordenarTipos(tipos).filter((t) => t.activo || (agregado.metros[t.id] || 0) > 0);
+}
+
+// ---------- Weeks as ISO strings (pure; the view decides what "today" is) ----------
+// Monday-to-Sunday week that contains the date. -> { lunes, desde, hasta }
+export function semanaDe(fecha) {
+  const lunes = lunesDeIso(fecha);
+  return { lunes, desde: lunes, hasta: addDias(lunes, 6) };
+}
+export const desplazarSemana = (lunes, semanas) => addDias(lunes, 7 * semanas);
+
+// Loads of the week [desde, hasta] (optionally of one swimmer), newest first.
+export function cargasDeSemana(cargas, { desde, hasta, nadadorId = '' }) {
+  return cargas
+    .filter((c) => { const f = String(c.fecha).slice(0, 10); return f >= desde && f <= hasta && (!nadadorId || c.nadadorId === nadadorId); })
+    .sort((a, b) => String(b.fecha).localeCompare(String(a.fecha)) || String(b.id).localeCompare(String(a.id)));
+}
+
+// ---------- Validation of a load ----------
+// ctx: { nadadorExiste(id), tipo (resolved content | null), sesionExiste(id) }
+// -> [{ campo, codigo }]; the view translates the code (cargas.err.<codigo> / tc.err.<codigo>).
+export function validarCarga(data, { nadadorExiste = () => true, tipo = null, sesionExiste = () => true } = {}) {
+  const errores = [];
+  if (!data.nadadorId || !nadadorExiste(data.nadadorId)) errores.push({ campo: 'nadadorId', codigo: 'nadador' });
+  if (!fechaValida(data.fecha)) errores.push({ campo: 'fecha', codigo: 'fecha' });
+  if (!(Number(data.metros) > 0)) errores.push({ campo: 'metros', codigo: 'metros' });
+  const rpe = data.rpe === '' || data.rpe == null ? '' : Number(data.rpe);
+  if (rpe !== '' && !(rpe >= 1 && rpe <= 10)) errores.push({ campo: 'rpe', codigo: 'rpe' });
+  const minutos = data.minutos === '' || data.minutos == null ? '' : Number(data.minutos);
+  if (minutos !== '' && !(minutos > 0)) errores.push({ campo: 'minutos', codigo: 'minutos' });
+  if (!tipo) errores.push({ campo: 'tipo', codigo: 'tipo-inexistente' });
+  else if (!tipo.activo) errores.push({ campo: 'tipo', codigo: 'tipo-inactivo' });
+  const sesion = data.entrenamientoId ? String(data.entrenamientoId) : '';
+  if (sesion && !sesionExiste(sesion)) errores.push({ campo: 'entrenamientoId', codigo: 'sesion-inexistente' });
+  return errores;
+}
+
+// ---------- Weekly targets edited in one table ----------
+// entradas: [{ id, min, max }] (text or numbers). Everything is validated first; only the contents whose targets changed
+// are returned in `cambios`. -> { errores: [{ id, campo, codigo }], cambios: [{ id, min, max }] }
+export function validarObjetivos(entradas, tipos) {
+  const errores = [];
+  const cambios = [];
+  for (const e of entradas) {
+    const actual = tipos.find((t) => t.id === e.id);
+    if (!actual) continue;
+    const mn = aNumero(e.min), mx = aNumero(e.max);
+    if (Number.isNaN(mn) || (mn != null && mn < 0)) errores.push({ id: e.id, campo: 'min', codigo: 'objetivo-invalido' });
+    if (Number.isNaN(mx) || (mx != null && mx < 0)) errores.push({ id: e.id, campo: 'max', codigo: 'objetivo-invalido' });
+    if (mn > 0 && mx > 0 && mn > mx) errores.push({ id: e.id, campo: 'max', codigo: 'minmax' });
+    const nuevoMin = objetivo(e.min), nuevoMax = objetivo(e.max);
+    if (nuevoMin !== actual.min || nuevoMax !== actual.max) cambios.push({ id: e.id, min: nuevoMin, max: nuevoMax });
+  }
+  return { errores, cambios };
+}
+
+// ---------- Chart geometry (percentages of the scale, so any width works) ----------
+const porcentaje = (v, max) => (max > 0 ? Math.max(0, Math.min(100, (v / max) * 100)) : 0);
+
+// Bars "metres per content vs target" for the week.
+// -> { max, filas: [{ tipo, metros, min, max, estado, diferencia, pct, pctMin, pctMax }], sinClasificar: { metros, pct } }
+export function filasContenidos(sem) {
+  const { agregado, tipos, evaluacion } = sem;
+  const visibles = tiposVisibles(agregado, tipos);
+  const maximo = Math.max(1, agregado.sinClasificar, ...visibles.map((t) => Math.max(agregado.metros[t.id] || 0, t.max || 0, t.min || 0))) * 1.08;
+  const filas = visibles.map((tipo) => {
+    const metros = agregado.metros[tipo.id] || 0;
+    const ev = evaluacion.find((e) => e.tipo.id === tipo.id);
+    return {
+      tipo, metros, min: tipo.min, max: tipo.max, estado: ev ? ev.estado : 'sin-objetivo', diferencia: ev ? ev.diferencia : 0,
+      pct: porcentaje(metros, maximo), pctMin: tipo.min ? porcentaje(tipo.min, maximo) : null, pctMax: tipo.max ? porcentaje(tipo.max, maximo) : null,
+    };
+  });
+  return { max: maximo, filas, sinClasificar: { metros: agregado.sinClasificar, pct: porcentaje(agregado.sinClasificar, maximo) } };
+}
+
+// Stacked bar per weekday (0 = Monday), segments in the order of the visible contents, unclassified last.
+// -> { max, dias: [{ indice, total, pct, segmentos: [{ tipoId, tipo, metros, pct }] }] }
+export function segmentosPorDia(sem) {
+  const { agregado, tipos } = sem;
+  const orden = tiposVisibles(agregado, tipos).map((t) => t.id).concat('');
+  const maximo = Math.max(1, ...agregado.porDia) * 1.05;
+  const dias = agregado.porDia.map((total, indice) => ({
+    indice, total, pct: porcentaje(total, maximo),
+    segmentos: orden.filter((id) => (agregado.porDiaTipo[indice][id] || 0) > 0).map((id) => {
+      const metros = agregado.porDiaTipo[indice][id];
+      return { tipoId: id, tipo: id ? tipos.find((t) => t.id === id) : null, metros, pct: porcentaje(metros, maximo) };
+    }),
+  }));
+  return { max: maximo, dias };
 }

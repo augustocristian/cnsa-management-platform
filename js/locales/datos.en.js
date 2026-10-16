@@ -71,5 +71,6 @@ export default {
   'dat.nad.purgado': 'Data of {nombre} deleted ({n} rows).',
   'dat.nad.purgado-revisiones': 'Drive may keep old versions of the club file. {n} were deleted; check "Manage versions" and the Drive bin.',
   'dat.nad.purgado-pendiente': 'The data was deleted on this device but could not be uploaded to Drive yet: reconnect and sync.',
+  'dat.nad.demo-nota': 'You are in the demo: the data is erased from this device only; there are no copies in Drive.',
   'dat.notas.aviso': 'Avoid health data unless it is essential.',
 };

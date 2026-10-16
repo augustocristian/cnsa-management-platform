@@ -16,5 +16,8 @@ const walk = (d) => { for (const f of readdirSync(d)) {
   }
 } };
 walk('js'); try { execFileSync(process.execPath, ['--check', 'sw.js'], { stdio: 'pipe' }); } catch (e) { bad++; console.error(String(e.stderr)); }
+// The precache list of sw.js is generated from the disk: a stale list (or a missing/unprecached import) fails the check.
+try { console.log(execFileSync(process.execPath, ['scripts/generate-sw.mjs', '--check'], { stdio: 'pipe' }).toString().trim()); }
+catch (e) { bad++; console.error(String(e.stderr || e.stdout || e)); }
 console.log(bad ? `${bad} con errores` : `OK (${n} ficheros)`);
 process.exit(bad ? 1 : 0);

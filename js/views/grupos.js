@@ -1,130 +1,73 @@
-// Vista Grupos: CRUD de grupos y nadadores por grupo.
-import { CATEGORIAS } from '../schema.js';
+// Groups view: cards with their members, create/edit in a sheet, delete with undo. Rules: domain/grupos.js + gruposService.js.
+import { h, sheet, field, fieldError, toast, badge, empty } from '../ui.js';
 import { icon } from '../icons.js';
+import { useStyles } from '../styles.js';
 import { t, tCat } from '../i18n.js';
+import { crearGruposService } from '../application/gruposService.js';
+import { CATEGORIAS_ORDEN } from '../domain/categorias.js';
+import { nombreLista } from '../domain/nadadores.js';
 
-const P = 'grp-';
-
-function h(tag, attrs, ...children) {
-  const el = document.createElement(tag);
-  for (const [k, v] of Object.entries(attrs || {})) {
-    if (v == null || v === false) continue;
-    if (k === 'class') el.className = v;
-    else if (k.startsWith('on') && typeof v === 'function') el.addEventListener(k.slice(2), v);
-    else if (k === 'value') el.value = v;
-    else if (v === true) el.setAttribute(k, '');
-    else el.setAttribute(k, v);
-  }
-  const add = (c) => {
-    if (c == null || c === false) return;
-    if (Array.isArray(c)) c.forEach(add);
-    else el.appendChild(c instanceof Node ? c : document.createTextNode(String(c)));
-  };
-  children.forEach(add);
-  return el;
-}
-
-const isActivo = (n) => !['false', 'no', '0', 'n', ''].includes(String(n.activo ?? 'true').toLowerCase());
-
-function injectStyle() {
-  if (document.getElementById('grp-style')) return;
-  const s = document.createElement('style');
-  s.id = 'grp-style';
-  s.textContent = `
-.grp-head{display:flex;flex-wrap:wrap;gap:.6rem;align-items:center;justify-content:space-between;margin-bottom:1rem}
-.grp-head h1{margin:0;font-size:1.4rem}
-.grp-card h2{margin:0 0 .3rem;font-size:1.1rem}
-.grp-muted{color:#6b7a90;font-size:.9rem}
-.grp-actions{display:flex;gap:.4rem;flex-wrap:wrap;margin-top:.7rem}
-.grp-list{list-style:none;margin:.6rem 0 0;padding:0;max-height:240px;overflow:auto}
-.grp-list li{padding:.3rem 0;border-bottom:1px solid #eef2f8}
-.grp-list a{color:#1a4d9c;text-decoration:none}
-.grp-ov{position:fixed;inset:0;background:rgba(10,20,40,.5);display:flex;align-items:center;justify-content:center;z-index:1000;padding:1rem}
-.grp-modal{background:#fff;border-radius:14px;max-width:460px;width:100%;max-height:92vh;overflow:auto;padding:1.2rem;box-shadow:0 10px 40px rgba(0,0,0,.3)}
-.grp-modal h2{margin:0 0 .8rem}
-.grp-form{display:grid;gap:.6rem}
-.grp-form label{display:flex;flex-direction:column;font-size:.8rem;color:#445;gap:.2rem}
-.grp-form input,.grp-form select{padding:.5rem;border:1px solid #cfd8e6;border-radius:8px;font:inherit}
-.grp-mfoot{display:flex;justify-content:flex-end;gap:.5rem;margin-top:1rem}
-`;
-  document.head.appendChild(s);
-}
-
-function openModal(title, bodyEl, buttons) {
-  const ov = h('div', { class: P + 'ov' });
-  const close = () => ov.remove();
-  const foot = h('div', { class: P + 'mfoot' }, buttons.map((b) =>
-    h('button', {
-      type: 'button', class: 'btn ' + (b.cls || ''),
-      onclick: () => { if (b.onClick && b.onClick() === false) return; close(); },
-    }, b.label)));
-  ov.appendChild(h('div', { class: P + 'modal' }, h('h2', {}, title), bodyEl, foot));
-  ov.addEventListener('mousedown', (e) => { if (e.target === ov) close(); });
-  document.body.appendChild(ov);
-}
+const enlaceNadador = (n) => h('li', null, h('a', { href: `#/nadadores/${n.id}` }, nombreLista(n)));
 
 export async function render(container, params, ctx) {
-  injectStyle();
-  const { store, ui } = ctx;
+  useStyles('grupos');
+  const svc = crearGruposService(ctx.store);
   const refresh = () => render(container, params, ctx);
 
   function editar(g) {
-    const isNew = !g;
-    g = g || {};
-    const nombre = h('input', { type: 'text', value: g.nombre || '' });
-    const categoria = h('select', {}, h('option', { value: '' }, '—'),
-      CATEGORIAS.map((c) => h('option', { value: c, selected: c === g.categoria }, tCat(c))));
-    const entrenador = h('input', { type: 'text', value: g.entrenador || '' });
-    const body = h('div', { class: P + 'form' },
-      h('label', {}, t('grupos.f-nombre'), nombre), h('label', {}, t('grupos.f-categoria'), categoria), h('label', {}, t('grupos.f-entrenador'), entrenador));
-    openModal(isNew ? t('grupos.nuevo') : t('grupos.editar'), body, [
-      { label: t('common.cancelar') },
-      {
-        label: t('common.guardar'), cls: 'btn-primary', onClick: () => {
-          if (!nombre.value.trim()) { ui.toast(t('grupos.nombre-obligatorio')); return false; }
-          store.upsert('Grupos', { ...g, nombre: nombre.value.trim(), categoria: categoria.value, entrenador: entrenador.value.trim() });
-          ui.toast(t('grupos.guardado'));
+    const grupo = g || {};
+    const nombre = h('input', { type: 'text', value: grupo.nombre || '', autocomplete: 'off', autocapitalize: 'words', enterkeyhint: 'next' });
+    const categoria = h('select', null, h('option', { value: '' }, t('grupos.sin-categoria')),
+      CATEGORIAS_ORDEN.map((c) => h('option', { value: c, selected: c === grupo.categoria }, tCat(c))));
+    const entrenador = h('input', { type: 'text', value: grupo.entrenador || '', autocomplete: 'off', autocapitalize: 'words' });
+    const cuerpo = h('div', { class: 'form-grid grp-form' },
+      field({ label: t('grupos.f-nombre'), input: nombre, required: true }),
+      field({ label: t('grupos.f-categoria'), input: categoria }),
+      field({ label: t('grupos.f-entrenador'), input: entrenador }));
+    sheet({
+      title: g ? t('grupos.editar') : t('grupos.nuevo'), body: cuerpo, className: 'grp-modal',
+      actions: [{ label: t('common.cancelar') }, {
+        label: t('common.guardar'), primary: true,
+        onClick: () => {
+          const r = svc.guardar({ ...grupo, nombre: nombre.value, categoria: categoria.value, entrenador: entrenador.value });
+          if (!r.ok) { fieldError(nombre, t('grupos.err.' + r.errores[0].codigo)); return false; }
+          toast(t('grupos.guardado'));
           refresh();
         },
-      },
-    ]);
+      }],
+    });
   }
 
-  async function borrar(g, miembros) {
-    const ok = await ui.confirmDialog(t('grupos.confirmar-eliminar', { nombre: g.nombre, n: miembros.length }));
-    if (!ok) return;
-    store.upsertMany('Nadadores', miembros.map((n) => ({ ...n, grupoId: '' })));
-    store.remove('Grupos', g.id);
-    ui.toast(t('grupos.eliminado'));
+  // Deleting is undoable: the swimmers lose the group now and get it back with the toast button.
+  function eliminar(g) {
+    const copia = svc.eliminar(g.id);
     refresh();
+    toast.undo(t('grupos.eliminado'), () => { svc.restaurar(copia); toast(t('grupos.restaurado')); if (container.isConnected) refresh(); });
   }
 
-  const catIdx = (c) => { const i = CATEGORIAS.indexOf(c); return i < 0 ? 99 : i; };
-  const grupos = store.list('Grupos').sort((a, b) => catIdx(a.categoria) - catIdx(b.categoria) || String(a.nombre).localeCompare(String(b.nombre), 'es'));
-  const nadadores = store.list('Nadadores').filter(isActivo);
+  function tarjeta({ grupo, miembros, categoria }) {
+    return h('article', { class: 'card grp-card' },
+      h('div', { class: 'card-head' }, h('h2', null, grupo.nombre), categoria ? badge(tCat(categoria), 'info') : null),
+      h('p', { class: 'muted grp-resumen' }, t(miembros.length === 1 ? 'grupos.resumen.uno' : 'grupos.resumen.otros', { entrenador: grupo.entrenador || '-', n: miembros.length })),
+      miembros.length ? h('ul', { class: 'grp-list', 'aria-label': t('grupos.miembros-aria', { nombre: grupo.nombre }) }, miembros.map(enlaceNadador))
+        : h('p', { class: 'muted' }, t('grupos.sin-nadadores')),
+      h('div', { class: 'grp-actions' },
+        h('button', { type: 'button', class: 'btn btn-sm', onclick: () => editar(grupo) }, icon('editar', { size: 16 }), t('common.editar')),
+        h('button', { type: 'button', class: 'btn btn-sm', onclick: () => eliminar(grupo) }, icon('borrar', { size: 16 }), t('common.eliminar'))));
+  }
 
-  const tarjetas = grupos.map((g) => {
-    const miembros = nadadores.filter((n) => n.grupoId === g.id)
-      .sort((a, b) => String(a.apellidos).localeCompare(String(b.apellidos), 'es'));
-    return h('div', { class: `card ${P}card` },
-      h('h2', {}, g.nombre, ' ', g.categoria ? h('span', { class: 'badge' }, tCat(g.categoria)) : null),
-      h('div', { class: P + 'muted' }, t(miembros.length === 1 ? 'grupos.resumen.uno' : 'grupos.resumen.otros', { entrenador: g.entrenador || '-', n: miembros.length })),
-      miembros.length ? h('ul', { class: P + 'list' }, miembros.map((n) =>
-        h('li', {}, h('a', { href: `#/nadadores/${n.id}` }, `${n.apellidos || ''}, ${n.nombre || ''}`)))) : h('p', { class: P + 'muted' }, t('grupos.sin-nadadores')),
-      h('div', { class: P + 'actions' },
-        h('button', { class: 'btn', onclick: () => editar(g) }, t('common.editar')),
-        h('button', { class: 'btn', onclick: () => borrar(g, store.list('Nadadores').filter((n) => n.grupoId === g.id)) }, t('common.eliminar'))));
-  });
+  const tarjetas = svc.tarjetas();
+  const huerfanos = svc.sinGrupo();
+  const cabecera = h('header', { class: 'page-head' }, h('h1', null, t('grupos.titulo')),
+    h('div', { class: 'page-head-actions' }, h('button', { type: 'button', class: 'btn btn--primary', onclick: () => editar(null) }, icon('mas', { size: 16 }), t('grupos.nuevo'))));
 
-  const sinGrupo = nadadores.filter((n) => !n.grupoId || !grupos.some((g) => g.id === n.grupoId));
-
-  container.replaceChildren(
-    h('div', { class: P + 'head' },
-      h('h1', {}, t('grupos.titulo')),
-      h('button', { class: 'btn', onclick: () => editar(null) }, icon('mas', { size: 16 }), ' ' + t('grupos.nuevo'))),
-    grupos.length ? h('div', { class: 'grid' }, tarjetas) : h('div', { class: 'card' }, t('grupos.vacio')),
-    sinGrupo.length ? h('div', { class: `card ${P}card`, style: 'margin-top:1rem' },
-      h('h2', {}, t('grupos.sin-grupo')),
-      h('ul', { class: P + 'list' }, sinGrupo.map((n) =>
-        h('li', {}, h('a', { href: `#/nadadores/${n.id}` }, `${n.apellidos || ''}, ${n.nombre || ''}`)))) ) : null);
+  container.replaceChildren(...[
+    cabecera,
+    tarjetas.length ? h('div', { class: 'grp-grid' }, tarjetas.map(tarjeta))
+      : h('div', { class: 'card' }, empty({ icon: 'grupos', title: t('grupos.vacio-titulo'), text: t('grupos.vacio-texto'), action: { label: t('grupos.nuevo'), onClick: () => editar(null) } })),
+    huerfanos.length ? h('article', { class: 'card grp-card grp-sin' },
+      h('div', { class: 'card-head' }, h('h2', null, t('grupos.sin-grupo'))),
+      h('p', { class: 'muted' }, t('grupos.sin-grupo-texto')),
+      h('ul', { class: 'grp-list' }, huerfanos.map(enlaceNadador))) : null,
+  ].filter(Boolean));
 }

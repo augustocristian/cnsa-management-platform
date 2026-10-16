@@ -21,7 +21,6 @@ Característica: Diseño móvil primero
       | Asistencia     |
       | Cargas         |
       | Marcas         |
-      | Bañador        |
       | Avisos y notas |
       | Configuración  |
 
@@ -116,7 +115,7 @@ Característica: Diseño móvil primero
     Entonces la aplicación declara una vista adaptable a móviles
 
   @i18n
-  Esquema del escenario: El idioma se puede cambiar desde la cabecera
+  Esquema del escenario: El idioma se puede cambiar desde el menú de ajustes de la cabecera
     Cuando cambio el idioma a "<idioma>"
     Entonces el menú muestra "<texto>" para el módulo "Nadadores"
     Y el idioma del documento es "<codigo>"
@@ -126,3 +125,50 @@ Característica: Diseño móvil primero
       | English | Swimmers  | en     |
       | Italiano| Nuotatori | it     |
       | Español | Nadadores | es     |
+
+  @movil @navegacion
+  Escenario: En móvil la barra inferior ofrece cuatro accesos y el botón Más
+    Dado que uso un móvil de 375 px de ancho
+    Entonces la barra inferior muestra los accesos "Inicio, Entrenos, Asistencia, Calendario, Más"
+
+  @movil @navegacion
+  Escenario: El botón Más abre una hoja con los módulos agrupados
+    Dado que uso un móvil de 375 px de ancho
+    Cuando abro la hoja "Más" del menú
+    Entonces la hoja del menú tiene el grupo "Personas" con "Nadadores, Grupos"
+    Y la hoja del menú tiene el grupo "Entrenamiento" con "Planificación, Cargas, Marcas"
+    Y la hoja del menú tiene el grupo "Club" con "Avisos y notas, Configuración, Tutorial"
+    Y la hoja del menú no ofrece "Bañador"
+
+  @movil @navegacion
+  Escenario: Un módulo elegido en la hoja Más queda marcado en el botón Más
+    Dado que uso un móvil de 375 px de ancho
+    Cuando pulso "Grupos" en el menú
+    Entonces estoy en el módulo "Grupos"
+    Y el botón Más está marcado como activo
+
+  @escritorio @navegacion
+  Escenario: En escritorio el menú lateral agrupa los módulos con encabezados
+    Dado que uso un dispositivo de 1280 px de ancho
+    Entonces el menú lateral tiene los encabezados "Personas, Entrenamiento, Club"
+
+  @navegacion @accesibilidad
+  Escenario: Al cambiar de pantalla se actualiza el título, el foco y el elemento actual del menú
+    Cuando pulso "Nadadores" en el menú
+    Entonces el título del documento empieza por "Nadadores"
+    Y el foco está en el encabezado de la pantalla
+    Y el elemento actual del menú es "Nadadores"
+
+  @navegacion
+  Escenario: El pie de página solo aparece en Configuración
+    Entonces no hay pie de página
+    Cuando abro el módulo "Configuración"
+    Entonces hay pie de página
+    Cuando abro el módulo "Nadadores"
+    Entonces no hay pie de página
+
+  @navegacion
+  Escenario: El menú de ajustes reúne idioma, tema, estado de Drive y desconexión
+    Cuando abro el menú de ajustes y conexión
+    Entonces el menú de ajustes ofrece el idioma, el tema, el estado de Drive y el botón "Desconectar Drive"
+    Y el menú de ajustes no muestra ninguna identidad de usuario

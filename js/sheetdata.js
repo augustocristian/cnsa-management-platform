@@ -8,7 +8,7 @@
 //            it is kept and written back as is (lossless round trip).
 //   avisos = problems found while reading (duplicated ids, rows without id).
 //   versionFutura = the file's version number if it is GREATER than DOC_VERSION (the store becomes read-only).
-import { SHEETS, ENTITY_SHEETS } from './schema.js';
+import { SHEETS, ENTITY_SHEETS, HOJAS_RETIRADAS } from './schema.js';
 
 export const DOC_VERSION = 1;
 const norm = (v) => (v === undefined || v === null ? '' : v);
@@ -17,7 +17,7 @@ const esObjeto = (x) => !!x && typeof x === 'object' && !Array.isArray(x);
 // ---------- Type normalisation ----------
 // Excel and other editors turn "0034 600" into a number or "2012-03-04" into a serial date: everything goes back to text.
 const COLS_TEXTO = new Set(['nombre', 'apellidos', 'email', 'telefono', 'tutor', 'licencia', 'notas', 'titulo', 'descripcion', 'texto', 'autor',
-  'categoria', 'sexo', 'prueba', 'competicion', 'lugar', 'entrenador', 'talla', 'estado', 'piscina', 'activo', 'predefinido', 'activa', 'tipo', 'enfoque', 'alias']);
+  'categoria', 'sexo', 'prueba', 'competicion', 'lugar', 'entrenador', 'talla', 'estado', 'piscina', 'activo', 'predefinido', 'activa', 'tipo', 'enfoque', 'alias', 'marca', 'modelo']);
 const COLS_FECHA = new Set(['fecha', 'fechaNacimiento', 'fechaInicio', 'fechaFin', 'lunes']);
 const COLS_HORA = new Set(['hora', 'horaInicio', 'horaFin']);
 const esColTexto = (c) => COLS_TEXTO.has(c) || /Id$/.test(c);
@@ -132,7 +132,7 @@ export function dataToDoc(data) {
       return o;
     });
   });
-  Object.keys(extra.hojas || {}).forEach((s) => { if (!(s in hojas)) hojas[s] = extra.hojas[s]; });
+  Object.keys(extra.hojas || {}).forEach((s) => { if (!(s in hojas) && !HOJAS_RETIRADAS.includes(s)) hojas[s] = extra.hojas[s]; });
   const doc = { version: DOC_VERSION, club: Object.assign({}, data.club || {}), hojas };
   if (data.meta) {
     const m = data.meta;
@@ -168,7 +168,9 @@ export function docToData(doc) {
     });
     out.db[s] = [...seen.values()];
   });
-  Object.keys(hojas).forEach((s) => { if (!ENTITY_SHEETS.includes(s) && s !== 'Club') out.extra.hojas[s] = hojas[s]; });
+  // Retired sheets (see HOJAS_RETIRADAS) are dropped, with their sync metadata: they are not kept as unknown extra.
+  Object.keys(hojas).forEach((s) => { if (!ENTITY_SHEETS.includes(s) && s !== 'Club' && !HOJAS_RETIRADAS.includes(s)) out.extra.hojas[s] = hojas[s]; });
+  HOJAS_RETIRADAS.forEach((s) => { delete out.meta.sellos[s]; delete out.meta.lapidas[s]; });
   Object.keys(d).forEach((k) => { if (!CLAVES_DOC.has(k)) out.extra.top[k] = d[k]; });
   return out;
 }
@@ -201,7 +203,7 @@ const same = (a, b) => JSON.stringify(a) === JSON.stringify(b);
 export const RELACIONES = [
   ['Asistencia', 'nadadorId', 'Nadadores'], ['Asistencia', 'entrenamientoId', 'Entrenamientos'],
   ['Cargas', 'nadadorId', 'Nadadores'], ['Cargas', 'entrenamientoId', 'Entrenamientos'],
-  ['Marcas', 'nadadorId', 'Nadadores'], ['Banador', 'nadadorId', 'Nadadores'],
+  ['Marcas', 'nadadorId', 'Nadadores'], // Marcas.banadorId -> Banadores is deliberately NOT a relation: a mark must survive its suit being deleted (orphan = "no suit")
   ['EntrenoLineas', 'entrenamientoId', 'Entrenamientos'],
   ['Fases', 'temporadaId', 'Temporadas'], ['SemanasPlan', 'temporadaId', 'Temporadas'], ['EventosTemporada', 'temporadaId', 'Temporadas'],
   ['AsignacionesCalle', 'piscinaId', 'Piscinas'],

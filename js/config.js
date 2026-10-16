@@ -1,8 +1,8 @@
 // Configuración global.
-// El Client ID de Google es obligatorio (la app sólo funciona con una cuenta de Google y guarda todo en su Drive).
-// The deployment owner sets it ONCE in BUILTIN_CLIENT_ID (publication); end users only sign in. Mientras esté vacío, la pantalla "Configuración necesaria"
-// y el tutorial permiten probar uno en este navegador (localStorage 'cnl:clientId'). No puede vivir en Drive: hace falta
-// ANTES de iniciar sesión.
+// The Google Client ID is needed to connect to Drive (the app stores everything in the person's own Drive; it has no sign-in and
+// no user identity). The deployment owner sets it ONCE in BUILTIN_CLIENT_ID (publication); end users only connect Google Drive.
+// While it is empty, the "Setup needed" screen and the tutorial let the owner test one in this browser (localStorage
+// 'cnl:clientId'). It cannot live in Drive: it is needed BEFORE connecting. Without it the demo mode still works.
 const BUILTIN_CLIENT_ID = '';
 export const CLIENT_ID_KEY = 'cnl:clientId';
 export const CLIENT_ID_SUFFIX = '.apps.googleusercontent.com';
@@ -29,7 +29,8 @@ export const HAS_BUILTIN_CLIENT_ID = !!BUILTIN_CLIENT_ID;
 export const APP_VERSION = '1.0.0';
 export const DRIVE_FOLDER = 'cnl';
 export const PREFS_FILE = 'preferencias.json';
-// Único permiso de datos: drive.file (sólo ficheros que crea la propia app). No es sensible: no requiere verificación de Google.
-export const SCOPES = 'https://www.googleapis.com/auth/drive.file openid email profile';
+// The ONLY data scope: drive.file (files the app itself creates). It is not sensitive: no Google verification needed. There is no
+// openid / email / profile scope: the app never knows who the person is.
+export const SCOPES = 'https://www.googleapis.com/auth/drive.file';
 // Consentimiento incremental: sólo se solicita al activar la sincronización con Google Calendar (no forma parte de SCOPES).
 export const CALENDAR_SCOPE = 'https://www.googleapis.com/auth/calendar.events';

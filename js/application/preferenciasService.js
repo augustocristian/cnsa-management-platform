@@ -26,11 +26,10 @@ export function crearPreferencias({
 
   let p = P.vacias();
   let pend = new Set();
-  let email = null;
   let remoto = null;
   let timer = null;
   let enCurso = null;
-  let estado = 'sin-sesion'; // sin-sesion | sincronizado | pendiente | offline | error
+  let estado = 'sin-sesion'; // sin-sesion (= not connected to Drive) | sincronizado | pendiente | offline | error
   let ultimoError = null;
   const oyentes = new Set();
 
@@ -39,7 +38,7 @@ export function crearPreferencias({
 
   function guardarCache() {
     if (!ls) return;
-    try { ls.setItem(claveCache, JSON.stringify({ email, prefs: p, pendientes: [...pend] })); } catch (e) { /* sin espacio / privado */ }
+    try { ls.setItem(claveCache, JSON.stringify({ prefs: p, pendientes: [...pend] })); } catch (e) { /* sin espacio / privado */ }
   }
   function leerCache() {
     if (!ls) return null;
@@ -48,7 +47,6 @@ export function crearPreferencias({
   const c0 = leerCache();
   if (c0) {
     p = P.normalizar(c0.prefs);
-    email = typeof c0.email === 'string' ? c0.email : null;
     pend = new Set((Array.isArray(c0.pendientes) ? c0.pendientes : []).filter((k) => k in p.valores));
   }
 
@@ -101,13 +99,12 @@ export function crearPreferencias({
     get estado() { return estado; },
     get ultimoError() { return ultimoError; },
     get pendientes() { return [...pend]; },
-    get email() { return email; },
     // Copia de las preferencias completas (para depurar y probar).
     snapshot() { return JSON.parse(JSON.stringify(p)); },
 
     get(clave, def) { return P.obtener(p, clave, def); },
 
-    // Fija un valor. Devuelve true si cambió. Con sesión programa la subida (debounce); sin sesión queda en la caché.
+    // Fija un valor. Devuelve true si cambió. Con Drive conectado programa la subida (debounce); si no, queda en la caché.
     set(clave, valor) {
       const n = P.poner(p, clave, valor, ahora());
       if (n === p) return false;
@@ -120,13 +117,10 @@ export function crearPreferencias({
     },
     remove(clave) { return api.set(clave, null); },
 
-    // Enlaza con el Drive del usuario y sincroniza. Descarta una caché de OTRA cuenta; conserva los cambios
-    // hechos antes de iniciar sesión (p. ej. el idioma elegido en la pantalla de acceso). Siembra, con la marca más
-    // antigua, los valores de las claves antiguas de localStorage que aún no estén en las preferencias.
-    async conectar({ remoto: r, email: e }) {
-      const quien = String(e || '').toLowerCase();
-      if (email && email !== quien) { p = P.vacias(); pend = new Set(); }
-      email = quien;
+    // Enlaza con el Drive del usuario y sincroniza. Conserva los cambios hechos antes de conectar (p. ej. el idioma elegido en la
+    // pantalla de inicio). No hay identidad de usuario: la caché se borra siempre al desconectar Drive. Siembra, con la marca
+    // más antigua, los valores de las claves antiguas de localStorage que aún no estén en las preferencias.
+    async conectar({ remoto: r }) {
       remoto = r;
       try {
         const viejo = legado() || {};
@@ -141,13 +135,13 @@ export function crearPreferencias({
       return sincronizar();
     },
 
-    // Fin de sesión: corta el enlace con Drive y (por defecto) olvida la caché de esta cuenta.
+    // Al desconectar Drive: corta el enlace y (por defecto) olvida la caché local.
     desconectar({ borrar = true } = {}) {
       tmp.clear(timer);
       timer = null;
       remoto = null;
       if (borrar) {
-        p = P.vacias(); pend = new Set(); email = null;
+        p = P.vacias(); pend = new Set();
         if (ls) { try { ls.removeItem(claveCache); } catch (e) { /* ignorar */ } }
       }
       setEstado('sin-sesion');

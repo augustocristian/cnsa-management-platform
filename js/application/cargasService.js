@@ -8,9 +8,11 @@ export const HOJA_TIPOS = 'TiposCarga';
 export const HOJA_CARGAS = 'Cargas';
 export const HOJA_OBJETIVOS = 'ObjetivosCarga';
 
-const idPorDefecto = () => D.PREFIJO_ID + Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
+// `generarId` is injected (the composition root or the view owns the randomness); it is only needed when the catalogue
+// migration has to create contents (asegurarCatalogo).
+const sinGenerador = () => { throw new Error('cargasService: generarId is required to create contents'); };
 
-export function crearCargasService(repo, { generarId = idPorDefecto } = {}) {
+export function crearCargasService(repo, { generarId = sinGenerador } = {}) {
   const err = (campo, codigo) => ({ ok: false, errores: [{ campo, codigo }] });
   const tipos = () => D.ordenarTipos(repo.list(HOJA_TIPOS).map(D.normalizarTipo));
   const cargasDe = (tipo) => {
@@ -143,36 +145,43 @@ export function crearCargasService(repo, { generarId = idPorDefecto } = {}) {
     // data: {nadadorId, fecha, tipoId | tipo (nombre), metros, rpe, minutos, notas, entrenamientoId}
     // -> {ok, carga} | {ok:false, errores:[{campo, codigo}]}
     registrarCarga(data) {
-      const errores = [];
-      const metros = Number(data.metros);
-      if (!data.nadadorId || !repo.get('Nadadores', data.nadadorId)) errores.push({ campo: 'nadadorId', codigo: 'nadador' });
-      if (!/^\d{4}-\d{2}-\d{2}$/.test(String(data.fecha ?? ''))) errores.push({ campo: 'fecha', codigo: 'fecha' });
-      if (!(metros > 0)) errores.push({ campo: 'metros', codigo: 'metros' });
-      const rpe = data.rpe === '' || data.rpe == null ? '' : Number(data.rpe);
-      if (rpe !== '' && !(rpe >= 1 && rpe <= 10)) errores.push({ campo: 'rpe', codigo: 'rpe' });
-      const minutos = data.minutos === '' || data.minutos == null ? '' : Number(data.minutos);
-      if (minutos !== '' && !(minutos > 0)) errores.push({ campo: 'minutos', codigo: 'minutos' });
       const tipo = data.tipoId ? svc.tipo(data.tipoId) : svc.resolver(data.tipo);
-      if (!tipo) errores.push({ campo: 'tipo', codigo: 'tipo-inexistente' });
-      else if (!tipo.activo) errores.push({ campo: 'tipo', codigo: 'tipo-inactivo' });
-      const sesion = data.entrenamientoId ? String(data.entrenamientoId) : '';
-      if (sesion && !repo.get('Entrenamientos', sesion)) errores.push({ campo: 'entrenamientoId', codigo: 'sesion-inexistente' });
+      const errores = D.validarCarga(data, {
+        nadadorExiste: (id) => !!repo.get('Nadadores', id), tipo, sesionExiste: (id) => !!repo.get('Entrenamientos', id),
+      });
       if (errores.length) return { ok: false, errores };
+      const rpe = data.rpe === '' || data.rpe == null ? '' : Number(data.rpe);
+      const minutos = data.minutos === '' || data.minutos == null ? '' : Number(data.minutos);
       const carga = repo.upsert(HOJA_CARGAS, {
-        nadadorId: String(data.nadadorId), fecha: data.fecha, tipo: tipo.nombre, metros, rpe, minutos,
-        notas: String(data.notas ?? '').trim(), entrenamientoId: sesion,
+        nadadorId: String(data.nadadorId), fecha: data.fecha, tipo: tipo.nombre, metros: Number(data.metros), rpe, minutos,
+        notas: String(data.notas ?? '').trim(), entrenamientoId: data.entrenamientoId ? String(data.entrenamientoId) : '',
       });
       return { ok: true, carga };
     },
-    eliminarCarga(id) { repo.remove(HOJA_CARGAS, id); },
+    // Deletes a load and returns the removed row so the caller can offer "Undo" (restaurarCarga).
+    eliminarCarga(id) {
+      const fila = repo.get(HOJA_CARGAS, id);
+      repo.remove(HOJA_CARGAS, id);
+      return fila;
+    },
+    restaurarCarga(fila) { return fila ? repo.upsert(HOJA_CARGAS, fila) : null; },
+
+    // Saves the weekly targets of several contents at once. All or nothing: nothing is saved if one row is invalid.
+    // entradas: [{ id, min, max }] -> { ok, guardados } | { ok: false, errores: [{ id, campo, codigo }] }
+    guardarObjetivos(entradas) {
+      const { errores, cambios } = D.validarObjetivos(entradas, tipos());
+      if (errores.length) return { ok: false, errores };
+      cambios.forEach((c) => svc.editar(c.id, { min: c.min, max: c.max }));
+      return { ok: true, guardados: cambios.length };
+    },
 
     // ----- Consultas -----
     // Sesiones para vincular una carga: las más recientes primero.
     sesiones: () => repo.list('Entrenamientos').sort((a, b) => String(b.fecha).localeCompare(String(a.fecha)) || String(b.hora).localeCompare(String(a.hora))),
     cargas: () => repo.list(HOJA_CARGAS),
-    // Semana (lunes) -> {desde, hasta, agregado, evaluacion}. nadadorId vacío = media por nadador.
+    // Semana (lunes as 'YYYY-MM-DD' or a Date) -> {desde, hasta, agregado, evaluacion}. nadadorId vacío = media por nadador.
     semana(lunes, nadadorId = '') {
-      const { desde, hasta } = D.rangoSemana(lunes);
+      const { desde, hasta } = typeof lunes === 'string' ? D.semanaDe(lunes) : D.rangoSemana(lunes);
       const t = tipos();
       const agregado = D.agregarSemana({ cargas: repo.list(HOJA_CARGAS), tipos: t, desde, hasta, nadadorId });
       return { desde, hasta, tipos: t, agregado, evaluacion: D.evaluarSemana(agregado, t) };

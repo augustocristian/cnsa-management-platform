@@ -4,8 +4,8 @@ import assert from 'node:assert/strict';
 export const MODULOS = {
   'Inicio': 'inicio', 'Nadadores': 'nadadores', 'Grupos': 'grupos',
   'Entrenamientos': 'entrenamientos', 'Asistencia': 'asistencia', 'Cargas': 'cargas', 'Marcas': 'marcas',
-  'Bañador': 'banador', 'Avisos y notas': 'comunicaciones', 'Configuración': 'club',
-  'Planificación': 'planificacion', 'Calendario': 'calendario',
+  'Avisos y notas': 'comunicaciones', 'Configuración': 'club',
+  'Planificación': 'planificacion', 'Calendario': 'calendario', 'Tutorial': 'tutorial',
 };
 export const DIALOGO = '.nad-modal, .grp-modal, .ent-modal, .modal';
 const TIMEOUT = 8000;
@@ -67,8 +67,40 @@ class MundoCNL extends World {
 
   async irA(r) {
     await this.page.evaluate((x) => { location.hash = '#/' + x; }, r);
-    await this.page.locator(`.nav-item[data-route="${r}"].active`).waitFor({ timeout: this.timeout });
+    await this.esperarRutaActiva(r);
     await this.page.locator('#view .loading').waitFor({ state: 'detached', timeout: this.timeout });
+  }
+
+  // The nav item of the route is current. On mobile only 4 routes sit in the bottom bar, but every route keeps its (hidden)
+  // .nav-item, so this works for both layouts; "More" also becomes active when the route lives in its sheet.
+  async esperarRutaActiva(r) {
+    await this.page.locator(`.nav-item[data-route="${r}"].active[aria-current="page"]`).waitFor({ state: 'attached', timeout: this.timeout });
+  }
+
+  async esMovil() { return (this.page.viewportSize()?.width ?? 1280) <= 820; }
+
+  // Clicks a module in the navigation the way a person does: directly if it is visible, otherwise through the "More" sheet.
+  async pulsarEnMenu(r) {
+    const item = this.page.locator(`.nav-item[data-route="${r}"]`);
+    if (await item.isVisible()) { await item.click(); return; }
+    await this.page.locator('.nav-more').click();
+    await this.page.locator(`.sheet .mas-item[data-route="${r}"]`).click();
+    await this.page.locator('.sheet-overlay').waitFor({ state: 'detached', timeout: this.timeout });
+  }
+
+  // Settings and connection menu (header): language, theme, Drive status, disconnect / demo actions.
+  async abrirMenuCuenta() {
+    const panel = this.page.locator('.account-panel');
+    if (!(await panel.isVisible())) await this.page.locator('.account-btn').click();
+    await panel.waitFor({ state: 'visible', timeout: this.timeout });
+    return panel;
+  }
+
+  // "Disconnect Drive" from the menu, confirming the dialog.
+  async desconectarDrive() {
+    const panel = await this.abrirMenuCuenta();
+    await panel.getByRole('button', { name: 'Desconectar Drive' }).click();
+    await this.page.locator('.sheet').getByRole('button', { name: 'Desconectar Drive' }).click();
   }
 
   // Reintenta una aserción hasta que se cumple o vence el tiempo

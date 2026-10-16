@@ -85,7 +85,7 @@ test('editar y eliminar nadador desde la ficha', async () => {
   [...document.querySelectorAll('.modal-overlay button')].find((b) => b.textContent === 'Aceptar').click();
   await tick(10);
   assert.equal(c.store.get('Nadadores', 'n01'), null);
-  for (const sheet of ['Asistencia', 'Cargas', 'Marcas', 'Banador']) {
+  for (const sheet of ['Asistencia', 'Cargas', 'Marcas']) {
     assert.equal(c.store.list(sheet).filter((a) => a.nadadorId === 'n01').length, 0, sheet);
   }
 });
@@ -290,20 +290,6 @@ test('notices and notes: saving a notice with HTML in the title escapes it', asy
   assert.equal(a.grupoId, 'g2');
   assert.equal(c.container.querySelector('h4 b'), null);
   assert.ok(c.container.textContent.includes('Aviso <b>test</b>'));
-});
-
-test('banador: marcar entregado exige talla y guarda fecha', async () => {
-  c.store.upsert('Banador', { ...c.store.list('Banador').find((b) => b.nadadorId === 'n01'), talla: '' });
-  await renderView('banador', c.container, [], c);
-  const fila = () => [...c.container.querySelectorAll('tbody tr')].find((tr) => tr.textContent.startsWith('Lucía'));
-  fila().querySelector('button').click();
-  assert.equal(c.store.list('Banador').find((b) => b.nadadorId === 'n01').estado, 'pendiente');
-  setValue(fila().querySelector('select'), 'S');
-  fila().querySelector('button').click();
-  const b = c.store.list('Banador').find((x) => x.nadadorId === 'n01');
-  assert.equal(b.estado, 'entregado');
-  assert.equal(b.talla, 'S');
-  assert.equal(b.fecha, today());
 });
 
 test('individual use: forms and edit actions are always available (no roles)', async () => {

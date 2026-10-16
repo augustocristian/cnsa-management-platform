@@ -10,26 +10,48 @@ Característica: Panel de inicio
     Dado un club con datos de demostración
     Entonces veo el encabezado "<tarjeta>"
 
-    Ejemplos: Información relevante, actividad reciente y avisos
-      | tarjeta                            |
-      | Acceso rápido                      |
-      | Control de cargas semanal del club |
-      | Alertas de cargas                  |
-      | Próxima sesión                     |
-      | Asistencia hoy                     |
-      | Avisos recientes           |
+    Ejemplos: Hoy, asistencia, alertas, acciones, cargas, avisos y temporada
+      | tarjeta                        |
+      | Hoy                            |
+      | Asistencia hoy                 |
+      | Alertas de cargas              |
+      | Acciones rápidas               |
+      | Carga semanal del club         |
+      | Avisos recientes               |
+      | Próximo evento de la temporada |
 
-  Esquema del escenario: Los accesos rápidos llevan al módulo correspondiente
+  @smoke
+  Escenario: El banner resume el día con el nombre del club
     Dado un club con datos de demostración
-    Cuando pulso "<acceso>"
-    Entonces estoy en el módulo "<acceso>"
+    Entonces el banner del panel muestra el nombre del club "Club Natación Lugones"
+    Y el banner del panel resume las sesiones de hoy
+
+  Esquema del escenario: Las acciones rápidas llevan directamente a la tarea
+    Dado un club con datos de demostración
+    Cuando pulso la acción rápida "<acción>"
+    Entonces estoy en el módulo "<módulo>"
 
     Ejemplos:
-      | acceso     |
-      | Nadadores  |
-      | Asistencia |
-      | Cargas     |
-      | Marcas     |
+      | acción           | módulo         |
+      | Pasar lista      | Asistencia     |
+      | Registrar carga  | Cargas         |
+      | Nueva marca      | Marcas         |
+      | Nuevo aviso      | Avisos y notas |
+
+  @escritorio
+  Escenario: En escritorio las tarjetas llenan cada fila sin huecos
+    Dado un club con datos de demostración
+    Entonces las tarjetas del panel llenan cada fila sin huecos
+
+  Escenario: El panel no se desborda en horizontal y el gráfico semanal es legible y accesible
+    Dado un club con datos de demostración
+    Entonces el panel no tiene desplazamiento horizontal
+    Y los textos del gráfico semanal miden al menos 11 píxeles
+    Y el gráfico semanal tiene una tabla como alternativa
+
+  Escenario: Las alertas de cargas usan el componente de alerta con icono
+    Dado un club con datos de demostración
+    Entonces cada alerta de cargas del panel tiene icono y texto
 
   Escenario: Un aviso nuevo aparece entre los avisos recientes del panel
     Dado un club con datos de demostración
@@ -45,3 +67,22 @@ Característica: Panel de inicio
     Dado un club con datos de demostración
     Cuando pulso la campana de avisos
     Entonces estoy en el módulo "Avisos y notas"
+
+  @smoke
+  Escenario: Un club vacío ofrece una acción en cada tarjeta y los primeros pasos
+    Dado un club vacío con la sesión de Google iniciada
+    Entonces veo el encabezado "Primeros pasos"
+    Y la tarjeta "Hoy" ofrece "Programar una sesión"
+    Y la tarjeta "Asistencia hoy" ofrece "Abrir asistencia"
+    Y la tarjeta "Alertas de cargas" ofrece "Definir objetivos"
+    Y la tarjeta "Carga semanal del club" ofrece "Registrar carga"
+    Y la tarjeta "Avisos recientes" ofrece "Escribir un aviso"
+    Y la tarjeta "Próximo evento de la temporada" ofrece "Planificar la temporada"
+
+  Escenario: Los primeros pasos se pueden ocultar y no vuelven a aparecer
+    Dado un club vacío con la sesión de Google iniciada
+    Entonces veo el encabezado "Primeros pasos"
+    Cuando oculto los primeros pasos
+    Entonces no veo el texto "Primeros pasos"
+    Cuando recargo la aplicación
+    Entonces no veo el texto "Primeros pasos"

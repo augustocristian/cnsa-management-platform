@@ -23,7 +23,6 @@ Característica: Uso individual de la aplicación
       | Asistencia     |
       | Cargas         |
       | Marcas         |
-      | Bañador        |
       | Avisos y notas |
       | Configuración  |
 

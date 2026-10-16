@@ -1,6 +1,6 @@
-// Dominio del calendario: lógica PURA (sin DOM, sin red, sin localStorage).
-// Fechas = 'YYYY-MM-DD' y horas = 'HH:MM' (hora local del club, sin zona). Aritmética por días con Date.UTC
-// para que el horario de verano del navegador no influya.
+// Calendar domain: PURE logic (no DOM, no network, no storage, no clock: "today" always arrives as an argument).
+// Dates are 'YYYY-MM-DD' and times 'HH:MM' (club-local wall time, no zone). Day arithmetic uses Date.UTC so the
+// browser's own daylight-saving rules never leak in.
 
 export const TZ_DEFECTO = 'Europe/Madrid';
 export const DOMINIO_UID = 'cnl-plataforma';
@@ -185,24 +185,17 @@ export function filtrarEventos(eventos, { grupoIds = null, piscina = '' } = {}) 
   });
 }
 
-// ---------- Colores por grupo ----------
-// Pares [fondo suave, borde/acento, texto]. Contraste del texto >= 4.5 sobre el fondo.
-export const PALETA = [
-  { fondo: '#e3effd', acento: '#1a73e8', texto: '#0b3d91' },
-  { fondo: '#e0f4ea', acento: '#1e9e5a', texto: '#0d5a33' },
-  { fondo: '#fdecd0', acento: '#e37400', texto: '#7a3e00' },
-  { fondo: '#f3e1f7', acento: '#a142b8', texto: '#5c1a70' },
-  { fondo: '#fde3e1', acento: '#d93025', texto: '#7f1d16' },
-  { fondo: '#d9f1f4', acento: '#12a4b8', texto: '#0a5560' },
-  { fondo: '#f1ecc4', acento: '#a39200', texto: '#575000' },
-  { fondo: '#e4e6f7', acento: '#5865c4', texto: '#2a336e' },
-];
-export const COLOR_SIN_GRUPO = { fondo: '#eceff3', acento: '#6b778a', texto: '#2f3a4a' };
+// ---------- Group colours ----------
+// The domain only decides WHICH colour slot a group gets; the presentation paints it from design tokens (so light and dark
+// mode both work and no hex lives here). A colour is either {tono: <hue 0-359>} (groups) or {semantico: 'danger'|'warn'|...}
+// (events with their own meaning, see domain/temporada.js colorEventoCalendario) or the neutral {neutro: true}.
+export const TONOS_GRUPO = [215, 150, 30, 285, 5, 185, 55, 235];
+export const COLOR_SIN_GRUPO = { neutro: true };
 export function colorGrupo(grupoId, grupos) {
   if (!grupoId) return COLOR_SIN_GRUPO;
   const orden = grupos.map((g) => g.id).sort();
   const i = orden.indexOf(grupoId);
-  return PALETA[(i < 0 ? 0 : i) % PALETA.length];
+  return { tono: TONOS_GRUPO[(i < 0 ? 0 : i) % TONOS_GRUPO.length] };
 }
 
 // ---------- Zonas horarias (sin base de datos tz: se deduce con Intl) ----------
@@ -236,6 +229,34 @@ function nombreOffset(zona, utcMs) {
   } catch (e) { return ''; }
 }
 const localCompact = (fecha, hhmm, ss = '00') => `${fecha.replace(/-/g, '')}T${hhmm.replace(':', '')}${ss}`;
+const fmtOffsetRfc3339 = (min) => `${min < 0 ? '-' : '+'}${pad2(Math.floor(Math.abs(min) / 60))}:${pad2(Math.abs(min) % 60)}`;
+
+// Resolves a club wall-clock time to a real instant, handling the two daylight-saving edge cases the way RFC 5545 §3.3.5 says:
+//  - NON-EXISTENT time (spring gap, e.g. Europe/Madrid 2026-03-29 02:30): interpreted with the offset BEFORE the gap, so it
+//    lands on the first valid minute after it (03:30 summer time).
+//  - AMBIGUOUS time (autumn overlap, e.g. Europe/Madrid 2026-10-25 02:30): the FIRST occurrence (summer offset) is used.
+// -> {estado: 'normal'|'inexistente'|'ambigua', ms (UTC instant), offsetMin, fecha, hora (wall time of that instant in the zone)}
+export function resolverHoraLocal(zona, fecha, hora) {
+  zona = zonaOrDefecto(zona);
+  const p = parseFecha(fecha);
+  const min = parseHora(hora);
+  if (!p || min === null) return null;
+  const pared = Date.UTC(p.y, p.m - 1, p.d, Math.floor(min / 60), min % 60);
+  const antes = offsetMin(zona, pared - 86400000);
+  const despues = offsetMin(zona, pared + 86400000);
+  const t1 = pared - antes * 60000;
+  const t2 = pared - despues * 60000;
+  const v1 = offsetMin(zona, t1) === antes;
+  const v2 = offsetMin(zona, t2) === despues;
+  let ms, off, estado = 'normal';
+  if (v1 && v2 && antes !== despues) { estado = 'ambigua'; ms = Math.min(t1, t2); off = antes > despues ? antes : despues; }
+  else if (v1) { ms = t1; off = antes; }
+  else if (v2) { ms = t2; off = despues; }
+  else { estado = 'inexistente'; ms = t1; off = despues; } // instant computed with the pre-gap offset, shown with the post-gap one
+  const real = new Date(ms + (estado === 'inexistente' ? despues : off) * 60000);
+  const f = `${real.getUTCFullYear()}-${pad2(real.getUTCMonth() + 1)}-${pad2(real.getUTCDate())}`;
+  return { estado, ms, offsetMin: off, fecha: f, hora: `${pad2(real.getUTCHours())}:${pad2(real.getUTCMinutes())}` };
+}
 
 // Cambios de desfase entre dos fechas (inclusive): [{ms, de, a}] con precisión de minuto.
 export function transiciones(zona, desde, hasta) {
@@ -318,9 +339,19 @@ export function descripcionEvento(ev, etq = ETQ_DEFECTO) {
   ].filter(Boolean).join('\n');
 }
 
-// opciones: {nombreCalendario, zona, alarmaMin (0 = sin aviso), ahora: Date, secuencia, etq}
+// A start/end line for a timed event. Normal and non-existent times keep the zone (DTSTART;TZID=...) with the wall time of the
+// real instant; an AMBIGUOUS time is written in UTC so every client picks the same (first) occurrence.
+function lineaInstante(prop, zona, fecha, hora) {
+  const r = resolverHoraLocal(zona, fecha, hora);
+  if (!r) return `${prop};TZID=${zona}:${localCompact(fecha, hora)}`;
+  if (r.estado === 'ambigua') return `${prop}:${stampUtc(new Date(r.ms))}`;
+  return `${prop};TZID=${zona}:${localCompact(r.fecha, r.hora)}`;
+}
+
+// opciones: {nombreCalendario, zona, alarmaMin (0 = sin aviso), ahora: Date (REQUIRED, the caller's clock), secuencia, etq}
 // Con hora => DTSTART;TZID=<zona> y un VTIMEZONE generado; sin hora => evento de día completo (VALUE=DATE).
-export function generarICS(eventos, { nombreCalendario = 'CNL', zona = TZ_DEFECTO, alarmaMin = 0, ahora = new Date(), secuencia = 0, etq = ETQ_DEFECTO } = {}) {
+export function generarICS(eventos, { nombreCalendario = 'CNL', zona = TZ_DEFECTO, alarmaMin = 0, ahora, secuencia = 0, etq = ETQ_DEFECTO } = {}) {
+  if (!(ahora instanceof Date) || Number.isNaN(ahora.getTime())) throw new TypeError('generarICS: "ahora" (Date) is required');
   zona = zonaOrDefecto(zona);
   const l = ['BEGIN:VCALENDAR', 'VERSION:2.0', `PRODID:${PRODID}`, 'CALSCALE:GREGORIAN', 'METHOD:PUBLISH',
     `X-WR-CALNAME:${escaparTexto(nombreCalendario)}`, `X-WR-TIMEZONE:${zona}`];
@@ -334,7 +365,7 @@ export function generarICS(eventos, { nombreCalendario = 'CNL', zona = TZ_DEFECT
     l.push('BEGIN:VEVENT', `UID:${uidEvento(ev)}`, `DTSTAMP:${stamp}`, `SEQUENCE:${Math.max(0, Math.floor(secuencia))}`);
     if (ev.hora) {
       const fin = finEvento(ev);
-      l.push(`DTSTART;TZID=${zona}:${localCompact(ev.fecha, ev.hora)}`, `DTEND;TZID=${zona}:${localCompact(fin.fecha, fin.hora)}`);
+      l.push(lineaInstante('DTSTART', zona, ev.fecha, ev.hora), lineaInstante('DTEND', zona, fin.fecha, fin.hora));
     } else {
       l.push(`DTSTART;VALUE=DATE:${ev.fecha.replace(/-/g, '')}`, `DTEND;VALUE=DATE:${addDias(ev.fecha, 1).replace(/-/g, '')}`);
     }
@@ -361,7 +392,15 @@ export function nombreFicheroICS(club, sufijo = '') {
 }
 
 // ---------- Sincronización con Google Calendar ----------
-// Cuerpo de evento de la API de Google a partir de un evento del dominio.
+// RFC 3339 dateTime for the Google API. Normal times stay as the plain wall time; a non-existent time is moved to the real
+// instant and an ambiguous one carries an explicit offset (first occurrence), so Google never has to guess.
+function dateTimeGoogle(zona, fecha, hora) {
+  const r = resolverHoraLocal(zona, fecha, hora);
+  if (!r || r.estado === 'normal') return `${fecha}T${hora}:00`;
+  return `${r.fecha}T${r.hora}:00${r.estado === 'ambigua' ? fmtOffsetRfc3339(r.offsetMin) : ''}`;
+}
+
+// Google API event body built from a domain event.
 export function aEventoGoogle(ev, { zona = TZ_DEFECTO, alarmaMin = 0, clubId = '', etq = ETQ_DEFECTO } = {}) {
   zona = zonaOrDefecto(zona);
   const out = { summary: ev.titulo };
@@ -370,8 +409,8 @@ export function aEventoGoogle(ev, { zona = TZ_DEFECTO, alarmaMin = 0, clubId = '
   out.description = descripcionEvento(ev, etq);
   if (ev.hora) {
     const fin = finEvento(ev);
-    out.start = { dateTime: `${ev.fecha}T${ev.hora}:00`, timeZone: zona };
-    out.end = { dateTime: `${fin.fecha}T${fin.hora}:00`, timeZone: zona };
+    out.start = { dateTime: dateTimeGoogle(zona, ev.fecha, ev.hora), timeZone: zona };
+    out.end = { dateTime: dateTimeGoogle(zona, fin.fecha, fin.hora), timeZone: zona };
   } else {
     out.start = { date: ev.fecha };
     out.end = { date: addDias(ev.fecha, 1) };
@@ -410,3 +449,75 @@ export function diffSync(deseados, mapa = {}, desde = '') {
   });
   return { crear, actualizar, borrar, iguales };
 }
+
+// ---------- View model (pure helpers the calendar view relies on) ----------
+export const VISTAS = ['mes', 'semana', 'agenda'];
+export const AGENDA_DIAS = 30; // the agenda is a rolling window that STARTS at the cursor (today when it opens)
+
+// First view: the stored choice if valid, otherwise Agenda on a phone and Month elsewhere. A stored "month" is ignored on a
+// phone (preferences follow the person across devices and a month grid is unusable on a narrow screen).
+export function vistaInicial({ guardada, movil = false } = {}) {
+  if (!VISTAS.includes(guardada)) return movil ? 'agenda' : 'mes';
+  if (movil && guardada === 'mes') return 'agenda';
+  return guardada;
+}
+
+// Dates shown by a view: {desde, hasta} inclusive. Month = whole weeks around the month, Week = Monday..Sunday,
+// Agenda = AGENDA_DIAS days starting AT the cursor.
+export function rangoVista(vista, cursor) {
+  if (vista === 'semana') { const l = lunesDe(cursor); return { desde: l, hasta: addDias(l, 6) }; }
+  if (vista === 'mes') return { desde: lunesDe(inicioMes(cursor)), hasta: addDias(lunesDe(finMes(cursor)), 6) };
+  return { desde: cursor, hasta: addDias(cursor, AGENDA_DIAS - 1) };
+}
+
+// Cursor after pressing Previous (-1) / Next (+1).
+export function moverCursor(vista, cursor, dir) {
+  if (vista === 'semana') return addDias(cursor, 7 * dir);
+  if (vista === 'agenda') return addDias(cursor, AGENDA_DIAS * dir);
+  return addMeses(cursor, dir);
+}
+
+// Day that gets selected after moving: today when the new month contains it, otherwise the first day shown.
+export function seleccionTrasMover(vista, cursor, hoy) {
+  return vista === 'mes' && cursor.slice(0, 7) === hoy.slice(0, 7) ? hoy : cursor;
+}
+
+export function agruparPorDia(eventos) {
+  const m = new Map();
+  eventos.forEach((e) => { if (!m.has(e.fecha)) m.set(e.fecha, []); m.get(e.fecha).push(e); });
+  return m;
+}
+
+// Month grid: array of weeks, each an array of 7 'YYYY-MM-DD' (Monday first), covering the whole month.
+export function matrizMes(cursor) {
+  const { desde, hasta } = rangoVista('mes', cursor);
+  const semanas = [];
+  for (let ini = desde; ini <= hasta; ini = addDias(ini, 7)) semanas.push([0, 1, 2, 3, 4, 5, 6].map((i) => addDias(ini, i)));
+  return semanas;
+}
+
+// Days listed by the agenda, ascending: every day with events, plus the anchor day itself when it is today (so the list visibly
+// opens on today even if nothing is scheduled).
+export function diasDeAgenda(porDia, desde, hoy) {
+  const dias = [...porDia.keys()];
+  if (desde === hoy && !porDia.has(hoy)) dias.push(hoy);
+  return dias.sort();
+}
+
+// Keyboard movement inside the month grid: arrow key -> day offset (null for any other key).
+export function desplazamientoTecla(key) {
+  return { ArrowLeft: -1, ArrowRight: 1, ArrowUp: -7, ArrowDown: 7 }[key] ?? null;
+}
+
+// Start and end 'HH:MM' of a timed event, null for all-day events.
+export function rangoHoraEvento(ev) {
+  return ev.hora ? { ini: ev.hora, fin: finEvento(ev).hora } : null;
+}
+
+// Export range chosen in the UI: 'mes' | 'temporada' | 'proximos90' -> {rango, sufijo} (suffix used in the file name).
+export function rangoExportacion(tipo, hoy, cursor) {
+  if (tipo === 'temporada') return { rango: rangoPredefinido('temporada', hoy), sufijo: 'temporada' };
+  if (tipo === 'proximos90') return { rango: rangoPredefinido('proximos90', hoy), sufijo: '90-dias' };
+  return { rango: rangoPredefinido('mes', hoy, cursor), sufijo: cursor.slice(0, 7) };
+}
+

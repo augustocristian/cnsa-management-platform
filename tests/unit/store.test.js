@@ -128,7 +128,7 @@ test('seedDemo crea datos coherentes', () => {
   const nad = new Set(store.list('Nadadores').map((n) => n.id));
   const gr = new Set(store.list('Grupos').map((g) => g.id));
   const ent = new Set(store.list('Entrenamientos').map((e) => e.id));
-  for (const sheet of ['Asistencia', 'Cargas', 'Marcas', 'Banador']) {
+  for (const sheet of ['Asistencia', 'Cargas', 'Marcas']) {
     for (const r of store.list(sheet)) assert.ok(nad.has(r.nadadorId), `${sheet} ${r.id}: nadador ${r.nadadorId}`);
   }
   for (const sheet of ['Asistencia', 'Cargas']) {

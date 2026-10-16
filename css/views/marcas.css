@@ -1,0 +1,44 @@
+/* Times / personal bests view (js/views/marcas*.js). Tokens only; works in light and dark. */
+.mc-fab {
+  display: none; position: fixed; right: var(--sp-4); bottom: calc(var(--bottom-h) + var(--sp-4)); z-index: var(--z-sticky);
+  width: 56px; height: 56px; padding: 0; border: 0; border-radius: 50%; place-items: center;
+  background: var(--c-action); color: var(--c-on-primary); box-shadow: var(--shadow-3); cursor: pointer;
+}
+@media (max-width: 820px) { .mc-fab { display: grid; } .page-head-actions .mc-add { display: none; } }
+
+.mc-stack { display: grid; gap: var(--sp-4); }
+.mc-filters { margin-bottom: 0; }
+.mc-chips { display: flex; flex-wrap: wrap; align-items: center; gap: var(--sp-2); }
+.mc-chips .chip { font-weight: 600; }
+.mc-time { font-variant-numeric: tabular-nums; font-weight: 700; white-space: nowrap; }
+.mc-suit { color: var(--muted); font-size: var(--fs-sm); }
+.mc-pb { margin-left: var(--sp-2); }
+
+/* Evolution chart: 1:1 scale inside a scroll box on narrow screens, so labels stay >= 12 px */
+.mc-chart-title { margin: 0 0 var(--sp-2); font-size: var(--fs-sm); color: var(--muted); }
+.mc-scroll { overflow-x: auto; border-radius: var(--r-md); }
+.mc-scroll:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
+.mc-svg { display: block; width: 100%; min-width: 560px; max-width: 820px; height: auto; }
+.mc-svg text { font-size: 12px; fill: var(--muted); }
+.mc-svg .mc-grid { stroke: var(--border); stroke-width: 1; }
+.mc-svg .mc-line { fill: none; stroke: var(--c-accent); stroke-width: 2.5; stroke-linejoin: round; }
+.mc-svg .mc-dot { fill: var(--c-accent); stroke: var(--surface); stroke-width: 2; }
+.mc-svg .mc-dot--pb { fill: var(--ok); }
+.mc-svg .mc-pb-label { fill: var(--ok); font-weight: 700; }
+.mc-legend { display: flex; flex-wrap: wrap; gap: var(--sp-4); margin: var(--sp-2) 0 0; padding: 0; list-style: none; font-size: var(--fs-sm); color: var(--muted); }
+.mc-legend li { display: inline-flex; align-items: center; gap: var(--sp-2); }
+.mc-key { width: .9rem; height: .9rem; border-radius: 50%; background: var(--c-accent); }
+.mc-key--pb { background: var(--ok); }
+
+.mc-more { display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: var(--sp-3); margin-top: var(--sp-3); color: var(--muted); font-size: var(--fs-sm); }
+
+/* Add-time sheet */
+.mc-time-input { min-height: var(--touch); font-size: 1.25rem; font-weight: 700; font-variant-numeric: tabular-nums; letter-spacing: .03em; }
+.mc-live { min-height: 1.3em; margin: 0; font-size: var(--fs-sm); color: var(--muted); }
+.mc-live--ok { color: var(--ok); font-weight: 600; }
+.mc-suit-row { display: flex; align-items: flex-end; gap: var(--sp-2); }
+.mc-suit-row .field { flex: 1 1 auto; }
+
+/* Row just logged */
+.table tr.is-new td { background: color-mix(in srgb, var(--ok) 14%, var(--surface)); animation: mc-new 2.4s ease-out; }
+@keyframes mc-new { from { background: color-mix(in srgb, var(--ok) 40%, var(--surface)); } }

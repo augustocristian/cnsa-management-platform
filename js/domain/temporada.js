@@ -10,21 +10,25 @@
 //  - EventosTemporada: id, temporadaId, tipo, nombre, fechaInicio, fechaFin, lugar, prioridad (A|B|C), pruebas, categoria, grupoId, notas
 // Fechas = 'YYYY-MM-DD'. Los volúmenes son METROS POR NADADOR y semana (igual que las cargas): con grupoId se comparan sólo las
 // sesiones y nadadores de ese grupo; sin grupo, la media por grupo (planes) y por nadador (cargas).
-import { fechaValida, aDias, deDias, addDias, lunesDe, diaSemana, COLOR_SIN_GRUPO } from './calendario.js';
+import { fechaValida, aDias, deDias, addDias, lunesDe, diaSemana } from './calendario.js';
 import { normalizarNombre, indicePorNombre, agregarSemana, colorValido, ordenarTipos, PREFIJO_ID } from './cargas.js';
 import { volumenPorContenido } from './desglose.js';
 
 export { fechaValida, addDias, lunesDe };
 
 export const TIPOS_FASE = ['preparacion-general', 'preparacion-especifica', 'competitiva', 'tapering', 'transicion', 'personalizado'];
+// Default colours of the phases: these are STORED values (the user can change them with a colour picker), not styling.
 export const COLOR_FASE = {
   'preparacion-general': '#4f7cac', 'preparacion-especifica': '#8a63b8', competitiva: '#c0592b',
   tapering: '#b0850b', transicion: '#4f8f7a', personalizado: '#6f7785',
 };
 export const TIPOS_EVENTO = ['competicion', 'concentracion', 'test', 'descanso', 'otro'];
 export const PRIORIDADES = ['A', 'B', 'C'];
-export const COLOR_PRIORIDAD = { A: '#b3261e', B: '#b45309', C: '#2f5f9e' };
-export const COLOR_EVENTO = { competicion: '#b3261e', concentracion: '#5b4aa0', test: '#0b7285', descanso: '#2f7d52', otro: '#6f7785' };
+// Semantic tone of each event kind. The domain holds no colours: the presentation maps a tone to the design tokens
+// (danger, warn, info, ok, neutral, accent), and events are ALSO told apart by shape and text (see temporada-grafico.js).
+export const TONO_PRIORIDAD = { A: 'danger', B: 'warn', C: 'info' };
+export const TONO_EVENTO = { competicion: 'danger', concentracion: 'accent', test: 'ok', descanso: 'neutral', otro: 'neutral' };
+export const tonoEvento = (e) => (e.tipo === 'competicion' ? TONO_PRIORIDAD[e.prioridad] || TONO_EVENTO.competicion : TONO_EVENTO[e.tipo] || TONO_EVENTO.otro);
 export const MAX_SEMANAS = 110;
 export const TOLERANCIA = 0.1; // ±10 % = "en rango"
 export const PASO_M = 50; // los volúmenes calculados se redondean a 50 m
@@ -636,14 +640,10 @@ export function eventosDeTemporada(datos, rango, etq = {}) {
   return out;
 }
 export const FUENTE_CALENDARIO = { id: 'temporada', genera: (datos, rango, etq) => eventosDeTemporada(datos, rango, etq) };
-export const COLOR_CALENDARIO = { fondo: '#fbe9e7', acento: '#b3261e', texto: '#7f1d16' };
+// Colour of a season event in the calendar: a semantic tone (see above); null for events that are not from the season.
 export function colorEventoCalendario(ev) {
   if (ev.origen !== 'temporada') return null;
-  if (ev.tipoEvento === 'competicion') {
-    const a = COLOR_PRIORIDAD[ev.prioridad] || COLOR_EVENTO.competicion;
-    return { fondo: ev.prioridad === 'A' ? '#fbe3e0' : ev.prioridad === 'B' ? '#fdecd0' : '#e3edf9', acento: a, texto: ev.prioridad === 'B' ? '#6b3a00' : ev.prioridad === 'C' ? '#1c3f6e' : '#7f1d16' };
-  }
-  return { ...COLOR_SIN_GRUPO, acento: COLOR_EVENTO[ev.tipoEvento] || COLOR_EVENTO.otro };
+  return { semantico: tonoEvento({ tipo: ev.tipoEvento, prioridad: ev.prioridad }) };
 }
 
 // ---------- Datos de demostración ----------
@@ -693,5 +693,66 @@ export function temporadaDemo({ hoy, grupoId = '', tipos = [], desdeFecha = '' }
   const temporada = filaTemporada({ id: tid, nombre, inicio, fin, activa: true, grupoId, notas: 'Temporada de demostración.' });
   return { temporada, fases, semanas, eventos };
 }
+// ---------- View model helpers (pure; moved out of the view) ----------
+// Defaults for a new season: the swimming year starts on the first Monday on or after 1 September (38 weeks).
+// -> {anio, inicio, fin}; `hoy` is the caller's today.
+export function propuestaTemporada(hoy) {
+  const y = +hoy.slice(0, 4);
+  const anio = +hoy.slice(5, 7) >= 9 ? y : y - 1;
+  let inicio = lunesDe(`${anio}-09-01`);
+  if (inicio < `${anio}-09-01`) inicio = addDias(inicio, 7);
+  return { anio, inicio, fin: addDias(inicio, 7 * 38 - 1) };
+}
+// Proposed dates for a new phase: the first gap without a phase, otherwise from the selected week; 4 weeks long, never past the season.
+export function propuestaFase(m, nSel) {
+  const hueco = m.validaciones.find((x) => x.tipo === 'hueco-fases');
+  const sem = m.semanas.find((s) => s.n === nSel) || m.semanas[0];
+  const inicio = hueco ? hueco.params.desde : sem.lunes;
+  let fin = addDias(inicio, 27);
+  if (hueco && fin > hueco.params.hasta) fin = hueco.params.hasta;
+  if (fin > m.temporada.fin) fin = m.temporada.fin;
+  return { inicio, fin };
+}
+// Proposed start of a new event: the Saturday of the selected week (clamped to the season end).
+export function propuestaEvento(m, nSel) {
+  const sem = m.semanas.find((s) => s.n === nSel) || m.semanas[0];
+  const sab = addDias(sem.lunes, 5);
+  return { inicio: sab > m.temporada.fin ? m.temporada.fin : sab };
+}
+// First and last week number of a phase.
+export function semanasDeFase(m, faseId) {
+  const ns = m.semanas.filter((s) => s.fase && s.fase.id === faseId).map((s) => s.n);
+  return ns.length ? { desde: ns[0], hasta: ns[ns.length - 1] } : null;
+}
+// The week in which an event starts (null when it is outside the season).
+export const semanaDelEvento = (m, e) => m.semanas.find((s) => e.inicio >= s.lunes && e.inicio <= s.domingo) || null;
+// Weeks shown by the chart/table for a zoom range.
+export const semanasEnRango = (m, desde, hasta) => m.semanas.filter((s) => s.n >= desde && s.n <= hasta);
+// Y axis of the stacked chart: a round top and its ticks for a maximum volume.
+export function escalaEjeY(max) {
+  const pasos = [100, 200, 250, 500, 1000, 2000, 2500, 5000, 10000, 20000];
+  const paso = pasos.find((p) => max / p <= 5) || 20000;
+  const top = Math.max(paso, Math.ceil(max / paso) * paso);
+  const ticks = [];
+  for (let v = 0; v <= top; v += paso) ticks.push(v);
+  return { top, ticks };
+}
+// Consecutive weeks of the same phase grouped into bands: [{fase, ini, fin}] (indexes into `semanas`).
+export function bandasDeFase(semanas) {
+  const grupos = [];
+  semanas.forEach((s, i) => {
+    const ult = grupos[grupos.length - 1];
+    if (ult && ult.fase && s.fase && ult.fase.id === s.fase.id) ult.fin = i; else grupos.push({ fase: s.fase, ini: i, fin: i });
+  });
+  return grupos;
+}
+// Greedy placement of markers in rows so they do not overlap: returns the row index for x, mutating `filas` (arrays of x).
+export function filaLibre(filas, x, separacion) {
+  const i = filas.findIndex((f) => f.every((v) => Math.abs(v - x) > separacion));
+  const r = i < 0 ? filas.length - 1 : i;
+  filas[r].push(x);
+  return r;
+}
+
 // (re-export útil para la vista)
 export { deDias, diaSemana };

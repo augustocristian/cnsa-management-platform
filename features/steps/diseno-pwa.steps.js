@@ -32,7 +32,8 @@ Then('el menú de navegación está {word}', async function (posicion) {
 });
 
 Then('las opciones del menú miden al menos {int} px de alto', async function (min) {
-  const cajas = await this.page.locator('.nav-item').evaluateAll((els) => els.map((e) => e.getBoundingClientRect().height));
+  // Only the items on screen: on mobile the routes that live in the More sheet are display:none in the bar.
+  const cajas = await this.page.locator('.nav-item').evaluateAll((els) => els.map((e) => e.getBoundingClientRect().height).filter((h) => h > 0));
   assert.ok(cajas.length > 0);
   assert.ok(cajas.every((h) => h >= min), `Alturas: ${cajas}`);
 });
@@ -106,11 +107,16 @@ Then('los datos de ejemplo del club están cargados', async function () {
 
 // ---- Idioma ----
 When('cambio el idioma a {string}', async function (idioma) {
-  await this.page.locator('.lang-select').first().selectOption({ label: idioma });
+  // Flag buttons (radio group). In the shell the switch lives in the settings menu; on the start screens it is on the page.
+  const codigo = { English: 'en', Italiano: 'it', 'Español': 'es' }[idioma];
+  assert.ok(codigo, `Unknown language ${idioma}`);
+  if (await this.page.locator('.account-btn').count()) await this.abrirMenuCuenta();
+  await this.page.locator(`.lang-switch [data-lang="${codigo}"]`).first().click();
+  await this.eventually(async () => assert.equal(await this.page.locator(`.lang-switch [data-lang="${codigo}"]`).first().getAttribute('aria-checked'), 'true'));
 });
 
 Then('el menú muestra {string} para el módulo {string}', async function (texto, m) {
-  await this.eventually(async () => assert.match(await this.page.locator(`.nav-item[data-route="${ruta(m)}"]`).innerText(), new RegExp(texto, 'i')));
+  await this.eventually(async () => assert.match(await this.page.locator(`.nav-item[data-route="${ruta(m)}"]`).first().textContent(), new RegExp(texto, 'i')));
 });
 
 Then('el idioma del documento es {string}', async function (cod) {

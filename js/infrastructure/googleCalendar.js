@@ -1,9 +1,9 @@
-// Cliente de la API de Google Calendar v3 (REST). Sin DOM ni estado global: `fetch`, el proveedor de token y la
-// espera son inyectables para poder probarlo con respuestas simuladas.
+// Google Calendar API v3 client (REST). No DOM and no global state: `fetch`, the token provider and the sleep function are
+// injectable so it can be tested with simulated responses.
 //
-// Calendario usado: el PRIMARIO del usuario ('primary'). El scope `calendar.events` no permite crear calendarios
-// secundarios (calendars.insert exige `calendar` o `calendar.app.created`), así que los eventos de la app se marcan con
-// extendedProperties.private.cnlId / cnlClub y así se pueden actualizar, borrar y reencontrar sin tocar los demás.
+// Calendar used: the person's PRIMARY one ('primary'). The `calendar.events` scope cannot create secondary calendars
+// (calendars.insert needs `calendar` or `calendar.app.created`), so the app's events are tagged with
+// extendedProperties.private.cnlId / cnlClub and can be updated, deleted and found again without touching the rest.
 
 export const CALENDAR_API = 'https://www.googleapis.com/calendar/v3';
 
@@ -28,7 +28,7 @@ async function leerError(res) {
   } catch (e) { return { message: '', reason: '' }; }
 }
 
-// getToken({force}) -> Promise<string|null>. force = true descarta el token en caché y pide otro.
+// getToken({force}) -> Promise<string|null>. force = true drops the cached token and asks for a new one.
 export function crearClienteGoogleCalendar({
   fetch: fetchFn = (...a) => globalThis.fetch(...a),
   getToken,
@@ -43,13 +43,13 @@ export function crearClienteGoogleCalendar({
     let renovado = false;
     for (let intento = 0; ; intento++) {
       const token = await getToken({ force: renovado && intento > 0 });
-      if (!token) throw new GoogleCalendarError('Sin permiso de Google Calendar', { status: 401, code: 'auth' });
+      if (!token) throw new GoogleCalendarError('No Google Calendar permission', { status: 401, code: 'auth' });
       const opts = { method, headers: { Authorization: 'Bearer ' + token } };
       if (body !== undefined) { opts.headers['Content-Type'] = 'application/json'; opts.body = JSON.stringify(body); }
       let res;
       try { res = await fetchFn(url, opts); } catch (e) {
         if (intento < maxReintentos) { await sleep(500 * 2 ** intento); continue; }
-        throw new GoogleCalendarError('Sin conexión con Google Calendar', { code: 'red' });
+        throw new GoogleCalendarError('Cannot reach Google Calendar', { code: 'red' });
       }
       if (res.ok) return res.status === 204 ? null : res.json().catch(() => null);
 
@@ -57,34 +57,34 @@ export function crearClienteGoogleCalendar({
       const { message, reason } = await leerError(res);
       const reintentable = status === 429 || status >= 500 || (status === 403 && RAZONES_LIMITE.includes(reason));
       if (status === 401) {
-        if (!renovado) { renovado = true; continue; } // un único intento con token nuevo
-        throw new GoogleCalendarError('La sesión de Google ha caducado', { status, code: 'auth', reason });
+        if (!renovado) { renovado = true; continue; } // a single retry with a fresh token
+        throw new GoogleCalendarError('The Google authorization has expired', { status, code: 'auth', reason });
       }
       if (reintentable && intento < maxReintentos) {
         const ra = Number(res.headers && res.headers.get && res.headers.get('Retry-After'));
         await sleep(ra > 0 ? ra * 1000 : 500 * 2 ** intento);
         continue;
       }
-      if (status === 429 || (status === 403 && RAZONES_LIMITE.includes(reason))) throw new GoogleCalendarError(message || 'Límite de peticiones de Google', { status, code: 'limite', reason });
+      if (status === 429 || (status === 403 && RAZONES_LIMITE.includes(reason))) throw new GoogleCalendarError(message || 'Google request limit reached', { status, code: 'limite', reason });
       if (status === 403) {
         const off = reason === 'accessNotConfigured' || /has not been used|is disabled|not enabled/i.test(message);
-        throw new GoogleCalendarError(message || 'Sin permiso', { status, code: off ? 'api-desactivada' : 'permisos', reason });
+        throw new GoogleCalendarError(message || 'No permission', { status, code: off ? 'api-desactivada' : 'permisos', reason });
       }
-      if (status === 404 || status === 410) throw new GoogleCalendarError(message || 'No existe', { status, code: 'no-existe', reason });
-      throw new GoogleCalendarError(message || `Error de Google ${status}`, { status, code: status >= 500 ? 'servidor' : 'http', reason });
+      if (status === 404 || status === 410) throw new GoogleCalendarError(message || 'Not found', { status, code: 'no-existe', reason });
+      throw new GoogleCalendarError(message || `Google error ${status}`, { status, code: status >= 500 ? 'servidor' : 'http', reason });
     }
   }
 
   return {
-    // -> evento creado ({id, ...})
+    // -> created event ({id, ...})
     insertar: (cuerpo) => pedir('POST', cal, cuerpo),
-    // PATCH; `status: confirmed` reactiva un evento que el usuario hubiera borrado a mano. 404/410 -> code 'no-existe'.
+    // PATCH; `status: confirmed` reactivates an event the user deleted by hand. 404/410 -> code 'no-existe'.
     actualizar: (gid, cuerpo) => pedir('PATCH', `${cal}/${encodeURIComponent(gid)}`, { ...cuerpo, status: 'confirmed' }),
-    // Un evento que ya no existe cuenta como borrado.
+    // An event that no longer exists counts as deleted.
     async borrar(gid) {
       try { await pedir('DELETE', `${cal}/${encodeURIComponent(gid)}`); } catch (e) { if (e.code !== 'no-existe') throw e; }
     },
-    // Eventos creados por la app para un club (marcados con cnlClub) -> [{gid, cnlId, fecha}]
+    // Events the app created for a club (tagged with cnlClub) -> [{gid, cnlId, fecha}]
     async listarGestionados({ clubId, timeMin = '', timeMax = '' } = {}) {
       const out = [];
       let pageToken = '';

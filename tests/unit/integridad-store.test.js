@@ -429,15 +429,14 @@ const sembrarNadadores = () => {
   store.upsert('Cargas', { id: 'c1', nadadorId: 'n1', entrenamientoId: 'e1', fecha: '2026-10-01', metros: 1000 });
   store.upsert('Cargas', { id: 'c2', nadadorId: 'n2', entrenamientoId: 'e1', fecha: '2026-10-01', metros: 900 });
   store.upsert('Marcas', { id: 'm1', nadadorId: 'n1', fecha: '2026-09-01', prueba: '50 libre', tiempoMs: 30000 });
-  store.upsert('Banador', { id: 'b1', nadadorId: 'n1', talla: 'M' });
   store.upsert('Asistencia', { id: 'a1', nadadorId: 'n1', entrenamientoId: 'e1', estado: 'presente' });
 };
 
-test('P1-7: exportNadador returns all of the swimmer\'s rows (profile, attendance, loads, times, swimsuit) and only theirs', () => {
+test('P1-7: exportNadador returns all of the swimmer\'s rows (profile, attendance, loads, times) and only theirs', () => {
   sembrarNadadores();
   const { datos, nombre } = store.exportNadador('n1', { descargar: false });
   assert.equal(datos.nadador.nombre, 'Ana');
-  assert.deepEqual(Object.keys(datos.hojas).sort(), ['Asistencia', 'Banador', 'Cargas', 'Marcas']);
+  assert.deepEqual(Object.keys(datos.hojas).sort(), ['Asistencia', 'Cargas', 'Marcas']);
   assert.deepEqual(datos.hojas.Cargas.map((c) => c.id), ['c1']);
   assert.equal(datos.hojas.Marcas.length, 1);
   assert.match(nombre, /^nadador-Ana-P.*\.json$/);
@@ -454,9 +453,9 @@ test('P1-7: purgarNadador cascades, rewrites the JSON, deletes Drive .xlsx copie
   assert.ok(fake.archivos().some((a) => a.name === 'Club Test.xlsx'));
   const r = await store.purgarNadador('n1');
   assert.equal(r.sincronizado, true);
-  assert.equal(r.filas, 5);
+  assert.equal(r.filas, 4);
   assert.equal(store.get('Nadadores', 'n1'), null);
-  for (const h of ['Cargas', 'Marcas', 'Banador', 'Asistencia']) assert.ok(store.list(h).every((x) => x.nadadorId !== 'n1'), h);
+  for (const h of ['Cargas', 'Marcas', 'Asistencia']) assert.ok(store.list(h).every((x) => x.nadadorId !== 'n1'), h);
   assert.ok(store.get('Nadadores', 'n2') && store.get('Cargas', 'c2'), 'the rest is untouched');
   const doc = fake.club(ref.id).doc;
   assert.deepEqual(doc.hojas.Nadadores.map((n) => n.id), ['n2']);

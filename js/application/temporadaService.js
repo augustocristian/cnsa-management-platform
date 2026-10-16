@@ -1,6 +1,6 @@
-// Servicio de aplicación de la Planificación de temporada: orquesta el dominio (js/domain/temporada.js) y la persistencia.
-// Recibe el repositorio por parámetro (cualquier objeto con list/get/upsert/remove, p. ej. el store): no importa el store,
-// ni el DOM, ni fetch, así que se puede probar con un repositorio en memoria.
+// Season planning use cases: orchestrates the domain (js/domain/temporada.js) and persistence.
+// The repository is injected (any object with list/get/upsert/remove, e.g. the store) and so is the clock: this module imports
+// no store, no DOM and no fetch, so it can be tested with an in-memory repository and a fixed date.
 import * as D from '../domain/temporada.js';
 import { fechaDeDate } from '../domain/calendario.js';
 import { normalizarTipo } from '../domain/cargas.js';
@@ -11,8 +11,9 @@ export const HOJA_FASES = 'Fases';
 export const HOJA_SEMANAS = 'SemanasPlan';
 export const HOJA_EVENTOS = 'EventosTemporada';
 
-// opciones: {ahora: () => Date, nombreFase: (tipo) => string (para las fases por defecto)}
-export function crearTemporadaService(repo, { ahora = () => new Date(), nombreFase = (t) => t } = {}) {
+// options: {ahora: () => Date (REQUIRED clock), nombreFase: (tipo) => string (names of the default phases)}
+export function crearTemporadaService(repo, { ahora, nombreFase = (t) => t } = {}) {
+  if (typeof ahora !== 'function') throw new TypeError('crearTemporadaService: "ahora" (clock) is required');
   const hoy = () => fechaDeDate(ahora());
   const tipos = () => repo.list('TiposCarga').map(normalizarTipo);
   const enTemporada = (hoja, tid) => repo.list(hoja).filter((r) => r.temporadaId === String(tid));
@@ -47,10 +48,22 @@ export function crearTemporadaService(repo, { ahora = () => new Date(), nombreFa
     activar(id) {
       svc.temporadas().forEach((t) => { if (t.activa !== (t.id === String(id))) repo.upsert(HOJA_TEMPORADAS, D.filaTemporada({ ...t, activa: t.id === String(id) })); });
     },
+    // Deletes the season with its phases, edited weeks and events. -> snapshot for restaurarTemporada() (Undo) or null
     borrarTemporada(id) {
-      [HOJA_FASES, HOJA_SEMANAS, HOJA_EVENTOS].forEach((h) => enTemporada(h, id).forEach((r) => repo.remove(h, r.id)));
+      const fila = repo.get(HOJA_TEMPORADAS, id);
+      if (!fila) return null;
+      const hijos = {};
+      [HOJA_FASES, HOJA_SEMANAS, HOJA_EVENTOS].forEach((h) => { hijos[h] = enTemporada(h, id); hijos[h].forEach((r) => repo.remove(h, r.id)); });
       repo.remove(HOJA_TEMPORADAS, id);
       if (!svc.temporadas().some((t) => t.activa) && svc.temporadas()[0]) svc.activar(svc.temporadas()[0].id);
+      return { fila, hijos };
+    },
+    restaurarTemporada(snap) {
+      if (!snap) return;
+      repo.upsert(HOJA_TEMPORADAS, snap.fila);
+      Object.entries(snap.hijos).forEach(([h, filas]) => filas.forEach((r) => repo.upsert(h, r)));
+      if (String(snap.fila.activa) === 'true') svc.activar(String(snap.fila.id)); // it was the active one: it becomes active again
+      else if (!svc.temporadas().some((t) => t.activa)) svc.activar(svc.temporadas()[0].id);
     },
 
     // ----- Fases -----
@@ -69,7 +82,9 @@ export function crearTemporadaService(repo, { ahora = () => new Date(), nombreFa
       const fase = repo.upsert(HOJA_FASES, D.filaFase({ ...cand, orden: orden ?? cand.orden }));
       return { ok: true, fase: D.normalizarFase(fase), avisos };
     },
-    borrarFase(id) { repo.remove(HOJA_FASES, id); },
+    // Deletes a phase. -> the removed row for restaurarFase() (Undo) or null
+    borrarFase(id) { const fila = repo.get(HOJA_FASES, id); if (fila) repo.remove(HOJA_FASES, id); return fila || null; },
+    restaurarFase(fila) { if (fila) repo.upsert(HOJA_FASES, fila); },
 
     // ----- Eventos -----
     eventos: (tid) => enTemporada(HOJA_EVENTOS, tid).map(D.normalizarEvento).sort((a, b) => (a.inicio < b.inicio ? -1 : a.inicio > b.inicio ? 1 : 0)),
@@ -83,7 +98,9 @@ export function crearTemporadaService(repo, { ahora = () => new Date(), nombreFa
       const evento = D.normalizarEvento(repo.upsert(HOJA_EVENTOS, D.filaEvento(cand)));
       return { ok: true, evento, avisos: D.eventoFuera(cand, t) ? [{ tipo: 'evento-fuera-temporada' }] : [] };
     },
-    borrarEvento(id) { repo.remove(HOJA_EVENTOS, id); },
+    // Deletes an event. -> the removed row for restaurarEvento() (Undo) or null
+    borrarEvento(id) { const fila = repo.get(HOJA_EVENTOS, id); if (fila) repo.remove(HOJA_EVENTOS, id); return fila || null; },
+    restaurarEvento(fila) { if (fila) repo.upsert(HOJA_EVENTOS, fila); },
 
     // ----- Semanas -----
     semanasPlan: (tid) => enTemporada(HOJA_SEMANAS, tid).map(D.normalizarSemanaPlan),

@@ -1,0 +1,21 @@
+/* Swimsuit catalogue manager (js/views/banadores-catalogo.js). Loaded with useStyles('banadores'). Tokens only. */
+.bn-gestor { display: grid; gap: var(--sp-3); }
+.bn-head { display: flex; flex-wrap: wrap; gap: var(--sp-3); align-items: center; justify-content: space-between; }
+.bn-intro { margin: 0; flex: 1 1 260px; color: var(--muted); font-size: var(--fs-sm); }
+.bn-grupo { display: grid; gap: var(--sp-2); }
+.bn-grupo-titulo { margin: var(--sp-2) 0 0; font-size: var(--fs-sm); font-weight: 650; letter-spacing: .03em; text-transform: uppercase; color: var(--muted); }
+.bn-lista { list-style: none; margin: 0; padding: 0; display: grid; gap: var(--sp-2); }
+.bn-item {
+  display: flex; flex-wrap: wrap; gap: var(--sp-2) var(--sp-3); align-items: center; justify-content: space-between;
+  padding: var(--sp-3); border: 1px solid var(--border); border-radius: var(--r-md); background: var(--surface);
+}
+.bn-item.bn-inactivo { background: var(--surface-2); }
+.bn-item.bn-inactivo .bn-nombre { color: var(--muted); }
+.bn-main { flex: 1 1 220px; min-width: 0; display: grid; gap: var(--sp-1); }
+.bn-linea { display: flex; flex-wrap: wrap; gap: var(--sp-2); align-items: center; }
+.bn-nombre { overflow-wrap: anywhere; }
+.bn-meta { margin: 0; font-size: var(--fs-sm); color: var(--muted); overflow-wrap: anywhere; }
+.bn-acts { display: flex; flex-wrap: wrap; gap: var(--sp-2); align-items: center; }
+.bn-vacio-grupo { margin: 0; font-size: var(--fs-sm); color: var(--muted); }
+.bn-form { display: grid; gap: var(--sp-3); }
+.bn-form textarea { min-height: 4.5rem; }

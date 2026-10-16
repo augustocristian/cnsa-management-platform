@@ -71,5 +71,6 @@ export default {
   'dat.nad.purgado': 'Dati di {nombre} eliminati ({n} righe).',
   'dat.nad.purgado-revisiones': 'Drive può conservare versioni precedenti del file del club. Ne sono state eliminate {n}; controlla «Gestisci versioni» e il cestino di Drive.',
   'dat.nad.purgado-pendiente': 'I dati sono stati eliminati su questo dispositivo ma non è stato ancora possibile caricarli su Drive: riconnettiti e sincronizza.',
+  'dat.nad.demo-nota': 'Sei nella demo: i dati vengono cancellati solo da questo dispositivo; non ci sono copie su Drive.',
   'dat.notas.aviso': 'Evita dati sanitari salvo che sia indispensabile.',
 };

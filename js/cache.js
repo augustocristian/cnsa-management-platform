@@ -6,8 +6,9 @@
 const IDB_NAME = 'cnl-cache';
 const IDB_STORE = 'kv';
 
-// Prefixes/keys holding personal or session data: ALWAYS erased on sign-out.
-export const CLAVES_LOCALES = ['cnl:club:', 'cnl:user', 'cnl:prefs', 'cnl:cal-sync:', 'cnl:cal-vista', 'cnl:tutorial', 'cnl:token'];
+// Prefixes/keys holding personal or connection data: ALWAYS erased when Drive is disconnected. 'cnl:user' and 'cnl:token' are LEGACY keys
+// of the sign-in era, still erased in case an earlier version left them. Demo data ('cnl:demo:*' and the 'cnl:mode' flag) is a separate namespace: it is erased by leaving the demo and never mixed with real data.
+export const CLAVES_LOCALES = ['cnl:club:', 'cnl:drive-auth', 'cnl:user', 'cnl:prefs', 'cnl:cal-sync:', 'cnl:cal-vista', 'cnl:tutorial', 'cnl:token', 'cnl:demo:', 'cnl:mode'];
 export const CLAVES_SESION = ['cnl:elegir', 'cnl:token'];
 
 function abrirIdb() {
@@ -85,6 +86,13 @@ export const cache = {
 
   _enIdb: new Set(),
 
+  // Deletes ONE entry (localStorage and its IndexedDB copy).
+  async eliminar(key) {
+    try { ls()?.removeItem(key); } catch (e) { /* ignore */ }
+    cache._enIdb.delete(key);
+    try { await idbHacer('readwrite', (st) => st.delete(key)); } catch (e) { /* no IndexedDB: nothing to delete */ }
+  },
+
   // Deletes the localStorage/sessionStorage keys starting with any of the prefixes, and the IndexedDB copy.
   async limpiar(prefijos = CLAVES_LOCALES) {
     const quitar = (almacen) => {
@@ -100,7 +108,7 @@ export const cache = {
   },
 };
 
-// Sign-out: no mirror of personal data stays on the device.
+// Disconnecting Drive: no mirror of personal data stays on the device.
 export async function limpiarDatosLocales() {
   await cache.limpiar(CLAVES_LOCALES);
   try { for (const k of CLAVES_SESION) globalThis.sessionStorage.removeItem(k); } catch (e) { /* ignore */ }

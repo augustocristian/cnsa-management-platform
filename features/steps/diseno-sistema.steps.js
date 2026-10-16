@@ -106,6 +106,7 @@ Given('que el sistema operativo prefiere el modo oscuro', async function () {
 });
 
 When('elijo el tema {string}', async function (nombre) {
+  await this.abrirMenuCuenta();
   const sel = this.page.locator('.theme-select');
   await sel.waitFor({ timeout: this.timeout });
   await sel.selectOption({ label: nombre });
@@ -139,6 +140,7 @@ Then('las preferencias del Drive acaban guardando el tema {string}', async funct
 });
 
 Then('el selector de tema muestra {string}', async function (nombre) {
+  await this.abrirMenuCuenta();
   await this.eventually(async () => {
     const txt = await this.page.locator('.theme-select').evaluate((s) => s.options[s.selectedIndex].textContent);
     assert.equal(txt, nombre);

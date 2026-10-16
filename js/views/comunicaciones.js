@@ -1,98 +1,94 @@
 // Notices and notes view: the coach's own notes and notices (for the whole club or one group). The app sends nothing
 // to anyone: each notice can be copied so the coach passes it on through their usual channel (email, messaging...).
+// Rules: domain/comunicaciones.js + comunicacionesService.js.
+import { h, field, fieldError, toast, badge, empty } from '../ui.js';
+import { icon } from '../icons.js';
+import { useStyles } from '../styles.js';
 import { t, tDate } from '../i18n.js';
-function H(tag, attrs, ...kids) {
-  const el = document.createElement(tag);
-  for (const [k, v] of Object.entries(attrs || {})) {
-    if (v == null || v === false) continue;
-    if (k.startsWith('on') && typeof v === 'function') el.addEventListener(k.slice(2), v);
-    else if (k === 'value') el.value = v;
-    else if (k === 'selected' || k === 'disabled' || k === 'required') el[k] = !!v;
-    else el.setAttribute(k, v);
-  }
-  for (const k of kids.flat()) if (k != null && k !== false) el.append(k.nodeType ? k : document.createTextNode(String(k)));
-  return el;
-}
-const iso = (d) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
-
-function injectStyle() {
-  if (document.getElementById('cm-style')) return;
-  const st = document.createElement('style');
-  st.id = 'cm-style';
-  st.textContent = `
-.cm-form{display:flex;flex-direction:column;gap:.6rem}
-.cm-form label{display:flex;flex-direction:column;font-size:.8rem;color:#5b6b7f;gap:.2rem}
-.cm-form input,.cm-form select,.cm-form textarea,.cm-bar select{padding:.45rem .6rem;border:1px solid #cfd8e3;border-radius:8px;font:inherit}
-.cm-form textarea{min-height:6rem;resize:vertical}
-.cm-card{margin-bottom:1rem}
-.cm-item{border-bottom:1px solid #e3e9f0;padding:.8rem 0}
-.cm-item:last-child{border-bottom:0}
-.cm-item h4{margin:0 0 .3rem;color:#0d3b8c}
-.cm-meta{display:flex;flex-wrap:wrap;gap:.5rem;align-items:center;color:#5b6b7f;font-size:.8rem;margin-bottom:.4rem}
-.cm-text{white-space:pre-wrap;margin:0}`;
-  document.head.append(st);
-}
+import { crearComunicacionesService } from '../application/comunicacionesService.js';
+import { TODO_EL_CLUB } from '../domain/comunicaciones.js';
 
 export async function render(container, params, ctx) {
-  injectStyle();
-  const { store, auth, ui } = ctx;
-  const toast = (m) => (ui && ui.toast ? ui.toast(m) : null);
-  const state = { grupo: '' };
+  useStyles('comunicaciones');
+  const { store } = ctx;
+  const svc = crearComunicacionesService(store, { ahora: ctx.ahora });
+  const grupos = store.list('Grupos');
+  const nombreGrupo = (id) => (grupos.find((g) => g.id === id) || {}).nombre || t('comu.grupo');
+  const estado = { filtro: '' };
 
-  async function copiar(texto) {
-    try { await navigator.clipboard.writeText(texto); toast(t('common.copiado')); } catch (e) { toast(t('comu.errCopiar')); }
+  async function copiar(aviso) {
+    try { await navigator.clipboard.writeText(svc.textoParaCopiar(aviso)); toast(t('common.copiado')); } catch (e) { toast.error(t('comu.errCopiar')); } // clipboard blocked or unavailable
   }
 
-  function publish(form) {
-    const f = new FormData(form);
-    const titulo = (f.get('titulo') || '').trim(), texto = (f.get('texto') || '').trim();
-    if (!titulo || !texto) { toast(t('comu.faltaTexto')); return; }
-    store.upsert('Comunicaciones', {
-      fecha: iso(new Date()), titulo, texto, grupoId: f.get('grupoId') || '',
-      autor: (auth.user && (auth.user.name || auth.user.email)) || t('comu.autorDefecto')
-    });
+  // Delete with undo: the notice goes now and comes back with the toast button.
+  function eliminar(aviso) {
+    const copia = svc.eliminar(aviso.id);
+    pintarLista();
+    toast.undo(t('comu.eliminado'), () => { svc.restaurar(copia); toast(t('comu.restaurado')); if (container.isConnected) pintarLista(); });
+  }
+
+  // ---- Form ----
+  const titulo = h('input', { type: 'text', name: 'titulo', maxlength: 120, autocomplete: 'off', enterkeyhint: 'next' });
+  const destino = h('select', { name: 'grupoId' }, h('option', { value: '' }, t('comu.todoClub')), grupos.map((g) => h('option', { value: g.id }, g.nombre)));
+  const texto = h('textarea', { name: 'texto', rows: 4 });
+  const campoTexto = field({ label: t('comu.mensaje'), input: texto, required: true });
+  campoTexto.classList.add('full');
+  const formulario = h('form', { class: 'cm-form form-grid', novalidate: true, onsubmit: (e) => { e.preventDefault(); publicar(); } },
+    field({ label: t('comu.campoTitulo'), input: titulo, required: true }),
+    field({ label: t('comu.destinatarios'), input: destino }),
+    campoTexto,
+    h('div', { class: 'full' }, h('button', { type: 'submit', class: 'btn btn--primary' }, t('comu.publicar'))));
+
+  function publicar() {
+    // The app has no user identity: notices carry no author (older ones may still have one and keep showing it).
+    const r = svc.publicar({ titulo: titulo.value, texto: texto.value, grupoId: destino.value });
+    if (!r.ok) {
+      const campos = { titulo, texto };
+      r.errores.forEach((e, i) => fieldError(campos[e.campo], t('comu.err.' + e.codigo), { focus: i === 0 }));
+      return;
+    }
     toast(t('comu.publicado'));
-    draw();
+    titulo.value = ''; texto.value = ''; destino.value = '';
+    pintarLista();
   }
 
-  function draw() {
-    const grupos = store.list('Grupos');
-    const gName = (id) => { const g = store.get('Grupos', id); return g ? g.nombre : t('comu.grupo'); };
-    let items = store.list('Comunicaciones');
-    if (state.grupo === '__todos') items = items.filter((c) => !c.grupoId);
-    else if (state.grupo) items = items.filter((c) => c.grupoId === state.grupo);
-    items = items.slice().sort((a, b) => (a.fecha < b.fecha ? 1 : a.fecha > b.fecha ? -1 : 0));
+  // ---- List ----
+  const lista = h('div', { class: 'cm-list' });
+  const filtro = h('select', { id: 'cm-filtro', onchange: (e) => { estado.filtro = e.target.value; pintarLista(); } },
+    h('option', { value: '' }, t('comu.todosAvisos')), h('option', { value: TODO_EL_CLUB }, t('comu.soloGenerales')),
+    grupos.map((g) => h('option', { value: g.id }, g.nombre)));
 
-    const form = H('form', { class: 'cm-form', onsubmit: (e) => { e.preventDefault(); publish(e.target); } },
-      H('label', {}, t('comu.campoTitulo'), H('input', { type: 'text', name: 'titulo', required: true, maxlength: 120 })),
-      H('label', {}, t('comu.destinatarios'), H('select', { name: 'grupoId' }, H('option', { value: '' }, t('comu.todoClub')),
-        grupos.map((g) => H('option', { value: g.id }, g.nombre)))),
-      H('label', {}, t('comu.mensaje'), H('textarea', { name: 'texto', required: true })),
-      H('div', {}, H('button', { class: 'btn', type: 'submit' }, t('comu.publicar'))));
-
-    const filtro = H('div', { class: 'cm-bar' },
-      H('select', { onchange: (e) => { state.grupo = e.target.value; draw(); } },
-        H('option', { value: '' }, t('comu.todosAvisos')), H('option', { value: '__todos', selected: state.grupo === '__todos' }, t('comu.soloGenerales')),
-        grupos.map((g) => H('option', { value: g.id, selected: g.id === state.grupo }, g.nombre))));
-
-    const list = items.map((c) => H('div', { class: 'cm-item' },
-      H('h4', {}, c.titulo),
-      H('div', { class: 'cm-meta' },
-        H('span', {}, tDate(c.fecha)), H('span', {}, c.autor ? `· ${c.autor}` : ''),
-        H('span', { class: 'badge' }, c.grupoId ? gName(c.grupoId) : t('comu.todos')),
-        H('button', { class: 'btn', type: 'button', onclick: () => copiar(`${c.titulo}\n\n${c.texto}`) }, t('comu.copiar')),
-        H('button', { class: 'btn', type: 'button', onclick: async () => {
-          const ok = ui && ui.confirmDialog ? await ui.confirmDialog(t('comu.confirmEliminar')) : true;
-          if (ok) { store.remove('Comunicaciones', c.id); draw(); }
-        } }, t('comu.eliminar'))),
-      H('p', { class: 'cm-text' }, c.texto)));
-
-    container.replaceChildren(
-      H('h2', {}, t('comu.titulo')),
-      H('p', { class: 'muted' }, t('comu.ayuda')),
-      H('div', { class: 'card cm-card' }, H('h3', {}, t('comu.nuevo')), form),
-      H('div', { class: 'card cm-card' }, H('h3', {}, t('comu.avisos')), filtro, list.length ? list : H('p', {}, t('comu.vacio'))));
+  function fecha(aviso) {
+    const r = svc.relativa(aviso.fecha);
+    const texto = r.tipo === 'fecha' ? tDate(aviso.fecha) : t('comu.rel.' + r.tipo, { n: r.n });
+    return h('time', { datetime: aviso.fecha, title: tDate(aviso.fecha, 'long') }, texto);
   }
 
-  draw();
+  function item(aviso) {
+    return h('article', { class: 'cm-item' },
+      h('h3', null, aviso.titulo),
+      h('div', { class: 'cm-meta' }, fecha(aviso), aviso.autor ? h('span', null, `· ${aviso.autor}`) : null,
+        badge(aviso.grupoId ? nombreGrupo(aviso.grupoId) : t('comu.todos'), aviso.grupoId ? 'info' : 'neutral')),
+      h('p', { class: 'cm-text' }, aviso.texto),
+      h('div', { class: 'cm-actions' },
+        h('button', { type: 'button', class: 'btn btn-sm', 'aria-label': t('comu.copiar-aria', { titulo: aviso.titulo }), onclick: () => copiar(aviso) }, icon('copiar', { size: 16 }), t('comu.copiar')),
+        h('button', { type: 'button', class: 'btn btn-sm', 'aria-label': t('comu.eliminar-aria', { titulo: aviso.titulo }), onclick: () => eliminar(aviso) }, icon('borrar', { size: 16 }), t('comu.eliminar'))));
+  }
+
+  function pintarLista() {
+    const avisos = svc.listar(estado.filtro);
+    if (avisos.length) { lista.replaceChildren(...avisos.map(item)); return; }
+    lista.replaceChildren(svc.total()
+      ? empty({ icon: 'comunicaciones', title: t('comu.vacio-filtro') })
+      : empty({ icon: 'comunicaciones', title: t('comu.vacio-titulo'), text: t('comu.vacio-texto'), action: { label: t('comu.crear-primero'), onClick: () => titulo.focus() } }));
+  }
+
+  container.replaceChildren(
+    h('header', { class: 'page-head' }, h('h1', null, t('comu.titulo')), h('p', { class: 'page-head-sub' }, t('comu.ayuda'))),
+    h('section', { class: 'card cm-card' }, h('h2', null, t('comu.nuevo')), formulario),
+    h('section', { class: 'card cm-card' },
+      h('div', { class: 'card-head' }, h('h2', null, t('comu.avisos'))),
+      h('div', { class: 'filters cm-bar' }, field({ label: t('comu.filtro'), input: filtro })),
+      lista));
+  pintarLista();
 }

@@ -5,7 +5,7 @@ import { importApp } from '../helpers/env.js';
 const S = await importApp('js/schema.js');
 
 test('SHEETS contiene todas las hojas del contrato con id', () => {
-  const esperadas = ['Club', 'Nadadores', 'Grupos', 'Entrenamientos', 'Asistencia', 'Cargas', 'Marcas', 'Comunicaciones', 'ObjetivosCarga', 'Banador', 'Piscinas', 'AsignacionesCalle', 'EntrenoLineas', 'TiposCarga', 'Temporadas', 'Fases', 'SemanasPlan', 'EventosTemporada'];
+  const esperadas = ['Club', 'Nadadores', 'Grupos', 'Entrenamientos', 'Asistencia', 'Cargas', 'Marcas', 'Comunicaciones', 'ObjetivosCarga', 'Banadores', 'Piscinas', 'AsignacionesCalle', 'EntrenoLineas', 'TiposCarga', 'Temporadas', 'Fases', 'SemanasPlan', 'EventosTemporada'];
   assert.deepEqual(Object.keys(S.SHEETS).sort(), esperadas.sort());
   for (const s of S.ENTITY_SHEETS) assert.equal(S.SHEETS[s][0], 'id', s);
   assert.deepEqual(S.SHEETS.Club, ['clave', 'valor']);
@@ -17,7 +17,14 @@ test('columnas clave de cada hoja', () => {
   assert.deepEqual(S.SHEETS.TiposCarga, ['id', 'nombre', 'descripcion', 'color', 'categoria', 'orden', 'activo', 'predefinido', 'minSemanalM', 'maxSemanalM', 'alias']);
   assert.equal(S.TIPOS_CARGA.length, 10, 'TIPOS_CARGA deriva del catálogo predefinido');
   assert.ok(S.SHEETS.Entrenamientos.includes('volumenMax'));
-  assert.deepEqual(S.SHEETS.Marcas, ['id', 'nadadorId', 'fecha', 'prueba', 'piscina', 'tiempoMs', 'competicion', 'notas']);
+  assert.deepEqual(S.SHEETS.Marcas, ['id', 'nadadorId', 'fecha', 'prueba', 'piscina', 'tiempoMs', 'competicion', 'notas', 'banadorId']);
+  assert.deepEqual(S.SHEETS.Banadores, ['id', 'tipo', 'marca', 'modelo', 'activo', 'notas']);
+});
+
+test('the old Banador sheet is retired, not part of the schema', () => {
+  assert.equal('Banador' in S.SHEETS, false);
+  assert.deepEqual(S.HOJAS_RETIRADAS, ['Banador']);
+  assert.equal(S.ESTADOS_BANADOR, undefined);
 });
 
 test('CATEGORIAS en orden; ya no hay roles ni hoja de usuarios', () => {

@@ -15,7 +15,7 @@ export const RANGOS = {
   TiposCarga: { minSemanalM: [0, 500000], maxSemanalM: [0, 500000], orden: [0, 100000] },
 };
 const COLS_FECHA = {
-  Nadadores: ['fechaNacimiento'], Entrenamientos: ['fecha'], Cargas: ['fecha'], Marcas: ['fecha'], Comunicaciones: ['fecha'], Banador: ['fecha'],
+  Nadadores: ['fechaNacimiento'], Entrenamientos: ['fecha'], Cargas: ['fecha'], Marcas: ['fecha'], Comunicaciones: ['fecha'],
   AsignacionesCalle: ['fecha'], Temporadas: ['fechaInicio', 'fechaFin'], Fases: ['fechaInicio', 'fechaFin'], SemanasPlan: ['lunes'], EventosTemporada: ['fechaInicio', 'fechaFin'],
 };
 const COLS_HORA = { Entrenamientos: ['hora'], AsignacionesCalle: ['horaInicio', 'horaFin'] };

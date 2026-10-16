@@ -32,6 +32,7 @@ export const ICONS = {
   'flecha-abajo': 'M12 5v14M6 13l6 6 6-6',
   'flecha-dcha': 'M5 12h14M13 6l6 6-6 6',
   reloj: 'M12 7v5l3 2M12 21a9 9 0 100-18 9 9 0 000 18z',
+  traje: 'M7 3l-4 4 3 3 1-1v12h10V9l1 1 3-3-4-4a5 5 0 01-10 0z', // swimsuit (catalogue); independent of the legacy `banador` nav icon
   trofeo: 'M8 21h8M12 17v4M7 4h10v5a5 5 0 01-10 0V4zM7 6H4v1a3 3 0 003 3M17 6h3v1a3 3 0 01-3 3',
   ayuda: 'M12 21a9 9 0 100-18 9 9 0 000 18zM9.5 9.5a2.5 2.5 0 114 2c-.9.6-1.5 1.1-1.5 2.2M12 17v.01',
   estrella: 'M12 3.5l2.6 5.3 5.9.9-4.3 4.1 1 5.8L12 16.8 6.8 19.6l1-5.8-4.3-4.1 5.9-.9L12 3.5z',
@@ -46,7 +47,10 @@ export const ICONS = {
   'fila-abajo': 'M12 5v14M6 13l6 6 6-6',
   imprimir: 'M7 9V4h10v5M7 17H4v-7h16v7h-3M7 14h10v6H7z',
   ojo: 'M2 12s4-7 10-7 10 7 10 7-4 7-10 7S2 12 2 12zM12 15a3 3 0 100-6 3 3 0 000 6z',
-  documento: 'M6 3h8l4 4v14H6V3zM14 3v4h4M9 13h6M9 17h6'
+  documento: 'M6 3h8l4 4v14H6V3zM14 3v4h4M9 13h6M9 17h6',
+  'mas-opciones': 'M5 12a1.1 1.1 0 102.2 0 1.1 1.1 0 10-2.2 0zM10.9 12a1.1 1.1 0 102.2 0 1.1 1.1 0 10-2.2 0zM16.8 12a1.1 1.1 0 102.2 0 1.1 1.1 0 10-2.2 0z',
+  'sin-conexion': 'M3 3l18 18M8.6 8.9A9 9 0 003 11.4M20.9 11.4a9 9 0 00-4.5-2.8M5.6 14.6a5.5 5.5 0 013.6-1.7M14.8 13a5.5 5.5 0 012.6 1.6M10.2 17.6a2.6 2.6 0 013.6 0M12 21h.01',
+  'chevron-abajo': 'M6 9l6 6 6-6'
 };
 
 // icon('mas', {size: 18, class: 'x'}) -> <svg>

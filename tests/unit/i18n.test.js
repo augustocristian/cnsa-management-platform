@@ -57,7 +57,7 @@ test('categorías, estados y tipos del schema tienen traducción', async () => {
   setLang('it', { persist: false });
   for (const c of s.CATEGORIAS) assert.notEqual(tCat(c), '', c);
   for (const [fn, list] of [[tTipo, s.TIPOS_CARGA],
-    [tEstado, [...s.ESTADOS_ENTRENAMIENTO, ...s.ESTADOS_ASISTENCIA, ...s.ESTADOS_BANADOR]]]) {
+    [tEstado, [...s.ESTADOS_ENTRENAMIENTO, ...s.ESTADOS_ASISTENCIA]]]) {
     for (const v of list) assert.notEqual(fn(v), v, v);
   }
   assert.equal(tTipo('Velocidad'), 'Velocità');

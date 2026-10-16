@@ -4,7 +4,7 @@
 //   cnl/preferencias.json   preferencias del usuario
 //   cnl/entrenos/           PDFs de entrenamientos (y copias .xlsx en cnl/)
 // Si el usuario ya tenía una carpeta 'cnl' creada a mano, la app crea y usa la suya (drive.file no ve la otra).
-import { auth } from './auth.js';
+import { driveConnection as auth } from './infrastructure/driveConnection.js';
 import { DRIVE_FOLDER, PREFS_FILE } from './config.js';
 import { clasificarErrorApi } from './domain/erroresGoogle.js';
 
@@ -35,8 +35,8 @@ function httpError(status, body) {
   let detail = '';
   try { detail = JSON.parse(body).error.message || ''; } catch (e) { detail = String(body || '').slice(0, 160); }
   const msg = {
-    'sesion-caducada': 'La sesión de Google ha caducado. Vuelve a iniciar sesión.',
-    'sin-permiso': 'Google ha denegado el acceso a tu Drive. Vuelve a iniciar sesión y acepta el permiso de archivos.',
+    'sesion-caducada': 'La conexión con Google Drive ha caducado. Vuelve a conectar.',
+    'sin-permiso': 'Google ha denegado el acceso a tu Drive. Desconecta Drive, vuelve a conectarlo y acepta el permiso de archivos.',
     'no-encontrado': 'No se encuentra el fichero en tu Drive (¿borrado o movido a la papelera?).',
     'limite': 'Google limita las peticiones: espera un momento y reintenta.',
     'cuota-drive': 'Tu Google Drive está lleno: libera espacio para poder guardar los cambios.',
@@ -88,7 +88,7 @@ async function gfetch(url, opts = {}, retry = true) {
     const token = await auth.ensureToken();
     if (!token) {
       if (typeof navigator !== 'undefined' && navigator.onLine === false) throw offlineError();
-      const e = new Error('Sin sesión de Google. Inicia sesión.'); e.status = 401; e.code = 'sesion-caducada'; throw e;
+      const e = new Error('Google Drive no está conectado. Conéctalo de nuevo.'); e.status = 401; e.code = 'sesion-caducada'; throw e;
     }
     let r;
     try { r = await pedir(url, opts, token); }
@@ -102,7 +102,7 @@ async function gfetch(url, opts = {}, retry = true) {
     if (esTransitorio(r.status, body) && intento < net.reintentos) { await net.sleep(esperaReintento(intento, r.retryAfter)); continue; }
     const e = httpError(r.status, body);
     if (r.retryAfter != null && r.retryAfter !== '' && Number.isFinite(Number(r.retryAfter))) e.retryAfterMs = Number(r.retryAfter) * 1000;
-    if (r.status === 401 && typeof auth.marcarCaducada === 'function') auth.marcarCaducada();
+    if (r.status === 401 && typeof auth.markExpired === 'function') auth.markExpired();
     throw e;
   }
 }
@@ -384,7 +384,7 @@ export const drive = {
     return { leer: () => drive.leerPreferencias(), escribir: (o) => drive.guardarPreferencias(o) };
   },
 
-  // Olvida cachés internas (al cerrar sesión).
+  // Forgets internal caches (when Drive is disconnected).
   reset() { folderIds.clear(); prefsFileId = null; },
 };
 

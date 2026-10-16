@@ -40,6 +40,12 @@ import disIT from './locales/diseno.it.js';
 import tpES from './locales/temporada.es.js';
 import tpEN from './locales/temporada.en.js';
 import tpIT from './locales/temporada.it.js';
+import bnES from './locales/banadores.es.js';
+import bnEN from './locales/banadores.en.js';
+import bnIT from './locales/banadores.it.js';
+import homeES from './locales/inicio.es.js';
+import homeEN from './locales/inicio.en.js';
+import homeIT from './locales/inicio.it.js';
 import { normalizarNombre } from './domain/cargas.js';
 
 export const LANGS = [
@@ -48,7 +54,7 @@ export const LANGS = [
   { code: 'it', label: 'Italiano' }
 ];
 export const LANG_KEY = 'cnl:lang';
-const DICTS = { es: { ...es, ...vistasAes, ...vistasBes, ...vistasCes, ...planES, ...calES, ...entES, ...tcES , ...accES, ...disES, ...tpES, ...catES, ...datES }, en: { ...en, ...vistasAen, ...vistasBen, ...vistasCen, ...planEN, ...calEN, ...entEN, ...tcEN , ...accEN, ...disEN, ...tpEN, ...catEN, ...datEN }, it: { ...it, ...vistasAit, ...vistasBit, ...vistasCit, ...planIT, ...calIT, ...entIT, ...tcIT , ...accIT, ...disIT, ...tpIT, ...catIT, ...datIT } };
+const DICTS = { es: { ...es, ...vistasAes, ...vistasBes, ...vistasCes, ...planES, ...calES, ...entES, ...tcES , ...accES, ...disES, ...tpES, ...catES, ...datES, ...bnES, ...homeES }, en: { ...en, ...vistasAen, ...vistasBen, ...vistasCen, ...planEN, ...calEN, ...entEN, ...tcEN , ...accEN, ...disEN, ...tpEN, ...catEN, ...datEN, ...bnEN, ...homeEN }, it: { ...it, ...vistasAit, ...vistasBit, ...vistasCit, ...planIT, ...calIT, ...entIT, ...tcIT , ...accIT, ...disIT, ...tpIT, ...catIT, ...datIT, ...bnIT, ...homeIT } };
 const INTL = { es: 'es-ES', en: 'en-GB', it: 'it-IT' };
 const listeners = new Set();
 

@@ -54,3 +54,10 @@ Característica: PWA, caché local y funcionamiento sin conexión
     Y el fichero del club en Drive no contiene al nadador "Sin red"
     Cuando recupero la conexión
     Entonces el fichero del club en Drive contiene al nadador "Sin red"
+
+  @navegacion
+  Escenario: Sin conexión se muestra un aviso bajo la cabecera que desaparece al volver la red
+    Cuando me quedo sin conexión
+    Entonces veo el banner de sin conexión
+    Cuando recupero la conexión
+    Entonces el banner de sin conexión desaparece

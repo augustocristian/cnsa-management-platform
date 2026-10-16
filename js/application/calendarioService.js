@@ -1,32 +1,58 @@
-// Orquestación del calendario: une el dominio puro (js/domain/calendario.js), el store y el cliente de Google Calendar.
-// Todo se recibe por parámetro (store, auth, almacenamiento, cliente, reloj, etiquetas) para poder probarlo sin DOM ni red.
+// Calendar use cases: joins the pure domain (js/domain/calendario.js), the club repository and a Google Calendar client.
+// EVERYTHING external is injected (repository, auth port, map storage, client factory, preferences port, clock, labels), so this
+// module imports no infrastructure, no config and no singleton and can be tested without DOM or network. The app wires the real
+// pieces in js/composicion/calendario.js.
 import * as D from '../domain/calendario.js';
 import { FUENTE_CALENDARIO } from '../domain/temporada.js';
-import { crearClienteGoogleCalendar } from '../infrastructure/googleCalendar.js';
-import { CALENDAR_SCOPE } from '../config.js';
-import { preferencias, CLAVES } from '../preferencias.js';
+import { CLAVES } from '../domain/preferencias.js';
 
 const HOJAS = ['Entrenamientos', 'Grupos', 'AsignacionesCalle', 'Piscinas', 'Nadadores', 'EventosTemporada'];
-D.registrarFuente(FUENTE_CALENDARIO); // eventos de la Planificación de temporada (competiciones, tests...)
+D.registrarFuente(FUENTE_CALENDARIO); // extension point: season events (competitions, tests...) feed the calendar and the .ics
 const CONCURRENCIA = 3;
 const FATALES = new Set(['auth', 'permisos', 'api-desactivada', 'limite']);
 
-// El mapa de sincronización con Google Calendar es una preferencia del usuario: vive en cnl/preferencias.json
-// (localStorage sólo es su caché). Los tests inyectan su propio almacenamiento.
-function almacenamientoPorDefecto() { return preferencias.comoAlmacenamiento(CLAVES.calSync); }
+const DEFECTOS = { vista: '', alarmaMin: 0, ventanaDias: 90 };
+const CLAVE_PREF = { vista: CLAVES.calVista, alarmaMin: CLAVES.calAlarma, ventanaDias: CLAVES.calVentana };
 
-// opciones: {store, auth, storage?, cliente?, calendarScope?, ahora?: () => Date, etq?: () => etiquetas, fetch?, sleep?}
-export function crearCalendarioService({ store, auth, storage, cliente, ahora = () => new Date(), etq = () => D.ETQ_DEFECTO, fetch: fetchFn, sleep, calendarScope = CALENDAR_SCOPE } = {}) {
-  const ls = storage === undefined ? almacenamientoPorDefecto() : storage;
+// options:
+//   store          repository {list, club, clubRef, setClub, mode?}
+//   auth           port {user?, tokenForScope(scope, {interactive, force})}
+//   conectado      () => boolean, is a Google connection available? (default: the auth port has a session)
+//   storage        {getItem, setItem}|null  map of synced events (null = not persisted)
+//   cliente        a ready Google Calendar client, or
+//   crearCliente   ({getToken, fetch, sleep}) => client   (built lazily the first time it is needed)
+//   calendarScope  OAuth scope for Google Calendar (only used with crearCliente)
+//   prefs          {get(key, default), set(key, value)}  view preferences (null = kept in memory)
+//   ahora          () => Date, the clock (REQUIRED for anything that needs "today")
+//   etq            () => labels used by the domain when it writes titles
+export function crearCalendarioService({
+  store, auth = {}, storage = null, cliente, crearCliente, calendarScope = '', prefs = null,
+  conectado, ahora, etq = () => D.ETQ_DEFECTO, fetch: fetchFn, sleep,
+} = {}) {
+  if (typeof ahora !== 'function') throw new TypeError('crearCalendarioService: "ahora" (clock) is required');
   let clienteCache = cliente || null;
+  const enMemoria = { ...DEFECTOS };
 
   const datos = () => Object.fromEntries(HOJAS.map((h) => [h, store.list(h)]));
   const hoy = () => D.fechaDeDate(ahora());
   const clubRef = () => store.clubRef || {};
   const clubId = () => clubRef().id || '';
   const nombreClub = () => (store.club && String(store.club.nombre || '').trim()) || clubRef().name || 'Club';
+  const esDemo = () => store.mode === 'demo';
+  // A Drive connection exists (there is no user identity; `auth.user` is only read for older test doubles).
+  const hayConexion = conectado || (() => !!(auth && (typeof auth.isConnected === 'function' ? auth.isConnected() : auth.user)));
 
-  // Conjunto de grupos visibles según el filtro de pantalla. null = todos. filtros: {grupoId, piscina}
+  // ---------- View preferences (the port is optional) ----------
+  function preferencias() {
+    const leer = (k) => (prefs ? prefs.get(CLAVE_PREF[k], DEFECTOS[k]) : enMemoria[k]);
+    return { vista: leer('vista'), alarmaMin: leer('alarmaMin'), ventanaDias: leer('ventanaDias') };
+  }
+  function guardarPreferencia(nombre, valor) {
+    if (!CLAVE_PREF[nombre]) return;
+    if (prefs) prefs.set(CLAVE_PREF[nombre], valor); else enMemoria[nombre] = valor;
+  }
+
+  // Groups visible for a screen filter. null = all. filtros: {grupoId, piscina}
   function gruposVisibles(filtros = {}) {
     return filtros.grupoId ? [filtros.grupoId] : null;
   }
@@ -36,7 +62,7 @@ export function crearCalendarioService({ store, auth, storage, cliente, ahora = 
     return D.filtrarEventos(todos, { grupoIds: gruposVisibles(filtros), piscina: filtros.piscina || '' });
   }
 
-  // Los eventos para sincronizar: todos los del club, sin filtros de pantalla (para que el resultado sea estable).
+  // Events to sync: everything in the club, no screen filters (so the result is stable).
   const eventosPropios = (rango) => eventos(rango, {});
 
   const zona = () => D.zonaOrDefecto(store.club && store.club.zonaHoraria);
@@ -48,7 +74,7 @@ export function crearCalendarioService({ store, auth, storage, cliente, ahora = 
   }
   const nombreCalendario = () => `CNL – ${nombreClub()}`;
 
-  // ---------- Exportación .ics ----------
+  // ---------- .ics export ----------
   function exportar({ rango, alarmaMin = 0, filtros = {}, sufijo = '' }) {
     const lista = eventos(rango, filtros);
     const f = ahora();
@@ -60,20 +86,21 @@ export function crearCalendarioService({ store, auth, storage, cliente, ahora = 
   }
 
   // ---------- Google Calendar ----------
-  const emailUsuario = () => String((auth.user && auth.user.email) || '').toLowerCase();
-  const claveMapa = () => `cnl:cal-sync:${clubId()}:${emailUsuario()}`;
+  const claveMapa = () => `cnl:cal-sync:${clubId()}`; // no identity in the key: the map belongs to the club
   function leerEstado() {
     try {
-      const j = JSON.parse(ls.getItem(claveMapa()) || 'null');
+      const j = JSON.parse((storage && storage.getItem(claveMapa())) || 'null');
       if (j && j.items) return j;
-    } catch (e) { /* estado corrupto: se reconstruye */ }
+    } catch (e) { /* corrupt state: rebuilt from Google */ }
     return { items: {}, ultima: null };
   }
-  function guardarEstado(est) { try { ls.setItem(claveMapa(), JSON.stringify(est)); } catch (e) { /* sin almacenamiento */ } }
+  function guardarEstado(est) { try { if (storage) storage.setItem(claveMapa(), JSON.stringify(est)); } catch (e) { /* no storage: the map is rebuilt next time */ } }
 
-  // -> {ok, motivo: 'sin-sesion'|null}
+  // -> {ok, motivo: null | 'demo' | 'sin-conexion' | 'sin-cliente'}. The reason is shown to the user (disabled states are explained).
   function puedeSincronizar() {
-    if (!auth.user) return { ok: false, motivo: 'sin-sesion' };
+    if (esDemo()) return { ok: false, motivo: 'demo' };
+    if (!hayConexion()) return { ok: false, motivo: 'sin-conexion' };
+    if (!clienteCache && !crearCliente) return { ok: false, motivo: 'sin-cliente' };
     return { ok: true, motivo: null };
   }
   function estadoSync() {
@@ -82,12 +109,16 @@ export function crearCalendarioService({ store, auth, storage, cliente, ahora = 
   }
   function api() {
     if (!clienteCache) {
-      clienteCache = crearClienteGoogleCalendar({
+      clienteCache = crearCliente({
         fetch: fetchFn, sleep,
         getToken: ({ force } = {}) => auth.tokenForScope(calendarScope, { interactive: !force, force: !!force }),
       });
     }
     return clienteCache;
+  }
+  function exigirSync() {
+    const p = puedeSincronizar();
+    if (!p.ok) { const e = new Error('sync-no-disponible'); e.code = p.motivo; throw e; }
   }
 
   async function ejecutar(items, fn, resumen) {
@@ -115,11 +146,10 @@ export function crearCalendarioService({ store, auth, storage, cliente, ahora = 
     return 'cnl' + (a >>> 0).toString(16).padStart(8, '0') + (b >>> 0).toString(16).padStart(8, '0');
   }
 
-  // Upsert idempotente de los eventos de la ventana [hoy, hoy + ventanaDias). Pide el consentimiento si hace falta.
+  // Idempotent upsert of the events in the window [today, today + ventanaDias). Asks for consent when needed.
   // -> {creados, actualizados, borrados, iguales, errores[], abortado}
   async function sincronizar({ ventanaDias = 90, alarmaMin = 0, onProgreso } = {}) {
-    const p = puedeSincronizar();
-    if (!p.ok) { const e = new Error('sync-no-disponible'); e.code = p.motivo; throw e; }
+    exigirSync();
     const desde = hoy();
     const rango = { desde, hasta: D.addDias(desde, ventanaDias - 1) };
     const deseados = eventosPropios(rango).map((ev) => ({
@@ -127,7 +157,7 @@ export function crearCalendarioService({ store, auth, storage, cliente, ahora = 
     }));
     const est = leerEstado();
     const c = api();
-    if (!Object.keys(est.items).length) { // mapa perdido (otro navegador, caché borrada): adoptar lo ya creado
+    if (!Object.keys(est.items).length) { // map lost (another browser, cleared cache): adopt what was already created
       (await c.listarGestionados({ clubId: clubId() })).forEach((x) => { est.items[x.cnlId] = { gid: x.gid, huella: '', fecha: x.fecha }; });
     }
     const diff = D.diffSync(deseados, est.items, desde);
@@ -148,7 +178,7 @@ export function crearCalendarioService({ store, auth, storage, cliente, ahora = 
       await ejecutar(diff.crear, crear, resumen);
       await ejecutar(diff.actualizar, async (it) => {
         try { await c.actualizar(it.gid, it.cuerpo); est.items[it.id] = { gid: it.gid, huella: it.huella, fecha: it.fecha }; resumen.actualizados++; guardarEstado(est); }
-        catch (e) { if (e.code !== 'no-existe') throw e; await crear(it); } // lo borraron a mano en Google: se recrea
+        catch (e) { if (e.code !== 'no-existe') throw e; await crear(it); } // deleted by hand in Google: recreated
       }, resumen);
       await ejecutar(diff.borrar, async (it) => { await c.borrar(it.gid); delete est.items[it.id]; resumen.borrados++; guardarEstado(est); }, resumen);
     } finally {
@@ -159,10 +189,9 @@ export function crearCalendarioService({ store, auth, storage, cliente, ahora = 
     return resumen;
   }
 
-  // Elimina de Google Calendar todos los eventos creados por la app para este club y olvida el mapa.
+  // Removes from Google Calendar every event the app created for this club and forgets the map.
   async function dejarDeSincronizar({ onProgreso } = {}) {
-    const p = puedeSincronizar();
-    if (!p.ok) { const e = new Error('sync-no-disponible'); e.code = p.motivo; throw e; }
+    exigirSync();
     const est = leerEstado();
     const c = api();
     const porGid = new Map(Object.entries(est.items).map(([id, m]) => [m.gid, { id, gid: m.gid }]));
@@ -178,7 +207,7 @@ export function crearCalendarioService({ store, auth, storage, cliente, ahora = 
 
   return {
     datos, gruposVisibles, eventos, eventosPropios, zona, guardarZona, nombreClub, nombreCalendario,
-    exportar, puedeSincronizar, estadoSync, sincronizar, dejarDeSincronizar, hoy,
+    exportar, puedeSincronizar, estadoSync, sincronizar, dejarDeSincronizar, hoy, preferencias, guardarPreferencia,
     grupos: () => store.list('Grupos'),
     piscinas: () => store.list('Piscinas'),
   };
