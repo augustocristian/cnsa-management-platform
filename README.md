@@ -9,104 +9,271 @@
 ![Google Drive](https://img.shields.io/badge/persistencia-Google%20Drive-0f9d58?logo=googledrive&logoColor=white)
 ![Estado](https://img.shields.io/badge/estado-en%20desarrollo-orange)
 
-**Gestión integral de un club de natación** — nadadores, entrenamientos, asistencia, cargas, marcas, equipación y comunicaciones en una PWA que funciona desde el móvil, en la piscina.
+**Complete management for a swimming club**: swimmers, training sessions, attendance, training loads, personal bests, kit, announcements, season planning, pool lanes and a calendar, all in a PWA that works from your phone at the pool.
 
-**[Abrir la aplicación](https://augustocristian.github.io/cnsa-management-platform/)**
+**[Open the app](https://augustocristian.github.io/cnsa-management-platform/)**
 
-App de **uso individual**: entras con tu cuenta de Google y **todo se guarda en la carpeta `cnl` de tu propio Google Drive** (sin servidor, sin base de datos y sin modos de prueba). Pensada inicialmente para el Club Natación Lugones, con identidad visual configurable para poder adaptarse a otros clubes.
-
-## Funcionalidades
-
-| Módulo | Qué permite |
+| Desktop | Mobile |
 |---|---|
-| **Inicio** | Resumen: accesos rápidos, cargas semanales frente a objetivos, alertas, próxima sesión, asistencia de hoy y comunicaciones recientes |
-| **Nadadores** | Alta, edición y ficha individual; categorías en orden (de Prebenjamín a Máster) y grupos |
-| **Grupos** | Grupos de entrenamiento y sus nadadores |
-| **Entrenamientos** | Planificación semanal: piscina, volumen objetivo, enfoque, estado planificado/realizado. **Plan de entreno detallado** por sets (tiempo, objetivo, bloques, series, distancia, salida, ejercicio, material, notas) con totales en vivo, plantillas y copia desde otras sesiones, y **PDF de entreno** (A4 apaisado) de una sesión o de toda la semana: descargar, vista previa, imprimir y guardar en `cnl/entrenos` de Drive |
-| **Calendario** | Mes / Semana / Agenda con filtros por grupo y piscina; exportación `.ics` (Apple, Outlook, Google) y sincronización opcional con Google Calendar |
-| **Planificación** | Organiza la piscina: varias piscinas con calles, horario por día y capacidad; asigna cursos a calles y horas (semanal o puntual), detecta conflictos (calle, grupo, entrenador, horario, capacidad), sugiere distribución, vista día/semana e impresión |
-| **Asistencia** | Pasar lista desde el móvil con un toque; historial y porcentaje por nadador |
-| **Cargas** | Metros por contenido de entrenamiento (catálogo predefinido de intensidades y trabajo específico, más los que añadas), sesión opcional, RPE y objetivos mínimo/máximo con alertas |
-| **Marcas** | Tiempos mm:ss.cc, mejores marcas y evolución por prueba (25 m / 50 m) |
-| **Bañador** | Control de entrega de bañador/equipación por talla y estado |
-| **Comunicaciones** | Avisos para todo el club o por grupo |
-| **Configuración** | Nombre, lema, logotipo y colores del club; dónde se guardan los datos en Drive; copia de seguridad en Excel (exportar, importar y guardar en `cnl/`); preferencias; cambiar de club |
+| <img src="docs/screenshots/escritorio-inicio.png" width="620" alt="Desktop home screen: welcome banner, quick access, load alerts, weekly load chart and next session"> | <img src="docs/screenshots/movil-inicio.png" width="200" alt="Mobile home screen with the bottom navigation bar and the welcome banner"> |
 
-### Primer arranque
+This is an **individual-use** app: each person signs in with their own Google account and **everything is stored in the `cnl` folder of their own Google Drive**, only so that it persists and is available on all their devices (e.g. computer and phone). Drive is not a shared database: there is no sharing, no roles and no multi-user support, and the app shares data with nobody (no server, no database, no demo modes). Swimmers and groups are records you manage, not app users. It was first built for Club Natación Lugones, with a configurable visual identity so other clubs can adopt it. The interface is available in Spanish, English and Italian; the screenshots below show the Spanish interface unless noted.
 
-1. **Configuración necesaria**: si la copia de la app no tiene Client ID de Google (constante `BUILTIN_CLIENT_ID` de `js/config.js`), se muestra esta pantalla con un enlace al tutorial de 5 minutos y un campo para probar un ID (queda guardado sólo en ese navegador hasta fijarlo en `js/config.js`). Es una tarea del propietario de la app, una sola vez.
-2. **Iniciar sesión con Google**: único camino de acceso. Errores típicos (ventana bloqueada, correo que no es usuario de prueba, origen no autorizado, API de Drive no activada) se explican en pantalla.
-3. **Asistente de club** (sólo la primera vez): dos pasos (nombre y lema; colores y zona horaria) que crean el fichero del club dentro de `cnl/`. El club nace **vacío**: sin datos de ejemplo, con una tarjeta de *Primeros pasos* y estados vacíos con llamadas a la acción.
+## Contents
 
-Uso individual: quien inicia sesión es el entrenador y tiene todos los permisos. No hay usuarios, roles, hojas compartidas ni "unirse con enlace"; sí puedes tener **varios clubes** (varios ficheros en `cnl/`) y cambiar entre ellos desde *Configuración*.
+- [How it works](#how-it-works)
+- [Features](#features)
+- [Season categories](#season-categories)
+- [Storage: Google Drive](#storage-google-drive)
+- [Languages](#languages)
+- [Accessibility and design](#accessibility-and-design)
+- [Architecture](#architecture)
+- [Development](#development)
+- [Regenerating the screenshots](#regenerating-the-screenshots)
+- [Testing](#testing)
+- [Deployment](#deployment)
+- [Dependencies](#dependencies)
 
-## Calendario
+## How it works
 
-Vista `#/calendario` con **Mes / Semana / Agenda**, código de color por grupo y leyenda. Los eventos son las sesiones de *Entrenamientos* y las asignaciones de calle de la *Planificación de piscina* (las semanales se expanden a fechas concretas con su nº de calle; una sesión concreta del mismo grupo y día manda sobre la asignación).
+### 1. First launch
 
-- **Filtros**: el entrenador lo ve todo y puede filtrar por grupo y por piscina; la vista elegida, la ventana de sincronización y el recordatorio se guardan en sus preferencias de Drive.
-- **Exportar `.ics`** (RFC 5545): mes visible, temporada (1 sep - 31 ago) o próximos 90 días, con recordatorio opcional de 30/60 min. Es una **instantánea**: una suscripción por URL en vivo no es posible sin servidor, así que hay que volver a exportar para actualizar (los UID son estables, `<id>@cnl-plataforma`, por lo que reimportar actualiza en lugar de duplicar). La zona horaria del club se guarda en *Club* (clave `zonaHoraria`, por defecto `Europe/Madrid`); el `.ics` incluye un `VTIMEZONE` generado con las transiciones reales del rango.
-- **Sincronizar con Google Calendar** (con tu sesión de Google): consentimiento incremental del scope `calendar.events` al activarlo, upsert idempotente en el calendario principal (eventos marcados con `extendedProperties.private.cnlId`), resumen creados/actualizados/borrados/errores y *Dejar de sincronizar*. Configuración: [docs/SETUP-GOOGLE.md](docs/SETUP-GOOGLE.md).
+Sign in with Google (the only way in), then a two-step wizard creates the club file inside `cnl/`. The club starts **empty**: no sample data, a *First steps* card and empty states with calls to action.
 
-## Persistencia: Google Drive
-
-Todo vive en la carpeta **`cnl`** de tu Google Drive, con **un único permiso**: `drive.file` (la app sólo ve los ficheros que ella misma crea; no es un permiso sensible y no requiere verificación de Google). No se usa la API de Google Sheets.
-
-| Dónde | Qué guarda |
+| Desktop | Mobile |
 |---|---|
-| `cnl/<Club>.json` | Todos los datos y la configuración del club: identidad, lema, colores, logotipo, zona horaria, nadadores, grupos, entrenamientos, asistencia, cargas, marcas, catálogo de contenidos, piscinas... Uno por club. |
-| `cnl/preferencias.json` | Tus preferencias: idioma, último club abierto, progreso del tutorial, vista y recordatorio del calendario y mapa de sincronización con Google Calendar. Con versión de esquema y fusión por clave. |
-| `cnl/entrenos/` | PDFs de entrenamientos guardados desde la app. |
-| `cnl/<Club>.xlsx` | Copia de seguridad opcional en Excel (*Configuración > Guardar copia Excel en Drive*). |
-| localStorage | Sólo **caché y espejo** (arranque rápido y uso sin conexión, con cola de cambios pendientes). Nunca es la fuente de verdad. Aparte: el Client ID de pruebas del propietario y el aviso de instalación descartado (preferencias de este dispositivo). |
+| <img src="docs/screenshots/escritorio-acceso.png" width="620" alt="Sign-in screen with the Iniciar sesión con Google button and the language selector"> | <img src="docs/screenshots/movil-acceso.png" width="200" alt="Mobile sign-in screen with the Google button"> |
+| <img src="docs/screenshots/escritorio-asistente.png" width="620" alt="Wizard step 1 of 2: club name and motto already filled in"> | <img src="docs/screenshots/movil-asistente.png" width="200" alt="Mobile wizard step 1 of 2"> |
+| <img src="docs/screenshots/escritorio-asistente-colores.png" width="620" alt="Wizard step 2 of 2: club colours and time zone"> | <img src="docs/screenshots/movil-asistente-colores.png" width="200" alt="Mobile wizard step 2 of 2"> |
+| <img src="docs/screenshots/escritorio-primeros-pasos.png" width="620" alt="Home of a brand new club with the First steps card: create groups, add swimmers, define the pool, schedule a session"> | <img src="docs/screenshots/movil-primeros-pasos.png" width="200" alt="Mobile home of a new club with the First steps card"> |
 
-Tabla completa "Dónde vive cada dato" en [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md). Los cambios se guardan con *debounce* y fusión por fila (`id`) si otro dispositivo modificó el fichero (se detecta con `md5Checksum`/`modifiedTime`); sin red quedan en una cola y se suben al volver. Si ya tenías una carpeta `cnl` hecha a mano, la app crea y usa la suya (con `drive.file` no ve la otra): puedes mover o compartir lo tuyo desde Drive.
+If the copy of the app has no Google Client ID (`BUILTIN_CLIENT_ID` in `js/config.js`), a *Configuración necesaria* screen links to the 5-minute tutorial ([docs/SETUP-GOOGLE.md](docs/SETUP-GOOGLE.md)). That is a one-off task for the owner of the app. You can have **several clubs** (several files in `cnl/`) and switch between them from *Configuración*.
 
-Configuración de Google (5 minutos, una sola vez): [docs/SETUP-GOOGLE.md](docs/SETUP-GOOGLE.md).
+### 2. Day to day at the pool: attendance and loads
 
-## Arquitectura
+Take attendance with one tap per swimmer, register the metres swum per training content and keep an eye on the weekly targets.
 
-PWA 100 % estática (sin servidor ni build): JavaScript con ES modules, SheetJS para el Excel y SVG propio para los gráficos. Detalle del contrato entre módulos en [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
+| Desktop | Mobile |
+|---|---|
+| <img src="docs/screenshots/escritorio-asistencia.png" width="620" alt="Attendance: session selector, present/absent/excused counters and one card per swimmer"> | <img src="docs/screenshots/movil-asistencia.png" width="200" alt="Mobile attendance list: tap a swimmer to cycle present, absent, excused, unmarked"> |
+| <img src="docs/screenshots/escritorio-cargas.png" width="620" alt="Loads: alerts and metres per content against the weekly minimum and maximum targets"> | <img src="docs/screenshots/movil-cargas.png" width="200" alt="Mobile loads screen with alerts and bars per content"> |
+| <img src="docs/screenshots/escritorio-cargas-contenidos.png" width="620" alt="Training contents manager: predefined contents with colour, aliases and weekly targets"> | <img src="docs/screenshots/movil-cargas-contenidos.png" width="200" alt="Mobile training contents manager"> |
+
+The week's sessions are listed in *Entrenamientos*, each with its plan, PDF, edit, duplicate and delete actions.
+
+| Desktop | Mobile |
+|---|---|
+| <img src="docs/screenshots/escritorio-entrenamientos.png" width="620" alt="Training sessions of the week with plan, PDF, edit, duplicate and delete buttons"> | <img src="docs/screenshots/movil-entrenamientos.png" width="200" alt="Mobile list of the week's training sessions"> |
+
+### 3. Plan the week: the training plan editor
+
+Open the **Plan** of any session to build it set by set (time, objective, blocks, series, distance, send-off, exercise, material, notes). Each exercise can have **several training contents and several strokes** (for example `4x100 Crol. 75 AeL-25 Tope`), distributed manually or automatically, and the **session summary** shows metres and percentages per content and per stroke. It can be copied as text and registered as loads.
+
+| Desktop | Mobile |
+|---|---|
+| <img src="docs/screenshots/escritorio-entreno-editor.png" width="620" alt="Training plan editor with the session summary by content and by stroke"> | <img src="docs/screenshots/movil-entreno-editor.png" width="200" alt="Mobile training plan editor"> |
+| <img src="docs/screenshots/escritorio-entreno-editor-filas.png" width="620" alt="Plan rows with several contents and strokes per exercise and live totals per set"> | <img src="docs/screenshots/movil-entreno-editor-filas.png" width="200" alt="Mobile plan rows with content chips"> |
+
+### 4. Plan the season and the pool
+
+**Planificación > Temporada** manages the whole season: phases (macrocycles), weeks (Monday to Sunday) with planned volume split by content, week-by-week comparison with what was actually done (loads and training plans), A/B/C competitions and other events, an evolution chart, a timeline and adjustment suggestions.
+
+| Desktop | Mobile |
+|---|---|
+| <img src="docs/screenshots/escritorio-temporada.png" width="620" alt="Season planning: indicators, suggestions and phases"> | <img src="docs/screenshots/movil-temporada.png" width="200" alt="Mobile season planning: indicators"> |
+| <img src="docs/screenshots/escritorio-temporada-grafico.png" width="620" alt="Chart of planned volume and real loads per week with phases and competitions, plus the timeline"> | <img src="docs/screenshots/movil-temporada-grafico.png" width="200" alt="Mobile list of weeks with planned and real mini-bars"> |
+| <img src="docs/screenshots/escritorio-temporada-semanas.png" width="620" alt="Week-by-week summary table of the season"> | <img src="docs/screenshots/movil-temporada-detalle.png" width="200" alt="Mobile detail of the current week: planned against real"> |
+| <img src="docs/screenshots/escritorio-temporada-detalle.png" width="620" alt="Detail of the current week: planned against real per content and the week's training plans"> | |
+
+**Planificación > Piscina** organises the pool: several pools with lanes, schedule per day and capacity; courses are assigned to lanes and hours (weekly or one-off) and conflicts are detected (lane, group, coach, schedule, capacity).
+
+| Desktop | Mobile |
+|---|---|
+| <img src="docs/screenshots/escritorio-piscina.png" width="620" alt="Weekly view of the pool: assignments per day with lanes, coach and occupancy"> | <img src="docs/screenshots/movil-piscina.png" width="200" alt="Mobile pool planning"> |
+| <img src="docs/screenshots/escritorio-piscina-conflictos.png" width="620" alt="Daily lane grid and the conflicts panel with a warning about a session without coach"> | <img src="docs/screenshots/movil-piscina-conflictos.png" width="200" alt="Mobile lane grid and conflicts panel"> |
+
+### 5. Generate the training PDF
+
+From the list of sessions or from the plan editor you can **download**, **preview**, **print** or **save to Drive** (`cnl/entrenos/`) an A4 landscape PDF of one session or of the whole week. This is the first page of a generated PDF, rendered from the real file:
+
+<img src="docs/screenshots/escritorio-entreno-pdf.png" width="820" alt="First page of the generated training PDF: day, time, group, session type, pool, material, sets table and summary by content and stroke">
+
+### 6. Calendar and export
+
+The calendar has **Month / Week / Agenda** views, a colour per group, and filters by group and pool. Events are the sessions plus the lane assignments of the pool planning and the club events of the season (competitions and others). Export it as `.ics` for Apple, Outlook or Google, or sync it to Google Calendar.
+
+| Desktop | Mobile |
+|---|---|
+| <img src="docs/screenshots/escritorio-calendario-mes.png" width="620" alt="Calendar, month view, with the sessions of each day colour-coded by group"> | <img src="docs/screenshots/movil-calendario-mes.png" width="200" alt="Mobile calendar, month view"> |
+| <img src="docs/screenshots/escritorio-calendario-semana.png" width="620" alt="Calendar, week view"> | <img src="docs/screenshots/movil-calendario-semana.png" width="200" alt="Mobile calendar, week view"> |
+| <img src="docs/screenshots/escritorio-calendario-agenda.png" width="620" alt="Calendar, agenda view"> | <img src="docs/screenshots/movil-calendario-agenda.png" width="200" alt="Mobile calendar, agenda view"> |
+| <img src="docs/screenshots/escritorio-calendario-exportar.png" width="620" alt="Export the calendar as .ics and synchronise with Google Calendar"> | <img src="docs/screenshots/movil-calendario-exportar.png" width="200" alt="Mobile export and Google Calendar sync panels"> |
+
+### 7. The rest of the club
+
+| Desktop | Mobile |
+|---|---|
+| <img src="docs/screenshots/escritorio-nadadores.png" width="620" alt="Swimmers list with filters by category and group"> | <img src="docs/screenshots/movil-nadadores.png" width="200" alt="Mobile swimmers list"> |
+| <img src="docs/screenshots/escritorio-nadador-ficha.png" width="620" alt="Swimmer profile with category rule, attendance statistics, loads and personal bests"> | <img src="docs/screenshots/movil-nadador-ficha.png" width="200" alt="Mobile swimmer profile"> |
+| <img src="docs/screenshots/escritorio-nadador-formulario.png" width="620" alt="New swimmer form: the category is calculated automatically from the birth date"> | <img src="docs/screenshots/movil-nadador-formulario.png" width="200" alt="Mobile new swimmer form with the automatic category"> |
+| <img src="docs/screenshots/escritorio-grupos.png" width="620" alt="Training groups and their swimmers"> | <img src="docs/screenshots/movil-grupos.png" width="200" alt="Mobile training groups"> |
+| <img src="docs/screenshots/escritorio-marcas.png" width="620" alt="Personal bests per event and pool length"> | <img src="docs/screenshots/movil-marcas.png" width="200" alt="Mobile personal bests"> |
+| <img src="docs/screenshots/escritorio-marcas-evolucion.png" width="620" alt="Evolution chart of a swimmer in one event and the history of times"> | <img src="docs/screenshots/movil-marcas-evolucion.png" width="200" alt="Mobile evolution chart of a swimmer"> |
+| <img src="docs/screenshots/escritorio-banador.png" width="620" alt="Swimsuit and kit control by size and delivery status"> | <img src="docs/screenshots/movil-banador.png" width="200" alt="Mobile swimsuit control"> |
+| <img src="docs/screenshots/escritorio-comunicaciones.png" width="620" alt="Notices and notes for the whole club or for one group"> | <img src="docs/screenshots/movil-comunicaciones.png" width="200" alt="Mobile notices and notes"> |
+
+### 8. Settings and tutorial
+
+Club identity (name, motto, logo and colours), season categories, the training contents catalogue, where the data lives in Drive, Excel backup, preferences and data protection.
+
+| Desktop | Mobile |
+|---|---|
+| <img src="docs/screenshots/escritorio-club.png" width="620" alt="Settings: club identity, name, motto, logo and colours"> | <img src="docs/screenshots/movil-club.png" width="200" alt="Mobile club settings"> |
+| <img src="docs/screenshots/escritorio-club-categorias.png" width="620" alt="Settings: categories of the 2026-2027 season with birth years, change of season and recalculation"> | <img src="docs/screenshots/movil-club-categorias.png" width="200" alt="Mobile season categories"> |
+| <img src="docs/screenshots/escritorio-club-drive.png" width="620" alt="Settings: where the data is stored in Drive, Excel export and import, preferences, clubs"> | <img src="docs/screenshots/movil-club-drive.png" width="200" alt="Mobile Drive storage settings"> |
+| <img src="docs/screenshots/escritorio-tutorial.png" width="620" alt="Built-in tutorial"> | <img src="docs/screenshots/movil-tutorial.png" width="200" alt="Mobile tutorial"> |
+
+### 9. Languages and dark mode
+
+The language is chosen from the selector in the header and saved in your Drive preferences. The theme can be automatic, light or dark.
+
+| English (desktop) | Italian (desktop) |
+|---|---|
+| <img src="docs/screenshots/escritorio-inicio-en.png" width="400" alt="Home screen in English"> | <img src="docs/screenshots/escritorio-entrenamientos-it.png" width="400" alt="Training sessions in Italian"> |
+
+| English (mobile) | Dark mode (mobile) | Dark mode (desktop) |
+|---|---|---|
+| <img src="docs/screenshots/movil-temporada-en.png" width="180" alt="Season planning in English on a phone"> | <img src="docs/screenshots/movil-inicio-oscuro.png" width="180" alt="Home screen in dark mode on a phone"> | <img src="docs/screenshots/escritorio-inicio-oscuro.png" width="420" alt="Home screen in dark mode on desktop"> |
+
+## Features
+
+| Module | What it does |
+|---|---|
+| **Home** | Summary: quick access, weekly loads against targets, alerts, next session, today's attendance and recent notices |
+| **Swimmers** | Create, edit and individual profile; category computed from birth year and season (from Pre-Benjamín to Master, with manual category and master licence) and groups |
+| **Groups** | Training groups and their swimmers |
+| **Training** | Weekly planning: pool, target volume, focus, planned/done status. **Detailed training plan** by sets (time, objective, blocks, series, distance, send-off, exercise, material, notes) with live totals, templates and copy from other sessions; **several contents and strokes per exercise** (`4x100 Crol. 75 AeL-25 Tope`) with manual or automatic distribution (metres per repetition or %), autocomplete from the text with editable aliases, and a **session summary** with metres and % per content and per stroke (copyable and registrable as loads); and the **training PDF** (A4 landscape) of one session or of the whole week: download, preview, print and save to `cnl/entrenos` in Drive |
+| **Calendar** | Month / Week / Agenda with filters by group and pool; `.ics` export (Apple, Outlook, Google) and optional Google Calendar sync |
+| **Planning** | Two sections. **Season** (default): phases (macrocycles) and weeks (Monday to Sunday) with planned volume and split by content, week-by-week comparison with the real figures (loads and training plans), A/B/C competitions and other events (also shown in the Calendar and the `.ics`), evolution chart, timeline and adjustments with suggestions. **Pool**: several pools with lanes, schedule per day and capacity; assigns courses to lanes and hours (weekly or one-off), detects conflicts (lane, group, coach, schedule, capacity), suggests a distribution, day/week view and printing |
+| **Attendance** | Take attendance from your phone with one tap; history and percentage per swimmer |
+| **Loads** | Metres per training content (predefined catalogue of intensities and specific work, plus your own), optional session, RPE and minimum/maximum targets with alerts |
+| **Personal bests** | Times mm:ss.cc, best times and evolution per event (25 m / 50 m) |
+| **Swimsuit** | Delivery control of swimsuit/kit by size and status |
+| **Notices & notes** | Your own notices and notes for the whole club or per group, saved in your Drive; copy the text to pass it on through your usual channel (the app sends nothing to anyone) |
+| **Settings** | Club name, motto, logo and colours; season categories; training contents; where the data lives in Drive; Excel backup (export, import and save to `cnl/`); preferences; switch club |
+
+## Season categories
+
+The category is **calculated, not typed**: from the **year of birth** (not the month) and the **sex**, for the **current season** (it starts on 1 September and is identified by its starting year: 1-9-2026 to 31-8-2027 is season 2026-2027). With `age = season start year - birth year`, the default table is:
+
+| Category | Age | Born in season 2026-2027 |
+|---|---|---|
+| Pre-Benjamín | 8 | 2018 |
+| Benjamín | 9-10 | 2016-2017 |
+| Alevín | 11-12 | 2014-2015 |
+| Infantil | 13-14 | 2012-2013 |
+| Junior | 15-17 | 2009-2011 |
+| Absoluto | 18 or more | 2008 and earlier |
+| Master | 25 or more **and master licence** | 2001 and earlier, only with the *Licencia máster* box ticked |
+
+- The ranges come from the calculation and shift on their own when the season changes (in 2027-2028 Pre-Benjamín are those born in 2019). A swimmer younger than the table gets Pre-Benjamín with a warning. The RFEN rule can vary by sex or season: in *Configuración* you can edit the age table per sex and the minimum Master age.
+- **Manual category**: when creating or editing a swimmer, the *Categoría manual* switch fixes a specific category that overrides the calculation and does not change with the season (flagged with a *manual* badge).
+- **Season change**: categories update themselves when the club is opened in a new season (the last applied one is stored in `temporadaAplicada`). In *Configuración > Categorías de la temporada* you can set another season with *Cambiar de temporada*, which **previews who changes category** and applies after confirmation, or run *Recalcular categorías* on demand. `Nadadores.categoria` always holds the current category (the rest of the app reads that field).
+
+## Storage: Google Drive
+
+Everything lives in the **`cnl`** folder of your Google Drive, with **a single permission**: `drive.file` (the app only sees the files it creates itself; it is not a sensitive scope and needs no Google verification). The Google Sheets API is not used.
+
+| Where | What it stores |
+|---|---|
+| `cnl/<Club>.json` | All data and settings of the club: identity, motto, colours, logo, time zone, swimmers, groups, sessions, attendance, loads, personal bests, contents catalogue, pools, seasons... One per club. |
+| `cnl/preferencias.json` | Your preferences: language, last club opened, tutorial progress, calendar view and reminder, and the Google Calendar sync map. Schema-versioned, merged per key. |
+| `cnl/entrenos/` | Training PDFs saved from the app. |
+| `cnl/backups/` | Daily copy (last 14) and one before every Excel import. |
+| `cnl/<Club>.xlsx` | Optional Excel backup (*Configuración > Guardar copia Excel en Drive*). |
+| localStorage | Only a **cache and mirror** (fast start and offline use, with a queue of pending changes). Never the source of truth. Also: the owner's test Client ID and the dismissed install prompt (per-device preferences). |
+
+The full "where each piece of data lives" table is in [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md). Changes are saved with debounce and merged per field if another device changed the file (detected with `md5Checksum`/`modifiedTime` and Drive's `version`; if someone wrote in between, their revision is fetched and merged). The Google token lives only in memory; without a network, changes wait in a queue and are uploaded when you are back online. If you already had a hand-made `cnl` folder, the app creates and uses its own (with `drive.file` it cannot see the other one): you can move your files from Drive.
+
+Google setup (5 minutes, once): [docs/SETUP-GOOGLE.md](docs/SETUP-GOOGLE.md).
+
+**Calendar export and sync.** The `.ics` file (RFC 5545) covers the visible month, the season (1 Sep - 31 Aug) or the next 90 days, with an optional 30/60 minute reminder. It is a **snapshot**: a live URL subscription is impossible without a server, so export again to refresh (UIDs are stable, `<id>@cnl-plataforma`, so re-importing updates instead of duplicating). The club time zone is stored as `zonaHoraria` (default `Europe/Madrid`) and the file includes a generated `VTIMEZONE`. Google Calendar sync asks incrementally for the `calendar.events` scope, performs an idempotent upsert in your primary calendar (events marked with `extendedProperties.private.cnlId`) and reports created/updated/deleted/errors, with a *Dejar de sincronizar* option.
+
+## Languages
+
+The interface is available in **Spanish, English and Italian** (`js/locales/`, covered by dictionary parity tests). The language is selected in the header, stored in `cnl/preferencias.json` and mirrored in localStorage so the first paint already uses it. The exact UI strings in the screenshots are the Spanish ones, plus the English and Italian examples above.
+
+## Accessibility and design
+
+Own design system (no UI libraries): tokens in `css/tokens.css`, components in `css/components.css` and helpers in `js/ui.js` (`field`, `sheet`, `toast.undo`, `empty`, `fieldError`...). Light, dark or automatic theme (`js/theme.js`, saved in the Drive preferences), club colour with guaranteed AA contrast, visible focus, skip link, 44 px touch targets, inline validation with `aria-invalid`, live regions for totals and statuses, and CSP + SRI. On phones the app uses a bottom navigation bar and cards instead of wide tables. The contract and markup examples are in [docs/DESIGN.md](docs/DESIGN.md). The interface is being redesigned, so the screenshots in this README may differ slightly from the latest version until they are regenerated.
+
+## Architecture
+
+100% static PWA (no server, no build): JavaScript with ES modules, SheetJS for Excel, jsPDF for PDFs and hand-made SVG for the charts. The contract between modules is detailed in [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
 
 ```
 index.html · manifest.webmanifest · sw.js
-css/app.css
-js/  app.js router.js ui.js store.js auth.js drive.js preferencias.js schema.js config.js
-js/domain/ (lógica pura)  js/application/ (servicios)  js/infrastructure/ (APIs externas; fakeGoogle.js = herramienta de pruebas)
-js/views/  acceso (login, asistente, configuración necesaria) inicio nadadores grupos entrenamientos planificacion asistencia cargas marcas banador comunicaciones club
-vendor/  xlsx.full.min.js  jspdf.umd.min.js  jspdf.plugin.autotable.min.js   (generados desde npm; jsPDF se carga de forma diferida sólo al pedir un PDF)
+css/  tokens.css app.css components.css
+js/  app.js router.js ui.js store.js auth.js drive.js preferencias.js schema.js config.js theme.js i18n.js
+js/domain/ (pure logic)  js/application/ (services)  js/infrastructure/ (external APIs; fakeGoogle.js = test tool)
+js/views/  acceso (login, wizard, configuration needed) inicio nadadores grupos entrenamientos planificacion calendario asistencia cargas marcas banador comunicaciones club tutorial
+vendor/  xlsx.full.min.js  jspdf.umd.min.js  jspdf.plugin.autotable.min.js   (generated from npm; jsPDF is loaded lazily, only when a PDF is requested)
+scripts/  serve.mjs check.mjs e2e.mjs capturas.mjs ...
 ```
 
-## Desarrollo
+## Development
 
 ```bash
-npm install        # instala dependencias y copia SheetJS a vendor/
-npm run check      # comprueba la sintaxis de los módulos
-python -m http.server 8080   # o cualquier servidor estático
+npm install        # installs dependencies and copies SheetJS and jsPDF to vendor/
+npm run check      # checks the syntax of the modules
+npm run serve      # static server on http://localhost:4173 (or: python -m http.server 8080)
 ```
 
-Para iniciar sesión hace falta un Client ID de Google ([docs/SETUP-GOOGLE.md](docs/SETUP-GOOGLE.md)): pégalo en `js/config.js` (`BUILTIN_CLIENT_ID`) o en la pantalla *Configuración necesaria*, y añade `http://localhost:8080` a los orígenes autorizados. Sin Google real, la herramienta de pruebas (abajo) arranca la app con una sesión y un Drive simulados.
+Signing in needs a Google Client ID ([docs/SETUP-GOOGLE.md](docs/SETUP-GOOGLE.md)): paste it in `js/config.js` (`BUILTIN_CLIENT_ID`) or in the *Configuración necesaria* screen, and add your local origin to the authorised origins. Without real Google, the test tool (below) starts the app with a simulated session and Drive.
 
-## Pruebas
+### Regenerating the screenshots
 
-| Nivel | Comando | Qué cubre |
+All images in `docs/screenshots/` are real captures of the app, generated by a script:
+
+```bash
+npx playwright install chromium     # first time only
+npm run capturas                    # all of them (about 1-2 minutes)
+npm run capturas -- --solo=inicio,asistencia            # only some (ids in ESCENARIOS, scripts/capturas.mjs)
+npm run capturas -- --dispositivo=movil                 # only desktop (1366x850) or only mobile (390x844)
+npm run capturas -- --concurrencia=2 --salida=docs/otra # parallel pages, other output folder
+```
+
+`scripts/capturas.mjs` starts `scripts/serve.mjs` on a free port and opens the app with Playwright using the simulated Google and the demonstration data, exactly as the E2E tests do. To make the images reproducible it fixes the clock (Wednesday 14 October 2026, 10:30), the time zone (`Europe/Madrid`) and the language, reduces motion, blocks the service worker and disables animations and the caret. Each capture runs in its own clean browser context, several in parallel. A capture is rejected (and not written) if the page logs console errors, returns 4xx/5xx responses, stays on "Cargando" or the PNG is suspiciously small, and the script exits with code 1. Files are named `<device>-<screen>.png` (`escritorio-` or `movil-`). The training PDF is generated by the app itself (its *PDF* button) and its first page is drawn with `pdfjs-dist` (dev dependency). To add a screen, add an entry to `ESCENARIOS` and reference the image from this README.
+
+## Testing
+
+| Level | Command | What it covers |
 |---|---|---|
-| Unitarias | `npm run test:unit` | Lógica de módulos (store, drive, auth, preferencias, asistente...) con `node --test` y jsdom |
-| Integración | `npm run test:integration` | Vistas y store trabajando juntos sobre jsdom |
-| E2E (Cucumber) | `npm run test:e2e` | Especificaciones en Gherkin español (`features/*.feature`) ejecutadas con Playwright/Chromium en escritorio y después en móvil (Pixel 5, `VIEWPORT=movil`) |
+| Unit | `npm run test:unit` | Module logic (store, drive, auth, preferences, wizard, categories, loads, PDF...) with `node --test` and jsdom |
+| Integration | `npm run test:integration` | Views and store working together on jsdom |
+| E2E (Cucumber) | `npm run test:e2e` | Specifications in Spanish Gherkin (`features/*.feature`) run with Playwright/Chromium on desktop and then on mobile (Pixel 5, `VIEWPORT=movil`) |
 
-**Pruebas sin Google real.** `js/infrastructure/fakeGoogle.js` es un adaptador en memoria que implementa las mismas interfaces que `auth.js` y `drive.js` (sesión simulada, carpeta `cnl`, fichero del club, `preferencias.json`, subida de ficheros) y datos de demostración vía `store.seedDemo`. Es una **herramienta de pruebas**, invisible para el usuario: sólo se carga con `localStorage['cnl:test'] = '1'` (o `window.__CNL_TEST__`). Opciones (JSON en `localStorage['cnl:test:opts']` u objeto en `__CNL_TEST__`): `sesion` (arranca con sesión iniciada), `demo` (club con datos de demostración), `sinClientId` (pantalla *Configuración necesaria*), `usuario`, `errorLogin` y `fallos` (errores forzados). `window.__CNL_FAKE__` permite inspeccionar el Drive simulado (`clubs()`, `prefs()`, `archivos()`). Los tests unitarios e integración lo instalan con `instalarFakeGoogle({auth, drive, opciones})` (ver `tests/helpers/app.js`); los e2e con los pasos `Dado un club con datos de demostración` o `Dado que la aplicación está recién abierta sin sesión`.
+**Tests without real Google.** `js/infrastructure/fakeGoogle.js` is an in-memory adapter that implements the same interfaces as `auth.js` and `drive.js` (simulated session, `cnl` folder, club file, `preferencias.json`, file upload) and demonstration data through `store.seedDemo`. It is a **test tool**, invisible to the user: it is only loaded with `localStorage['cnl:test'] = '1'` (or `window.__CNL_TEST__`). Options (JSON in `localStorage['cnl:test:opts']` or an object in `__CNL_TEST__`): `sesion` (start signed in), `demo` (club with demonstration data), `sinClientId` (*Configuración necesaria* screen), `usuario`, `errorLogin` and `fallos` (forced errors). `window.__CNL_FAKE__` lets you inspect the simulated Drive (`clubs()`, `prefs()`, `archivos()`). Unit and integration tests install it with `instalarFakeGoogle({auth, drive, opciones})` (see `tests/helpers/app.js`); the E2E tests use the steps `Dado un club con datos de demostración` or `Dado que la aplicación está recién abierta sin sesión`.
 
-Las pruebas E2E levantan solas el servidor estático en un puerto libre, parten de un navegador limpio con sesión y Drive simulados (club con datos de demostración o vacío según el escenario) y fallan si aparecen errores de consola o respuestas 4xx/5xx. Primera vez: `npx playwright install chromium`. Informes en `reports/` (HTML, JUnit y capturas de los fallos). Los escenarios con `@google @pendiente` (requieren una cuenta real de Google) están documentados pero excluidos; `npx cucumber-js --tags @smoke` ejecuta sólo los esenciales.
+The E2E tests start the static server on a free port by themselves, begin from a clean browser with simulated session and Drive (club with demonstration data or empty, depending on the scenario) and fail on console errors or 4xx/5xx responses. First time: `npx playwright install chromium`. Reports go to `reports/` (HTML, JUnit and screenshots of failures). Scenarios tagged `@google @pendiente` (they need a real Google account) are documented but excluded; `npx cucumber-js --tags @smoke` runs only the essential ones.
 
-## Despliegue
+## Deployment
 
-Cada push a `main` ejecuta [el workflow](.github/workflows/pages.yml) (`npm ci`, comprobación y despliegue en GitHub Pages). Requiere activar *Settings > Pages > Source: GitHub Actions*.
+Every push to `main` runs [the workflow](.github/workflows/pages.yml) (`npm ci`, checks and deployment to GitHub Pages). It requires enabling *Settings > Pages > Source: GitHub Actions*.
 
-## Dependencias
+## Dependencies
 
-Gestionadas con npm y actualizadas semanalmente por [Dependabot](.github/dependabot.yml) (npm y GitHub Actions).
+Managed with npm and updated weekly by [Dependabot](.github/dependabot.yml) (npm and GitHub Actions).
 
-## Estado del proyecto
+| Package | Use |
+|---|---|
+| `@e965/xlsx` (SheetJS) | Excel export, import and backup (copied to `vendor/`) |
+| `jspdf`, `jspdf-autotable` | Training PDFs (copied to `vendor/`, loaded lazily) |
+| `playwright` (dev) | E2E tests and the screenshot script |
+| `@cucumber/cucumber` (dev) | Gherkin E2E specifications |
+| `jsdom` (dev) | Unit and integration tests |
+| `pdfjs-dist` (dev) | Draws the first page of the generated PDF for the README screenshot |
 
-Primera versión funcional. Pendiente: probar el flujo completo con una cuenta real de Google en producción y refinar el diseño por módulo.
+## Project status
+
+First functional version. Pending: test the whole flow with a real Google account in production and keep refining the design module by module.
