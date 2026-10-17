@@ -1,18 +1,18 @@
-// Desglose del plan de entreno por CONTENIDO y por ESTILO. Lógica pura (sin DOM, store, red ni i18n).
+// Breakdown of the training plan by CONTENT and by STYLE. Pure logic (no DOM, store, network or i18n).
 //
-// Cada fila del plan (EntrenoLineas) tiene series x distancia y puede repartir la distancia POR REPETICIÓN entre
-// varios contenidos (componentes) y estilos:   4x100 Crol. 75 AeL-25 Tope   ->   AeL 75 m/rep, Tope 25 m/rep.
+// Each plan row (EntrenoLineas) has sets x distance and can split the distance PER REPETITION among
+// several contents (components) and styles:   4x100 Crol. 75 AeL-25 Tope   ->   AeL 75 m/rep, Tope 25 m/rep.
 //
-// Decisión de cálculo (importante): los metros de un componente en la fila son series x metros por repetición, igual que
-// la distancia de la fila (series x distancia). Por eso 4x100 de crol son 400 m de crol en total (100 m POR repetición);
-// el desglose por repetición se conserva en `metrosPorRep` y se muestra donde ayuda (chips del editor, columna del PDF).
+// Calculation decision (important): the metres of a component in the row are sets x metres per repetition, like
+// the distance of the row (sets x distance). So 4x100 of freestyle ("crol") is 400 m of crol in total (100 m PER repetition);
+// the per-repetition breakdown is kept in `metrosPorRep` and shown where it helps (editor chips, PDF column).
 //
-// Modelo del componente: { contenido, metrosPorRep, modo: 'auto'|'manual', pct? }
-//   - manual con pct       -> pct % de la distancia por repetición
-//   - con metrosPorRep     -> esos metros por repetición (auto = los dedujo el sistema, p. ej. del texto; manual = los fijó el usuario)
-//   - auto sin metrosPorRep -> recibe su parte (a partes iguales) de lo que queda sin asignar
-//   - un único componente auto recibe toda la distancia
-// Manual siempre gana: autocompletar desde el texto nunca toca los componentes manuales.
+// Component model: { contenido, metrosPorRep, modo: 'auto'|'manual', pct? }
+//   - manual with pct       -> pct % of the distance per repetition
+//   - with metrosPorRep     -> those metres per repetition (auto = deduced by the system, e.g. from the text; manual = set by the user)
+//   - auto without metrosPorRep -> gets its share (equal parts) of what is left unassigned
+//   - a single auto component gets the whole distance
+// Manual always wins: autocompleting from the text never touches manual components.
 import {
   num, normalizarLinea, filaVacia, ordenarLineas, distanciaBloque, seriesEfectivas, leerComponentes, escribirComponentes,
 } from './entreno.js';
@@ -20,7 +20,7 @@ import { normalizarNombre, CATALOGO_PREDEFINIDO, PREFIJO_ID } from './cargas.js'
 
 export const EPS = 0.005;
 export const ESTILOS = ['Crol', 'Espalda', 'Braza', 'Mariposa', 'Estilos'];
-// Alias de estilos (normalizados) -> nombre canónico guardado
+// Style aliases (normalised) -> stored canonical name
 const ESTILO_ALIAS = {
   Crol: ['crol', 'libre', 'crawl', 'free', 'freestyle', 'stile libero'],
   Espalda: ['espalda', 'esp', 'back', 'backstroke', 'dorso'],
@@ -33,36 +33,36 @@ const vacio = (v) => String(v ?? '').trim() === '';
 
 // ---------- Estilos ----------
 const INDICE_ESTILO = new Map(Object.entries(ESTILO_ALIAS).flatMap(([canon, lista]) => lista.map((a) => [a, canon])));
-// "crawl" | "Libre" | "Fly" -> "Crol" | "Mariposa"; un estilo libre ("Otro") se conserva tal cual.
+// "crawl" | "Libre" | "Fly" -> "Crol" | "Mariposa"; a free style ("Otro" = other) is kept as is.
 export function canonicoEstilo(texto) {
   const s = String(texto ?? '').trim();
   return INDICE_ESTILO.get(normalizarNombre(s)) || s;
 }
 
-// ---------- Catálogo y diccionario de alias ----------
-// Catálogo mínimo cuando no se pasa uno (pruebas, planes sin club abierto): los predefinidos con sus alias de fábrica.
+// ---------- Catalogue and alias dictionary ----------
+// Minimal catalogue when none is passed (tests, plans without an open club): the predefined ones with their factory aliases.
 export const catalogoBase = () => CATALOGO_PREDEFINIDO.map((c) => ({
   id: c.id, nombre: c.nombre, alias: c.alias.slice(), color: c.color, activo: true, predefinido: true, categoria: c.categoria, orden: c.orden,
 }));
 const catalogo = (tipos) => (Array.isArray(tipos) && tipos.length ? tipos : catalogoBase());
 
-// Claves de un contenido: su nombre, cada tramo de un nombre "A / B" y sus alias. -> [clave normalizada]
+// Keys of a content: its name, each part of a name "A / B" and its aliases. -> [normalised key]
 export function clavesDeTipo(tipo) {
   const nombre = normalizarNombre(tipo.nombre);
   const tramos = nombre.includes('/') ? nombre.split('/').map((x) => x.trim()).filter((x) => x.length >= 3) : [];
   return [...new Set([nombre, ...tramos, ...(tipo.alias || []).map(normalizarNombre)].filter(Boolean))];
 }
-// Texto -> contenido del catálogo por nombre o alias exacto (sin tildes ni mayúsculas), o null.
+// Text -> catalogue content by exact name or alias (no accents, case-insensitive), or null.
 export function resolverContenido(texto, tipos) {
   const k = normalizarNombre(texto);
   if (!k) return null;
   const cat = catalogo(tipos);
   return cat.find((t) => clavesDeTipo(t).includes(k)) || null;
 }
-// Abreviatura para espacios reducidos (PDF, resumen en texto): el primer alias, o el nombre.
+// Abbreviation for tight spaces (PDF, text summary): the first alias, or the name.
 export const nombreCorto = (tipo) => (tipo && tipo.alias && tipo.alias.length ? tipo.alias[0] : tipo ? tipo.nombre : '');
 
-// Diccionario ordenado de más largo a más corto: [{ k, tipo } | { k, estilo }]
+// Dictionary sorted from longest to shortest: [{ k, tipo } | { k, estilo }]
 function diccionario(tipos) {
   const mapa = new Map();
   catalogo(tipos).forEach((t) => clavesDeTipo(t).forEach((k) => { if (!mapa.has(k)) mapa.set(k, { k, tipo: t }); }));
@@ -70,9 +70,9 @@ function diccionario(tipos) {
   return [...mapa.values()].sort((a, b) => b.k.length - a.k.length);
 }
 
-// ---------- Reparto de una distancia por repetición ----------
-// items: [{ metrosPorRep, pct, modo }]; D = distancia por repetición.
-// -> { m: [metros por rep de cada item], asignado, resto (>0 = sin asignar), exceso (>0 = pasado) }
+// ---------- Split of a distance per repetition ----------
+// items: [{ metrosPorRep, pct, modo }]; D = distance per repetition.
+// -> { m: [metres per rep of each item], asignado, resto (>0 = unassigned), exceso (>0 = exceeded) }
 export function repartir(items, D) {
   const out = items.map(() => 0);
   if (!items.length) return { m: out, asignado: 0, resto: D > 0 ? D : 0, exceso: 0 };
@@ -95,7 +95,7 @@ export function repartir(items, D) {
   return { m: out, asignado, resto: dif > EPS ? dif : 0, exceso: dif < -EPS ? -dif : 0 };
 }
 
-// Porcentajes que suman exactamente 100 (método del mayor resto) con `dec` decimales.
+// Percentages that add up to exactly 100 (largest remainder method) with `dec` decimals.
 export function porcentajes(valores, dec = 1) {
   const total = valores.reduce((a, v) => a + v, 0);
   if (!(total > 0)) return valores.map(() => 0);
@@ -108,7 +108,7 @@ export function porcentajes(valores, dec = 1) {
   return suelo.map((v) => v / f);
 }
 
-// ---------- Clasificación de texto libre (líneas antiguas sin componentes) ----------
+// ---------- Classification of free text (legacy lines without components) ----------
 const REGLAS_CONTENIDO = [
   ['aerobico-ligero', /calentamiento|vuelta a la calma|recuperacion|regenerativ|suave|soltar|enfriamiento|activacion|ligero/],
   ['aerobico-intenso', /aerobico intenso|potencia aerobica|vo2/],
@@ -121,7 +121,7 @@ const REGLAS_CONTENIDO = [
   ['salidas', /salida|poyete/],
   ['virajes', /viraje|volteo/],
 ];
-// Texto libre (objetivo, bloque, ejercicio) -> contenido del catálogo o null.
+// Free text (goal, block, exercise) -> catalogue content or null.
 export function clasificarTexto(texto, tipos) {
   const k = normalizarNombre(texto);
   if (!k) return null;
@@ -136,11 +136,11 @@ export function clasificarTexto(texto, tipos) {
   return null;
 }
 
-// ---------- Parser del texto del ejercicio ----------
+// ---------- Exercise text parser ----------
 // "4x100 Crol. 75 AeL-25 Tope" | "8x50 (25 Sprint+25 AeL)" | "6x100 AeL" | "3x(200 AeM + 100 AeI)"
 // -> { ok, codigo?, series, distancia, componentes: [{contenido, metrosPorRep, modo:'auto'}], estilos: [{estilo, metrosPorRep}], sinReconocer: [palabra] }
-// Una palabra sin número se aplica a toda la distancia (o al resto); un número delante de una o varias palabras
-// reconocidas (contenidos o estilos) les asigna esos metros por repetición. Lo que no se reconoce se ignora y se lista.
+// A word without a number applies to the whole distance (or to the rest); a number before one or several
+// recognised words (contents or styles) assigns them those metres per repetition. Whatever is not recognised is ignored and listed.
 export function parsearEjercicio(texto, { tipos } = {}) {
   const vacioR = (codigo) => ({ ok: false, codigo, series: null, distancia: null, componentes: [], estilos: [], sinReconocer: [] });
   const s = String(texto ?? '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().replace(/[×*]/g, 'x').replace(/\s+/g, ' ').trim();
@@ -152,7 +152,7 @@ export function parsearEjercicio(texto, { tipos } = {}) {
   if (pre) {
     series = Number(pre[1]);
     i = pre[0].length;
-    if (s[i] === '(') i++; // 3x(200 AeM + 100 AeI): la distancia es la suma del paréntesis
+    if (s[i] === '(') i++; // 3x(200 AeM + 100 AeI): the distance is the sum inside the parentheses
     else {
       const dm = NUM.exec(s.slice(i));
       if (dm) { distancia = Number(dm[1].replace(',', '.')); i += dm[0].length; }
@@ -184,7 +184,7 @@ export function parsearEjercicio(texto, { tipos } = {}) {
   }
   cerrar();
 
-  // Agrupa por contenido / estilo (misma clave: suma números; con y sin número -> el número).
+  // Groups by content / style (same key: adds numbers; with and without a number -> the number).
   const comps = new Map();
   const ests = new Map();
   const sin = [];
@@ -198,7 +198,7 @@ export function parsearEjercicio(texto, { tipos } = {}) {
       if (e.tipo) unir(comps, e.tipo.id, g.numero, { contenido: e.tipo.nombre });
       else unir(ests, e.estilo, g.numero, { estilo: e.estilo });
     });
-    if (g.numero != null && !g.etiquetas.length) sin.push(...g.palabras); // «25 flecha»: número seguido de algo que no se conoce
+    if (g.numero != null && !g.etiquetas.length) sin.push(...g.palabras); // «25 flecha»: a number followed by something that is not known
   });
   let componentes = [...comps.values()].map((c) => ({ contenido: c.contenido, metrosPorRep: c.metrosPorRep, modo: 'auto', pct: null }));
   const estilos = [...ests.values()].map((e) => ({ estilo: e.estilo, metrosPorRep: e.metrosPorRep }));
@@ -208,15 +208,15 @@ export function parsearEjercicio(texto, { tipos } = {}) {
     if (d > 0) distancia = r2(d);
   }
   if (componentes.length === 1 && componentes[0].metrosPorRep != null && distancia != null && Math.abs(componentes[0].metrosPorRep - distancia) > EPS) {
-    componentes = [{ ...componentes[0], modo: 'manual' }]; // un número explícito distinto de la distancia se respeta
+    componentes = [{ ...componentes[0], modo: 'manual' }]; // an explicit number different from the distance is respected
   }
   const ok = series != null || distancia != null || componentes.length > 0 || estilos.length > 0;
   return { ok, codigo: ok ? '' : 'sin-datos', series, distancia, componentes, estilos, sinReconocer: [...new Set(sin)] };
 }
 
-// Autocompleta una fila a partir del texto de su ejercicio. Si el texto empieza por «NxM» (4x100), series y distancia salen de ahí;
-// si no, sólo se rellenan las que estén vacías. Los componentes manuales se conservan y los automáticos se sustituyen por los del texto;
-// los estilos sólo se rellenan si la fila no tiene ninguno.
+// Autocompletes a row from the text of its exercise. If the text starts with «NxM» (4x100), sets and distance come from there;
+// otherwise only the empty ones are filled. Manual components are kept and automatic ones are replaced by those of the text;
+// styles are only filled if the row has none.
 // -> { linea, parse, cambios: { series, distancia, componentes, estilos } }
 export function autocompletarLinea(linea, { tipos } = {}) {
   const l = normalizarLinea(linea);
@@ -224,7 +224,7 @@ export function autocompletarLinea(linea, { tipos } = {}) {
   const out = { ...l };
   const cambios = { series: false, distancia: false, componentes: false, estilos: false };
   if (!p.ok) return { linea: out, parse: p, cambios };
-  const explicito = p.series != null; // el texto trae «NxM»: manda sobre lo escrito en la fila
+  const explicito = p.series != null; // the text carries «NxM»: it wins over what is written in the row
   if (p.series != null && (explicito || vacio(l.series)) && num(l.series) !== p.series) { out.series = p.series; cambios.series = true; }
   if (p.distancia != null && (explicito || vacio(l.distancia)) && num(l.distancia) !== p.distancia) { out.distancia = p.distancia; cambios.distancia = true; }
   if (p.componentes.length) {
@@ -238,7 +238,7 @@ export function autocompletarLinea(linea, { tipos } = {}) {
   return { linea: out, parse: p, cambios };
 }
 
-// ---------- Operaciones de edición sobre los componentes de una fila (devuelven arrays nuevos) ----------
+// ---------- Editing operations on the components of a row (they return new arrays) ----------
 export function anadirComponente(componentes, contenido, { modo = 'auto', metrosPorRep = null, pct = null } = {}) {
   const k = normalizarNombre(contenido);
   const lista = leerComponentes(componentes);
@@ -249,15 +249,15 @@ export function quitarComponente(componentes, contenido) {
   const k = normalizarNombre(contenido);
   return leerComponentes(componentes).filter((c) => normalizarNombre(c.contenido) !== k);
 }
-// Fija a mano los metros por repetición (o el %) de un componente: queda marcado como manual.
+// Manually sets the metres per repetition (or the %) of a component: it is marked as manual.
 export function fijarComponente(componentes, contenido, { metrosPorRep = null, pct = null } = {}) {
   const k = normalizarNombre(contenido);
   return leerComponentes(componentes).map((c) => (normalizarNombre(c.contenido) === k
     ? { ...c, modo: 'manual', metrosPorRep: pct > 0 ? null : metrosPorRep, pct: pct > 0 ? pct : null } : c));
 }
-// Como fijarComponente, pero los demás componentes AUTOMÁTICOS con metros (p. ej. los sacados del texto) se reajustan en
-// proporción para llenar lo que queda de la distancia: fijar Sprint a 40 en «75 AeL + 25 Sprint» deja AeL en 60.
-// Si hay automáticos sin metros ya se reparten solos el resto, y no se toca nada.
+// Like fijarComponente, but the other AUTOMATIC components with metres (e.g. those taken from the text) are readjusted
+// proportionally to fill what is left of the distance: setting Sprint to 40 in «75 AeL + 25 Sprint» leaves AeL at 60.
+// If there are automatic ones without metres they already share the rest on their own, and nothing is touched.
 export function fijarReequilibrando(linea, contenido, valor, { tipos } = {}) {
   const l = normalizarLinea(linea);
   const D = resolverLinea(l, { tipos }).distancia;
@@ -277,16 +277,16 @@ export function fijarReequilibrando(linea, contenido, valor, { tipos } = {}) {
     return { ...c, metrosPorRep: v };
   });
 }
-// Devuelve un componente al reparto automático (recibe su parte de lo que queda).
+// Returns a component to the automatic split (it gets its share of what is left).
 export function liberarComponente(componentes, contenido) {
   const k = normalizarNombre(contenido);
   return leerComponentes(componentes).map((c) => (normalizarNombre(c.contenido) === k ? { ...c, modo: 'auto', metrosPorRep: null, pct: null } : c));
 }
-// Todos los automáticos vuelven a partes iguales (los manuales no se tocan).
+// All automatic ones go back to equal parts (manual ones are not touched).
 export function repartirIgual(componentes) {
   return leerComponentes(componentes).map((c) => (c.modo === 'manual' ? c : { ...c, metrosPorRep: null, pct: null }));
 }
-// Suma el resto sin asignar (por repetición) al componente `contenido` (lo crea si no existe). Queda manual.
+// Adds the unassigned rest (per repetition) to the component `contenido` (creates it if missing). It becomes manual.
 export function asignarResto(linea, contenido, { tipos } = {}) {
   const l = normalizarLinea(linea);
   const r = resolverLinea(l, { tipos });
@@ -297,7 +297,7 @@ export function asignarResto(linea, contenido, { tipos } = {}) {
   return [...l.componentes, { contenido: String(contenido).trim(), metrosPorRep: r.resto, modo: 'manual', pct: null }];
 }
 
-// ---------- Resolución de una fila ----------
+// ---------- Resolution of a row ----------
 // -> { distancia, series, componentes: [{contenido, modo, pct, metrosPorRep (resuelto), tipo|null}], estilos: [{estilo, metrosPorRep}],
 //      asignado, resto, exceso, restoEstilo }
 export function resolverLinea(linea, { tipos } = {}) {
@@ -314,11 +314,11 @@ export function resolverLinea(linea, { tipos } = {}) {
   };
 }
 
-// ---------- Desglose de filas, sets y sesión ----------
+// ---------- Breakdown of rows, sets and session ----------
 const claveContenido = (nombre, tipo) => (tipo ? tipo.id : nombre ? 'txt:' + normalizarNombre(nombre) : '');
 
-// Desglose de UNA fila: metros por contenido y estilo. `heredado` = contenido (tipo|null) de las filas anteriores del set
-// para las filas antiguas sin componentes. -> { totalM, contenidos: [{clave, contenido, tipo, metros}], estilos: [{clave, estilo, metros}], resto... }
+// Breakdown of ONE row: metres per content and style. `heredado` = content (tipo|null) of the previous rows of the set
+// for legacy rows without components. -> { totalM, contenidos: [{clave, contenido, tipo, metros}], estilos: [{clave, estilo, metros}], resto... }
 export function desgloseLinea(linea, { tipos, heredado = null } = {}) {
   const l = normalizarLinea(linea);
   const total = distanciaBloque(l);
@@ -327,7 +327,7 @@ export function desgloseLinea(linea, { tipos, heredado = null } = {}) {
   let contenidos = [];
   let legacy = false;
   if (l.componentes.length) {
-    const f = r.exceso > EPS && r.asignado > 0 ? r.distancia / r.asignado : 1; // pasarse de la distancia: se ajusta proporcionalmente
+    const f = r.exceso > EPS && r.asignado > 0 ? r.distancia / r.asignado : 1; // exceeding the distance: adjusted proportionally
     contenidos = r.componentes.filter((c) => c.metrosPorRep > 0).map((c) => ({
       clave: claveContenido(c.tipo ? c.tipo.nombre : c.contenido, c.tipo), contenido: c.tipo ? c.tipo.nombre : c.contenido, tipo: c.tipo, metros: r2(S * c.metrosPorRep * f),
     }));
@@ -350,8 +350,8 @@ export function desgloseLinea(linea, { tipos, heredado = null } = {}) {
   return { totalM: total, contenidos, estilos, legacy, resolucion: r };
 }
 
-// Recorre la sesión en orden aplicando la herencia del contenido para las filas antiguas (sin componentes):
-// la fila con objetivo fija el contenido del resto del set; si no tiene, usa su bloque, el heredado o su ejercicio.
+// Walks the session in order applying content inheritance for legacy rows (without components):
+// the row with a goal sets the content of the rest of the set; if it has none, it uses its block, the inherited one or its exercise.
 function recorrer(lineas, tipos) {
   const out = [];
   let setActual = null, heredado = null;
@@ -389,9 +389,9 @@ function agregar(items, tipos) {
   };
 }
 
-// Desglose de la sesión: { totalM, porContenido: [{contenido, tipoId, color, corto, metros, pct}], porEstilo: [{estilo, metros, pct}],
+// Session breakdown: { totalM, porContenido: [{contenido, tipoId, color, corto, metros, pct}], porEstilo: [{estilo, metros, pct}],
 //   porSet: [{set, totalM, porContenido, porEstilo}], filas: [{set, orden, ...desgloseLinea}] }
-// `contenido: ''` / `estilo: ''` = metros sin contenido / sin estilo asignado. Los % suman 100 (1 decimal). totalM = suma de Dist. Bloque.
+// `contenido: ''` / `estilo: ''` = metres with no content / no style assigned. The % add up to 100 (1 decimal). totalM = sum of Dist. Bloque.
 export function desgloseSesion(lineas, { tipos } = {}) {
   const items = recorrer(lineas, tipos);
   const base = agregar(items, tipos);
@@ -403,8 +403,8 @@ export function desgloseSesion(lineas, { tipos } = {}) {
   };
 }
 
-// Volumen por contenido de VARIAS sesiones (agregados semanales, planificación de temporada).
-// sesiones: [lineas[]] o [{ lineas }]. -> { totalM, porContenido, porEstilo, metros: { tipoId: m }, sinClasificar }
+// Volume per content of SEVERAL sessions (weekly aggregates, season planning).
+// sesiones: [lineas[]] or [{ lineas }]. -> { totalM, porContenido, porEstilo, metros: { tipoId: m }, sinClasificar }
 export function volumenPorContenido(sesiones, { tipos } = {}) {
   const items = [];
   (sesiones || []).forEach((s) => items.push(...recorrer(Array.isArray(s) ? s : (s && s.lineas) || [], tipos)));
@@ -415,7 +415,7 @@ export function volumenPorContenido(sesiones, { tipos } = {}) {
   return { ...base, metros, sinClasificar: r2(sinClasificar) };
 }
 
-// ---------- Validación ----------
+// ---------- Validation ----------
 // -> [{ severidad: 'aviso', codigo, set, orden, campo, params }]
 export function validarReparto(linea, { tipos } = {}) {
   const l = normalizarLinea(linea);
@@ -434,12 +434,12 @@ export function validarRepartoSesion(lineas, { tipos } = {}) {
   return ordenarLineas((lineas || []).map(normalizarLinea)).filter((l) => !filaVacia(l)).flatMap((l) => validarReparto(l, { tipos }));
 }
 
-// ---------- Presentación en texto (sin i18n: las etiquetas llegan por parámetro) ----------
+// ---------- Text presentation (no i18n: labels arrive as a parameter) ----------
 const nfm = (n) => String(Math.round(n * 10) / 10).replace('.', ',');
 const defMetros = (n) => `${nfm(n)} m`;
 const defPct = (p) => `${String(p).replace('.', ',')} %`;
 
-// "75 AeL + 25 Sprint" (contenidos de una fila por repetición); un solo contenido: sólo su nombre. Con estilo: " · Crol".
+// "75 AeL + 25 Sprint" (contents of a row per repetition); a single content: only its name. With style: " · Crol".
 export function textoEjercicio(linea, { tipos, etiqueta = (c) => (c.tipo ? nombreCorto(c.tipo) : c.contenido), etiquetaEstilo = (e) => e } = {}) {
   const r = resolverLinea(linea, { tipos });
   const partes = [];
@@ -451,7 +451,7 @@ export function textoEjercicio(linea, { tipos, etiqueta = (c) => (c.tipo ? nombr
   return partes.filter(Boolean).join('  ·  ');
 }
 
-// Resumen en una línea como el del entrenador:
+// One-line summary like the coach's:
 //   "Volumen total: 400 m (AeL 300 m · Sprint 100 m) · Por estilo: Crol 400 m"
 // etq: { total, porEstilo, sinContenido, sinEstilo } ; nombre(item) / nombreEstilo(item): texto visible; metros(n) / pct(p): formato.
 export function textoResumen(d, { etq = {}, nombre = (c) => c.corto || c.contenido, nombreEstilo = (e) => e.estilo, metros = defMetros, pct = defPct, conPct = false } = {}) {
@@ -467,8 +467,8 @@ export function textoResumen(d, { etq = {}, nombre = (c) => c.corto || c.conteni
   return [linea, [pc && `${e.pctContenido}: ${pc}`, pe && `${e.pctEstilo}: ${pe}`].filter(Boolean).join(' · ')].filter(Boolean).join('\n');
 }
 
-// ---------- Renombrar / fusionar contenidos en los componentes ya guardados ----------
-// valor: columna `componentes` (JSON) de una fila. -> JSON nuevo, o null si la fila no usa `de` (nada que cambiar).
+// ---------- Rename / merge contents in already stored components ----------
+// valor: `componentes` column (JSON) of a row. -> new JSON, or null if the row does not use `de` (nothing to change).
 export function renombrarEnComponentes(valor, de, a) {
   const k = normalizarNombre(de);
   const lista = leerComponentes(valor);
@@ -478,7 +478,7 @@ export function renombrarEnComponentes(valor, de, a) {
     const nuevo = normalizarNombre(c.contenido) === k ? { ...c, contenido: a } : c;
     const previo = out.find((x) => normalizarNombre(x.contenido) === normalizarNombre(nuevo.contenido));
     if (!previo) { out.push(nuevo); return; }
-    // dos componentes acaban siendo el mismo contenido: se suman sus metros y se conserva el modo manual
+    // two components end up being the same content: their metres are added and manual mode is kept
     if (nuevo.metrosPorRep != null || previo.metrosPorRep != null) previo.metrosPorRep = r2((previo.metrosPorRep || 0) + (nuevo.metrosPorRep || 0));
     if (nuevo.pct || previo.pct) previo.pct = r2((previo.pct || 0) + (nuevo.pct || 0));
     if (nuevo.modo === 'manual') previo.modo = 'manual';
@@ -486,13 +486,13 @@ export function renombrarEnComponentes(valor, de, a) {
   return escribirComponentes(out);
 }
 
-// ---------- Colores de los estilos (editor y PDF) ----------
+// ---------- Style colours (editor and PDF) ----------
 export const COLOR_ESTILO = { crol: '#1a73e8', espalda: '#00897b', braza: '#8d6e63', mariposa: '#d93025', estilos: '#7e57c2' };
 export const COLOR_OTRO_ESTILO = '#6d4c9f';
 export const COLOR_SIN_ESTILO = '#9aa4b2';
 export const claveEstilo = (e) => normalizarNombre(e);
 export const colorEstilo = (e) => (e ? COLOR_ESTILO[claveEstilo(e)] || COLOR_OTRO_ESTILO : COLOR_SIN_ESTILO);
-// '#1a73e8' -> [26, 115, 232] (gris si no es un color válido)
+// '#1a73e8' -> [26, 115, 232] (grey if it is not a valid colour)
 export function hexA(c) {
   const m = /^#?([0-9a-f]{6})$/i.exec(String(c || '').trim());
   if (!m) return [154, 164, 178];

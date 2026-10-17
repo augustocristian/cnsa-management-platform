@@ -12,7 +12,7 @@ export const HOJA_LINEAS = 'EntrenoLineas';
 const dia10 = (f) => String(f ?? '').slice(0, 10);
 const COLUMNAS_LINEA = ['id', 'entrenamientoId', 'set', 'orden', 'tiempoMin', 'objetivo', 'bloque', 'series', 'distancia', 'salida', 'ejercicio', 'material', 'notas', 'componentes', 'estilo'];
 
-// opciones: genId() -> string único; club() -> {nombre, lema, logo, colorPrimario, colorSecundario}
+// opciones: genId() -> unique string; club() -> {nombre, lema, logo, colorPrimario, colorSecundario}
 export function crearEntrenoService(repo, { genId = defaultGenId, club = () => ({}) } = {}) {
   const lineasDe = (id) => D.renumerar(repo.list(HOJA_LINEAS).filter((l) => String(l.entrenamientoId) === String(id)));
   const grupoNombre = (id) => { const g = id ? repo.get('Grupos', id) : null; return g ? g.nombre : ''; };
@@ -24,20 +24,20 @@ export function crearEntrenoService(repo, { genId = defaultGenId, club = () => (
     lineas: lineasDe,
     tienePlan: (id) => repo.list(HOJA_LINEAS).some((l) => String(l.entrenamientoId) === String(id)),
     resumen: (id) => D.resumen(lineasDe(id)),
-    // Contenidos activos del catálogo (con alias) para el editor; vacío si el club no tiene catálogo.
+    // Active contents of the catalogue (with aliases) for the editor; empty if the club has no catalogue.
     tipos,
-    // Desglose por contenido y estilo de la sesión guardada o de un borrador (ver domain/desglose.js).
+    // Breakdown by content and style of the saved session or of a draft (see domain/desglose.js).
     desglose: (id, lineas = null) => G.desgloseSesion(lineas || lineasDe(id), { tipos: tipos() }),
 
-    // Valida un borrador (lineas) de la sesión `id` con la carga registrada y los objetivos de la sesión.
+    // Validates a draft (lineas) of session `id` against the recorded load and the session goals.
     validar(id, lineas, sesion = null) {
       const s = sesion || repo.get(HOJA_SESIONES, id) || {};
       return D.validarSesion({ sesion: s, lineas, cargaMedia: D.cargaRegistrada(repo.list('Cargas'), id) })
         .concat(G.validarRepartoSesion(lineas.filter((l) => !D.filaVacia(D.normalizarLinea(l))), { tipos: tipos() }));
     },
 
-    // Guarda el plan de la sesión: campos nuevos de la sesión + líneas (sustituye las anteriores).
-    // -> { ok, avisos, errores? }. Los errores (números no válidos) impiden guardar; los avisos no.
+    // Saves the plan of the session: new session fields + lines (replaces the previous ones).
+    // -> { ok, avisos, errores? }. Errors (invalid numbers) prevent saving; warnings do not.
     guardarPlan(id, { tipoSesion = '', materialDia = '', notasGenerales = '', lineas = [] } = {}) {
       const sesion = repo.get(HOJA_SESIONES, id);
       if (!sesion) return { ok: false, errores: [{ severidad: 'error', codigo: 'sesion-inexistente' }], avisos: [] };
@@ -56,8 +56,8 @@ export function crearEntrenoService(repo, { genId = defaultGenId, club = () => (
       return { ok: true, avisos, lineas: lineasDe(id) };
     },
 
-    // Crea una carga por contenido y nadador con los metros del plan (metros reales = plan). Los presentes de la asistencia o,
-    // si no hay asistencia, los nadadores activos del grupo. No duplica: salta nadador+contenido ya registrados para la sesión.
+    // Creates one load per content and swimmer with the metres of the plan (actual metres = plan). Those present in the attendance or,
+    // if there is no attendance, the active swimmers of the group. No duplicates: skips swimmer+content already recorded for the session.
     // -> { ok, creadas, omitidas, nadadores, contenidos, sinContenidoM }
     registrarCargasDesdePlan(id) {
       const s = repo.get(HOJA_SESIONES, id);
@@ -102,7 +102,7 @@ export function crearEntrenoService(repo, { genId = defaultGenId, club = () => (
       repo.remove(HOJA_SESIONES, id);
     },
 
-    // Duplica la sesión (y su plan) con `cambios` (fecha, hora, grupoId, titulo...). -> sesión nueva
+    // Duplicates the session (and its plan) with `cambios` (fecha, hora, grupoId, titulo...). -> new session
     duplicarSesion(id, cambios = {}) {
       const origen = repo.get(HOJA_SESIONES, id);
       if (!origen) return null;
@@ -112,14 +112,14 @@ export function crearEntrenoService(repo, { genId = defaultGenId, club = () => (
       return nueva;
     },
 
-    // Copia el plan (campos y líneas) de una sesión en otra ya existente, sustituyendo el que tuviera.
+    // Copies the plan (fields and lines) of a session onto another existing one, replacing whatever it had.
     copiarPlan(origenId, destinoId) {
       const p = svc.planDesdeSesion(origenId);
       if (!p) return { ok: false };
       return svc.guardarPlan(destinoId, p);
     },
 
-    // Líneas de otra sesión o de una plantilla listas para cargar en el editor (sin ids). -> { lineas, tipoSesion, materialDia, notasGenerales }
+    // Lines of another session or of a template ready to load into the editor (no ids). -> { lineas, tipoSesion, materialDia, notasGenerales }
     planDesdeSesion(origenId) {
       const s = repo.get(HOJA_SESIONES, origenId);
       if (!s) return null;
@@ -130,23 +130,23 @@ export function crearEntrenoService(repo, { genId = defaultGenId, club = () => (
       return p ? { tipoSesion: p.tipoSesion, materialDia: p.materialDia, notasGenerales: '', lineas: D.lineasDePlantilla(plantillaId) } : null;
     },
     plantillas: () => D.PLANTILLAS.map((p) => ({ id: p.id, tipoSesion: p.tipoSesion, resumen: D.resumen(p.lineas) })),
-    // Sesiones con plan (para "copiar desde otra sesión"), las más recientes primero; excluye `salvo`.
+    // Sessions with a plan (for "copy from another session"), most recent first; excludes `salvo`.
     sesionesConPlan({ salvo = '', limite = 30 } = {}) {
       const con = new Set(repo.list(HOJA_LINEAS).map((l) => String(l.entrenamientoId)));
       return repo.list(HOJA_SESIONES).filter((s) => con.has(String(s.id)) && String(s.id) !== String(salvo))
         .sort((a, b) => dia10(b.fecha).localeCompare(dia10(a.fecha)) || String(b.hora).localeCompare(String(a.hora))).slice(0, limite);
     },
 
-    // Valores usados antes en un campo (autocompletar), más frecuentes primero.
+    // Values previously used in a field (autocomplete), most frequent first.
     sugerencias: (campo, extra = []) => D.sugerencias(repo.list(HOJA_LINEAS), campo, { extra }),
 
-    // Datos listos para el generador de PDF: { club, sesion, grupo, sets, totales, avisos }
+    // Data ready for the PDF generator: { club, sesion, grupo, sets, totales, avisos }
     ficha(id, borrador = null) {
       const s = repo.get(HOJA_SESIONES, id);
       if (!s) return null;
       return fichaDe(s, borrador);
     },
-    // Fichas de todas las sesiones de la semana que empieza en `lunes` (YYYY-MM-DD) (opcional: de un grupo).
+    // Cards of all sessions of the week starting on `lunes` (YYYY-MM-DD) (optional: of one group).
     fichasSemana(lunes, { grupoId = '' } = {}) {
       const fin = sumarDias(lunes, 6);
       return repo.list(HOJA_SESIONES)

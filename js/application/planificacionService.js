@@ -35,7 +35,7 @@ export function crearPlanificacionService(repo) {
     asignaciones: (piscinaId) => repo.list(HOJA_ASIGNACIONES).map(D.normalizarAsignacion).filter((a) => !piscinaId || a.piscinaId === String(piscinaId)),
     grupos: () => repo.list('Grupos'),
     nadadoresPorGrupo: () => D.nadadoresPorGrupo(repo.list('Nadadores')),
-    // Entrenadores conocidos: los de Grupos y los de las asignaciones (sin duplicados, orden alfabético).
+    // Known coaches: those of Grupos and of the assignments (no duplicates, alphabetical order).
     entrenadores() {
       const set = new Map();
       const add = (n) => { const s = String(n || '').trim(); if (s) set.set(s.toLowerCase(), set.get(s.toLowerCase()) || s); };
@@ -48,8 +48,8 @@ export function crearPlanificacionService(repo) {
     preferenciasHora: () => D.preferenciasHora(repo.list('Entrenamientos')),
 
     // ----- Piscinas -----
-    // -> { ok, errores?, piscina?, recortadas, fuera }. Al reducir calles recorta las asignaciones que sobresalen
-    // (si recortar) y devuelve cuántas quedan totalmente fuera de rango (siguen guardadas y se muestran como error).
+    // -> { ok, errores?, piscina?, recortadas, fuera }. When reducing lanes it trims the assignments that stick out
+    // (if recortar) and returns how many end up entirely out of range (they stay saved and are shown as an error).
     guardarPiscina(data, { recortar = true } = {}) {
       const errores = D.validarPiscina(data);
       if (errores.length) return { ok: false, errores, recortadas: 0, fuera: 0 };
@@ -64,7 +64,7 @@ export function crearPlanificacionService(repo) {
       const piscina = repo.upsert(HOJA_PISCINAS, fila);
       return { ok: true, piscina: D.normalizarPiscina(piscina), recortadas, fuera };
     },
-    // Previsualiza el efecto de dejar la piscina con `numCalles` calles.
+    // Previews the effect of leaving the pool with `numCalles` lanes.
     efectoReducir: (piscinaId, numCalles) => D.ajustarAlReducir(repo.list(HOJA_ASIGNACIONES), piscinaId, numCalles),
     // Deletes the pool and its assignments. -> snapshot for restaurarPiscina() (Undo) or null
     borrarPiscina(id) {
@@ -111,8 +111,8 @@ export function crearPlanificacionService(repo) {
     },
     restaurarAsignacion(fila) { if (fila) repo.upsert(HOJA_ASIGNACIONES, fila); },
 
-    // ----- Análisis -----
-    // Conflictos globales (o los que afectan a una piscina). huecos=true añade los huecos libres (info).
+    // ----- Analysis -----
+    // Global conflicts (or those affecting one pool). huecos=true adds the free gaps (info).
     conflictos({ piscinaId = '', huecos = false } = {}) {
       const todos = D.detectarConflictos(datos(), { huecos });
       if (!piscinaId) return todos;
@@ -125,7 +125,7 @@ export function crearPlanificacionService(repo) {
       const d = datos();
       return D.sugerirDistribucion({ piscina, dia, grupos: d.grupos, nadadores: d.nadadores, asignaciones: d.asignaciones, ...resto });
     },
-    // Guarda las propuestas (sólo traen avisos, nunca errores). -> número de asignaciones creadas
+    // Saves the proposals (they only carry warnings, never errors). -> number of assignments created
     aplicarSugerencia(propuestas) {
       let n = 0;
       propuestas.forEach((p) => { if (svc.guardarAsignacion(p, { forzar: true }).ok) n++; });

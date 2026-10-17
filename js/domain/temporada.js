@@ -1,15 +1,15 @@
-// Dominio de la Planificación de temporada: lógica PURA (sin DOM, store, red, i18n ni reloj).
-// Vocabulario: macrociclo = FASE, microciclo = SEMANA (de lunes a domingo).
+// Domain of Season Planning: PURE logic (no DOM, store, network, i18n or clock).
+// Vocabulary: macrocycle = FASE (phase), microcycle = SEMANA (week, Monday to Sunday).
 //
-// Hojas (valores guardados en español/neutros; la vista los traduce):
+// Sheets (stored values are Spanish/neutral; the view translates them):
 //  - Temporadas:       id, nombre, fechaInicio, fechaFin, activa, grupoId (opcional), notas
 //  - Fases:            id, temporadaId, nombre, tipo, fechaInicio, fechaFin, objetivo, color, orden
 //  - SemanasPlan:      id (= sp-<temporadaId>-<lunes>), temporadaId, lunes, volumenPrevisto, contenidos (JSON {tipoId: m}),
-//                      intensidad (RPE previsto 1-10), objetivo, notas. Las semanas se GENERAN a partir de las fechas de la
-//                      temporada (generarSemanas); sólo se guarda lo que el usuario edita.
+//                      intensidad (planned RPE 1-10), objetivo, notas. The weeks are GENERATED from the dates of the
+//                      season (generarSemanas); only what the user edits is stored.
 //  - EventosTemporada: id, temporadaId, tipo, nombre, fechaInicio, fechaFin, lugar, prioridad (A|B|C), pruebas, categoria, grupoId, notas
-// Fechas = 'YYYY-MM-DD'. Los volúmenes son METROS POR NADADOR y semana (igual que las cargas): con grupoId se comparan sólo las
-// sesiones y nadadores de ese grupo; sin grupo, la media por grupo (planes) y por nadador (cargas).
+// Dates = 'YYYY-MM-DD'. Volumes are METRES PER SWIMMER per week (like the loads): with grupoId only the sessions and
+// swimmers of that group are compared; without a group, the average per group (plans) and per swimmer (loads).
 import { fechaValida, aDias, deDias, addDias, lunesDe, diaSemana } from './calendario.js';
 import { normalizarNombre, indicePorNombre, agregarSemana, colorValido, ordenarTipos, PREFIJO_ID } from './cargas.js';
 import { volumenPorContenido } from './desglose.js';
@@ -30,11 +30,11 @@ export const TONO_PRIORIDAD = { A: 'danger', B: 'warn', C: 'info' };
 export const TONO_EVENTO = { competicion: 'danger', concentracion: 'accent', test: 'ok', descanso: 'neutral', otro: 'neutral' };
 export const tonoEvento = (e) => (e.tipo === 'competicion' ? TONO_PRIORIDAD[e.prioridad] || TONO_EVENTO.competicion : TONO_EVENTO[e.tipo] || TONO_EVENTO.otro);
 export const MAX_SEMANAS = 110;
-export const TOLERANCIA = 0.1; // ±10 % = "en rango"
-export const PASO_M = 50; // los volúmenes calculados se redondean a 50 m
-export const UMBRAL_CONTENIDO = 0.15; // sugerencias por contenido: desviación acumulada de ±15 %
-export const MAX_SUGERENCIAS_CONTENIDO = 3; // sugerencias por contenido que se muestran a la vez
-export const VENTANA_SUGERENCIAS = 4; // semanas ya transcurridas que se miran para sugerir
+export const TOLERANCIA = 0.1; // ±10 % = "in range"
+export const PASO_M = 50; // calculated volumes are rounded to 50 m
+export const UMBRAL_CONTENIDO = 0.15; // per-content suggestions: accumulated deviation of ±15 %
+export const MAX_SUGERENCIAS_CONTENIDO = 3; // per-content suggestions shown at the same time
+export const VENTANA_SUGERENCIAS = 4; // weeks already elapsed that are looked at to suggest
 
 // ---------- Utilidades ----------
 const str = (v) => (v == null ? '' : String(v));
@@ -48,7 +48,7 @@ const solape = (a0, a1, b0, b1) => Math.max(0, Math.min(aDias(a1), aDias(b1)) - 
 export const diasEntre = (a, b) => aDias(b) - aDias(a);
 export const idSemanaPlan = (temporadaId, lunes) => `sp-${temporadaId}-${lunes}`;
 
-// ---------- Normalización ----------
+// ---------- Normalisation ----------
 export function normalizarTemporada(r = {}) {
   return {
     id: str(r.id), nombre: str(r.nombre).trim(), inicio: fechaIso(r.fechaInicio ?? r.inicio), fin: fechaIso(r.fechaFin ?? r.fin),
@@ -118,8 +118,8 @@ export const filaEvento = (e) => ({
   grupoId: str(e.grupoId), notas: str(e.notas),
 });
 
-// ---------- Semanas ----------
-// Semanas de lunes a domingo que tocan [inicio, fin]. La primera/última pueden ser parciales (desde/hasta recortan a la temporada).
+// ---------- Weeks ----------
+// Monday-to-Sunday weeks that touch [inicio, fin]. The first/last may be partial (desde/hasta are clipped to the season).
 export function generarSemanas(inicio, fin) {
   if (!fechaValida(inicio) || !fechaValida(fin) || fin < inicio) return [];
   const out = [];
@@ -130,7 +130,7 @@ export function generarSemanas(inicio, fin) {
   }
   return out;
 }
-// Semana (n) que contiene una fecha, o 0 si queda fuera.
+// Week (n) that contains a date, or 0 if it falls outside.
 export function semanaDeFecha(semanas, fecha) {
   const s = semanas.find((x) => fecha >= x.lunes && fecha <= x.domingo);
   return s ? s.n : 0;
@@ -138,7 +138,7 @@ export function semanaDeFecha(semanas, fecha) {
 const porInicio = (a, b) => (a.inicio < b.inicio ? -1 : a.inicio > b.inicio ? 1 : (a.orden - b.orden) || a.nombre.localeCompare(b.nombre));
 export const ordenarFases = (fases) => fases.slice().sort(porInicio);
 
-// Fase que cubre más días de la semana (empate: la que empieza antes). null si ninguna.
+// Phase that covers most days of the week (tie: the one that starts earlier). null if none.
 export function faseDeSemana(fases, semana) {
   let mejor = null, dias = 0;
   ordenarFases(fases).forEach((f) => {
@@ -163,7 +163,7 @@ export function proximaCompeticion(eventos, hoy) {
 }
 
 // ---------- Validaciones ----------
-// Códigos de error [{campo, codigo}] (la vista los traduce con tp.err.<codigo>). Vacío = válido.
+// Error codes [{campo, codigo}] (the view translates them with tp.err.<codigo>). Empty = valid.
 export function validarTemporada(d) {
   const e = [];
   if (!str(d.nombre).trim()) e.push({ campo: 'nombre', codigo: 'nombre-vacio' });
@@ -213,8 +213,8 @@ export function validarSemanaPlan(d) {
   return e;
 }
 
-// Incoherencias de la planificación -> [{tipo, severidad: error|aviso|info, params, ...ids}]; la vista traduce tp.v.<tipo>.
-//  error: fases solapadas · aviso: huecos sin fase, fase fuera de la temporada, evento fuera de la temporada · info: sin fases
+// Inconsistencies of the plan -> [{tipo, severidad: error|aviso|info, params, ...ids}]; the view translates tp.v.<tipo>.
+//  error: overlapping phases · aviso: gaps without a phase, phase outside the season, event outside the season · info: no phases
 export function validarPlan({ temporada, fases = [], eventos = [] }) {
   const out = [];
   if (!temporada || !temporada.inicio || !temporada.fin) return out;
@@ -230,7 +230,7 @@ export function validarPlan({ temporada, fases = [], eventos = [] }) {
   fs.forEach((f) => {
     if (f.inicio < temporada.inicio || f.fin > temporada.fin) out.push({ tipo: 'fase-fuera-temporada', severidad: 'aviso', faseIds: [f.id], params: { fase: f.nombre, desde: f.inicio, hasta: f.fin } });
   });
-  // Huecos: tramos de la temporada que ninguna fase cubre.
+  // Gaps: stretches of the season that no phase covers.
   let cubierto = addDias(temporada.inicio, -1);
   const hueco = (desde, hasta) => {
     const sem = generarSemanas(desde, hasta).length;
@@ -251,7 +251,7 @@ export function validarPlan({ temporada, fases = [], eventos = [] }) {
 }
 export const hayErrores = (lista) => lista.some((v) => v.severidad === 'error');
 
-// Fases solapadas con una candidata (para bloquear/avisar antes de guardar). -> fases[]
+// Phases overlapping a candidate (to block/warn before saving). -> fases[]
 export function fasesQueSolapan(candidata, fases) {
   if (!candidata.inicio || !candidata.fin) return [];
   return fases.filter((f) => f.id !== candidata.id && f.inicio && f.fin && f.inicio <= candidata.fin && f.fin >= candidata.inicio);
@@ -260,8 +260,8 @@ export function eventoFuera(evento, temporada) {
   return !!(temporada && temporada.inicio && evento.inicio && (evento.inicio < temporada.inicio || (evento.fin || evento.inicio) > temporada.fin));
 }
 
-// Fases por defecto (preparación general/específica, competitiva, tapering y transición) repartidas en semanas completas.
-// nombrePorTipo(tipo) lo pone la capa que conoce el idioma. -> [{nombre, tipo, inicio, fin, color, objetivo, orden}]
+// Default phases (general/specific preparation, competitive, tapering and transition) spread over whole weeks.
+// nombrePorTipo(tipo) is supplied by the layer that knows the language. -> [{nombre, tipo, inicio, fin, color, objetivo, orden}]
 export function fasesPorDefecto(inicio, fin, nombrePorTipo = (t) => t) {
   const sem = generarSemanas(inicio, fin);
   const N = sem.length;
@@ -278,7 +278,7 @@ export function fasesPorDefecto(inicio, fin, nombrePorTipo = (t) => t) {
   return out;
 }
 
-// ---------- Clasificación de las líneas de un plan de entreno por contenido ----------
+// ---------- Classification of the lines of a training plan by content ----------
 const REGLAS_CONTENIDO = [
   ['aerobico-ligero', /calentamiento|vuelta a la calma|recuperacion|regenerativ|suave|soltar|enfriamiento|activacion|ligero/],
   ['aerobico-intenso', /aerobico intenso|potencia aerobica|vo2/],
@@ -291,7 +291,7 @@ const REGLAS_CONTENIDO = [
   ['salidas', /salida|poyete/],
   ['virajes', /viraje|volteo/],
 ];
-// Texto libre (objetivo/bloque del plan) -> id del contenido del catálogo, o ''.
+// Free text (goal/block of the plan) -> catalogue content id, or ''.
 export function clasificarContenido(texto, tipos) {
   const k = normalizarNombre(texto);
   if (!k) return '';
@@ -305,8 +305,8 @@ export function clasificarContenido(texto, tipos) {
   return '';
 }
 
-// Metros de una sesión por contenido a partir de sus líneas (delega en desglose.volumenPorContenido: respeta el reparto por
-// componentes de cada fila; las filas antiguas sin componentes usan su objetivo y heredan el de la fila anterior del set).
+// Metres of a session per content from its lines (delegates to desglose.volumenPorContenido: respects the split by
+// components of each row; legacy rows without components use their goal and inherit that of the previous row of the set).
 // -> {total, metros: {tipoId: m}, sinClasificar}
 export function volumenPlanSesion(lineas, tipos) {
   const v = volumenPorContenido([lineas || []], { tipos });
@@ -321,8 +321,8 @@ const volumenEstimado = (s) => {
 const cero = (tipos) => Object.fromEntries(tipos.map((t) => [t.id, 0]));
 
 // ---------- Agregados reales ----------
-// Planes de entreno (Entrenamientos + EntrenoLineas, realizados y planificados) de [desde, hasta].
-// Sin grupo: media por grupo con sesiones. Una sesión sin líneas usa la media de su volumen objetivo (sin clasificar).
+// Training plans (Entrenamientos + EntrenoLineas, done and planned) of [desde, hasta].
+// Without a group: average per group with sessions. A session without lines uses the average of its target volume (unclassified).
 // -> {total, metros, sinClasificar, sesiones, realizadas, planificadas, estimadas, grupos}
 export function agregarPlanes({ sesiones, lineasPorSesion, tipos, desde, hasta, grupoId = '' }) {
   const metros = cero(tipos);
@@ -344,7 +344,7 @@ export function agregarPlanes({ sesiones, lineasPorSesion, tipos, desde, hasta, 
   return { total: total / div, metros, sinClasificar: sin / div, sesiones: n, realizadas, planificadas: n - realizadas, estimadas, grupos: grupos.size };
 }
 
-// Cargas registradas (media por nadador con carga esa semana; con grupo, sólo los nadadores de ese grupo).
+// Recorded loads (average per swimmer with a load that week; with a group, only the swimmers of that group).
 export function agregarCargas({ cargas, nadadores, tipos, desde, hasta, grupoId = '' }) {
   let lista = cargas || [];
   if (grupoId) { const ids = new Set((nadadores || []).filter((n) => str(n.grupoId) === grupoId).map((n) => n.id)); lista = lista.filter((c) => ids.has(str(c.nadadorId))); }
@@ -353,7 +353,7 @@ export function agregarCargas({ cargas, nadadores, tipos, desde, hasta, grupoId 
 }
 
 // ---------- Desviaciones ----------
-// Estado: 'sin-previsto' | 'en-rango' | 'bajo' | 'alto'. pct en % (null sin previsto).
+// Status: 'sin-previsto' | 'en-rango' | 'bajo' | 'alto'. pct in % (null when nothing is planned).
 export function desviacion(previsto, real, tolerancia = TOLERANCIA) {
   const p = Number(previsto) || 0, r = Number(real) || 0;
   if (!(p > 0)) return { abs: r, pct: null, estado: 'sin-previsto' };
@@ -361,10 +361,10 @@ export function desviacion(previsto, real, tolerancia = TOLERANCIA) {
   return { abs, pct: (abs / p) * 100, estado: Math.abs(abs) / p <= tolerancia + 1e-9 ? 'en-rango' : abs < 0 ? 'bajo' : 'alto' };
 }
 
-// ---------- Resumen semana a semana ----------
-// Entrada: temporada, fases, semanasPlan (normalizadas), eventos, tipos, sesiones/lineas/cargas/nadadores (filas crudas), hoy,
+// ---------- Week-by-week summary ----------
+// Input: temporada, fases, semanasPlan (normalised), eventos, tipos, sesiones/lineas/cargas/nadadores (raw rows), hoy,
 //          fuente ('auto' | 'planes' | 'cargas'), tolerancia.
-// Salida: [{ n, lunes, domingo, desde, hasta, parcial, fase, plan:{id, volumen, contenidos, intensidad, objetivo, notas},
+// Output: [{ n, lunes, domingo, desde, hasta, parcial, fase, plan:{id, volumen, contenidos, intensidad, objetivo, notas},
 //            planes, cargas, real:{total, metros, sinClasificar, fuente: 'cargas'|'planes'|'ninguna'}, desv, contenidos:[{tipo, previsto, real, desv}],
 //            eventos, prioridad, tiempo: 'pasada'|'actual'|'futura', estado, acumPrevisto, acumReal }]
 export function resumenSemanas({ temporada, fases = [], semanasPlan = [], eventos = [], tipos = [], sesiones = [], lineas = [], cargas = [], nadadores = [], hoy = '', fuente = 'auto', tolerancia = TOLERANCIA }) {
@@ -413,7 +413,7 @@ export function resumenSemanas({ temporada, fases = [], semanasPlan = [], evento
   });
 }
 
-// Totales por fase y de toda la temporada. "real" sólo suma las semanas ya empezadas y se compara con el previsto de ESAS semanas.
+// Totals per phase and for the whole season. "real" only adds the weeks already started and is compared with the planned volume of THOSE weeks.
 // -> { fases: [{fase, semanas, previsto, previstoHastaHoy, real, desv, contenidos:{tipoId:{previsto, real}}}], total: {...} }
 export function totales(semanas, fases, tolerancia = TOLERANCIA) {
   const calc = (lista) => {
@@ -436,8 +436,8 @@ export function totales(semanas, fases, tolerancia = TOLERANCIA) {
   return { fases: lista, total: calc(semanas) };
 }
 
-// ---------- Sugerencias (reglas simples y transparentes) ----------
-// REDUCCION_PREVIA: % de variación del volumen base en las semanas previas a una competición (índice = semanas antes).
+// ---------- Suggestions (simple, transparent rules) ----------
+// REDUCCION_PREVIA: % variation of the base volume in the weeks before a competition (index = weeks before).
 export const REDUCCION_PREVIA = { A: { 2: -15, 1: -30 }, B: { 1: -15 } };
 export const factoresTapering = (m) => (m <= 1 ? [0.65] : Array.from({ length: m }, (_, j) => 0.8 - 0.3 * (j / (m - 1))));
 const baseAntes = (semanas, idx, n = 3) => {
@@ -449,14 +449,14 @@ const baseAntes = (semanas, idx, n = 3) => {
 export function sugerencias({ semanas, tipos = [], hoy = '', tolerancia = TOLERANCIA, ventana = VENTANA_SUGERENCIAS }) {
   const out = [];
   const futuras = semanas.filter((s) => s.domingo >= hoy);
-  // 1) Contenidos acumulados en las últimas semanas ya cerradas.
+  // 1) Contents accumulated in the last closed weeks.
   const pasadas = semanas.filter((s) => s.tiempo === 'pasada').slice(-ventana);
   const destino = futuras.find((s) => s.tiempo === 'futura') || futuras[0];
   if (pasadas.length) {
     const acum = {};
     pasadas.forEach((s) => s.contenidos.forEach((c) => { const o = (acum[c.tipo.id] ||= { tipo: c.tipo, previsto: 0, real: 0 }); o.previsto += c.previsto; o.real += c.real; }));
     const candidatas = Object.values(acum).filter((o) => o.previsto >= 500 && Math.abs((o.real - o.previsto) / o.previsto) >= UMBRAL_CONTENIDO)
-      .sort((a, b) => Math.abs(b.real - b.previsto) - Math.abs(a.real - a.previsto)).slice(0, MAX_SUGERENCIAS_CONTENIDO); // las 3 mayores desviaciones
+      .sort((a, b) => Math.abs(b.real - b.previsto) - Math.abs(a.real - a.previsto)).slice(0, MAX_SUGERENCIAS_CONTENIDO); // the 3 largest deviations
     candidatas.sort((a, b) => a.tipo.orden - b.tipo.orden).forEach((o) => {
       const pct = ((o.real - o.previsto) / o.previsto) * 100;
       if (Math.abs(pct) < UMBRAL_CONTENIDO * 100) return;
@@ -469,8 +469,8 @@ export function sugerencias({ semanas, tipos = [], hoy = '', tolerancia = TOLERA
       });
     });
   }
-  // 2) Semanas previas a una competición A/B y 3) tapering.
-  const objetivo = new Map(); // n -> sugerencia (gana la reducción más fuerte)
+  // 2) Weeks before an A/B competition and 3) tapering.
+  const objetivo = new Map(); // n -> suggestion (the strongest reduction wins)
   const proponer = (s, idx, base, pct, extra) => {
     if (!(s.plan.volumen > 0) || s.domingo < hoy || !(base > 0)) return;
     const volumen = redondear(base * (1 + pct / 100));
@@ -505,18 +505,18 @@ export function sugerencias({ semanas, tipos = [], hoy = '', tolerancia = TOLERA
     idxs.forEach((i, j) => proponer(semanas[i], i, base, (f[j] - 1) * 100, { codigo: 'tapering', params: { fase: s.fase.nombre } }));
   });
   out.push(...[...objetivo.values()].sort((a, b) => a.semana - b.semana));
-  // 4) Semanas futuras sin volumen previsto.
+  // 4) Future weeks without planned volume.
   const sinPrevisto = futuras.filter((s) => !(s.plan.volumen > 0));
   if (sinPrevisto.length) out.push({ id: 'sin-previsto', codigo: 'sin-previsto', severidad: 'info', semana: sinPrevisto[0].n, params: { n: sinPrevisto.length, primera: sinPrevisto[0].n }, accion: null });
   return out;
 }
 
-// ---------- Herramientas de edición del plan (devuelven cambios; no escriben) ----------
-// Campos de plan que se copian entre semanas.
+// ---------- Plan editing tools (they return changes; they do not write) ----------
+// Plan fields that are copied between weeks.
 export const copiarPlanSemana = (plan) => ({ volumen: plan.volumen, contenidos: { ...plan.contenidos }, intensidad: plan.intensidad, objetivo: plan.objetivo, notas: plan.notas });
 
 const escalarContenidos = (c, f) => Object.fromEntries(Object.entries(c || {}).map(([k, v]) => [k, redondear(v * f)]).filter(([, v]) => v > 0));
-// Escala (± %) el volumen previsto (y su reparto) de las semanas n en [desde, hasta]. Sólo cambia las que tienen volumen.
+// Scales (± %) the planned volume (and its split) of weeks n in [desde, hasta]. Only changes those that have volume.
 // -> [{n, lunes, antes, despues, contenidos}]
 export function ajustarVolumenes(semanas, { desde, hasta, pct }) {
   const f = 1 + (Number(pct) || 0) / 100;
@@ -525,8 +525,8 @@ export function ajustarVolumenes(semanas, { desde, hasta, pct }) {
     n: s.n, lunes: s.lunes, antes: s.plan.volumen, despues: redondear(s.plan.volumen * f), contenidos: escalarContenidos(s.plan.contenidos, f),
   }));
 }
-// Mueve k semanas (+ más tarde, - antes) el plan (volumen, reparto e intensidad) de las semanas [desde, hasta].
-// Las semanas de origen que no reciben nada quedan vacías. -> [{n, lunes, antes, despues, contenidos, intensidad}] sólo con cambios
+// Moves the plan (volume, split and intensity) of weeks [desde, hasta] by k weeks (+ later, - earlier).
+// Source weeks that receive nothing are left empty. -> [{n, lunes, antes, despues, contenidos, intensidad}] only with changes
 export function desplazarPlan(semanas, { desde, hasta, k }) {
   const mov = Math.round(Number(k) || 0);
   if (!mov) return [];
@@ -544,7 +544,7 @@ export function desplazarPlan(semanas, { desde, hasta, k }) {
   }).filter((c) => c.antes !== c.despues);
 }
 
-// Plantillas por tipo de fase: ondulación del volumen (ciclo de semanas respecto a la base), intensidad (RPE) y reparto por contenido (%).
+// Templates per phase type: volume undulation (cycle of weeks relative to the base), intensity (RPE) and split by content (%).
 export const PLANTILLAS_FASE = {
   'preparacion-general': { ciclo: [0.9, 1, 1.08, 0.75], intensidad: 5, reparto: { 'aerobico-ligero': 20, 'aerobico-medio': 35, 'aerobico-intenso': 8, alactico: 2, piernas: 10, brazos: 5, tecnica: 12, salidas: 3, virajes: 5 } },
   'preparacion-especifica': { ciclo: [0.95, 1.05, 1.12, 0.8], intensidad: 6, reparto: { 'aerobico-ligero': 15, 'aerobico-medio': 28, 'aerobico-intenso': 15, anaerobico: 8, alactico: 4, piernas: 8, brazos: 4, tecnica: 8, salidas: 5, virajes: 5 } },
@@ -554,7 +554,7 @@ export const PLANTILLAS_FASE = {
   personalizado: { ciclo: [1], intensidad: 5, reparto: { 'aerobico-ligero': 20, 'aerobico-medio': 35, 'aerobico-intenso': 8, alactico: 2, piernas: 10, brazos: 5, tecnica: 12, salidas: 3, virajes: 5 } },
 };
 
-// Reparte `volumen` entre los contenidos activos del catálogo según los porcentajes (renormalizados); el último absorbe el redondeo.
+// Distributes `volumen` among the active contents of the catalogue according to the percentages (renormalised); the last one absorbs the rounding.
 export function repartirVolumen(volumen, reparto, tipos) {
   const items = Object.entries(reparto).map(([clave, pct]) => ({ id: PREFIJO_ID + clave, pct })).filter((x) => tipos.some((t) => t.id === x.id && t.activo) && x.pct > 0);
   const tot = suma(items.map((x) => x.pct));
@@ -569,7 +569,7 @@ export function repartirVolumen(volumen, reparto, tipos) {
   return out;
 }
 
-// Volumen base sugerido para una fase: media previsto de la fase, o de las 3 semanas previas, o la real reciente.
+// Suggested base volume for a phase: average planned of the phase, or of the 3 previous weeks, or the recent actual.
 export function volumenBaseSugerido(semanas, nIni, nFin) {
   const dentro = semanas.filter((s) => s.n >= nIni && s.n <= nFin && s.plan.volumen > 0).map((s) => s.plan.volumen);
   if (dentro.length) return redondear(media(dentro));
@@ -579,7 +579,7 @@ export function volumenBaseSugerido(semanas, nIni, nFin) {
   return reales.length ? redondear(media(reales)) : 0;
 }
 
-// Aplica una plantilla de fase a las semanas [nIni, nFin]: volumen ondulado sobre `volumenBase`, reparto por contenido e intensidad.
+// Applies a phase template to weeks [nIni, nFin]: undulating volume over `volumenBase`, split by content and intensity.
 // -> [{n, lunes, volumen, contenidos, intensidad}]
 export function aplicarPlantillaFase(semanas, { nIni, nFin, tipo = 'personalizado', volumenBase, tipos }) {
   const pl = PLANTILLAS_FASE[tipo] || PLANTILLAS_FASE.personalizado;
@@ -592,7 +592,7 @@ export function aplicarPlantillaFase(semanas, { nIni, nFin, tipo = 'personalizad
   });
 }
 
-// Aplica una sugerencia (accion) a las semanas -> {n, lunes, volumen, contenidos} con el plan resultante, o null.
+// Applies a suggestion (accion) to the weeks -> {n, lunes, volumen, contenidos} with the resulting plan, or null.
 export function aplicarAccion(semanas, accion) {
   const s = accion && semanas.find((x) => x.n === accion.semana);
   if (!s) return null;
@@ -609,12 +609,12 @@ export function aplicarAccion(semanas, accion) {
   return null;
 }
 
-// ---------- Eventos en el calendario ----------
+// ---------- Events in the calendar ----------
 export const ETQ_TEMPORADA = {
   tipoEvento: (t) => ({ competicion: 'Competición', concentracion: 'Concentración', test: 'Test', descanso: 'Descanso', otro: 'Evento' }[t] || t),
   prioridad: (p) => `Prioridad ${p}`, pruebas: 'Pruebas', categoria: 'Categoría', dia: (i, n) => `Día ${i} de ${n}`,
 };
-// Genera los eventos de día completo de EventosTemporada (uno por día) para el calendario y el .ics.
+// Generates the all-day events of EventosTemporada (one per day) for the calendar and the .ics.
 export function eventosDeTemporada(datos, rango, etq = {}) {
   const e = { ...ETQ_TEMPORADA, ...etq };
   const grupos = datos.Grupos || [];
@@ -646,9 +646,9 @@ export function colorEventoCalendario(ev) {
   return { semantico: tonoEvento({ tipo: ev.tipoEvento, prioridad: ev.prioridad }) };
 }
 
-// ---------- Datos de demostración ----------
-// Temporada realista que arranca el primer lunes de septiembre (o antes, si hace falta para incluir `desdeFecha`).
-// opciones: {hoy, grupoId, tipos, desdeFecha?} -> {temporada, fases, semanas, eventos} (filas de hoja listas para guardar)
+// ---------- Demo data ----------
+// Realistic season starting on the first Monday of September (or earlier, if needed to include `desdeFecha`).
+// opciones: {hoy, grupoId, tipos, desdeFecha?} -> {temporada, fases, semanas, eventos} (sheet rows ready to save)
 export function temporadaDemo({ hoy, grupoId = '', tipos = [], desdeFecha = '' }) {
   const y = +hoy.slice(0, 4), m = +hoy.slice(5, 7);
   const anio = m >= 9 ? y : y - 1;
@@ -754,5 +754,5 @@ export function filaLibre(filas, x, separacion) {
   return r;
 }
 
-// (re-export útil para la vista)
+// (useful re-export for the view)
 export { deDias, diaSemana };

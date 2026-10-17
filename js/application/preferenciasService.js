@@ -1,9 +1,9 @@
-// Preferencias del usuario: la fuente de verdad es cnl/preferencias.json en SU Google Drive.
-// localStorage sólo hace de caché/espejo (arranque rápido y uso sin conexión) con una cola de cambios pendientes.
-// Todo se inyecta (almacén, puerto remoto, reloj, temporizador, estado de red) para probarlo sin DOM ni red.
+// User preferences: the source of truth is cnl/preferencias.json in THEIR Google Drive.
+// localStorage is only a cache/mirror (fast start and offline use) with a queue of pending changes.
+// Everything is injected (store, remote port, clock, timer, network state) so it can be tested without DOM or network.
 //
 // Puerto remoto: { leer: async () => objeto|null, escribir: async (objeto) => void }
-//   (los errores de red llevan e.offline = true).
+//   (network errors carry e.offline = true).
 import * as P from '../domain/preferencias.js';
 
 const CLAVE_CACHE = 'cnl:prefs';
@@ -13,7 +13,7 @@ function almacenamientoPorDefecto() {
 }
 
 // opciones: {almacen?, claveCache?, ahora?, debounceMs?, reintentoMs?, temporizador?: {set, clear}, enLinea?, legado?}
-//  - legado: () => ({clave: valor}) lee las claves antiguas de localStorage para migrarlas la primera vez.
+//  - legado: () => ({clave: valor}) reads the old localStorage keys to migrate them the first time.
 export function crearPreferencias({
   almacen, claveCache = CLAVE_CACHE, ahora = () => Date.now(), debounceMs = 2000, reintentoMs = 30000,
   temporizador, enLinea = () => (typeof navigator === 'undefined' ? true : navigator.onLine !== false), legado = () => ({}),
@@ -38,7 +38,7 @@ export function crearPreferencias({
 
   function guardarCache() {
     if (!ls) return;
-    try { ls.setItem(claveCache, JSON.stringify({ prefs: p, pendientes: [...pend] })); } catch (e) { /* sin espacio / privado */ }
+    try { ls.setItem(claveCache, JSON.stringify({ prefs: p, pendientes: [...pend] })); } catch (e) { /* no space left / private mode */ }
   }
   function leerCache() {
     if (!ls) return null;
@@ -56,7 +56,7 @@ export function crearPreferencias({
     timer = tmp.set(() => { timer = null; sincronizar(); }, ms);
   }
 
-  // Lee lo remoto, fusiona por clave (gana la marca más reciente), aplica lo remoto y sube lo local si hace falta.
+  // Reads the remote, merges per key (the most recent timestamp wins), applies the remote and uploads the local if needed.
   function sincronizar() {
     if (!remoto) return Promise.resolve({ ok: false, estado: 'sin-sesion' });
     if (enCurso) return enCurso;
@@ -74,7 +74,7 @@ export function crearPreferencias({
         if (hayQueSubir) {
           const enviado = p;
           await remoto.escribir(enviado);
-          // Lo cambiado mientras se subía sigue pendiente.
+          // What changed while uploading stays pending.
           pend = new Set(Object.keys(p.valores).filter((k) => enviado.marcas[k] !== p.marcas[k] || JSON.stringify(enviado.valores[k]) !== JSON.stringify(p.valores[k])));
         } else {
           pend = new Set([...pend].filter((k) => deLocal.includes(k)));
@@ -87,7 +87,7 @@ export function crearPreferencias({
       } catch (e) {
         ultimoError = e;
         setEstado(e && e.offline ? 'offline' : !enLinea() ? 'offline' : 'error');
-        guardarCache(); // la cola de cambios pendientes sobrevive a un cierre de la pestaña
+        guardarCache(); // the queue of pending changes survives a tab close
         programar(reintentoMs);
         return { ok: false, estado, error: e };
       } finally { enCurso = null; }
@@ -99,12 +99,12 @@ export function crearPreferencias({
     get estado() { return estado; },
     get ultimoError() { return ultimoError; },
     get pendientes() { return [...pend]; },
-    // Copia de las preferencias completas (para depurar y probar).
+    // Copy of the full preferences (for debugging and tests).
     snapshot() { return JSON.parse(JSON.stringify(p)); },
 
     get(clave, def) { return P.obtener(p, clave, def); },
 
-    // Fija un valor. Devuelve true si cambió. Con Drive conectado programa la subida (debounce); si no, queda en la caché.
+    // Sets a value. Returns true if it changed. With Drive connected it schedules the upload (debounce); otherwise it stays in the cache.
     set(clave, valor) {
       const n = P.poner(p, clave, valor, ahora());
       if (n === p) return false;
@@ -117,9 +117,9 @@ export function crearPreferencias({
     },
     remove(clave) { return api.set(clave, null); },
 
-    // Enlaza con el Drive del usuario y sincroniza. Conserva los cambios hechos antes de conectar (p. ej. el idioma elegido en la
-    // pantalla de inicio). No hay identidad de usuario: la caché se borra siempre al desconectar Drive. Siembra, con la marca
-    // más antigua, los valores de las claves antiguas de localStorage que aún no estén en las preferencias.
+    // Links with the user's Drive and synchronises. Keeps the changes made before connecting (e.g. the language chosen on the
+    // start screen). There is no user identity: the cache is always cleared when Drive is disconnected. Seeds, with the
+    // oldest timestamp, the values of the old localStorage keys that are not yet in the preferences.
     async conectar({ remoto: r }) {
       remoto = r;
       try {
@@ -129,13 +129,13 @@ export function crearPreferencias({
           const limpio = P.sanear(k, viejo[k]);
           if (limpio !== undefined && limpio !== null) p = { version: p.version, valores: { ...p.valores, [k]: limpio }, marcas: { ...p.marcas, [k]: 0 } };
         });
-      } catch (err) { console.warn('Migración de preferencias antiguas', err); }
+      } catch (err) { console.warn('Migration of old preferences', err); }
       guardarCache();
       setEstado(pend.size ? 'pendiente' : 'sincronizado');
       return sincronizar();
     },
 
-    // Al desconectar Drive: corta el enlace y (por defecto) olvida la caché local.
+    // When Drive is disconnected: cuts the link and (by default) forgets the local cache.
     desconectar({ borrar = true } = {}) {
       tmp.clear(timer);
       timer = null;
@@ -149,13 +149,13 @@ export function crearPreferencias({
 
     sincronizar,
     flush() { return sincronizar(); },
-    // Para enganchar al evento 'online' del navegador.
+    // To hook into the browser's 'online' event.
     volverLaRed() { if (remoto && (pend.size || estado === 'offline' || estado === 'error')) return sincronizar(); return Promise.resolve({ ok: true, estado }); },
 
     on(fn) { oyentes.add(fn); return () => oyentes.delete(fn); },
 
-    // Adaptador {getItem, setItem, removeItem} sobre un prefijo de claves, para código que espera un "storage"
-    // (p. ej. el mapa de sincronización de Google Calendar). Los valores se guardan como JSON ya analizado.
+    // Adapter {getItem, setItem, removeItem} over a key prefix, for code that expects a "storage"
+    // (e.g. the Google Calendar sync map). Values are stored as already-parsed JSON.
     comoAlmacenamiento(prefijo) {
       return {
         getItem: (k) => { const v = api.get(prefijo + k, undefined); return v === undefined ? null : JSON.stringify(v); },

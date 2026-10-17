@@ -1,9 +1,9 @@
-// Google Drive API v3 con el ÚNICO scope drive.file (la app sólo ve los ficheros que ella misma crea).
-// Todo vive en la carpeta 'cnl' del Drive del usuario:
-//   cnl/<NombreClub>.json   datos del club ({version, club, hojas}) - uno por club
-//   cnl/preferencias.json   preferencias del usuario
-//   cnl/entrenos/           PDFs de entrenamientos (y copias .xlsx en cnl/)
-// Si el usuario ya tenía una carpeta 'cnl' creada a mano, la app crea y usa la suya (drive.file no ve la otra).
+// Google Drive API v3 with the ONLY scope drive.file (the app only sees the files it creates itself).
+// Everything lives in the 'cnl' folder of the user's Drive:
+//   cnl/<NombreClub>.json   club data ({version, club, hojas}) - one per club
+//   cnl/preferencias.json   user preferences
+//   cnl/entrenos/           training PDFs (and .xlsx copies in cnl/)
+// If the user already had a hand-made 'cnl' folder, the app creates and uses its own (drive.file does not see the other one).
 import { driveConnection as auth } from './infrastructure/driveConnection.js';
 import { DRIVE_FOLDER, PREFS_FILE } from './config.js';
 import { clasificarErrorApi } from './domain/erroresGoogle.js';
@@ -16,7 +16,7 @@ const FILE_FIELDS = 'id,name,modifiedTime,md5Checksum,version';
 const BACKUPS = 'backups';
 const BACKUPS_DIARIOS = 14;
 const BACKUPS_IMPORT = 5;
-const folderIds = new Map(); // 'padre/nombre' -> id (caché de la sesión)
+const folderIds = new Map(); // 'parent/name' -> id (session cache)
 let prefsFileId = null;
 
 const q = (s) => String(s).replace(/\\/g, '\\\\').replace(/'/g, "\\'");
@@ -29,7 +29,7 @@ const net = {
   sleep: (ms) => new Promise((r) => { setTimeout(r, ms); }),
 };
 
-// Error con `status` HTTP, `code` estable (domain/erroresGoogle.js) o `offline` si no hay red.
+// Error with HTTP `status`, stable `code` (domain/erroresGoogle.js) or `offline` if there is no network.
 function httpError(status, body) {
   const c = clasificarErrorApi(status, body);
   let detail = '';
@@ -116,7 +116,7 @@ function multipart(meta, mimeType, contenido) {
   return { body, headers: { 'Content-Type': 'multipart/related; boundary=' + b } };
 }
 
-// Nombre de fichero seguro para Drive.
+// Safe file name for Drive.
 const safeName = (s) => String(s || 'club').replace(/[\\/:*?"<>|\u0000-\u001f]/g, '-').replace(/\s+/g, ' ').trim().slice(0, 120) || 'club';
 const jsonName = (name) => safeName(name) + '.json';
 
@@ -141,7 +141,7 @@ export const drive = {
   async ensureFolder(name = DRIVE_FOLDER, parentId = 'root') {
     const k = parentId + '/' + name;
     if (folderIds.has(k)) return folderIds.get(k);
-    // La carpeta raíz 'cnl' se busca en todo el Drive (con drive.file sólo se ven las creadas por la app; así se encuentra aunque el usuario la haya movido).
+    // The root 'cnl' folder is searched in the whole Drive (with drive.file only those created by the app are visible; so it is found even if the user moved it).
     const enPadre = parentId === 'root' ? '' : ` and '${q(parentId)}' in parents`;
     const query = `name='${q(name)}' and mimeType='${FOLDER_MIME}' and trashed=false${enPadre}`;
     const buscar = async () => {
@@ -167,14 +167,14 @@ export const drive = {
     return id;
   },
 
-  // ensureFolderPath(['entrenos']) -> id de cnl/entrenos (crea lo que falte dentro de 'cnl').
+  // ensureFolderPath(['entrenos']) -> id of cnl/entrenos (creates whatever is missing inside 'cnl').
   async ensureFolderPath(partes = []) {
     let id = await drive.ensureFolder(DRIVE_FOLDER);
     for (const p of partes) id = await drive.ensureFolder(p, id);
     return id;
   },
 
-  // Busca un fichero por nombre dentro de una carpeta -> {id,name,rev,modifiedTime}|null
+  // Looks for a file by name inside a folder -> {id,name,rev,modifiedTime}|null
   async findFile(name, parentId, { appProperty } = {}) {
     let query = `name='${q(name)}' and '${q(parentId)}' in parents and trashed=false`;
     if (appProperty) query += ` and appProperties has { key='${q(appProperty[0])}' and value='${q(appProperty[1])}' }`;
@@ -197,7 +197,7 @@ export const drive = {
     return out;
   },
 
-  // Crea o actualiza (si se da `id`) un fichero. contenido = string | Blob. -> {id,name,rev}
+  // Creates or updates (if `id` is given) a file. contenido = string | Blob. -> {id,name,rev}
   async upload({ name, mimeType = JSON_MIME, body, parentId, id, appProperties }) {
     if (id) {
       const r = await gfetch(`${UPLOAD}/files/${encodeURIComponent(id)}?uploadType=media&fields=${FILE_FIELDS}`, { method: 'PATCH', headers: { 'Content-Type': mimeType }, body });
@@ -218,7 +218,7 @@ export const drive = {
     return { version: ver(f) };
   },
 
-  // Manda el fichero a la papelera de Drive.
+  // Sends the file to the Drive trash.
   async deleteFile(id) {
     await jsonReq(`${API}/files/${encodeURIComponent(id)}?fields=id`, { trashed: true }, 'PATCH');
   },
@@ -233,12 +233,12 @@ export const drive = {
     const revs = await drive.revisiones(id);
     let n = 0;
     for (const r of revs.slice(0, -1)) {
-      try { await gfetch(`${API}/files/${encodeURIComponent(id)}/revisions/${encodeURIComponent(r.id)}`, { method: 'DELETE' }); n++; } catch (e) { /* no se puede borrar: se informa al usuario */ }
+      try { await gfetch(`${API}/files/${encodeURIComponent(id)}/revisions/${encodeURIComponent(r.id)}`, { method: 'DELETE' }); n++; } catch (e) { /* it cannot be deleted: the user is informed */ }
     }
     return n;
   },
 
-  // Clubes del usuario: los .json marcados como club dentro de 'cnl' (drive.file sólo ve los creados por la app).
+  // The user's clubs: the .json files marked as club inside 'cnl' (drive.file only sees those created by the app).
   // -> [{id, name, url, modified, rev}]
   async listClubs() {
     const fid = await drive.ensureFolder();
@@ -256,7 +256,7 @@ export const drive = {
       .sort((a, b) => a.name.localeCompare(b.name));
   },
 
-  // Crea el fichero del club en cnl/ (vacío: la app lo inicializa al abrirlo). -> {id, name, url, rev}
+  // Creates the club file in cnl/ (empty: the app initialises it when opening it). -> {id, name, url, rev}
   async createClub(nombre) {
     const fid = await drive.ensureFolder();
     let name = jsonName(nombre);
@@ -266,7 +266,7 @@ export const drive = {
     return { id: f.id, name: name.replace(/\.json$/i, ''), url: drive.fileUrl(f.id), rev: f.rev };
   },
 
-  // Renombra el fichero del club (sigue al nombre del club).
+  // Renames the club file (it follows the club name).
   async renameClub(id, nombre) { return drive.renameFile(id, jsonName(nombre)); },
 
   // Cheap metadata to detect changes from another device -> {rev, modifiedTime, name, version}
@@ -349,7 +349,7 @@ export const drive = {
     return JSON.parse(await r.text());
   },
 
-  // ---- Preferencias del usuario: cnl/preferencias.json ----
+  // ---- User preferences: cnl/preferencias.json ----
   async leerPreferencias() {
     const fid = await drive.ensureFolder();
     if (!prefsFileId) {
@@ -362,7 +362,7 @@ export const drive = {
       return JSON.parse(await r.text());
     } catch (e) {
       if (e.status === 404) { prefsFileId = null; return null; }
-      if (e instanceof SyntaxError) return null; // fichero corrupto: se reescribe
+      if (e instanceof SyntaxError) return null; // corrupt file: it is rewritten
       throw e;
     }
   },
@@ -380,7 +380,7 @@ export const drive = {
     prefsFileId = (await drive.upload({ name: PREFS_FILE, body, parentId: fid, appProperties: { cnl: 'prefs' } })).id;
   },
 
-  // Puerto remoto para el servicio de preferencias.
+  // Remote port for the preferences service.
   get preferencias() {
     return { leer: () => drive.leerPreferencias(), escribir: (o) => drive.guardarPreferencias(o) };
   },

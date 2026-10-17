@@ -1,9 +1,9 @@
-// Dominio de las preferencias del usuario: lógica PURA (sin DOM, red ni localStorage).
-// Forma del fichero cnl/preferencias.json de su Drive:
+// Domain of the user's preferences: PURE logic (no DOM, network or localStorage).
+// Shape of the cnl/preferencias.json file in their Drive:
 //   { version: 1, valores: { clave: valor }, marcas: { clave: marcaTiempoMs } }
-// Cada clave lleva su propia marca de tiempo: la fusión entre dispositivos es "gana la más reciente por clave",
-// de modo que dos dispositivos que cambian cosas distintas no se pisan. Un valor null es una lápida (borrado).
-// Las claves desconocidas (de una versión futura) se conservan al reescribir.
+// Each key carries its own timestamp: the merge between devices is "the most recent wins per key",
+// so two devices changing different things do not overwrite each other. A null value is a tombstone (deletion).
+// Unknown keys (from a future version) are kept when rewriting.
 
 export const VERSION = 1;
 export const IDIOMAS = ['es', 'en', 'it'];
@@ -20,14 +20,14 @@ export const CLAVES = {
   calVentana: 'calendario.ventanaDias',
   calAlarma: 'calendario.alarmaMin',
   tema: 'tema', // 'light' | 'dark' (absent = automatic, follows the system)
-  calSync: 'calSync.', // prefijo: calSync.<clave del mapa por club y usuario>
+  calSync: 'calSync.', // prefix: calSync.<key of the map per club and user>
 };
 
 const esObjeto = (x) => x !== null && typeof x === 'object' && !Array.isArray(x);
 const esTexto = (x) => typeof x === 'string' && x.length > 0 && x.length < 500;
 const entero = (x) => Number.isInteger(x);
 
-// Validadores por clave: devuelven el valor limpio o undefined si no vale (se ignora).
+// Per-key validators: they return the clean value or undefined if it is not valid (it is ignored).
 const SANEADORES = {
   idioma: (v) => (IDIOMAS.includes(v) ? v : undefined),
   tema: (v) => (v === 'light' || v === 'dark' ? v : undefined),
@@ -48,10 +48,10 @@ const SANEADORES = {
   'calendario.alarmaMin': (v) => (ALARMAS_CALENDARIO.includes(v) ? v : undefined),
 };
 
-// Valida un valor para una clave. Claves desconocidas: se aceptan tal cual (compatibilidad hacia delante),
-// salvo calSync.*, que debe ser {items:{}, ultima}.
+// Validates a value for a key. Unknown keys: accepted as they are (forward compatibility),
+// except calSync.*, which must be {items:{}, ultima}.
 export function sanear(clave, valor) {
-  if (valor === null) return null; // lápida
+  if (valor === null) return null; // tombstone
   if (SANEADORES[clave]) return SANEADORES[clave](valor);
   if (clave.startsWith(CLAVES.calSync)) return esObjeto(valor) && esObjeto(valor.items) ? { items: valor.items, ultima: valor.ultima || null } : undefined;
   return valor === undefined ? undefined : valor;
@@ -59,11 +59,11 @@ export function sanear(clave, valor) {
 
 export function vacias() { return { version: VERSION, valores: {}, marcas: {} }; }
 
-// Acepta cualquier cosa (fichero corrupto, versión futura...) y devuelve unas preferencias bien formadas.
+// Accepts anything (corrupt file, future version...) and returns well-formed preferences.
 export function normalizar(raw) {
   const out = vacias();
   if (!esObjeto(raw)) return out;
-  if (entero(raw.version) && raw.version >= 1) out.version = raw.version; // no se degrada una versión futura
+  if (entero(raw.version) && raw.version >= 1) out.version = raw.version; // a future version is not downgraded
   const valores = esObjeto(raw.valores) ? raw.valores : {};
   const marcas = esObjeto(raw.marcas) ? raw.marcas : {};
   Object.keys(valores).forEach((k) => {
@@ -82,7 +82,7 @@ export function obtener(p, clave, def) {
 
 const igualValor = (a, b) => JSON.stringify(a) === JSON.stringify(b);
 
-// Devuelve unas preferencias nuevas con la clave fijada, o la MISMA instancia si no hay cambio (o el valor no vale).
+// Returns new preferences with the key set, or the SAME instance if nothing changes (or the value is not valid).
 export function poner(p, clave, valor, ts) {
   const limpio = valor === undefined ? null : sanear(clave, valor);
   if (limpio === undefined) return p;
@@ -91,9 +91,9 @@ export function poner(p, clave, valor, ts) {
   return { version: p.version, valores: { ...p.valores, [clave]: limpio }, marcas: { ...p.marcas, [clave]: ts } };
 }
 
-// Fusión por clave: gana la marca más reciente; empate -> el remoto. Devuelve
-// {resultado, deLocal: [claves donde el resultado difiere del remoto (hay que subirlas)],
-//  deRemoto: [claves donde el resultado difiere de lo local (hay que aplicarlas)]}
+// Per-key merge: the most recent timestamp wins; tie -> the remote one. Returns
+// {resultado, deLocal: [keys where the result differs from the remote (they must be uploaded)],
+//  deRemoto: [keys where the result differs from the local one (they must be applied)]}
 export function fusionar(local, remoto) {
   const resultado = { version: Math.max(local.version, remoto.version), valores: {}, marcas: {} };
   const claves = new Set([...Object.keys(local.valores), ...Object.keys(remoto.valores)]);

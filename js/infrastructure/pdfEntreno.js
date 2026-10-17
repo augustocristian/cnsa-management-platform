@@ -79,7 +79,7 @@ function paleta(club) {
   return {
     primario: p, secundario: s, claro,
     textoPrimario: textoSobre(p), textoSecundario: textoSobre(s),
-    tenue: mezcla(p, [255, 255, 255], 0.8), // etiquetas sobre la banda
+    tenue: mezcla(p, [255, 255, 255], 0.8), // labels over the band
     linea: [190, 197, 208], gruesa: mezcla(s, [0, 0, 0], 0.15), zebra: [247, 249, 252], texto: [30, 36, 48], gris: [100, 108, 120],
   };
 }
@@ -234,7 +234,7 @@ function dibujarSesion(doc, lib, ficha, c, L, loc, tam, paginas) {
     { content: '', colSpan: 2 },
   ]];
 
-  const anchos = [21, 33, 24, 15, 22, 20, 0, 18, 17, 23, 0]; // ejercicio y notas se reparten el resto
+  const anchos = [21, 33, 24, 15, 22, 20, 0, 18, 17, 23, 0]; // exercise and notes share the rest
   const util = MM_PAGINA.w - 2 * MARGEN;
   const fijo = anchos.reduce((a, b) => a + b, 0);
   const libre = util - fijo;

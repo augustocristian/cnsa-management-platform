@@ -1,12 +1,12 @@
-// Dominio de las cargas de entrenamiento. PURO: sin DOM, store, red ni i18n.
-// Catálogo de contenidos (hoja TiposCarga), normalización de nombres, validación, siembra/migración
-// de datos antiguos, agregados semanales por contenido y evaluación de objetivos.
+// Domain of training loads. PURE: no DOM, store, network or i18n.
+// Content catalogue (TiposCarga sheet), name normalisation, validation, seeding/migration
+// of legacy data, weekly aggregates per content and goal evaluation.
 //
 // Convenciones:
-// - Los valores guardados van en español. Cargas.tipo guarda el NOMBRE del contenido (compatible con los datos
-//   antiguos y legible en Excel); la comparación es siempre por nombre normalizado (sin tildes ni mayúsculas).
-// - Los contenidos predefinidos tienen id estable `tc-<clave>`, así la siembra es idempotente aunque dos
-//   dispositivos de la misma persona abran el club a la vez (la fusión por id no duplica).
+// - Stored values are Spanish. Cargas.tipo stores the NAME of the content (compatible with legacy data
+//   and readable in Excel); comparison is always by normalised name (no accents, case-insensitive).
+// - Predefined contents have a stable id `tc-<clave>`, so seeding is idempotent even if two
+//   devices of the same person open the club at once (the merge by id does not duplicate).
 
 import { lunesDe as lunesDeIso, addDias, fechaValida } from './calendario.js';
 
@@ -16,11 +16,11 @@ export const DESCRIPCION_MAX = 240;
 export const COLOR_SIN_TIPO = '#9aa4b2';
 export const PREFIJO_ID = 'tc-';
 
-// Colores para contenidos nuevos (distintos de los predefinidos, legibles sobre blanco).
+// Colours for new contents (different from the predefined ones, readable on white).
 export const COLORES_PERSONALIZADOS = ['#6d4c9f', '#0b7285', '#a1887f', '#c2185b', '#5c7c1e', '#e07b00', '#3f6fb5', '#7a5c00'];
 
-// Catálogo predefinido. `nombre` y `descripcion` son el valor guardado (español); la vista los traduce
-// con las claves `tc.<clave>.nombre` / `tc.<clave>.desc`.
+// Predefined catalogue. `nombre` and `descripcion` are the stored value (Spanish); the view translates them
+// with the keys `tc.<clave>.nombre` / `tc.<clave>.desc`.
 export const CATALOGO_PREDEFINIDO = Object.freeze([
   { clave: 'aerobico-ligero', alias: ['AeL', 'Ae1'], nombre: 'Aeróbico ligero', categoria: 'intensidad', orden: 1, color: '#2e9e73',
     descripcion: 'Esfuerzo suave (<60-75 % de FC o Borg 4-5/10), duración larga, ideal para calentamiento y recuperación.' },
@@ -45,7 +45,7 @@ export const CATALOGO_PREDEFINIDO = Object.freeze([
 ].map((c) => Object.freeze({ ...c, id: PREFIJO_ID + c.clave })));
 
 // ---------- Utilidades ----------
-// Clave de comparación de nombres: sin tildes, sin mayúsculas, espacios colapsados y sin espacios junto a "/".
+// Name comparison key: no accents, lower case, collapsed spaces and no spaces around "/".
 export function normalizarNombre(s) {
   return String(s ?? '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase()
     .replace(/\s+/g, ' ').replace(/\s*\/\s*/g, '/').trim();
@@ -62,14 +62,14 @@ const aNumero = (v) => {
   const n = Number(String(v).replace(',', '.'));
   return Number.isFinite(n) ? n : NaN;
 };
-// Objetivo en metros: > 0 o null (sin objetivo). 0 equivale a "sin objetivo" como en el modelo antiguo.
+// Goal in metres: > 0 or null (no goal). 0 is equivalent to "no goal", as in the old model.
 const objetivo = (v) => { const n = aNumero(v); return n != null && Number.isFinite(n) && n > 0 ? n : null; };
 export const colorValido = (c) => /^#[0-9a-f]{6}$/i.test(String(c ?? '').trim());
 
-// ---------- Alias (abreviaturas con las que los entrenadores escriben el contenido: AeL, Tope, Pn...) ----------
+// ---------- Aliases (abbreviations coaches use to write the content: AeL, Tope, Pn...) ----------
 export const ALIAS_MAX = 8;
 export const ALIAS_LARGO_MAX = 24;
-// Texto "AeL, Ae1; Tope" | lista -> lista sin vacíos ni repetidos (por nombre normalizado).
+// Text "AeL, Ae1; Tope" | list -> list without empty or repeated items (by normalised name).
 export function parseAlias(v) {
   const lista = Array.isArray(v) ? v : String(v ?? '').split(/[,;|\n]/);
   const vistos = new Set();
@@ -81,7 +81,7 @@ export function parseAlias(v) {
   });
   return out;
 }
-// Alias por defecto de un predefinido (por id estable tc-<clave>).
+// Default aliases of a predefined content (by stable id tc-<clave>).
 export const aliasPredefinido = (id) => {
   const c = CATALOGO_PREDEFINIDO.find((x) => x.id === String(id));
   return c ? c.alias.slice() : [];
@@ -90,7 +90,7 @@ export const aliasPredefinido = (id) => {
 export const esPredefinido = (t) => !!t && !!t.predefinido;
 export const rangoCategoria = (c) => { const i = CATEGORIAS_TIPO.indexOf(c); return i < 0 ? CATEGORIAS_TIPO.length - 1 : i; };
 
-// Fila de la hoja -> objeto de dominio tipado.
+// Sheet row -> typed domain object.
 export function normalizarTipo(r) {
   const cat = CATEGORIAS_TIPO.includes(r.categoria) ? r.categoria : 'personalizado';
   const orden = aNumero(r.orden);
@@ -105,12 +105,12 @@ export function normalizarTipo(r) {
     predefinido: aBool(r.predefinido, false),
     min: objetivo(r.minSemanalM),
     max: objetivo(r.maxSemanalM),
-    // Un predefinido sin alias propios usa los de fábrica (así los clubes ya creados también los tienen).
+    // A predefined content without its own aliases uses the factory ones (so clubs created earlier get them too).
     alias: (() => { const a = parseAlias(r.alias); return a.length ? a : (aBool(r.predefinido, false) ? aliasPredefinido(r.id) : []); })(),
   };
 }
 
-// Objeto de dominio -> fila de la hoja (valores simples).
+// Domain object -> sheet row (plain values).
 export function filaTipo(t) {
   return {
     id: t.id, nombre: t.nombre, descripcion: t.descripcion || '', color: t.color, categoria: t.categoria,
@@ -120,13 +120,13 @@ export function filaTipo(t) {
   };
 }
 
-// Orden de presentación: categoría, orden y nombre.
+// Display order: category, order and name.
 export function ordenarTipos(tipos) {
   return tipos.slice().sort((a, b) => rangoCategoria(a.categoria) - rangoCategoria(b.categoria)
     || a.orden - b.orden || a.nombre.localeCompare(b.nombre, 'es'));
 }
 
-// [{categoria, tipos}] sólo con categorías no vacías, en orden.
+// [{categoria, tipos}] only with non-empty categories, in order.
 export function agruparPorCategoria(tipos) {
   const orden = ordenarTipos(tipos);
   return CATEGORIAS_TIPO.map((categoria) => ({ categoria, tipos: orden.filter((t) => t.categoria === categoria) }))
@@ -135,7 +135,7 @@ export function agruparPorCategoria(tipos) {
 
 export const filtrarActivos = (tipos) => tipos.filter((t) => t.activo);
 
-// Índice nombre normalizado -> tipo.
+// Index normalised name -> type.
 export function indicePorNombre(tipos) {
   const m = new Map();
   tipos.forEach((t) => { const k = normalizarNombre(t.nombre); if (k && !m.has(k)) m.set(k, t); });
@@ -155,9 +155,9 @@ export function siguienteColor(tipos) {
   return COLORES_PERSONALIZADOS[usados % COLORES_PERSONALIZADOS.length];
 }
 
-// ---------- Validación ----------
-// data: {nombre, descripcion, color, min, max} (min/max pueden venir como texto). existentes: tipos normalizados.
-// -> [{campo, codigo}] (vacío = válido). Los textos se traducen en la vista con `tc.err.<codigo>`.
+// ---------- Validation ----------
+// data: {nombre, descripcion, color, min, max} (min/max may come as text). existentes: normalised types.
+// -> [{campo, codigo}] (empty = valid). The texts are translated in the view with `tc.err.<codigo>`.
 export function validarTipo(data, existentes, { id = '' } = {}) {
   const errores = [];
   const nombre = String(data.nombre ?? '').trim();
@@ -185,9 +185,9 @@ export function validarTipo(data, existentes, { id = '' } = {}) {
   return errores;
 }
 
-// ---------- Siembra y migración ----------
-// Predefinidos que faltan (por id). Si ya hay un contenido con el mismo nombre normalizado y otro id
-// (p. ej. creado a mano en Excel) no se siembra: se respeta lo existente y se evita el duplicado.
+// ---------- Seeding and migration ----------
+// Missing predefined contents (by id). If a content with the same normalised name and another id already exists
+// (e.g. created by hand in Excel) it is not seeded: what exists is respected and the duplicate is avoided.
 export function sembrarCatalogo(existentes) {
   const ids = new Set(existentes.map((t) => t.id));
   const nombres = new Set(existentes.map((t) => normalizarNombre(t.nombre)));
@@ -195,12 +195,12 @@ export function sembrarCatalogo(existentes) {
     .map((c) => ({ id: c.id, nombre: c.nombre, descripcion: c.descripcion, color: c.color, categoria: c.categoria, orden: c.orden, activo: true, predefinido: true, min: null, max: null, alias: c.alias.slice() }));
 }
 
-// Migración de datos antiguos (idempotente):
-// - Cargas.tipo y ObjetivosCarga.tipo que no existen en el catálogo se conservan como contenidos personalizados
-//   ("heredados", con su nombre original). Los que coinciden por nombre (Piernas, Técnica) usan el predefinido.
-// - Los objetivos de ObjetivosCarga pasan a minSemanalM/maxSemanalM del contenido (sin pisar uno ya definido)
-//   y la fila antigua se elimina para no volver a migrarla.
-// tipos: normalizados (los objetos recibidos se modifican); cargas/objetivos: filas crudas. -> {crear:[tipo], actualizar:[tipo], eliminarObjetivos:[id]}
+// Migration of legacy data (idempotent):
+// - Cargas.tipo and ObjetivosCarga.tipo that do not exist in the catalogue are kept as custom contents
+//   ("heredados" = inherited, with their original name). Those matching by name (Piernas, Técnica) use the predefined one.
+// - The goals of ObjetivosCarga move to minSemanalM/maxSemanalM of the content (without overwriting one already set)
+//   and the old row is removed so it is not migrated again.
+// tipos: normalised (the received objects are modified); cargas/objetivos: raw rows. -> {crear:[tipo], actualizar:[tipo], eliminarObjetivos:[id]}
 export function migrarHeredados({ tipos, cargas = [], objetivos = [], generarId }) {
   const todos = tipos.slice();
   const porNombre = indicePorNombre(todos);
@@ -234,23 +234,23 @@ export function migrarHeredados({ tipos, cargas = [], objetivos = [], generarId 
   return { crear, actualizar: [...actualizar.values()], eliminarObjetivos };
 }
 
-// Siembra + migración en un paso (lo que se ejecuta al abrir un club).
-// -> {crear:[tipo], actualizar:[tipo], eliminarObjetivos:[id]}; todo vacío = nada que hacer.
+// Seeding + migration in one step (what runs when a club is opened).
+// -> {crear:[tipo], actualizar:[tipo], eliminarObjetivos:[id]}; everything empty = nothing to do.
 export function prepararCatalogo({ tipos, cargas = [], objetivos = [], generarId }) {
   const sembrados = sembrarCatalogo(tipos);
   const mig = migrarHeredados({ tipos: tipos.map((t) => ({ ...t })).concat(sembrados), cargas, objetivos, generarId });
   return { crear: sembrados.concat(mig.crear), actualizar: mig.actualizar.filter((t) => !sembrados.includes(t)), eliminarObjetivos: mig.eliminarObjetivos };
 }
 
-// ---------- Fechas (semana de lunes a domingo) ----------
+// ---------- Dates (Monday-to-Sunday week) ----------
 export const fechaIso = (d) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 export function lunesDe(d) { const x = new Date(d); x.setHours(0, 0, 0, 0); x.setDate(x.getDate() - ((x.getDay() + 6) % 7)); return x; }
 export function rangoSemana(lunes) { const fin = new Date(lunes); fin.setDate(fin.getDate() + 6); return { desde: fechaIso(lunes), hasta: fechaIso(fin) }; }
 const diaDeSemana = (iso) => { const [y, m, d] = String(iso).slice(0, 10).split('-').map(Number); return (new Date(y, m - 1, d).getDay() + 6) % 7; };
 
 // ---------- Agregados ----------
-// Metros de la semana [desde, hasta] por contenido y por día. Sin nadadorId, los valores son la MEDIA por nadador
-// con carga registrada esa semana (así son comparables con los objetivos, que son por nadador). Con nadadorId, totales.
+// Metres of the week [desde, hasta] per content and per day. Without nadadorId, the values are the AVERAGE per swimmer
+// with a load recorded that week (so they are comparable with the goals, which are per swimmer). With nadadorId, totals.
 // -> { divisor, nadadores, total, metros: {tipoId: m}, sinClasificar, porDia: [7], porDiaTipo: [{tipoId|'': m} x 7] }
 export function agregarSemana({ cargas, tipos, desde, hasta, nadadorId = '' }) {
   const indice = indicePorNombre(tipos);
@@ -283,14 +283,14 @@ export function agregarSemana({ cargas, tipos, desde, hasta, nadadorId = '' }) {
 }
 
 // ---------- Objetivos ----------
-// -> {estado: 'sin-objetivo'|'ok'|'bajo'|'alto', diferencia} (diferencia > 0 = metros que faltan o que sobran).
+// -> {estado: 'sin-objetivo'|'ok'|'bajo'|'alto', diferencia} (diferencia > 0 = metres missing or in excess).
 export function evaluarObjetivo(valor, min, max) {
   if (max && valor > max) return { estado: 'alto', diferencia: valor - max };
   if (min && valor < min) return { estado: 'bajo', diferencia: min - valor };
   return { estado: min || max ? 'ok' : 'sin-objetivo', diferencia: 0 };
 }
 
-// Evaluación de todos los contenidos activos con objetivo -> [{tipo, metros, min, max, estado, diferencia}] en orden.
+// Evaluation of all active contents with a goal -> [{tipo, metros, min, max, estado, diferencia}] in order.
 export function evaluarSemana(agregado, tipos) {
   return ordenarTipos(tipos).filter((t) => t.activo && (t.min || t.max)).map((tipo) => {
     const metros = agregado.metros[tipo.id] || 0;
@@ -298,13 +298,13 @@ export function evaluarSemana(agregado, tipos) {
   });
 }
 
-// Objetivo total semanal por nadador (suma de los contenidos activos) para la línea del gráfico semanal.
+// Total weekly goal per swimmer (sum of the active contents) for the weekly chart line.
 export function objetivoTotal(tipos) {
   const act = filtrarActivos(tipos);
   return { min: act.reduce((a, t) => a + (t.min || 0), 0), max: act.reduce((a, t) => a + (t.max || 0), 0) };
 }
 
-// Contenidos a mostrar en un gráfico: los activos más los inactivos con metros esa semana.
+// Contents to show in a chart: the active ones plus the inactive ones with metres that week.
 export function tiposVisibles(agregado, tipos) {
   return ordenarTipos(tipos).filter((t) => t.activo || (agregado.metros[t.id] || 0) > 0);
 }

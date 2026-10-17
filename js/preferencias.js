@@ -1,12 +1,12 @@
-// Instancia única de las preferencias del usuario (ver application/preferenciasService.js).
-// Fuente de verdad: cnl/preferencias.json en su Drive. localStorage ('cnl:prefs') sólo es caché/espejo.
+// Single instance of the user's preferences (see application/preferenciasService.js).
+// Source of truth: cnl/preferencias.json in their Drive. localStorage ('cnl:prefs') is only a cache/mirror.
 import { crearPreferencias } from './application/preferenciasService.js';
 import { CLAVES } from './domain/preferencias.js';
 
 const lsGet = (k) => { try { return localStorage.getItem(k); } catch (e) { return null; } };
 const parse = (s) => { try { return JSON.parse(s); } catch (e) { return undefined; } };
 
-// Claves antiguas de localStorage que se migran a las preferencias la primera vez (con la marca más antigua).
+// Old localStorage keys that are migrated to the preferences the first time (with the oldest timestamp).
 function legado() {
   const out = {};
   const lang = lsGet('cnl:lang');
@@ -28,9 +28,9 @@ export const preferencias = crearPreferencias({ legado });
 
 try {
   window.addEventListener('online', () => { preferencias.volverLaRed(); });
-  // Al ocultar la pestaña se intenta subir lo pendiente (el debounce podría no llegar a dispararse).
+  // When the tab is hidden, pending changes are uploaded (the debounce might never fire).
   document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'hidden' && preferencias.pendientes.length) preferencias.flush(); });
-} catch (e) { /* entorno sin DOM */ }
+} catch (e) { /* environment without DOM */ }
 
 export default preferencias;
 export { CLAVES };

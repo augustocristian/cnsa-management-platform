@@ -1,4 +1,4 @@
-// Servidor estático mínimo para pruebas e2e y desarrollo: node scripts/serve.mjs [puerto]
+// Minimal static server for e2e tests and development: node scripts/serve.mjs [port]
 import { createServer } from 'node:http';
 import { readFile } from 'node:fs/promises';
 import { extname, join, normalize } from 'node:path';

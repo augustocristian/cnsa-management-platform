@@ -1,4 +1,4 @@
-// Iconos SVG lineales (viewBox 24, trazo 1.75, currentColor), dibujados a mano. Sin dependencias.
+// Line SVG icons (viewBox 24, stroke 1.75, currentColor), hand drawn. No dependencies.
 const NS = 'http://www.w3.org/2000/svg';
 
 export const ICONS = {

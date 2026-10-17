@@ -1,4 +1,4 @@
-// Comprobación de sintaxis de todos los módulos JS.
+// Syntax check of all JS modules.
 import { readdirSync, statSync, readFileSync, writeFileSync, mkdtempSync } from 'node:fs';
 import { join } from 'node:path';
 import { tmpdir } from 'node:os';

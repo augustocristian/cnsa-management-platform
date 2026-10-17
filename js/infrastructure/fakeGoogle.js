@@ -1,27 +1,27 @@
-// HERRAMIENTA DE PRUEBAS. No forma parte del producto y el usuario nunca la ve.
+// TEST TOOL. It is not part of the product and the user never sees it.
 //
-// Adaptador en memoria que sustituye a Google (conexión con Drive + Drive) para poder probar la app sin cuenta real:
-// implementa las mismas interfaces que js/infrastructure/driveConnection.js y js/drive.js (conexión simulada, carpeta cnl,
-// ficheros de club, preferencias.json, subida de ficheros) con un "Drive" que vive en memoria y se espeja en localStorage
-// ('cnl:test:drive') sólo para sobrevivir a una recarga de página dentro de la misma prueba.
-// No hay usuario ni identidad: la conexión es sólo una autorización (bandera 'cnl:drive-auth', igual que la real).
+// In-memory adapter that replaces Google (Drive connection + Drive) so the app can be tested without a real account:
+// it implements the same interfaces as js/infrastructure/driveConnection.js and js/drive.js (simulated connection, cnl folder,
+// club files, preferencias.json, file upload) with a "Drive" that lives in memory and is mirrored in localStorage
+// ('cnl:test:drive') only to survive a page reload within the same test.
+// There is no user or identity: the connection is just an authorisation (flag 'cnl:drive-auth', like the real one).
 //
-// Activación (únicamente así):
-//   localStorage['cnl:test'] = '1'   o   window.__CNL_TEST__ = true | {opciones}
-// Opciones (objeto en window.__CNL_TEST__ o JSON en localStorage['cnl:test:opts']):
-//   conectado      true  -> arranca con Google Drive ya conectado (una sola vez por Drive simulado). Alias antiguo: sesion
-//   errorConexion  código de error ('popup-cerrado', 'acceso-denegado'...) que lanza connect() en modo interactivo. Alias: errorLogin
-//   demo           true  -> el Drive simulado ya contiene un club con datos de demostración (store.seedDemo). NO es el modo demo
-//                           del producto (js/infrastructure/demoStorage.js): es un Drive de pruebas con un club de ejemplo.
-//   club           nombre de ese club de demostración (por defecto "Club Natación Lugones")
-//   sinClientId    true  -> simula que js/config.js no tiene Client ID (pantalla "Configuración necesaria")
-//   fallos         { listarClubs: 'offline'|'api', escribir: ... }  errores forzados para pruebas de resiliencia
-// La opción antigua `usuario` ya no existe (no hay identidad) y se ignora.
+// Activation (only this way):
+//   localStorage['cnl:test'] = '1'   or   window.__CNL_TEST__ = true | {options}
+// Options (object in window.__CNL_TEST__ or JSON in localStorage['cnl:test:opts']):
+//   conectado      true  -> starts with Google Drive already connected (once per simulated Drive). Old alias: sesion
+//   errorConexion  error code ('popup-cerrado', 'acceso-denegado'...) that connect() throws in interactive mode. Alias: errorLogin
+//   demo           true  -> the simulated Drive already holds a club with demo data (store.seedDemo). It is NOT the product's demo
+//                           mode (js/infrastructure/demoStorage.js): it is a test Drive with a sample club.
+//   club           name of that demo club (default "Club Natación Lugones")
+//   sinClientId    true  -> simulates that js/config.js has no Client ID ("Configuración necesaria" screen)
+//   fallos         { listarClubs: 'offline'|'api', escribir: ... }  forced errors for resilience tests
+// The old option `usuario` no longer exists (there is no identity) and is ignored.
 //
 // It also simulates what the store uses to avoid losing data: the file's monotonic `version`, revision history,
 // the cnl/backups folder, permanent deletion and test hooks (escribirAntes, corromperClub, vaciarClub, caducarSesion).
 //
-// app.js lo carga con import() dinámico sólo si el indicador está activo; en producción este módulo no se descarga.
+// app.js loads it with a dynamic import() only when the flag is active; in production this module is not downloaded.
 
 const CLAVE_ESTADO = 'cnl:test:drive';
 const CLAVE_OPCIONES = 'cnl:test:opts';
@@ -39,7 +39,7 @@ function normalizarOpciones(o = {}) {
   };
 }
 
-// -> opciones normalizadas si el modo de pruebas está activo; null si no.
+// -> normalised options if test mode is active; null otherwise.
 export function leerOpciones(entorno = globalThis) {
   let ls = null;
   try { ls = entorno.localStorage || null; } catch (e) { ls = null; }
@@ -55,8 +55,8 @@ export function leerOpciones(entorno = globalThis) {
   return normalizarOpciones(o);
 }
 
-// Instala el adaptador sobre los singletons de conexión (`conexion`, antes `auth`) y `drive` (sustituye sus métodos).
-// Devuelve un objeto de inspección/control (también en window.__CNL_FAKE__).
+// Installs the adapter over the connection singletons (`conexion`, formerly `auth`) and `drive` (replaces their methods).
+// Returns an inspection/control object (also in window.__CNL_FAKE__).
 export function instalarFakeGoogle({ auth: authParam, conexion, drive, config, opciones, almacen } = {}) {
   const auth = conexion || authParam;
   const opts = normalizarOpciones(opciones);
@@ -64,7 +64,7 @@ export function instalarFakeGoogle({ auth: authParam, conexion, drive, config, o
   if (ls === undefined) { try { ls = globalThis.localStorage || null; } catch (e) { ls = null; } }
   let conectado = false; // simulated Drive connection (authorization only)
 
-  // ---- "Drive" en memoria ----
+  // ---- In-memory "Drive" ----
   let estado = null;
   try { estado = ls && JSON.parse(ls.getItem(CLAVE_ESTADO) || 'null'); } catch (e) { estado = null; }
   const estadoVacio = () => ({ clubs: {}, prefs: null, archivos: {}, carpetas: {}, seq: 0, yaConectado: false, demoSembrado: {} });
@@ -111,7 +111,7 @@ export function instalarFakeGoogle({ auth: authParam, conexion, drive, config, o
     return c;
   };
 
-  // ---- Drive simulado: misma interfaz que js/drive.js ----
+  // ---- Simulated Drive: same interface as js/drive.js ----
   const driveFalso = {
     fileUrl: (id) => 'https://drive.google.com/file/d/' + id + '/view',
     folderUrl: (id) => 'https://drive.google.com/drive/folders/' + id,
@@ -210,16 +210,16 @@ export function instalarFakeGoogle({ auth: authParam, conexion, drive, config, o
     },
     async leerPreferencias() { requiereSesion(); falla('preferencias'); return clon(estado.prefs); },
     async guardarPreferencias(obj) { requiereSesion(); falla('preferencias'); estado.prefs = clon(obj); persistir(); },
-    reset() { /* nada que olvidar */ },
+    reset() { /* nothing to forget */ },
   };
-  // Descriptores originales para poder desinstalar el adaptador (las pruebas lo instalan y lo quitan por test).
+  // Original descriptors so the adapter can be uninstalled (tests install and remove it per test).
   const originales = [];
   const guardar = (obj, claves) => claves.forEach((k) => originales.push([obj, k, Object.getOwnPropertyDescriptor(obj, k)]));
   guardar(drive, [...Object.keys(driveFalso), 'preferencias']);
   Object.assign(drive, driveFalso);
   Object.defineProperty(drive, 'preferencias', { get: () => ({ leer: () => drive.leerPreferencias(), escribir: (o) => drive.guardarPreferencias(o) }), configurable: true });
 
-  // ---- Conexión simulada: misma interfaz que js/infrastructure/driveConnection.js ----
+  // ---- Simulated connection: same interface as js/infrastructure/driveConnection.js ----
   const abrirConexion = () => {
     conectado = true;
     estado.yaConectado = true;
@@ -270,7 +270,7 @@ export function instalarFakeGoogle({ auth: authParam, conexion, drive, config, o
     },
     token: () => (conectado ? 'fake-token' : null),
     async ensureToken() { return conectado ? 'fake-token' : null; },
-    async tokenForScope() { return null; }, // Google Calendar no se simula
+    async tokenForScope() { return null; }, // Google Calendar is not simulated
     invalidate() {},
   });
 
@@ -293,11 +293,11 @@ export function instalarFakeGoogle({ auth: authParam, conexion, drive, config, o
     revisionesDe: (id) => (clubDe(id).revisiones || []).map(clon),
     // Simulates the Drive connection expiring (token not renewable without a click): every Drive call returns 401.
     caducarSesion() { sesionCaducada = true; if (auth.markExpired) auth.markExpired(); else auth.expired = true; },
-    // Simula otro dispositivo cambiando las preferencias.
+    // Simulates another device changing the preferences.
     editarPrefsExterno(fn) { const p = clon(estado.prefs) || { version: 1, valores: {}, marcas: {} }; fn(p); estado.prefs = p; persistir(); },
     // Connects Drive from the test side (no click needed).
     conectar: abrirConexion,
-    // Tras abrir un club: siembra los datos de demostración una sola vez (store.seedDemo).
+    // After opening a club: seeds the demo data once (store.seedDemo).
     despuesDeAbrirClub(store) {
       const ref = store.clubRef;
       if (!opts.demo || !ref || estado.demoSembrado[ref.id]) return false;
@@ -307,13 +307,13 @@ export function instalarFakeGoogle({ auth: authParam, conexion, drive, config, o
       store.seedDemo();
       return true;
     },
-    // Quita el adaptador: vuelven los métodos reales de la conexión y de drive.
+    // Removes the adapter: the real methods of the connection and of drive come back.
     desinstalar() {
       originales.reverse().forEach(([obj, k, d]) => { if (d) Object.defineProperty(obj, k, d); else delete obj[k]; });
       auth.expired = expiradoAntes;
       try { delete globalThis.__CNL_FAKE__; } catch (e) { /* ignorar */ }
     },
-    // Borra el Drive simulado (un Drive nuevo, sin nada).
+    // Deletes the simulated Drive (a new, empty Drive).
     vaciar() { estado = estadoVacio(); persistir(); },
   };
   try { globalThis.__CNL_FAKE__ = control; } catch (e) { /* ignorar */ }

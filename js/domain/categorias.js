@@ -1,17 +1,17 @@
-// Dominio puro de las categorías de natación: se calculan por año de nacimiento (y sexo) y por temporada.
-// Sin DOM, sin E/S y sin reloj: la fecha "de hoy" siempre llega por parámetro (o se deriva de una fecha dada).
+// Pure domain of swimming categories: computed from the year of birth (and sex) and the season.
+// No DOM, no I/O and no clock: "today" always arrives as a parameter (or is derived from a given date).
 //
-// Reglas (referencia RFEN; la temporada empieza el 1 de septiembre y se identifica por su año de inicio):
-//  - La categoría depende del año de nacimiento (no del mes) y de la temporada: edad = añoInicioTemporada - añoNacimiento.
-//  - Tabla por defecto (idéntica para F y M, editable por sexo): Pre-Benjamín 8; Benjamín 9-10; Alevín 11-12;
-//    Infantil 13-14; Junior 15-17; Absoluto 18 o más. En la temporada 2026-2027 eso da: 2018 / 2016-2017 / 2014-2015 /
-//    2012-2013 / 2009-2011 / 2008 y anteriores.
-//  - Master: no depende sólo del año: exige licencia máster Y una edad mínima (por defecto 25 años en la temporada).
-//  - Un nadador más joven que la tabla recibe Pre-Benjamín con aviso 'por-debajo-edad'.
-//  - Ninguna función lanza: ante datos inválidos devuelven "sin categoría" ('').
+// Rules (RFEN reference; the season starts on 1 September and is identified by its start year):
+//  - The category depends on the year of birth (not the month) and on the season: age = seasonStartYear - birthYear.
+//  - Default table (identical for F and M, editable per sex): Pre-Benjamín 8; Benjamín 9-10; Alevín 11-12;
+//    Infantil 13-14; Junior 15-17; Absoluto 18 or more. In season 2026-2027 that gives: 2018 / 2016-2017 / 2014-2015 /
+//    2012-2013 / 2009-2011 / 2008 and earlier.
+//  - Master: does not depend on the year only: it needs a master licence AND a minimum age (25 years in the season by default).
+//  - A swimmer younger than the table gets Pre-Benjamín with the warning 'por-debajo-edad' (below age).
+//  - No function throws: with invalid data they return "no category" ('').
 
 export const MASTER = 'Master';
-// Categorías que dependen de la edad, de menor a mayor (Master va aparte, después).
+// Age-dependent categories, from youngest to oldest (Master is separate, after them).
 export const CATEGORIAS_POR_EDAD = ['Pre-Benjamín', 'Benjamín', 'Alevín', 'Infantil', 'Junior', 'Absoluto'];
 export const CATEGORIAS_ORDEN = [...CATEGORIAS_POR_EDAD, MASTER];
 export const SEXOS = ['F', 'M'];
@@ -19,7 +19,7 @@ export const EDAD_MINIMA_MASTER = 25;
 export const MES_INICIO_TEMPORADA = 9; // septiembre
 const ANIO_MIN = 1900, ANIO_MAX = 2200;
 
-// Edades (años cumplidos en el año de inicio de temporada) por categoría: [mínima, máxima|null]. Absoluto es abierta por arriba.
+// Ages (completed years in the season start year) per category: [min, max|null]. Absoluto is open-ended.
 export const EDADES_POR_DEFECTO = Object.freeze({
   'Pre-Benjamín': [8, 8],
   'Benjamín': [9, 10],
@@ -36,10 +36,10 @@ const aEntero = (v) => {
   return Number.isInteger(n) ? n : null;
 };
 
-// ---------- Fechas y temporadas ----------
+// ---------- Dates and seasons ----------
 const pad = (n) => String(n).padStart(2, '0');
 
-// 'YYYY-MM-DD' (o con hora) o Date -> {y, m, d} si es una fecha real del calendario; si no, null.
+// 'YYYY-MM-DD' (or with a time) or Date -> {y, m, d} if it is a real calendar date; otherwise null.
 export function parseFecha(f) {
   let y, m, d;
   if (f instanceof Date) {
@@ -55,7 +55,7 @@ export function parseFecha(f) {
   return d <= dias ? { y, m, d } : null;
 }
 
-// Año de inicio de la temporada a la que pertenece una fecha (1 sep. -> 31 ago.), o null si la fecha no es válida.
+// Start year of the season a date belongs to (1 Sep -> 31 Aug), or null if the date is not valid.
 export function temporadaDe(fecha) {
   const p = parseFecha(fecha);
   return p ? (p.m >= MES_INICIO_TEMPORADA ? p.y : p.y - 1) : null;
@@ -88,7 +88,7 @@ export function limitesTemporada(anio) {
   return a === null ? null : { inicio: `${a}-${pad(MES_INICIO_TEMPORADA)}-01`, fin: `${a + 1}-08-31` };
 }
 
-// Años cumplidos a la fecha `hoy`; '' si alguna fecha no es válida.
+// Completed years at the date `hoy`; '' if any date is not valid.
 export function edadCumplida(fechaNacimiento, hoy) {
   const n = parseFecha(fechaNacimiento), h = parseFecha(hoy);
   if (!n || !h) return '';
@@ -97,7 +97,7 @@ export function edadCumplida(fechaNacimiento, hoy) {
   return e < 0 ? '' : e;
 }
 
-// ---------- Configuración (tabla de edades por sexo y edad mínima máster) ----------
+// ---------- Configuration (age table per sex and minimum master age) ----------
 export function sexoNormalizado(v) {
   const s = String(v ?? '').trim().toLowerCase();
   if (['f', 'fem', 'femenino', 'mujer', 'female', 'woman', 'w'].includes(s)) return 'F';
@@ -116,7 +116,7 @@ export function configPorDefecto() {
   return { edadMinimaMaster: EDAD_MINIMA_MASTER, edades: { F: copiaEdades(EDADES_POR_DEFECTO), M: copiaEdades(EDADES_POR_DEFECTO) } };
 }
 
-// Errores de una tabla de edades de un sexo: [{codigo, categoria}]. Debe ser contigua, creciente y abierta por arriba.
+// Errors of one sex's age table: [{codigo, categoria}]. It must be contiguous, increasing and open at the top.
 export function validarEdades(edades) {
   const errores = [];
   if (!edades || typeof edades !== 'object') return [{ codigo: 'tabla-invalida' }];
@@ -135,7 +135,7 @@ export function validarEdades(edades) {
   return errores;
 }
 
-// Errores de una configuración completa: [{codigo, sexo?, categoria?}]
+// Errors of a complete configuration: [{codigo, sexo?, categoria?}]
 export function validarConfig(config) {
   const errores = [];
   const c = config && typeof config === 'object' ? config : {};
@@ -145,8 +145,8 @@ export function validarConfig(config) {
   return errores;
 }
 
-// Acepta un objeto o un JSON (texto guardado en la configuración del club) y devuelve SIEMPRE una configuración válida:
-// lo que falta o es inválido se sustituye por los valores por defecto (por sexo, y la edad máster por separado).
+// Accepts an object or a JSON (text stored in the club configuration) and ALWAYS returns a valid configuration:
+// whatever is missing or invalid is replaced by the defaults (per sex, and the master age separately).
 export function normalizarConfig(raw) {
   let c = raw;
   if (typeof c === 'string') { try { c = JSON.parse(c); } catch (e) { c = null; } }
@@ -163,13 +163,13 @@ export function normalizarConfig(raw) {
   return base;
 }
 
-// ¿Dos sexos comparten la misma tabla?
+// Do two sexes share the same table?
 export const tablasIguales = (config) => JSON.stringify(config.edades.F) === JSON.stringify(config.edades.M);
 
-// ---------- Tabla de una temporada ----------
-// Filas [{categoria, desde, hasta, edadMin, edadMax, master?}] ordenadas; desde/hasta = años de nacimiento (desde = más antiguo,
-// null si no tiene límite por abajo, p. ej. Absoluto). La fila Master (master:true) usa sólo la edad mínima: hasta = año máximo.
-// sexo desconocido -> tabla de F (si F y M difieren no hay forma de saber; categoriaDe lo señala con 'sin-sexo').
+// ---------- Table of a season ----------
+// Rows [{categoria, desde, hasta, edadMin, edadMax, master?}] sorted; desde/hasta = birth years (desde = oldest,
+// null if there is no lower limit, e.g. Absoluto). The Master row (master:true) only uses the minimum age: hasta = maximum year.
+// unknown sex -> F table (if F and M differ there is no way to know; categoriaDe flags it with 'sin-sexo').
 export function tablaCategorias(temporada, { sexo = 'F', config } = {}) {
   const t = parseTemporada(temporada);
   if (t === null) return [];
@@ -183,15 +183,15 @@ export function tablaCategorias(temporada, { sexo = 'F', config } = {}) {
   return filas;
 }
 
-// Rango de años de nacimiento de una categoría en una temporada, o null si no existe.
+// Range of birth years of a category in a season, or null if it does not exist.
 export function rangoAnios(categoria, temporada, opciones) {
   const f = tablaCategorias(temporada, opciones).find((x) => x.categoria === categoria);
   return f ? { desde: f.desde, hasta: f.hasta, master: !!f.master, edadMin: f.edadMin, edadMax: f.edadMax } : null;
 }
 
-// ---------- Cálculo de la categoría ----------
+// ---------- Category calculation ----------
 // nadador: {fechaNacimiento, sexo, licenciaMaster}. -> {categoria, origen, avisos, edad, anioNacimiento, sexo}
-//  categoria '' = sin categoría (origen 'sin-fecha' | 'sin-temporada' | 'sin-sexo'); origen: 'edad' | 'master'.
+//  categoria '' = no category (origen 'sin-fecha' | 'sin-temporada' | 'sin-sexo'); origen: 'edad' | 'master'.
 //  avisos: 'por-debajo-edad' | 'master-edad-insuficiente'
 export function categoriaDe(nadador, temporada, config) {
   const vacio = (origen, extra) => ({ categoria: '', origen, avisos: [], edad: '', anioNacimiento: null, sexo: '', ...extra });
@@ -225,8 +225,8 @@ export function categoriaDe(nadador, temporada, config) {
   }
 }
 
-// Categoría que manda para un nadador: la manual si está escrita; si no, la calculada.
-// -> {categoria, manual, ...resultado de categoriaDe}
+// Category that applies to a swimmer: the manual one if set; otherwise the calculated one.
+// -> {categoria, manual, ...result of categoriaDe}
 export function categoriaVigente(nadador, temporada, config) {
   const calc = categoriaDe(nadador, temporada, config);
   const manual = String((nadador && nadador.categoriaManual) ?? '').trim();
@@ -237,8 +237,8 @@ export const ordenCategoria = (c) => { const i = CATEGORIAS_ORDEN.indexOf(c); re
 
 const nombreDe = (n) => `${n.nombre || ''} ${n.apellidos || ''}`.trim();
 
-// Quién cambia de categoría al pasar de la temporada `de` a la `a`. Los nadadores con categoría manual no cambian y se omiten.
-// -> [{id, nombre, apellidos, de, a, sube}] ordenado por categoría de destino y apellidos.
+// Who changes category when going from season `de` to `a`. Swimmers with a manual category do not change and are skipped.
+// -> [{id, nombre, apellidos, de, a, sube}] sorted by target category and surnames.
 export function cambiosDeTemporada(nadadores, de, a, config) {
   const lista = Array.isArray(nadadores) ? nadadores : [];
   if (parseTemporada(de) === null || parseTemporada(a) === null) return [];

@@ -7,7 +7,7 @@ export const DOMINIO_UID = 'cnl-plataforma';
 export const PRODID = '-//CNL Plataforma//Calendario//ES';
 export const DURACION_DEFECTO_MIN = 60;
 
-// Etiquetas por defecto (español). La capa de aplicación pasa las traducidas.
+// Default labels (Spanish). The application layer passes the translated ones.
 export const ETQ_DEFECTO = {
   calle: (n) => `Calle ${n}`,
   piscina: (p) => `Piscina ${p} m`,
@@ -20,7 +20,7 @@ export const ETQ_DEFECTO = {
 const pad2 = (n) => String(n).padStart(2, '0');
 const str = (v) => (v === undefined || v === null ? '' : String(v));
 
-// ---------- Fechas ----------
+// ---------- Dates ----------
 export function parseFecha(s) {
   const m = /^(\d{4})-(\d{2})-(\d{2})/.exec(str(s).trim());
   if (!m) return null;
@@ -51,10 +51,10 @@ export function addMeses(f, n) {
 }
 export const fechaDeDate = (d) => `${d.getFullYear()}-${pad2(d.getMonth() + 1)}-${pad2(d.getDate())}`;
 
-// Rangos predefinidos para exportar. -> {desde, hasta} (ambos incluidos)
+// Predefined ranges for export. -> {desde, hasta} (both inclusive)
 export function rangoPredefinido(tipo, hoy, cursor) {
   if (tipo === 'mes') { const c = cursor || hoy; return { desde: inicioMes(c), hasta: finMes(c) }; }
-  if (tipo === 'temporada') { // temporada de natación: 1 sep - 31 ago
+  if (tipo === 'temporada') { // swimming season: 1 Sep - 31 Aug
     const p = parseFecha(hoy);
     const y = p.m >= 9 ? p.y : p.y - 1;
     return { desde: `${y}-09-01`, hasta: `${y + 1}-08-31` };
@@ -64,7 +64,7 @@ export function rangoPredefinido(tipo, hoy, cursor) {
 }
 
 export function parseHora(h) {
-  if (typeof h === 'number') return h >= 0 && h < 1 ? Math.round(h * 1440) : null; // Sheets puede devolver fracción de día
+  if (typeof h === 'number') return h >= 0 && h < 1 ? Math.round(h * 1440) : null; // Sheets may return a fraction of a day
   const m = /^(\d{1,2}):(\d{2})/.exec(str(h).trim());
   if (!m) return null;
   const hh = +m[1], mm = +m[2];
@@ -74,7 +74,7 @@ export const horaStr = (min) => `${pad2(Math.floor(min / 60) % 24)}:${pad2(min %
 const norm = (s) => str(s).normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().trim().replace(/\s+/g, ' ');
 const numOr = (v, d) => { const n = Number(v); return v !== '' && isFinite(n) ? n : d; };
 
-// Fin de un evento (fecha + hora local) -> {fecha, hora}
+// End of an event (date + local time) -> {fecha, hora}
 export const duracionEvento = (ev) => (numOr(ev.duracionMin, DURACION_DEFECTO_MIN) > 0 ? numOr(ev.duracionMin, DURACION_DEFECTO_MIN) : DURACION_DEFECTO_MIN);
 export function finEvento(ev) {
   const ini = parseHora(ev.hora);
@@ -83,9 +83,9 @@ export function finEvento(ev) {
   return { fecha: addDias(ev.fecha, Math.floor(total / 1440)), hora: horaStr(total % 1440) };
 }
 
-// ---------- Fuentes de eventos ----------
-// Una fuente es {id, genera(datos, rango, etq) -> evento[]}. Nuevas funciones (p. ej. Planificación de piscina)
-// se añaden con registrarFuente() o pasando su propia lista a eventosEnRango().
+// ---------- Event sources ----------
+// A source is {id, genera(datos, rango, etq) -> evento[]}. New sources (e.g. pool planning)
+// are added with registrarFuente() or by passing their own list to eventosEnRango().
 // Evento: {id, origen, fecha, hora, duracionMin, titulo, grupoId, grupoNombre, piscina, piscinaNombre, calle, enfoque,
 //          volumenMin, volumenMax, descripcion, estado}
 const enRango = (f, r) => f >= r.desde && f <= r.hasta;
@@ -105,16 +105,16 @@ export function eventosDeSesiones(datos, rango) {
   }).filter(Boolean);
 }
 
-// AsignacionesCalle (hoja de Planificación de piscina): id, piscinaId, dia (1 = lunes ... 7), fecha (opcional),
+// AsignacionesCalle (pool-planning sheet): id, piscinaId, dia (1 = Monday ... 7), fecha (optional),
 // horaInicio, horaFin, calleDesde, calleHasta, grupoId, entrenadorId, notas.
-//  - Sin fecha: asignación SEMANAL -> se expande a cada fecha del rango que cae en ese día de la semana.
-//  - Con fecha: excepción puntual -> una única ocurrencia; sustituye a la semanal del mismo grupo ese día.
-//  - Si ese día ya hay una sesión concreta (Entrenamientos) del mismo grupo, la sesión manda y la asignación no se duplica.
+//  - No fecha: WEEKLY assignment -> expanded to every date of the range that falls on that weekday.
+//  - With fecha: one-off exception -> a single occurrence; replaces the weekly one of the same group that day.
+//  - If that day already has a concrete session (Entrenamientos) of the same group, the session wins and the assignment is not duplicated.
 export function diaDeAsignacion(v) {
   const n = Number(str(v).trim());
   return Number.isInteger(n) && n >= 1 && n <= 7 ? n - 1 : null;
 }
-function rangoCalles(a) { // "3" o "3-4"
+function rangoCalles(a) { // "3" or "3-4"
   const d = str(a.calleDesde), h = str(a.calleHasta);
   return !h || d === h ? d || h : `${d}-${h}`;
 }
@@ -171,13 +171,13 @@ const cmpEv = (a, b) => (a.fecha + (a.hora || '00:00') + a.id).localeCompare(b.f
 // datos = {Entrenamientos, Grupos, AsignacionesCalle?...}; rango = {desde, hasta}
 export function eventosEnRango(datos, rango, { fuentes = FUENTES_EVENTOS, etq = ETQ_DEFECTO } = {}) {
   const todos = [];
-  fuentes.forEach((f) => { try { todos.push(...f.genera(datos, rango, etq)); } catch (e) { /* una fuente rota no tumba el calendario */ } });
+  fuentes.forEach((f) => { try { todos.push(...f.genera(datos, rango, etq)); } catch (e) { /* a broken source does not bring the calendar down */ } });
   const vistos = new Set();
   return todos.filter((e) => (vistos.has(e.id) ? false : vistos.add(e.id))).sort(cmpEv);
 }
 
-// filtros: {grupoIds: null|string[] (null = sin límite), piscina: ''|'25'|'50', incluirGenerales}
-// Las sesiones sin grupo (grupoId vacío) son para todo el club y se muestran siempre.
+// filtros: {grupoIds: null|string[] (null = no limit), piscina: ''|'25'|'50', incluirGenerales}
+// Sessions without a group (empty grupoId) are for the whole club and are always shown.
 export function filtrarEventos(eventos, { grupoIds = null, piscina = '' } = {}) {
   return eventos.filter((e) => {
     if (grupoIds && e.grupoId && !grupoIds.includes(e.grupoId)) return false;
@@ -199,7 +199,7 @@ export function colorGrupo(grupoId, grupos) {
   return { tono: TONOS_GRUPO[(i < 0 ? 0 : i) % TONOS_GRUPO.length] };
 }
 
-// ---------- Zonas horarias (sin base de datos tz: se deduce con Intl) ----------
+// ---------- Time zones (no tz database: deduced with Intl) ----------
 const dtfCache = new Map();
 function dtf(zona) {
   if (!dtfCache.has(zona)) {
@@ -215,7 +215,7 @@ export function zonaValida(zona) {
 }
 export const zonaOrDefecto = (z) => (zonaValida(str(z).trim()) ? str(z).trim() : TZ_DEFECTO);
 
-// Desfase (minutos al este de UTC) de una zona en un instante.
+// Offset (minutes east of UTC) of a zone at a given instant.
 export function offsetMin(zona, utcMs) {
   const parts = dtf(zona).formatToParts(new Date(utcMs));
   const g = (t) => Number(parts.find((p) => p.type === t).value);
@@ -259,7 +259,7 @@ export function resolverHoraLocal(zona, fecha, hora) {
   return { estado, ms, offsetMin: off, fecha: f, hora: `${pad2(real.getUTCHours())}:${pad2(real.getUTCMinutes())}` };
 }
 
-// Cambios de desfase entre dos fechas (inclusive): [{ms, de, a}] con precisión de minuto.
+// Offset changes between two dates (inclusive): [{ms, de, a}] with minute precision.
 export function transiciones(zona, desde, hasta) {
   const ini = (aDias(desde) - 2) * 86400000, fin = (aDias(hasta) + 3) * 86400000;
   const out = [];
@@ -276,14 +276,14 @@ export function transiciones(zona, desde, hasta) {
   return out;
 }
 
-// Bloque VTIMEZONE (RFC 5545 §3.6.5) con las transiciones reales del rango (sin RRULE). -> string[] de líneas
+// VTIMEZONE block (RFC 5545 §3.6.5) with the real transitions of the range (no RRULE). -> string[] of lines
 export function generarVTimezone(zona, desde, hasta) {
   const trs = transiciones(zona, desde, hasta);
   const o0 = offsetMin(zona, (aDias(desde) - 2) * 86400000);
   const offsets = [o0, ...trs.map((x) => x.a)];
   const minOff = Math.min(...offsets);
   const tipo = (o) => (trs.length && o > minOff ? 'DAYLIGHT' : 'STANDARD');
-  const loc = (ms, off) => { // instante UTC -> hora local con el desfase indicado
+  const loc = (ms, off) => { // UTC instant -> local time with the given offset
     const d = new Date(ms + off * 60000);
     return `${d.getUTCFullYear()}${pad2(d.getUTCMonth() + 1)}${pad2(d.getUTCDate())}T${pad2(d.getUTCHours())}${pad2(d.getUTCMinutes())}00`;
   };
@@ -306,7 +306,7 @@ export function escaparTexto(s) {
     .replace(/\\/g, '\\\\').replace(/;/g, '\\;').replace(/,/g, '\\,').replace(/\r\n|\r|\n/g, '\\n');
 }
 
-// Plegado a 75 octetos UTF-8 por línea (sin partir caracteres); las continuaciones empiezan con un espacio.
+// Folding to 75 UTF-8 octets per line (without splitting characters); continuations start with a space.
 export function plegarLinea(linea) {
   const enc = new TextEncoder();
   if (enc.encode(linea).length <= 75) return linea;
@@ -355,8 +355,8 @@ function lineasInicioFin(zona, ev) {
   return [`DTSTART;TZID=${zona}:${localCompact(ini.fecha, ini.hora)}`, `DTEND;TZID=${zona}:${f}`];
 }
 
-// opciones: {nombreCalendario, zona, alarmaMin (0 = sin aviso), ahora: Date (REQUIRED, the caller's clock), secuencia, etq}
-// Con hora => DTSTART;TZID=<zona> y un VTIMEZONE generado; sin hora => evento de día completo (VALUE=DATE).
+// opciones: {nombreCalendario, zona, alarmaMin (0 = no alarm), ahora: Date (REQUIRED, the caller's clock), secuencia, etq}
+// With a time => DTSTART;TZID=<zona> and a generated VTIMEZONE; without a time => all-day event (VALUE=DATE).
 export function generarICS(eventos, { nombreCalendario = 'CNL', zona = TZ_DEFECTO, alarmaMin = 0, ahora, secuencia = 0, etq = ETQ_DEFECTO } = {}) {
   if (!(ahora instanceof Date) || Number.isNaN(ahora.getTime())) throw new TypeError('generarICS: "ahora" (Date) is required');
   zona = zonaOrDefecto(zona);
@@ -391,13 +391,13 @@ export function generarICS(eventos, { nombreCalendario = 'CNL', zona = TZ_DEFECT
   return l.map(plegarLinea).join('\r\n') + '\r\n';
 }
 
-// Nombre de fichero seguro: "CNL - Club Natación.ics" -> "cnl-club-natacion.ics"
+// Safe file name: "CNL - Club Natación.ics" -> "cnl-club-natacion.ics"
 export function nombreFicheroICS(club, sufijo = '') {
   const base = norm(club).replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '') || 'calendario';
   return `${base}${sufijo ? '-' + sufijo : ''}.ics`;
 }
 
-// ---------- Sincronización con Google Calendar ----------
+// ---------- Google Calendar synchronisation ----------
 // RFC 3339 dateTime for the Google API. Normal times stay as the plain wall time; a non-existent time is moved to the real
 // instant and an ambiguous one carries an explicit offset (first occurrence), so Google never has to guess.
 function dateTimeGoogle(zona, fecha, hora) {
@@ -432,7 +432,7 @@ export function aEventoGoogle(ev, { zona = TZ_DEFECTO, alarmaMin = 0, clubId = '
   return out;
 }
 
-// Huella estable (FNV-1a 32 bits) del cuerpo: si no cambia, no se llama a la API.
+// Stable fingerprint (32-bit FNV-1a) of the body: if it does not change, the API is not called.
 export function huella(obj) {
   const s = JSON.stringify(obj);
   let h = 0x811c9dc5;
@@ -440,8 +440,8 @@ export function huella(obj) {
   return (h >>> 0).toString(16) + ':' + s.length;
 }
 
-// deseados: [{id, fecha, cuerpo}]; mapa: {cnlId: {gid, huella, fecha}}; desde: sólo se borran los mapeados con fecha >= desde
-// (lo anterior ya pasó y se conserva). -> {crear[], actualizar[], borrar[], iguales}
+// deseados: [{id, fecha, cuerpo}]; mapa: {cnlId: {gid, huella, fecha}}; desde: only mapped events with fecha >= desde are deleted
+// (earlier ones are already past and are kept). -> {crear[], actualizar[], borrar[], iguales}
 export function diffSync(deseados, mapa = {}, desde = '') {
   const crear = [], actualizar = [], borrar = [];
   let iguales = 0;

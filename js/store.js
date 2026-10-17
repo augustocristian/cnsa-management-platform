@@ -114,7 +114,7 @@ function flushCache() {
   }, (e) => {
     cacheFallo = true;
     store.lastError = e;
-    console.warn('No se pudo guardar la caché local', e);
+    console.warn('Could not save the local cache', e);
     setStatus('error');
     emit({ type: 'cache-error', error: e });
   });
@@ -182,8 +182,8 @@ const errSoloLectura = () => Object.assign(new Error('Este club lo guardó una v
 const errProblema = () => Object.assign(new Error('El fichero del club en Drive necesita tu atención antes de poder guardar.'), { code: 'problema-fichero' });
 const guardaEscritura = () => { if (soloLectura) throw errSoloLectura(); };
 
-// Siembra el catálogo de contenidos de entrenamiento (TiposCarga) y migra datos antiguos (ver domain/cargas.js).
-// Idempotente: sólo añade los predefinidos que faltan y nunca pisa ediciones. Devuelve true si cambió algo.
+// Seeds the training-content catalogue (TiposCarga) and migrates legacy data (see domain/cargas.js).
+// Idempotent: only adds the missing predefined ones and never overwrites edits. Returns true if anything changed.
 function ensureCatalog() {
   const plan = prepararCatalogo({
     tipos: db.TiposCarga.map(normalizarTipo), cargas: db.Cargas, objetivos: db.ObjetivosCarga, generarId: () => 'tc-' + newId(),
@@ -314,7 +314,7 @@ async function renameIfNeeded() {
     const r = await puerto.renameClub(ref.id, nombre);
     ref.name = nombre;
     if (r && r.version) lastVersion = r.version; // renaming also bumps the file's `version`
-  } catch (e) { console.warn('No se pudo renombrar el fichero del club', e); }
+  } catch (e) { console.warn('Could not rename the club file', e); }
 }
 
 // Rotating daily backup cnl/backups/<club>-YYYYMMDD.json (last 14): made from the content in Drive BEFORE
@@ -324,7 +324,7 @@ const docVacio = (doc) => !doc || !doc.hojas
   || (Object.keys(doc.hojas).every((k) => k === 'TiposCarga' || !Array.isArray(doc.hojas[k]) || !doc.hojas[k].length) && Object.keys(doc.club || {}).every((k) => k === 'nombre'));
 async function respaldoDiario(docPrevio) {
   if (omitirRespaldo || !ref || docVacio(docPrevio) || respaldos.get(ref.id) === diaHoy()) return;
-  try { await puerto.backupClub(ref.name, docPrevio); respaldos.set(ref.id, diaHoy()); } catch (e) { console.warn('Copia de seguridad diaria no realizada', e); }
+  try { await puerto.backupClub(ref.name, docPrevio); respaldos.set(ref.id, diaHoy()); } catch (e) { console.warn('Daily backup not made', e); }
 }
 
 function ponerProblema(tipo, e) {
@@ -393,7 +393,7 @@ function conBloqueo(fn) {
 
 // One sync cycle: meta -> (read + merge) -> write -> check that nobody wrote in between.
 async function sincronizar(gen) {
-  const vivo = () => { if (gen !== syncGen) throw Object.assign(new Error('Sincronización obsoleta'), { obsoleta: true }); };
+  const vivo = () => { if (gen !== syncGen) throw Object.assign(new Error('Stale synchronisation'), { obsoleta: true }); };
   let merged = false;
   for (let vuelta = 0; ; vuelta++) {
     const m = await puerto.meta(ref.id);
@@ -859,7 +859,7 @@ export const store = {
     if (!problema) return false;
     const p = problema;
     const m = await puerto.meta(ref.id);
-    if (p.raw) { try { await puerto.backupClub(ref.name, { ficheroDanado: p.raw }, { etiqueta: 'danado' }); } catch (e) { console.warn('No se pudo guardar el fichero dañado', e); } }
+    if (p.raw) { try { await puerto.backupClub(ref.name, { ficheroDanado: p.raw }, { etiqueta: 'danado' }); } catch (e) { console.warn('Could not save the damaged file', e); } }
     if (accion === 'backup') {
       const lista = await puerto.listarBackups(ref.name);
       if (!lista.length) throw Object.assign(new Error('No hay copias de seguridad de este club en Drive.'), { code: 'sin-backups' });
@@ -882,7 +882,7 @@ export const store = {
   // Backups of this club in Drive, most recent first -> [{id, name}]
   listarBackups() { return puerto.listarBackups(ref.name); },
 
-  // Añade (sin tocar el resto) conflictos de ejemplo a la planificación de piscina: varios errores y avisos.
+  // Adds (without touching the rest) sample conflicts to the pool planning: several errors and warnings.
   seedPlanificacionConflictos() {
     const pis = db.Piscinas[0];
     if (!pis) return 0;
@@ -895,7 +895,7 @@ export const store = {
     return filas.length;
   },
 
-  // Reemplaza los datos por una demo del Club Natación Lugones. `hoy` (Date) = reloj de la demo: todas las fechas son relativas a él.
+  // Replaces the data with a demo of Club Natación Lugones. `hoy` (Date) = demo clock: all dates are relative to it.
   seedDemo({ hoy } = {}) {
     const d = buildDemo(hoy);
     db = d.db;
@@ -907,7 +907,7 @@ export const store = {
   },
 };
 
-// ---------- Datos demo ----------
+// ---------- Demo data ----------
 function buildDemo(hoyBase) {
   const reloj = () => (hoyBase instanceof Date && !Number.isNaN(hoyBase.getTime()) ? new Date(hoyBase) : new Date());
   let seed = 20251;
@@ -939,11 +939,11 @@ function buildDemo(hoyBase) {
   ];
   grupos.forEach((g) => out.Grupos.push({ id: g.id, nombre: g.nombre, categoria: g.categoria, entrenador: g.entrenador }));
 
-  // Nacimiento = año de la temporada actual (según el reloj) - edad en esa temporada: así cada nadador cae en la categoría
-  // indicada aunque pase el tiempo. La categoría NO se fija a mano: se calcula con las reglas de domain/categorias.js.
+  // Birth = year of the current season (per the clock) - age in that season: so each swimmer falls in the intended category
+  // even as time passes. The category is NOT set by hand: it is computed with the rules of domain/categorias.js.
   const temporadaDemoCat = temporadaDe(ymd(reloj()));
   const nad = [
-    // nombre, apellidos, edad en la temporada (año de inicio - año de nacimiento), mes-día, sexo, grupo, licencia máster
+    // name, surnames, age in the season (start year - birth year), month-day, sex, group, master licence
     ['Lucía', 'Fernández Roces', 8, '03-12', 'F', 'g1'], // Pre-Benjamín
     ['Martina', 'Suárez Cuesta', 10, '09-04', 'F', 'g1'], // Benjamín
     ['Pelayo', 'García Alonso', 9, '01-22', 'M', 'g1'], // Benjamín
@@ -954,8 +954,8 @@ function buildDemo(hoyBase) {
     ['Paula', 'González Mier', 17, '05-14', 'F', 'g3'], // Junior
     ['Marcos', 'Llano Bernardo', 15, '10-03', 'M', 'g3'], // Junior
     ['Claudia', 'Vigil Argüelles', 23, '04-19', 'F', 'g4'], // Absoluto
-    ['Daniel', 'Cueto Faes', 25, '12-01', 'M', 'g4'], // Absoluto (sin licencia máster)
-    ['Javier', 'Álvarez Tuñón', 42, '07-09', 'M', 'g4', true], // Master (con licencia máster)
+    ['Daniel', 'Cueto Faes', 25, '12-01', 'M', 'g4'], // Absoluto (without master licence)
+    ['Javier', 'Álvarez Tuñón', 42, '07-09', 'M', 'g4', true], // Master (with master licence)
   ];
   nad.forEach((n, i) => {
     const id = 'n' + pad(i + 1);
@@ -970,7 +970,7 @@ function buildDemo(hoyBase) {
   clubObj.temporadaActual = '';
   clubObj.temporadaAplicada = etiquetaTemporada(temporadaDemoCat);
 
-  // Catálogo de contenidos con objetivos semanales por nadador (metros) en los que se trabajan en la demo
+  // Content catalogue with weekly goals per swimmer (metres) for the contents worked on in the demo
   const obj = { 'aerobico-medio': [1500, 4000], 'aerobico-intenso': [800, 2500], 'anaerobico': [300, 1200], 'alactico': [400, 1500], 'piernas': [500, 1500], 'virajes': [500, 1500] };
   sembrarCatalogo([]).forEach((t) => {
     const clave = t.id.replace(/^tc-/, '');
@@ -978,7 +978,7 @@ function buildDemo(hoyBase) {
     out.TiposCarga.push(cleanRow('TiposCarga', filaTipo(t)));
   });
 
-  // Entrenamientos: de hace 3 semanas a la próxima semana
+  // Entrenamientos: from 3 weeks ago to next week
   const today = reloj(); today.setHours(0, 0, 0, 0);
   const monday = addDays(today, -((today.getDay() + 6) % 7));
   const enfoques = ['Resistencia aeróbica', 'Velocidad y salidas', 'Técnica de viraje', 'Trabajo de piernas', 'Series mixtas', 'Fuerza en seco'];
@@ -1002,7 +1002,7 @@ function buildDemo(hoyBase) {
         });
         sesiones.push({ id, fecha: f, pasada, hoy: ymd(fecha) === ymd(today), g, vol, tipo: tipoDe[enfoque] });
         Object.assign(out.Entrenamientos[out.Entrenamientos.length - 1], { tipoSesion: '', materialDia: '', notasGenerales: '' });
-        if (!pasada) { // sesiones de hoy y próximas: plan detallado realista (ver domain/entreno.js)
+        if (!pasada) { // today's and upcoming sessions: realistic detailed plan (see domain/entreno.js)
           const plan = planDemo(ne, vol, g.dur);
           Object.assign(out.Entrenamientos[out.Entrenamientos.length - 1], { tipoSesion: plan.tipoSesion, materialDia: plan.materialDia, notasGenerales: plan.notasGenerales });
           plan.lineas.forEach((l, i) => out.EntrenoLineas.push(cleanRow('EntrenoLineas', { ...serializarLinea(l), id: 'el' + id + '-' + (i + 1), entrenamientoId: id })));
@@ -1011,14 +1011,14 @@ function buildDemo(hoyBase) {
     });
   }
 
-  // Asistencia y cargas
+  // Attendance (Asistencia) and loads (Cargas)
   let na = 0, nc = 0;
   sesiones.forEach((s) => {
     if (!s.pasada && !s.hoy) return;
     out.Nadadores.filter((n) => n.grupoId === s.g.id).forEach((n) => {
       const r = rnd();
       let estado = r < 0.84 ? 'presente' : r < 0.92 ? 'justificado' : 'ausente';
-      if (s.hoy && rnd() < 0.3) return; // hoy: algunos sin confirmar
+      if (s.hoy && rnd() < 0.3) return; // today: some unconfirmed
       out.Asistencia.push({ id: 'a' + (++na), entrenamientoId: s.id, nadadorId: n.id, estado, nota: estado === 'justificado' ? 'Avisa la familia' : '' });
       if (estado === 'presente' && s.pasada) {
         out.Cargas.push({
@@ -1030,27 +1030,27 @@ function buildDemo(hoyBase) {
     });
   });
 
-  // Marcas (tiempos en ms)
+  // Marks (times in ms)
   const pruebas = [['50 Libre', 28500], ['100 Libre', 62000], ['50 Espalda', 33000], ['100 Braza', 80000], ['50 Mariposa', 31000], ['200 Estilos', 150000]];
   const mult = { 'Pre-Benjamín': 1.45, 'Benjamín': 1.3, 'Alevín': 1.2, 'Infantil': 1.08, 'Junior': 1.0, 'Absoluto': 0.97, 'Master': 1.12 };
-  // Catálogo de bañadores del club: 2 de entrenamiento y 3 técnicos (fast skin) de competición.
+  // Club swimsuit catalogue: 2 training suits and 3 technical (fast skin) competition suits.
   [
     ['bn1', 'entrenamiento', 'Speedo', 'Endurance+'], ['bn2', 'entrenamiento', 'Arena', 'Solid'],
     ['bn3', 'competicion', 'Arena', 'Powerskin Carbon Core FX'], ['bn4', 'competicion', 'Speedo', 'Fastskin LZR Pure Intent'], ['bn5', 'competicion', 'Mizuno', 'GX Sonic V'],
   ].forEach(([id, tipo, marca, modelo]) => out.Banadores.push({ id, tipo, marca, modelo, activo: 'true', notas: '' }));
   const entreno = out.Banadores.filter((b) => b.tipo === 'entrenamiento');
   const tecnicos = out.Banadores.filter((b) => b.tipo === 'competicion');
-  // Cuatro competiciones y, como quinta opción, un test de control en entrenamiento (sin competición, bañador de entrenamiento).
+  // Four competitions and, as a fifth option, a control test in training (no competition, training suit).
   const comps = ['Trofeo Ciudad de Gijón', 'Campeonato Asturias', 'Copa Federación', 'Torneo Lugones', ''];
   let nm = 0;
   out.Nadadores.forEach((n) => {
     const ps = [0, 1, 2, 3, 4, 5].sort(() => rnd() - 0.5).slice(0, 3);
     ps.forEach((pi) => {
-      for (let k = 0; k < 2; k++) { // dos marcas: la reciente mejora la anterior
+      for (let k = 0; k < 2; k++) { // two marks: the recent one improves the previous one
         const fecha = addDays(today, -(k === 0 ? 20 + Math.floor(rnd() * 40) : 150 + Math.floor(rnd() * 120)));
         const base = pruebas[pi][1] * mult[n.categoria] * (n.sexo === 'F' ? 1.04 : 1) * (0.96 + rnd() * 0.08) * (k === 0 ? 1 : 1.04);
         const comp = pick(comps);
-        // Bañador coherente con la marca: técnico en competición, de entrenamiento en los tests; alguna marca sin bañador registrado.
+        // Suit consistent with the mark: technical in competition, training suit in tests; some mark without a recorded suit.
         const banador = nm % 7 === 6 ? null : (comp ? tecnicos : entreno)[nm % (comp ? tecnicos : entreno).length];
         out.Marcas.push({
           id: 'm' + (++nm), nadadorId: n.id, fecha: ymd(fecha), prueba: pruebas[pi][0], piscina: pi === 5 ? '50' : pick(['25', '50']),
@@ -1060,8 +1060,8 @@ function buildDemo(hoyBase) {
     });
   });
 
-  // Planificación de piscina: una piscina de 6 calles y asignaciones recurrentes coherentes con los grupos.
-  // Sin conflictos de error (sólo un aviso intencionado: sesión de refuerzo sin entrenador).
+  // Pool planning: a 6-lane pool and recurring assignments consistent with the groups.
+  // No error-level conflicts (only one intentional warning: a support session without a coach).
   const horario = JSON.stringify({ 1: { abre: '07:00', cierra: '22:00' }, 2: { abre: '07:00', cierra: '22:00' }, 3: { abre: '07:00', cierra: '22:00' }, 4: { abre: '07:00', cierra: '22:00' }, 5: { abre: '07:00', cierra: '22:00' }, 6: { abre: '09:00', cierra: '22:00' }, 7: null });
   out.Piscinas.push({ id: 'p1', nombre: 'Piscina Lugones', longitudM: 25, numCalles: 6, intervaloMin: 30, maxPorCalle: 8, horario });
   const calles = { g1: [1, 2], g2: [3, 4], g3: [1, 3], g4: [1, 4] };
@@ -1076,7 +1076,7 @@ function buildDemo(hoyBase) {
   }));
   out.AsignacionesCalle.push({ id: 'ac' + (++np), piscinaId: 'p1', dia: 6, fecha: '', horaInicio: '10:00', horaFin: '11:00', calleDesde: 5, calleHasta: 6, grupoId: 'g1', entrenadorId: '', notas: 'Refuerzo (falta asignar entrenador)' });
 
-  // Planificación de temporada: fases, semanas con volumen previsto y eventos (ver domain/temporada.js)
+  // Season planning: phases, weeks with planned volume and events (see domain/temporada.js)
   const demoTemp = temporadaDemo({ hoy: ymd(today), grupoId: 'g3', tipos: out.TiposCarga.map(normalizarTipo), desdeFecha: ymd(addDays(monday, -21)) });
   out.Temporadas.push(cleanRow('Temporadas', demoTemp.temporada));
   demoTemp.fases.forEach((f) => out.Fases.push(cleanRow('Fases', f)));

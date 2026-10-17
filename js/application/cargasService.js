@@ -1,6 +1,6 @@
-// Servicio de aplicación de las cargas de entrenamiento: orquesta el dominio y la persistencia.
-// El repositorio (list/get/upsert/remove, p. ej. el store) se inyecta: no importa store, DOM ni red,
-// así que se prueba con un repositorio en memoria.
+// Application service for training loads: orchestrates the domain and persistence.
+// The repository (list/get/upsert/remove, e.g. the store) is injected: it does not import the store, DOM or network,
+// so it is tested with an in-memory repository.
 import * as D from '../domain/cargas.js';
 import { renombrarEnComponentes } from '../domain/desglose.js';
 
@@ -20,7 +20,7 @@ export function crearCargasService(repo, { generarId = sinGenerador } = {}) {
     return repo.list(HOJA_CARGAS).filter((c) => D.normalizarNombre(c.tipo) === k);
   };
 
-  // Los planes de entreno (EntrenoLineas.componentes) guardan el NOMBRE del contenido: al renombrar o fusionar se actualizan.
+  // Training plans (EntrenoLineas.componentes) store the NAME of the content: when renaming or merging they are updated.
   const renombrarEnPlanes = (de, a) => repo.list('EntrenoLineas').forEach((l) => {
     const nuevo = renombrarEnComponentes(l.componentes, de, a);
     if (nuevo != null) repo.upsert('EntrenoLineas', { ...l, componentes: nuevo });
@@ -33,14 +33,14 @@ export function crearCargasService(repo, { generarId = sinGenerador } = {}) {
     tipo(id) { const r = repo.get(HOJA_TIPOS, id); return r ? D.normalizarTipo(r) : null; },
     resolver: (valor) => D.resolverTipo(valor, tipos()),
     usos: (id) => { const t = svc.tipo(id); return t ? cargasDe(t).length : 0; },
-    // Mapa id de contenido -> nº de cargas registradas con él.
+    // Map content id -> number of loads recorded with it.
     conteoUsos() {
       const cuenta = new Map();
       repo.list(HOJA_CARGAS).forEach((c) => { const k = D.normalizarNombre(c.tipo); cuenta.set(k, (cuenta.get(k) || 0) + 1); });
       return new Map(tipos().map((t) => [t.id, cuenta.get(D.normalizarNombre(t.nombre)) || 0]));
     },
 
-    // Siembra el catálogo predefinido que falte y migra datos antiguos. Idempotente. -> nº de filas tocadas.
+    // Seeds the missing predefined catalogue and migrates legacy data. Idempotent. -> number of rows touched.
     asegurarCatalogo() {
       const plan = D.prepararCatalogo({ tipos: tipos(), cargas: repo.list(HOJA_CARGAS), objetivos: repo.list(HOJA_OBJETIVOS), generarId });
       plan.crear.concat(plan.actualizar).forEach((t) => repo.upsert(HOJA_TIPOS, D.filaTipo(t)));
@@ -48,7 +48,7 @@ export function crearCargasService(repo, { generarId = sinGenerador } = {}) {
       return plan.crear.length + plan.actualizar.length + plan.eliminarObjetivos.length;
     },
 
-    // ----- Gestión de contenidos -----
+    // ----- Content management -----
     // data: {nombre, descripcion, color, min, max} -> {ok, tipo} | {ok:false, errores}
     crear(data) {
       const existentes = tipos();
@@ -64,8 +64,8 @@ export function crearCargasService(repo, { generarId = sinGenerador } = {}) {
       return { ok: true, tipo: D.normalizarTipo(repo.upsert(HOJA_TIPOS, fila)) };
     },
 
-    // Edita un contenido. Predefinido: sólo descripción, color y objetivos (el nombre se conserva).
-    // Renombrar uno personalizado actualiza las cargas que lo usan.
+    // Edits a content. Predefined: only description, colour and goals (the name is kept).
+    // Renaming a custom one updates the loads that use it.
     editar(id, data) {
       const actual = svc.tipo(id);
       if (!actual) return err('id', 'no-existe');
@@ -100,7 +100,7 @@ export function crearCargasService(repo, { generarId = sinGenerador } = {}) {
       return { ok: true, tipo: D.normalizarTipo(repo.upsert(HOJA_TIPOS, D.filaTipo({ ...t, activo: !!activo }))) };
     },
 
-    // Mueve un contenido `delta` posiciones (-1 arriba, +1 abajo) dentro de su categoría. -> {ok, movido}
+    // Moves a content `delta` positions (-1 up, +1 down) within its category. -> {ok, movido}
     mover(id, delta) {
       const t = svc.tipo(id);
       if (!t) return err('id', 'no-existe');
@@ -117,7 +117,7 @@ export function crearCargasService(repo, { generarId = sinGenerador } = {}) {
       return { ok: true, movido: true };
     },
 
-    // Borra un contenido personalizado sin cargas. Predefinidos y en uso: no. -> {ok} | {ok:false, motivo, usos?}
+    // Deletes a custom content without loads. Predefined and in-use ones: no. -> {ok} | {ok:false, motivo, usos?}
     borrar(id) {
       const t = svc.tipo(id);
       if (!t) return { ok: false, motivo: 'no-existe' };
@@ -128,7 +128,7 @@ export function crearCargasService(repo, { generarId = sinGenerador } = {}) {
       return { ok: true };
     },
 
-    // Reasigna las cargas del contenido personalizado `origenId` a `destinoId` y borra el origen. -> {ok, reasignadas}
+    // Reassigns the loads of the custom content `origenId` to `destinoId` and deletes the source. -> {ok, reasignadas}
     fusionar(origenId, destinoId) {
       const o = svc.tipo(origenId), d = svc.tipo(destinoId);
       if (!o || !d) return { ok: false, motivo: 'no-existe' };
@@ -176,10 +176,10 @@ export function crearCargasService(repo, { generarId = sinGenerador } = {}) {
     },
 
     // ----- Consultas -----
-    // Sesiones para vincular una carga: las más recientes primero.
+    // Sessions to link a load to: the most recent first.
     sesiones: () => repo.list('Entrenamientos').sort((a, b) => String(b.fecha).localeCompare(String(a.fecha)) || String(b.hora).localeCompare(String(a.hora))),
     cargas: () => repo.list(HOJA_CARGAS),
-    // Semana (lunes as 'YYYY-MM-DD' or a Date) -> {desde, hasta, agregado, evaluacion}. nadadorId vacío = media por nadador.
+    // Week (Monday as 'YYYY-MM-DD' or a Date) -> {desde, hasta, agregado, evaluacion}. Empty nadadorId = average per swimmer.
     semana(lunes, nadadorId = '') {
       const { desde, hasta } = typeof lunes === 'string' ? D.semanaDe(lunes) : D.rangoSemana(lunes);
       const t = tipos();

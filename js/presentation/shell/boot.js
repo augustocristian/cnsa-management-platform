@@ -186,7 +186,7 @@ async function abrirClub(rt, { ref, club }) {
 
 async function montarShell(rt) {
   const { store, auth } = rt;
-  try { (await import('../../application/categoriasService.js')).crearCategoriasService(store).alAbrirClub(); } catch (e) { console.warn('Categorías', e); } // season changed: recompute categories
+  try { (await import('../../application/categoriasService.js')).crearCategoriasService(store).alAbrirClub(); } catch (e) { console.warn('Categories', e); } // season changed: recompute categories
   try {
     renderShell(rt);
     if (!rt.iniciado) {

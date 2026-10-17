@@ -1,5 +1,5 @@
-// Clasificación PURA de los errores típicos de Google (autorización con GIS y REST de Drive) en códigos estables.
-// La interfaz traduce cada código con la clave i18n 'gerr.<codigo>' (y puede añadir ayuda: origen actual, enlaces).
+// PURE classification of typical Google errors (GIS authorisation and Drive REST) into stable codes.
+// The UI translates each code with the i18n key 'gerr.<codigo>' (and may add help: current origin, links).
 
 export const CODIGOS = [
   'popup-bloqueado', 'popup-cerrado', 'acceso-denegado', 'origen-no-autorizado', 'sin-gis', 'sin-conexion',
@@ -8,8 +8,8 @@ export const CODIGOS = [
 
 const texto = (x) => String((x && (x.message || x.error_description || x.error || x.type)) || x || '').toLowerCase();
 
-// Error del flujo de conexión con Google Drive (GIS, sólo autorización) -> código.
-// GIS entrega `type` ('popup_failed_to_open' | 'popup_closed' | 'unknown') en error_callback y `error` en la respuesta.
+// Error of the Google Drive connection flow (GIS, authorisation only) -> code.
+// GIS delivers `type` ('popup_failed_to_open' | 'popup_closed' | 'unknown') in error_callback and `error` in the response.
 export function clasificarErrorConexion(err) {
   const s = texto(err);
   const tipo = String((err && (err.type || err.code || err.error)) || '').toLowerCase();
@@ -26,8 +26,8 @@ export function clasificarErrorConexion(err) {
 // Deprecated alias (kept so views written before the sign-in removal keep working).
 export const clasificarErrorLogin = clasificarErrorConexion;
 
-// Respuesta HTTP de error de la API de Drive/Calendar -> {codigo, enlace?, servicio?}
-// `cuerpo` es el texto o el objeto JSON de la respuesta.
+// HTTP error response of the Drive/Calendar API -> {codigo, enlace?, servicio?}
+// `cuerpo` is the text or the JSON object of the response.
 export function clasificarErrorApi(status, cuerpo) {
   let j = cuerpo;
   if (typeof cuerpo === 'string') { try { j = JSON.parse(cuerpo); } catch (e) { j = null; } }

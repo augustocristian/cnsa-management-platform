@@ -1,11 +1,11 @@
-// Servicio de aplicación de las categorías: orquesta el dominio (js/domain/categorias.js) con la persistencia.
-// Recibe el repositorio por parámetro (list/upsert + club/setClub, p. ej. el store) y el reloj: no importa el store,
-// ni el DOM, ni fetch, así que se prueba con un repositorio en memoria.
+// Application service for categories: orchestrates the domain (js/domain/categorias.js) with persistence.
+// It receives the repository as a parameter (list/upsert + club/setClub, e.g. the store) and the clock: it does not import the store,
+// the DOM or fetch, so it is tested with an in-memory repository.
 //
-// Claves de la configuración del club que usa:
-//  - temporadaActual   '' (automática: la de la fecha de hoy) o '2026-2027' (fijada por el usuario)
-//  - temporadaAplicada última temporada para la que se recalcularon las categorías
-//  - categoriasConfig  JSON con {edadMinimaMaster, edades:{F:{...}, M:{...}}}; vacío = valores por defecto
+// Club configuration keys it uses:
+//  - temporadaActual   '' (automatic: the one of today's date) or '2026-2027' (set by the user)
+//  - temporadaAplicada last season for which the categories were recalculated
+//  - categoriasConfig  JSON with {edadMinimaMaster, edades:{F:{...}, M:{...}}}; empty = defaults
 import * as D from '../domain/categorias.js';
 import { fechaDeDate } from '../domain/calendario.js';
 
@@ -18,9 +18,9 @@ export function crearCategoriasService(repo, { ahora = () => new Date() } = {}) 
 
   const svc = {
     hoy: () => fechaDeDate(ahora()),
-    // Temporada de la fecha de hoy (año de inicio)
+    // Season of today's date (start year)
     temporadaHoy: () => D.temporadaDe(svc.hoy()),
-    // Temporada vigente: la fijada en la configuración o, si no hay, la de hoy.
+    // Current season: the one set in the configuration or, if none, today's.
     temporadaActual() {
       const fijada = D.parseTemporada(club().temporadaActual);
       return fijada === null ? svc.temporadaHoy() : fijada;
@@ -29,9 +29,9 @@ export function crearCategoriasService(repo, { ahora = () => new Date() } = {}) 
     etiqueta: (t = svc.temporadaActual()) => D.etiquetaTemporada(t),
     temporadaAplicada: () => D.parseTemporada(club().temporadaAplicada),
 
-    // ----- Configuración -----
+    // ----- Configuration -----
     config: () => D.normalizarConfig(club().categoriasConfig),
-    // -> {ok, errores?}. Guarda la tabla de edades por sexo y la edad mínima máster y recalcula las categorías.
+    // -> {ok, errores?}. Saves the age table per sex and the minimum master age and recalculates the categories.
     guardarConfig(cfg) {
       const errores = D.validarConfig(cfg);
       if (errores.length) return { ok: false, errores };
@@ -46,9 +46,9 @@ export function crearCategoriasService(repo, { ahora = () => new Date() } = {}) 
 
     // ----- Consultas -----
     tabla: (temporada = svc.temporadaActual(), sexo = 'F') => D.tablaCategorias(temporada, { sexo, config: svc.config() }),
-    // Categoría vigente de un nadador (manual si la tiene) en la temporada actual
+    // Current category of a swimmer (manual if set) in the current season
     vigente: (n, temporada = svc.temporadaActual()) => D.categoriaVigente(n, temporada, svc.config()),
-    // Vista previa en vivo del formulario: {categoria, manual, origen, avisos, rango:{desde,hasta,...}|null, temporada}
+    // Live preview of the form: {categoria, manual, origen, avisos, rango:{desde,hasta,...}|null, temporada}
     previsualizar(datos, temporada = svc.temporadaActual()) {
       const v = svc.vigente(datos || {}, temporada);
       const calc = D.categoriaDe(datos || {}, temporada, svc.config());
@@ -57,17 +57,17 @@ export function crearCategoriasService(repo, { ahora = () => new Date() } = {}) 
     },
 
     // ----- Escritura -----
-    // Fila de nadador con `categoria` materializada según las reglas (sin guardarla). Sin fecha válida ni categoría manual
-    // se conserva la categoría que tuviera.
+    // Swimmer row with `categoria` materialised according to the rules (without saving it). Without a valid date or manual category
+    // the category it already had is kept.
     conCategoria(fila, temporada = svc.temporadaActual()) {
       const v = svc.vigente(fila, temporada);
       return { ...fila, categoria: v.categoria || (v.origen === 'sin-fecha' || v.origen === 'sin-sexo' ? (fila.categoria || '') : '') };
     },
-    // Crea o edita un nadador (categoría incluida). -> fila guardada
+    // Creates or edits a swimmer (category included). -> saved row
     guardarNadador(fila) {
       return repo.upsert(HOJA_NADADORES, svc.conCategoria(fila));
     },
-    // Recalcula la categoría materializada de los nadadores que NO tienen categoría manual.
+    // Recalculates the materialised category of swimmers that do NOT have a manual category.
     // -> {temporada, etiqueta, total, cambios:[{id, nombre, de, a}], manuales, sinFecha}
     recalcular(temporada = svc.temporadaActual()) {
       const cfg = svc.config();
@@ -90,22 +90,22 @@ export function crearCategoriasService(repo, { ahora = () => new Date() } = {}) 
       guardarClub({ temporadaAplicada: D.etiquetaTemporada(temporada) });
       return { temporada, etiqueta: D.etiquetaTemporada(temporada), total: todos.length, cambios, manuales, sinFecha };
     },
-    // Al abrir el club: si la temporada vigente no es la última aplicada, recalcula. -> resumen | null
+    // When the club is opened: if the current season is not the last applied one, recalculates. -> summary | null
     alAbrirClub() {
       const t = svc.temporadaActual();
       if (t === null) return null;
       return svc.temporadaAplicada() === t ? null : svc.recalcular(t);
     },
 
-    // ----- Cambio de temporada -----
-    // Vista previa: quién cambia de categoría al pasar de la temporada actual a `destino`.
+    // ----- Season change -----
+    // Preview: who changes category when going from the current season to `destino`.
     previsualizarCambio(destino) {
       const a = D.parseTemporada(destino);
       if (a === null) return [];
       return D.cambiosDeTemporada(repo.list(HOJA_NADADORES), svc.temporadaActual(), a, svc.config());
     },
-    // destino: año/etiqueta de la nueva temporada o ''/null para volver a la automática (según la fecha de hoy).
-    // Si el destino coincide con la temporada de hoy queda como automática. -> resumen del recalculado
+    // destino: year/label of the new season or ''/null to go back to the automatic one (according to today's date).
+    // If the destination equals today's season it becomes automatic. -> summary of the recalculation
     cambiarTemporada(destino) {
       const a = D.parseTemporada(destino);
       guardarClub({ temporadaActual: a === null || a === svc.temporadaHoy() ? '' : D.etiquetaTemporada(a) });

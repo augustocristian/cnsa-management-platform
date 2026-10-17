@@ -1,6 +1,6 @@
 // Pool planning domain: pure logic (no DOM, no store, no fetch, no i18n, no clock).
-// Días de la semana: 1 = lunes ... 7 = domingo. Horas "HH:MM". Calles numeradas desde 1.
-// Los conflictos se devuelven como códigos + parámetros; la presentación los traduce.
+// Days of the week: 1 = Monday ... 7 = Sunday. Times "HH:MM". Lanes numbered from 1.
+// Conflicts are returned as codes + parameters; the presentation translates them.
 
 import { parseFecha, diaSemana, addDias, lunesDe as lunesDeCal } from './calendario.js';
 
@@ -14,11 +14,11 @@ export const TIPOS_CONFLICTO = {
   capacidad: 'aviso', 'sin-entrenador': 'aviso', 'grupo-inexistente': 'aviso', 'hueco-libre': 'info',
 };
 const RANGO_SEV = { error: 3, aviso: 2, info: 1 };
-export const PALETA = [210, 150, 28, 280, 350, 180, 55, 320, 100, 240]; // tonos HSL para colorear cursos
+export const PALETA = [210, 150, 28, 280, 350, 180, 55, 320, 100, 240]; // HSL hues to colour courses
 
-// ---------- Horas y fechas ----------
+// ---------- Times and dates ----------
 export function aMin(v) {
-  if (typeof v === 'number') return v >= 0 && v < 1 ? Math.round(v * 1440) : NaN; // Sheets puede devolver fracción de día
+  if (typeof v === 'number') return v >= 0 && v < 1 ? Math.round(v * 1440) : NaN; // Sheets may return a fraction of a day
   const m = /^(\d{1,2}):(\d{2})(?::\d{2})?$/.exec(String(v ?? '').trim());
   if (!m) return NaN;
   const h = Number(m[1]), mi = Number(m[2]);
@@ -38,13 +38,13 @@ export const sumarDias = (f, n) => (valida(f) ? addDias(String(f).slice(0, 10), 
 export const lunesDe = (f) => (valida(f) ? lunesDeCal(String(f).slice(0, 10)) : '');
 export const fechaDeDia = (lunes, dia) => sumarDias(lunes, dia - 1);
 
-// ---------- Normalización ----------
+// ---------- Normalisation ----------
 export function horarioPorDefecto(abre = '07:00', cierra = '22:00') {
   const h = {};
   DIAS.forEach((d) => { h[d] = d === 7 ? null : { abre, cierra }; });
   return h;
 }
-// raw: JSON (string) u objeto -> {1..7: {abre,cierra}|null}. Cualquier dato roto cae al horario por defecto.
+// raw: JSON (string) or object -> {1..7: {abre,cierra}|null}. Any broken data falls back to the default schedule.
 export function parseHorario(raw) {
   let o = raw;
   if (typeof raw === 'string') { try { o = raw.trim() ? JSON.parse(raw) : null; } catch (e) { o = null; } }
@@ -87,8 +87,8 @@ export function nadadoresPorGrupo(nadadores = []) {
   return m;
 }
 
-// ---------- Validación de piscina ----------
-// -> lista de códigos de error ([] = válida)
+// ---------- Pool validation ----------
+// -> list of error codes ([] = valid)
 export function validarPiscina(p) {
   const e = [];
   const n = normalizarPiscina(p);
@@ -114,7 +114,7 @@ export function validarPiscina(p) {
 export const solapan = (a1, a2, b1, b2) => a1 < b2 && b1 < a2; // intervalos [ini, fin)
 export const callesSolapan = (a, b) => a.calleDesde <= b.calleHasta && b.calleDesde <= a.calleHasta; // inclusivo
 
-// ¿Se dan las dos asignaciones el mismo día real? (recurrente + recurrente, recurrente + fecha, misma fecha)
+// Do the two assignments fall on the same real day? (recurring + recurring, recurring + date, same date)
 export function mismoDia(a, b) {
   if (a.dia !== b.dia) return false;
   return !a.fecha || !b.fecha || a.fecha === b.fecha;
@@ -122,7 +122,7 @@ export function mismoDia(a, b) {
 const tiempoValido = (a) => !isNaN(a.ini) && !isNaN(a.fin) && a.fin > a.ini;
 export const coinciden = (a, b) => tiempoValido(a) && tiempoValido(b) && mismoDia(a, b) && solapan(a.ini, a.fin, b.ini, b.fin);
 
-// ---------- Detección de conflictos ----------
+// ---------- Conflict detection ----------
 function contexto({ piscinas = [], asignaciones = [], grupos = [], nadadores = [] }) {
   return {
     ps: new Map(piscinas.map(normalizarPiscina).map((p) => [p.id, p])),
@@ -181,7 +181,7 @@ function conflictosPareja(a, b, cx, out) {
   if (a.entrenadorId && claveEnt(a.entrenadorId) === claveEnt(b.entrenadorId)) out.push(conflicto('entrenador-doble', a, { ...ex, entrenador: a.entrenadorId }, [b]));
 }
 
-// Huecos libres (info): por piscina y día, sólo con asignaciones recurrentes; calles contiguas con el mismo hueco se agrupan.
+// Free gaps (info): per pool and day, only with recurring assignments; contiguous lanes with the same gap are grouped.
 export function huecosLibres(piscina, asignaciones) {
   const p = normalizarPiscina(piscina);
   const as = asignaciones.map((x) => (x.ini === undefined ? normalizarAsignacion(x) : x)).filter((a) => a.piscinaId === p.id && !a.fecha && tiempoValido(a));
@@ -200,7 +200,7 @@ export function huecosLibres(piscina, asignaciones) {
       if (cur < cierra) libres.push([cur, cierra]);
       porCalle.push(libres.filter(([i, f]) => f - i >= p.intervaloMin));
     }
-    const abiertos = new Map(); // "ini-fin" -> tramo de calles en curso
+    const abiertos = new Map(); // "ini-fin" -> lane range in progress
     const cerrar = (t) => out.push({
       tipo: 'hueco-libre', severidad: 'info', asignaciones: [], piscinaId: p.id, dia, fecha: '',
       params: { piscina: p.nombre, desde: t.desde, hasta: t.hasta, horaInicio: deMin(t.ini), horaFin: deMin(t.fin) },
@@ -221,7 +221,7 @@ export function huecosLibres(piscina, asignaciones) {
 
 const ordenar = (l) => l.sort((x, y) => RANGO_SEV[y.severidad] - RANGO_SEV[x.severidad] || x.tipo.localeCompare(y.tipo) || x.clave.localeCompare(y.clave));
 
-// Todos los conflictos del conjunto. opciones.huecos=true añade los huecos libres (info).
+// All conflicts of the set. opciones.huecos=true adds the free gaps (info).
 export function detectarConflictos(datos, { huecos = false } = {}) {
   const cx = contexto(datos);
   const out = [];
@@ -232,7 +232,7 @@ export function detectarConflictos(datos, { huecos = false } = {}) {
 }
 
 export const ID_NUEVA = '__nueva__';
-// Conflictos (error/aviso) en los que participaría una asignación candidata frente al resto.
+// Conflicts (error/warning) in which a candidate assignment would take part against the rest.
 export function conflictosDe(candidata, datos) {
   const id = candidata.id ? String(candidata.id) : ID_NUEVA;
   const cx = contexto({ ...datos, asignaciones: (datos.asignaciones || []).filter((a) => String(a.id) !== id) });
@@ -249,7 +249,7 @@ export function resumenConflictos(conflictos) {
   conflictos.forEach((c) => { r[c.severidad]++; });
   return r;
 }
-// Mapa id de asignación -> peor severidad ('error' | 'aviso'); las asignaciones sin conflicto no aparecen.
+// Map assignment id -> worst severity ('error' | 'aviso'); assignments without conflict do not appear.
 export function severidadPorAsignacion(conflictos) {
   const m = new Map();
   conflictos.forEach((c) => c.asignaciones.forEach((id) => {
@@ -259,14 +259,14 @@ export function severidadPorAsignacion(conflictos) {
   return m;
 }
 
-// ---------- Rejilla y ocupación ----------
-// Asignaciones (normalizadas) de una piscina para un día; con `fecha` incluye también las puntuales de esa fecha.
+// ---------- Grid and occupancy ----------
+// Assignments (normalised) of a pool for a day; with `fecha` it also includes the one-off ones of that date.
 export function delDia(asignaciones, { piscinaId, dia, fecha = '' }) {
   const d = fecha ? diaDeFecha(fecha) : dia;
   return asignaciones.map((a) => (a.ini === undefined ? normalizarAsignacion(a) : a))
     .filter((a) => a.piscinaId === String(piscinaId) && a.dia === d && (!a.fecha || (fecha && a.fecha === fecha)));
 }
-// Rango horario visible de un día (minutos), alineado al intervalo; incluye asignaciones fuera de horario.
+// Visible time range of a day (minutes), aligned to the interval; includes out-of-hours assignments.
 export function rangoDia(piscina, dia, asignacionesDia = []) {
   const p = normalizarPiscina(piscina);
   const abiertos = DIAS.map((d) => p.horario[d]).filter(Boolean).map((h) => [aMin(h.abre), aMin(h.cierra)]).filter(([a, c]) => !isNaN(a) && !isNaN(c) && c > a);
@@ -284,7 +284,7 @@ export function franjas(desde, hasta, intervalo) {
   for (let m = desde; m < hasta; m += intervalo) f.push(m);
   return f;
 }
-// Nivel de apilado de cada asignación (0,1,..) para dibujar bloques que se solapan en calle y hora.
+// Stacking level of each assignment (0,1,..) to draw blocks that overlap in lane and time.
 export function niveles(asigs) {
   const orden = asigs.filter(tiempoValido).slice().sort((x, y) => x.ini - y.ini || x.id.localeCompare(y.id));
   const nivel = new Map();
@@ -297,7 +297,7 @@ export function niveles(asigs) {
   });
   return nivel;
 }
-// Ocupación entre abre y cierra (minutos): minutos-calle ocupados / disponibles, sin contar doble solape.
+// Occupancy between abre and cierra (minutes): lane-minutes occupied / available, without counting double overlap.
 export function ocupacion(piscina, asigs, abre, cierra) {
   const p = normalizarPiscina(piscina);
   if (isNaN(abre) || isNaN(cierra) || cierra <= abre) return { total: 0, ocupado: 0, pct: 0 };
@@ -316,8 +316,8 @@ export const colorTono = (grupoId, grupos = []) => {
   return PALETA[(i < 0 ? 0 : i) % PALETA.length];
 };
 
-// ---------- Cambio del número de calles ----------
-// -> { recortadas: [fila con calleHasta = numCalles], fuera: [filas totalmente fuera de rango] }
+// ---------- Change of the number of lanes ----------
+// -> { recortadas: [row with calleHasta = numCalles], fuera: [rows entirely out of range] }
 export function ajustarAlReducir(asignaciones, piscinaId, numCalles) {
   const recortadas = [], fuera = [];
   asignaciones.filter((a) => String(a.piscinaId) === String(piscinaId)).forEach((a) => {
@@ -329,10 +329,10 @@ export function ajustarAlReducir(asignaciones, piscinaId, numCalles) {
   return { recortadas, fuera };
 }
 
-// ---------- Sugerencia de distribución ----------
-// Reparte grupos en calles libres de un día, sin conflictos de tipo error. Determinista:
-// grupos por nº de nadadores (desc) y nombre; horas ascendentes (o más cercanas a preferencias[grupoId]); calles ascendentes.
-// Calles necesarias = ceil(nadadores / maxPorCalle); si no caben se prueba con menos (propuesta.reducida = true).
+// ---------- Distribution suggestion ----------
+// Distributes groups into free lanes of a day, without error-type conflicts. Deterministic:
+// groups by number of swimmers (desc) and name; ascending times (or closest to preferencias[grupoId]); ascending lanes.
+// Lanes needed = ceil(swimmers / maxPorCalle); if they do not fit, fewer are tried (propuesta.reducida = true).
 export function sugerirDistribucion({ piscina, dia, grupos = [], nadadores = [], asignaciones = [], duracionMin = 60, desde, hasta, preferencias = {}, soloGrupos = null }) {
   const p = normalizarPiscina(piscina);
   const nad = nadadoresPorGrupo(nadadores);

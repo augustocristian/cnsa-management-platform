@@ -30,7 +30,7 @@ export function crearTemporadaService(repo, { ahora, nombreFase = (t) => t } = {
       const todas = svc.temporadas();
       return todas.find((t) => t.activa) || todas[0] || null;
     },
-    // conFases: crea las fases por defecto (general, específica, competitiva, tapering y transición) repartidas en semanas completas.
+    // conFases: creates the default phases (general, specific, competitive, tapering and transition) spread over whole weeks.
     // -> {ok, errores?, temporada?}
     guardarTemporada(data, { conFases = false } = {}) {
       const errores = D.validarTemporada(data);
@@ -68,7 +68,7 @@ export function crearTemporadaService(repo, { ahora, nombreFase = (t) => t } = {
 
     // ----- Fases -----
     fases: (tid) => D.ordenarFases(enTemporada(HOJA_FASES, tid).map(D.normalizarFase)),
-    // -> {ok, errores?, requiereForzar?, conflictos?, avisos?, fase?}. Las fases solapadas necesitan forzar.
+    // -> {ok, errores?, requiereForzar?, conflictos?, avisos?, fase?}. Overlapping phases need forcing.
     guardarFase(data, { forzar = false } = {}) {
       const errores = D.validarFase(data);
       if (errores.length) return { ok: false, errores };
@@ -89,7 +89,7 @@ export function crearTemporadaService(repo, { ahora, nombreFase = (t) => t } = {
     // ----- Eventos -----
     eventos: (tid) => enTemporada(HOJA_EVENTOS, tid).map(D.normalizarEvento).sort((a, b) => (a.inicio < b.inicio ? -1 : a.inicio > b.inicio ? 1 : 0)),
     evento: (id) => { const r = repo.get(HOJA_EVENTOS, id); return r ? D.normalizarEvento(r) : null; },
-    // -> {ok, errores?, avisos?, evento?}; un evento fuera de la temporada se guarda pero avisa.
+    // -> {ok, errores?, avisos?, evento?}; an event outside the season is saved but warns.
     guardarEvento(data) {
       const errores = D.validarEvento(data);
       if (errores.length) return { ok: false, errores };
@@ -102,9 +102,9 @@ export function crearTemporadaService(repo, { ahora, nombreFase = (t) => t } = {
     borrarEvento(id) { const fila = repo.get(HOJA_EVENTOS, id); if (fila) repo.remove(HOJA_EVENTOS, id); return fila || null; },
     restaurarEvento(fila) { if (fila) repo.upsert(HOJA_EVENTOS, fila); },
 
-    // ----- Semanas -----
+    // ----- Weeks -----
     semanasPlan: (tid) => enTemporada(HOJA_SEMANAS, tid).map(D.normalizarSemanaPlan),
-    // cambios: {volumen, contenidos, intensidad, objetivo, notas} (parcial; se fusiona con lo guardado). Sin contenido útil borra la fila.
+    // cambios: {volumen, contenidos, intensidad, objetivo, notas} (partial; merged with what is stored). Without useful content it deletes the row.
     // -> {ok, errores?}
     guardarSemana(tid, lunes, cambios) {
       const previo = svc.semanasPlan(tid).find((s) => s.lunes === lunes) || { temporadaId: String(tid), lunes, volumen: null, contenidos: {}, intensidad: null, objetivo: '', notas: '' };
@@ -117,14 +117,14 @@ export function crearTemporadaService(repo, { ahora, nombreFase = (t) => t } = {
       repo.upsert(HOJA_SEMANAS, D.filaSemanaPlan({ ...s, id, temporadaId: String(tid), lunes }));
       return { ok: true };
     },
-    // Varias semanas de golpe (herramientas). cambios: [{lunes, volumen, contenidos, intensidad?}]
+    // Several weeks at once (tools). cambios: [{lunes, volumen, contenidos, intensidad?}]
     guardarSemanas(tid, cambios) {
       cambios.forEach((c) => { const { lunes, ...resto } = c; svc.guardarSemana(tid, lunes, resto); });
       return cambios.length;
     },
 
     // ----- Resumen -----
-    // Modelo completo para la vista: semanas con previsto/real, totales, validaciones y sugerencias.
+    // Full model for the view: weeks with planned/actual, totals, validations and suggestions.
     resumen(tid, { fuente = 'auto', tolerancia = D.TOLERANCIA } = {}) {
       const temporada = svc.temporada(tid);
       if (!temporada) return null;
@@ -143,7 +143,7 @@ export function crearTemporadaService(repo, { ahora, nombreFase = (t) => t } = {
       };
     },
 
-    // Entrenos (sesiones) de la semana: [{id, fecha, hora, titulo, grupoId, grupoNombre, estado, metros, minutos}]
+    // Sessions (trainings) of the week: [{id, fecha, hora, titulo, grupoId, grupoNombre, estado, metros, minutos}]
     entrenosDeSemana(tid, lunes) {
       const t = svc.temporada(tid);
       if (!t) return [];
@@ -163,14 +163,14 @@ export function crearTemporadaService(repo, { ahora, nombreFase = (t) => t } = {
     },
 
     // ----- Herramientas -----
-    // Copia el plan (volumen, reparto, intensidad, objetivo y notas) de una semana n a otra.
+    // Copies the plan (volume, split, intensity, goal and notes) from one week n to another.
     copiarSemana(tid, nOrigen, nDestino, opciones) {
       const m = svc.resumen(tid, opciones);
       const o = m && m.semanas.find((s) => s.n === nOrigen), d = m && m.semanas.find((s) => s.n === nDestino);
       if (!o || !d || o.n === d.n) return { ok: false };
       return svc.guardarSemana(tid, d.lunes, D.copiarPlanSemana(o.plan));
     },
-    // Plantilla de fase aplicada a todas sus semanas. -> {ok, cambios} ; volumenBase opcional (si no, se sugiere)
+    // Phase template applied to all its weeks. -> {ok, cambios} ; volumenBase optional (otherwise it is suggested)
     plantillaFase(tid, faseId, { volumenBase, tipo, aplicar = true } = {}) {
       const m = svc.resumen(tid);
       const fase = m && m.fases.find((f) => f.id === String(faseId));
@@ -182,7 +182,7 @@ export function crearTemporadaService(repo, { ahora, nombreFase = (t) => t } = {
       if (aplicar) { svc.guardarSemanas(String(tid), cambios); }
       return { ok: true, cambios, volumenBase: base };
     },
-    // Escala (± %) o mueve (k semanas) el volumen previsto de las semanas [desde, hasta]. aplicar=false = sólo previsualiza.
+    // Scales (± %) or moves (k weeks) the planned volume of weeks [desde, hasta]. aplicar=false = only previews.
     ajustarVolumen(tid, { desde, hasta, pct = 0, mover = 0, aplicar = false }) {
       const m = svc.resumen(tid);
       if (!m) return { ok: false, cambios: [] };

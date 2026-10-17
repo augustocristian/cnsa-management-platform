@@ -20,7 +20,7 @@ function abrirIdb() {
     try { req = idb.open(IDB_NAME, 1); } catch (e) { reject(e); return; }
     req.onupgradeneeded = () => { req.result.createObjectStore(IDB_STORE); };
     req.onsuccess = () => resolve(req.result);
-    req.onerror = () => reject(req.error || new Error('IndexedDB falló'));
+    req.onerror = () => reject(req.error || new Error('IndexedDB failed'));
     req.onblocked = () => reject(new Error('IndexedDB bloqueada'));
   });
 }
@@ -34,8 +34,8 @@ async function idbHacer(modo, fn) {
       let res;
       try { res = fn(st); } catch (e) { reject(e); return; }
       tx.oncomplete = () => resolve(res && 'result' in res ? res.result : undefined);
-      tx.onerror = () => reject(tx.error || new Error('IndexedDB falló'));
-      tx.onabort = () => reject(tx.error || new Error('IndexedDB abortó'));
+      tx.onerror = () => reject(tx.error || new Error('IndexedDB failed'));
+      tx.onabort = () => reject(tx.error || new Error('IndexedDB aborted'));
     });
   } finally { try { db.close(); } catch (e) { /* ignore */ } }
 }

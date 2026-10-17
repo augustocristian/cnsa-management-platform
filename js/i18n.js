@@ -1,6 +1,6 @@
-// Internacionalización ligera: es | en | it. Sin dependencias.
-// Los valores guardados en Excel/Sheet (categorías, estados, tipos) siguen en español:
-// las traducciones son sólo de visualización (tCat, tEstado, tTipo, tNav).
+// Lightweight internationalisation: es | en | it. No dependencies.
+// Values stored in Excel/Sheet (categories, states, types) stay in Spanish:
+// translations are display-only (tCat, tEstado, tTipo, tNav).
 import es from './locales/es.js';
 import en from './locales/en.js';
 import it from './locales/it.js';
@@ -96,13 +96,13 @@ export function setLang(code, { persist = true } = {}) {
   return lang;
 }
 
-// Devuelve una función para cancelar la suscripción.
+// Returns a function to cancel the subscription.
 export function onLangChange(fn) {
   listeners.add(fn);
   return () => listeners.delete(fn);
 }
 
-// t('clave', {nombre: 'x'}) -> idioma actual -> es -> la propia clave
+// t('key', {name: 'x'}) -> current language -> es -> the key itself
 export function t(key, vars) {
   let s = DICTS[lang]?.[key];
   if (s == null || s === '') s = DICTS.es[key];
@@ -113,7 +113,7 @@ export function t(key, vars) {
 
 export function hasKey(key) { return key in DICTS.es; }
 
-// --- Valores internos (español) -> texto visible ---
+// --- Internal values (Spanish) -> visible text ---
 const norm = (v) => String(v ?? '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().trim().replace(/\s+/g, '-');
 function tVal(ns, value) {
   if (value == null || value === '') return '';
@@ -122,8 +122,8 @@ function tVal(ns, value) {
 }
 export const tCat = (v) => tVal('cat', v);
 export const tEstado = (v) => tVal('estado', v);
-// Contenidos de entrenamiento. Los predefinidos se traducen con `tc.<clave>.nombre|desc`; los personalizados
-// (y los heredados) se muestran tal cual los escribió el usuario.
+// Training contents. Predefined ones are translated with `tc.<key>.nombre|desc`; custom ones
+// (and inherited ones) are shown exactly as the user wrote them.
 let nombresPredef = null;
 function clavePredefinida(nombre) {
   if (!nombresPredef) {
@@ -135,20 +135,20 @@ function clavePredefinida(nombre) {
   }
   return nombresPredef.get(normalizarNombre(nombre)) || null;
 }
-// Nombre guardado (p. ej. Cargas.tipo) -> texto visible. Admite los tipos antiguos (Aeróbico, Velocidad...).
+// Stored name (e.g. Cargas.tipo) -> visible text. Accepts the old types (Aeróbico, Velocidad...).
 export function tTipo(v) {
   if (v == null || v === '') return '';
   const clave = clavePredefinida(v);
   return clave ? t(`tc.${clave}.nombre`) : tVal('tipo', v);
 }
 const slugContenido = (r) => String(r.id || '').replace(/^tc-/, '');
-// Fila de TiposCarga normalizada ({id, nombre, descripcion, predefinido}) -> nombre visible.
+// Normalised TiposCarga row ({id, nombre, descripcion, predefinido}) -> visible name.
 export function tContenido(r) {
   if (!r) return '';
   const k = `tc.${slugContenido(r)}.nombre`;
   return r.predefinido && hasKey(k) ? t(k) : r.nombre;
 }
-// Descripción visible: la traducida mientras siga siendo la original en español; si el usuario la editó, la suya.
+// Visible description: the translated one while it is still the original Spanish one; if the user edited it, theirs.
 export function tContenidoDesc(r) {
   if (!r) return '';
   const k = `tc.${slugContenido(r)}.desc`;
@@ -157,7 +157,7 @@ export function tContenidoDesc(r) {
 }
 export const tNav = (v) => tVal('nav', v);
 
-// --- Intl por idioma ---
+// --- Intl per language ---
 export const locale = () => INTL[lang];
 
 function toDate(d) {
@@ -169,7 +169,7 @@ function toDate(d) {
   return new Date(d);
 }
 
-// tDate(d) -> 15/10/2026 ; tDate(d,'long') -> "jueves, 15 de octubre de 2026" (según idioma)
+// tDate(d) -> 15/10/2026 ; tDate(d,'long') -> "jueves, 15 de octubre de 2026" (depends on the language)
 export function tDate(d, mode) {
   if (d === '' || d == null) return '';
   const x = toDate(d);

@@ -1,19 +1,19 @@
-// Dominio del plan de entreno detallado: lógica pura (sin DOM, sin store, sin fetch, sin i18n).
-// Una sesión (hoja Entrenamientos) tiene líneas (hoja EntrenoLineas) agrupadas en SETS:
+// Domain of the detailed training plan: pure logic (no DOM, no store, no fetch, no i18n).
+// A session (Entrenamientos sheet) has lines (EntrenoLineas sheet) grouped into SETS:
 //   { id, entrenamientoId, set, orden, tiempoMin, objetivo, bloque, series, distancia, salida, ejercicio, material, notas }
-// Cada fila puede llevar además `componentes` (reparto de la distancia por repetición entre varios contenidos) y `estilos`;
-// su lógica (parser, reparto, porcentajes) está en desglose.js; aquí sólo se leen/escriben las columnas.
-// Dist. Bloque = series x distancia de la fila; Dist. Set = suma de las filas del set; los TOTALES suman toda la sesión.
-// Los avisos de validación se devuelven como códigos + parámetros; la presentación los traduce.
+// Each row may also carry `componentes` (split of the per-repetition distance among several contents) and `estilos`;
+// their logic (parser, split, percentages) is in desglose.js; here the columns are only read/written.
+// Dist. Bloque = sets x distance of the row; Dist. Set = sum of the rows of the set; the TOTALS add up the whole session.
+// Validation warnings are returned as codes + parameters; the presentation translates them.
 
 import { CATALOGO_PREDEFINIDO } from './cargas.js';
 
 export const CAMPOS_TEXTO = ['objetivo', 'bloque', 'salida', 'ejercicio', 'material', 'notas'];
 export const CAMPOS_SUGERIBLES = ['objetivo', 'bloque', 'salida', 'ejercicio', 'material'];
-export const TOLERANCIA_CARGA = 0.1; // 10 % de diferencia entre el plan y la carga registrada
+export const TOLERANCIA_CARGA = 0.1; // 10 % difference between the plan and the recorded load
 
-// ---------- Números ----------
-// Número desde texto/número; '' -> NaN. Admite coma decimal.
+// ---------- Numbers ----------
+// Number from text/number; '' -> NaN. Accepts a decimal comma.
 export function num(v) {
   if (typeof v === 'number') return v;
   const s = String(v ?? '').trim().replace(',', '.');
@@ -23,8 +23,8 @@ export function num(v) {
 const vacio = (v) => String(v ?? '').trim() === '';
 const o0 = (n) => (Number.isFinite(n) ? n : 0);
 
-// ---------- Salidas: C/1'10" (ciclo: "cada") y d/15" (descanso) ----------
-// Devuelve { valido, vacio, tipo: 'ciclo'|'descanso'|'', segundos, texto }. `texto` es la forma canónica.
+// ---------- Send-offs: C/1'10" (cycle: "cada" = every) and d/15" (rest: "descanso") ----------
+// Returns { valido, vacio, tipo: 'ciclo'|'descanso'|'', segundos, texto }. `texto` is the canonical form.
 export function parsearSalida(raw) {
   const s0 = String(raw ?? '').trim();
   if (!s0) return { valido: true, vacio: true, tipo: '', segundos: 0, texto: '' };
@@ -38,7 +38,7 @@ export function parsearSalida(raw) {
   return { valido: true, vacio: false, tipo, segundos: seg, texto: textoSalida(tipo, seg) };
 }
 
-// "1'10''" | '1\'10"' | '1:10' | '70' | '15"' | '1\'' | '90s' | "1m30" -> segundos (NaN si no vale)
+// "1'10''" | '1\'10"' | '1:10' | '70' | '15"' | '1\'' | '90s' | "1m30" -> seconds (NaN if not valid)
 export function tiempoASegundos(s) {
   const x = String(s).trim().replace(/''/g, '"').replace(/\s+/g, '');
   let m = /^(\d+)'(\d{1,2})"?$/.exec(x) || /^(\d+):(\d{2})$/.exec(x) || /^(\d+)m(?:in)?(\d{1,2})s?$/i.exec(x);
@@ -57,9 +57,9 @@ export function textoSalida(tipo, seg) {
   return (tipo === 'descanso' ? 'd/' : 'C/') + t;
 }
 
-// ---------- Columnas componentes y estilo ----------
-// componentes: JSON [{contenido, metrosPorRep, modo: 'auto'|'manual', pct?}]. Un componente 'auto' sin metrosPorRep (null)
-// recibe su parte del resto de la distancia; uno manual con pct usa ese porcentaje de la distancia por repetición.
+// ---------- Columns componentes and estilo ----------
+// componentes: JSON [{contenido, metrosPorRep, modo: 'auto'|'manual', pct?}]. An 'auto' component without metrosPorRep (null)
+// gets its share of the rest of the distance; a manual one with pct uses that percentage of the per-repetition distance.
 const r2 = (n) => Math.round(n * 100) / 100;
 const numPos = (v) => { const n = num(v); return Number.isFinite(n) && n >= 0 ? r2(n) : null; };
 function jsonLista(v) {
@@ -78,7 +78,7 @@ export function escribirComponentes(arr) {
   const l = leerComponentes(arr);
   return l.length ? JSON.stringify(l.map((c) => ({ contenido: c.contenido, metrosPorRep: c.metrosPorRep, modo: c.modo, ...(c.pct ? { pct: c.pct } : {}) }))) : '';
 }
-// estilo: "Crol" (toda la distancia) | JSON [{estilo, metrosPorRep}] (reparto por repetición entre varios estilos)
+// estilo: "Crol" (whole distance) | JSON [{estilo, metrosPorRep}] (per-repetition split among several styles)
 export function leerEstilos(v) {
   const lista = jsonLista(v);
   if (lista) return lista.filter((e) => e && typeof e === 'object' && String(e.estilo ?? '').trim()).map((e) => ({ estilo: String(e.estilo).trim(), metrosPorRep: numPos(e.metrosPorRep) }));
@@ -91,8 +91,8 @@ export function escribirEstilos(arr) {
   return l.length === 1 && l[0].metrosPorRep == null ? l[0].estilo : JSON.stringify(l);
 }
 
-// ---------- Normalización ----------
-// Vacío -> ''; número válido -> número; otro texto se conserva tal cual (para poder avisar de que no es numérico).
+// ---------- Normalisation ----------
+// Empty -> ''; valid number -> number; any other text is kept as is (so that a warning can say it is not numeric).
 function numOTexto(v) {
   if (vacio(v)) return '';
   const n = num(v);
@@ -121,7 +121,7 @@ export function normalizarLinea(l = {}) {
   };
 }
 
-// Fila normalizada -> fila de la hoja (componentes y estilo como texto: JSON o nombre).
+// Normalised row -> sheet row (componentes and estilo as text: JSON or name).
 export function serializarLinea(l) {
   const { estilos, ...resto } = normalizarLinea(l);
   return { ...resto, componentes: escribirComponentes(resto.componentes), estilo: escribirEstilos(estilos) };
@@ -129,7 +129,7 @@ export function serializarLinea(l) {
 
 export const lineaVacia = (set = 1, orden = 1) => normalizarLinea({ set, orden });
 
-// ¿La fila no tiene ningún contenido?
+// Does the row have no content at all?
 export function filaVacia(l) {
   return vacio(l.tiempoMin) && vacio(l.series) && vacio(l.distancia) && CAMPOS_TEXTO.every((c) => vacio(l[c]));
 }
@@ -138,8 +138,8 @@ export function ordenarLineas(lineas) {
   return lineas.slice().sort((a, b) => (num(a.set) - num(b.set)) || (num(a.orden) - num(b.orden)));
 }
 
-// Sets y órdenes consecutivos (1..n, 1..k) conservando el orden actual (admite sets/órdenes fraccionarios como
-// marcadores de inserción). Devuelve copias.
+// Consecutive sets and orders (1..n, 1..k) keeping the current order (accepts fractional sets/orders as
+// insertion markers). Returns copies.
 export function renumerar(lineas) {
   const crudo = lineas.map((l) => {
     const set = num(l.set), orden = num(l.orden);
@@ -156,8 +156,8 @@ export function renumerar(lineas) {
   });
 }
 
-// ---------- Cálculo ----------
-// Series efectivas: vacías con distancia -> 1.
+// ---------- Calculation ----------
+// Effective sets: empty ones with a distance -> 1.
 export function seriesEfectivas(l) {
   const s = num(l.series);
   if (Number.isFinite(s)) return s;
@@ -168,13 +168,13 @@ export function distanciaBloque(l) {
   if (!Number.isFinite(d)) return 0;
   return seriesEfectivas(l) * d;
 }
-// Segundos estimados de una fila con salida tipo ciclo (series x ciclo); 0 si no se puede saber.
+// Estimated seconds of a row with a cycle-type send-off (sets x cycle); 0 if it cannot be known.
 export function segundosEstimados(l) {
   const s = parsearSalida(l.salida);
   return s.valido && s.tipo === 'ciclo' ? seriesEfectivas(l) * s.segundos : 0;
 }
 
-// -> [{ set, lineas: [{...linea, distBloque}], distSet, tiempoMin }] (sets en orden)
+// -> [{ set, lineas: [{...linea, distBloque}], distSet, tiempoMin }] (sets in order)
 export function agruparSets(lineas) {
   const mapa = new Map();
   ordenarLineas(lineas.map(normalizarLinea)).forEach((l) => {
@@ -189,7 +189,7 @@ export function agruparSets(lineas) {
   }));
 }
 
-// -> { metros, tiempoMin, sets, filas }  (sólo cuentan las filas con contenido)
+// -> { metros, tiempoMin, sets, filas }  (only rows with content count)
 export function totales(lineas) {
   const sets = agruparSets(lineas.filter((l) => !filaVacia(normalizarLinea(l))));
   return {
@@ -200,7 +200,7 @@ export function totales(lineas) {
   };
 }
 
-// Resumen: totales + objetivos distintos + desglose por set (para listados y cabeceras).
+// Summary: totals + distinct goals + breakdown per set (for lists and headers).
 export function resumen(lineas) {
   const tot = totales(lineas);
   const sets = agruparSets(lineas.filter((l) => !filaVacia(normalizarLinea(l)))).map((s) => ({ set: s.set, metros: s.distSet, tiempoMin: s.tiempoMin, filas: s.lineas.length }));
@@ -213,13 +213,13 @@ export function resumen(lineas) {
 }
 
 // ---------- Carga registrada ----------
-// Media de metros de las cargas registradas de la sesión (0 si no hay).
+// Average metres of the loads recorded for the session (0 if none).
 export function cargaRegistrada(cargas, entrenamientoId) {
   const m = (cargas || []).filter((c) => String(c.entrenamientoId) === String(entrenamientoId)).map((c) => num(c.metros)).filter((x) => Number.isFinite(x) && x > 0);
   return m.length ? Math.round(m.reduce((a, b) => a + b, 0) / m.length) : 0;
 }
 
-// ---------- Validación ----------
+// ---------- Validation ----------
 // -> [{ severidad: 'error'|'aviso', codigo, set?, orden?, campo?, params? }]
 export function validarLinea(l) {
   const out = [];
@@ -239,7 +239,7 @@ export function validarLinea(l) {
   return out;
 }
 
-// sesion: fila de Entrenamientos (volumenMin/volumenMax opcionales); cargaMedia: metros registrados (0 = no hay).
+// sesion: Entrenamientos row (volumenMin/volumenMax optional); cargaMedia: recorded metres (0 = none).
 export function validarSesion({ sesion = {}, lineas = [], cargaMedia = 0, tolerancia = TOLERANCIA_CARGA } = {}) {
   const norm = lineas.map(normalizarLinea).filter((l) => !filaVacia(l));
   const out = [];
@@ -262,7 +262,7 @@ export function validarSesion({ sesion = {}, lineas = [], cargaMedia = 0, tolera
 }
 export const hayErrores = (avisos) => avisos.some((a) => a.severidad === 'error');
 
-// ---------- Edición del borrador (todas devuelven un array nuevo, renumerado) ----------
+// ---------- Draft editing (all return a new, renumbered array) ----------
 const ultimoSet = (ls) => ls.reduce((a, l) => Math.max(a, l.set), 0);
 
 export function anadirSet(lineas, { filas = 1 } = {}) {
@@ -271,7 +271,7 @@ export function anadirSet(lineas, { filas = 1 } = {}) {
   const nuevas = Array.from({ length: filas }, (_, i) => lineaVacia(s, i + 1));
   return base.concat(nuevas);
 }
-// Añade una fila al final del set (o tras la fila `despuesDe` si se indica por posición {set, orden}).
+// Adds a row at the end of the set (or after the row `despuesDe` if given by position {set, orden}).
 export function anadirFila(lineas, set, despuesDe = null) {
   const base = renumerar(lineas);
   if (!base.some((l) => l.set === set)) return anadirSet(base);
@@ -286,7 +286,7 @@ export function quitarFila(lineas, set, orden) {
 export function quitarSet(lineas, set) {
   return renumerar(renumerar(lineas).filter((l) => l.set !== set));
 }
-// Mueve una fila arriba/abajo dentro de su set (delta -1 / +1); si está en el borde pasa al set contiguo.
+// Moves a row up/down within its set (delta -1 / +1); at the edge it moves to the adjacent set.
 export function moverFila(lineas, set, orden, delta) {
   const base = renumerar(lineas);
   const i = base.findIndex((l) => l.set === set && l.orden === orden);
@@ -296,7 +296,7 @@ export function moverFila(lineas, set, orden, delta) {
   const copia = base.slice();
   const a = copia[i], b = copia[j];
   if (a.set === b.set) { copia[i] = { ...b, orden: a.orden }; copia[j] = { ...a, orden: b.orden }; return renumerar(copia); }
-  // cruza al set contiguo: la fila adopta el set vecino en el extremo correspondiente
+  // crosses into the adjacent set: the row takes the neighbouring set at the corresponding end
   copia[i] = { ...a, set: b.set, orden: delta < 0 ? b.orden + 0.5 : b.orden - 0.5 };
   return renumerar(copia);
 }
@@ -306,7 +306,7 @@ export function moverSet(lineas, set, delta) {
   if (destino < 1 || destino > ultimoSet(base)) return base;
   return renumerar(base.map((l) => (l.set === set ? { ...l, set: destino } : l.set === destino ? { ...l, set } : l)));
 }
-// Duplica un set justo después del original. genId opcional para asignar ids.
+// Duplicates a set right after the original. Optional genId to assign ids.
 export function duplicarSet(lineas, set, genId = () => '') {
   const base = renumerar(lineas);
   const copia = base.filter((l) => l.set === set).map((l) => ({ ...l, id: genId(), set: set + 0.5 }));
@@ -320,36 +320,36 @@ export function duplicarFila(lineas, set, orden, genId = () => '') {
   return renumerar(base.concat({ ...l, id: genId(), orden: l.orden + 0.5 }));
 }
 
-// ---------- Duplicado de sesiones ----------
+// ---------- Session duplication ----------
 const CAMPOS_PLAN = ['tipoSesion', 'materialDia', 'notasGenerales'];
-// Copia de las líneas sin id ni entrenamientoId (o con los dados): para asignarlas a otra sesión.
+// Copy of the lines without id or entrenamientoId (or with the given ones): to assign them to another session.
 export function clonarLineas(lineas, { entrenamientoId = '', genId = () => '' } = {}) {
   return renumerar(lineas).map((l) => ({ ...l, id: genId(), entrenamientoId }));
 }
-// Duplica una sesión con su plan. `cambios` sobrescribe campos de la sesión (fecha, hora, grupoId...).
-// -> { sesion: {...sin id}, lineas: [...sin id ni entrenamientoId] }. El estado vuelve a 'planificado'.
+// Duplicates a session with its plan. `cambios` overrides session fields (fecha, hora, grupoId...).
+// -> { sesion: {...without id}, lineas: [...without id or entrenamientoId] }. The state goes back to 'planificado'.
 export function duplicarSesion(sesion, lineas, cambios = {}) {
   const s = { ...sesion, ...cambios, id: '', estado: 'planificado' };
   return { sesion: s, lineas: clonarLineas(lineas) };
 }
-// Campos del plan de una sesión (para copiar desde otra sesión o plantilla).
+// Plan fields of a session (to copy from another session or template).
 export const camposPlan = (s = {}) => Object.fromEntries(CAMPOS_PLAN.map((c) => [c, s[c] ?? '']));
 
 // ---------- Plantillas ----------
-// ajusta = fila que escala al adaptar la plantilla a un volumen objetivo (planDemo)
+// ajusta = row that scales when adapting the template to a target volume (planDemo)
 const L = (set, tiempoMin, objetivo, bloque, series, distancia, salida, ejercicio, material = '', notas = '', ajusta = false) =>
   ({ set, tiempoMin, objetivo, bloque, series, distancia, salida, ejercicio, material, notas, ajusta });
 
-// Contenidos (nombres del catálogo predefinido) y reparto por repetición de las filas de las plantillas.
+// Contents (names of the predefined catalogue) and per-repetition split of the template rows.
 const N = Object.fromEntries(CATALOGO_PREDEFINIDO.map((c) => [c.clave, c.nombre]));
 const C = (clave, metrosPorRep = null) => ({ contenido: N[clave], metrosPorRep, modo: 'auto' });
-// con(fila, [componentes], estilo | [{estilo, metrosPorRep}]): añade contenidos y estilo a una fila de plantilla
+// con(fila, [componentes], estilo | [{estilo, metrosPorRep}]): adds contents and style to a template row
 const con = (fila, componentes, estilo = '') => ({
   ...fila, componentes,
   estilos: Array.isArray(estilo) ? estilo : estilo ? [{ estilo, metrosPorRep: null }] : [],
 });
 
-// Plantillas integradas. El nombre visible se traduce con la clave `entreno.pl.<id>`; el contenido es texto libre.
+// Built-in templates. The visible name is translated with the key `entreno.pl.<id>`; the content is free text.
 export const PLANTILLAS = [
   {
     id: 'aerobico', tipoSesion: 'Aer+Ritmo', materialDia: 'Tabla, pull',
@@ -396,15 +396,15 @@ export const PLANTILLAS = [
   },
 ];
 export const plantilla = (id) => PLANTILLAS.find((p) => p.id === id) || null;
-// Líneas de una plantilla ya normalizadas (sin ids).
+// Template lines already normalised (no ids).
 export function lineasDePlantilla(id, { entrenamientoId = '', genId = () => '' } = {}) {
   const p = plantilla(id);
   return p ? clonarLineas(p.lineas.map((l, i) => ({ ...l, orden: i + 1 })), { entrenamientoId, genId }) : [];
 }
 
-// Plan de demostración realista (como el ejemplo del club). `variante` rota entre plantillas;
-// `objetivoM` ajusta la fila marcada como ajustable y la vuelta a la calma para aproximar el volumen de la sesión;
-// `duracionMin` (opcional) reparte el tiempo para que el plan quepa en la duración de la sesión.
+// Realistic demo plan (like the club's example). `variante` rotates among templates;
+// `objetivoM` adjusts the row marked as adjustable and the cool-down to approximate the session volume;
+// `duracionMin` (optional) distributes the time so that the plan fits the session duration.
 export function planDemo(variante, objetivoM = 0, duracionMin = 0) {
   const ids = ['aerobico', 'velocidad', 'tecnica', 'mixta'];
   const id = ids[Math.abs(variante) % ids.length];
@@ -429,7 +429,7 @@ export function planDemo(variante, objetivoM = 0, duracionMin = 0) {
 }
 
 // ---------- Sugerencias (autocompletar) ----------
-// Valores usados antes en `campo`, de más a menos frecuentes. `extra` = valores por defecto que se añaden al final.
+// Values previously used in `campo`, from most to least frequent. `extra` = default values appended at the end.
 export function sugerencias(lineas, campo, { extra = [], limite = 40 } = {}) {
   const cuenta = new Map();
   (lineas || []).forEach((l) => {
@@ -445,11 +445,11 @@ export function sugerencias(lineas, campo, { extra = [], limite = 40 } = {}) {
   return res.slice(0, limite);
 }
 
-// ---------- Nombres de fichero ----------
+// ---------- File names ----------
 export function slug(s) {
   return String(s ?? '').normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^A-Za-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
 }
-// Alevin-2026-10-15-jueves.pdf  (dia = nombre del día en el idioma activo; opcional)
+// Alevin-2026-10-15-jueves.pdf  (dia = name of the day in the active language; optional)
 export function nombreFichero({ grupo = '', fecha = '', dia = '', hora = '' } = {}) {
   const partes = [slug(grupo) || 'Entreno', String(fecha).slice(0, 10), slug(dia).toLowerCase()].filter(Boolean);
   return partes.join('-') + '.pdf';
@@ -458,18 +458,18 @@ export function nombreFicheroSemana({ grupo = '', lunes = '' } = {}) {
   return [slug(grupo) || 'Club', 'semana', String(lunes).slice(0, 10)].filter(Boolean).join('-') + '.pdf';
 }
 
-// "19:50" | "19:50:00" | 0.826 (fracción de día de Sheets) -> "19:50"
+// "19:50" | "19:50:00" | 0.826 (Sheets day fraction) -> "19:50"
 export function horaTexto(v) {
   if (typeof v === 'number' && v >= 0 && v < 1) { const m = Math.round(v * 1440); return String(Math.floor(m / 60)).padStart(2, '0') + ':' + String(m % 60).padStart(2, '0'); }
   const m = /^(\d{1,2}):(\d{2})/.exec(String(v ?? '').trim());
   return m ? m[1].padStart(2, '0') + ':' + m[2] : String(v ?? '');
 }
 
-// ---------- Estado del borrador (cambios sin guardar) ----------
+// ---------- Draft state (unsaved changes) ----------
 const CAMPOS_FIRMA = ['set', 'orden', 'tiempoMin', 'objetivo', 'bloque', 'series', 'distancia', 'salida', 'ejercicio', 'material', 'notas', 'componentes', 'estilo'];
 
-// Texto estable que identifica el contenido de un plan: ignora ids, filas vacías y diferencias de formato (3 vs '3').
-// Dos borradores con la misma firma son el mismo plan, así que "hay cambios sin guardar" = la firma difiere de la guardada.
+// Stable text that identifies the content of a plan: ignores ids, empty rows and format differences (3 vs '3').
+// Two drafts with the same signature are the same plan, so "there are unsaved changes" = the signature differs from the saved one.
 export function firmaPlan({ tipoSesion = '', materialDia = '', notasGenerales = '', lineas = [] } = {}) {
   const filas = renumerar(lineas).filter((l) => !filaVacia(l)).map((l) => {
     const s = serializarLinea(l);
@@ -479,16 +479,16 @@ export function firmaPlan({ tipoSesion = '', materialDia = '', notasGenerales = 
 }
 export const planCambiado = (guardado, actual) => firmaPlan(guardado) !== firmaPlan(actual);
 
-// ¿Ninguna fila tiene contenido? (un PDF de ese plan saldría en blanco)
+// Is every row without content? (a PDF of that plan would come out blank)
 export const planVacio = (lineas) => (lineas || []).every((l) => filaVacia(normalizarLinea(l)));
 
-// Totales por set sobre todas las filas del borrador (también las vacías) -> [{ set, metros, tiempoMin }]
+// Totals per set over all rows of the draft (empty ones too) -> [{ set, metros, tiempoMin }]
 export function totalesPorSet(lineas) {
   return agruparSets(lineas || []).map((s) => ({ set: s.set, metros: s.distSet, tiempoMin: s.tiempoMin }));
 }
 
-// Resumen de una fila para sus chips: qué campos de la segunda línea tienen valor.
-// -> { salida, material, tiempoMin, objetivo, contenidos (n), mas: bloque o notas con texto }
+// Summary of a row for its chips: which fields of the second line have a value.
+// -> { salida, material, tiempoMin, objetivo, contenidos (n), mas: block or notes with text }
 export function resumenFila(l) {
   const n = normalizarLinea(l);
   const txt = (v) => String(v ?? '').trim();

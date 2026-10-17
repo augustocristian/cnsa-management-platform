@@ -1,5 +1,5 @@
-// Asistente de primer arranque: lógica sin DOM (validación y creación del club en Drive).
-// La interfaz está en js/views/asistente.js; aquí todo se recibe por parámetro para probarlo sin red.
+// First-run wizard: DOM-free logic (validation and creation of the club in Drive).
+// The UI is in js/views/asistente.js; everything here is received as a parameter so it can be tested without network.
 import { zonaValida, TZ_DEFECTO } from '../domain/calendario.js';
 
 export const PASOS = ['datos', 'aspecto'];
@@ -7,7 +7,7 @@ export const COLOR_PRIMARIO = '#1a73e8';
 export const COLOR_SECUNDARIO = '#0b3d91';
 const HEX = /^#[0-9a-f]{6}$/i;
 
-// Zona horaria del navegador si es válida; si no, la de por defecto del dominio.
+// The browser's time zone if it is valid; otherwise the domain default.
 export function zonaDelNavegador() {
   try {
     const z = Intl.DateTimeFormat().resolvedOptions().timeZone;
@@ -15,7 +15,7 @@ export function zonaDelNavegador() {
   } catch (e) { return TZ_DEFECTO; }
 }
 
-// -> {ok, errores: {campo: codigo}} (los códigos se traducen con 'asistente.err.<codigo>')
+// -> {ok, errores: {campo: codigo}} (the codes are translated with 'asistente.err.<codigo>')
 export function validar(datos, paso = 'todo') {
   const errores = {};
   const d = datos || {};
@@ -34,7 +34,7 @@ export function validar(datos, paso = 'todo') {
   return { ok: Object.keys(errores).length === 0, errores };
 }
 
-// Datos del asistente -> objeto `club` (claves de la pestaña Club) con valores por defecto sensatos.
+// Wizard data -> `club` object (keys of the Club sheet) with sensible defaults.
 export function datosDelClub(d) {
   return {
     nombre: String(d.nombre || '').trim(),
@@ -45,7 +45,7 @@ export function datosDelClub(d) {
   };
 }
 
-// Crea el fichero del club en cnl/ y devuelve {ref, club}; abrirlo (store.init + store.setClub) lo hace quien llama.
+// Creates the club file in cnl/ and returns {ref, club}; opening it (store.init + store.setClub) is up to the caller.
 export async function crearClub({ drive, datos }) {
   const v = validar(datos);
   if (!v.ok) { const e = new Error('datos-invalidos'); e.code = 'datos-invalidos'; e.errores = v.errores; throw e; }

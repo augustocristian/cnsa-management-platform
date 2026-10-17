@@ -39,7 +39,7 @@ export function crearAsistenciaService(repo, { ahora } = {}) {
         if (previo) repo.remove(HOJA, previo.id);
         return { previo, actual: null };
       }
-      if (!D.esEstado(estado)) throw new Error('estado de asistencia no válido: ' + estado);
+      if (!D.esEstado(estado)) throw new Error('invalid attendance state: ' + estado);
       const fila = { ...(previo || { entrenamientoId: sesionId, nadadorId }), estado, nota: nota ?? (previo ? previo.nota : '') ?? '' };
       return { previo, actual: repo.upsert(HOJA, fila) };
     },

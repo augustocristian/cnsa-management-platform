@@ -95,7 +95,7 @@ export function crearSesionService({ auth, drive, prefs, CLAVES, store, banderas
           await Promise.race([Promise.resolve(store.sync()).catch(() => {}), espera(SALIDA_ESPERA_MS)]);
           if (store.pendiente && (await preguntarPendientes?.()) !== 'salir') return { salio: false };
         }
-      } catch (e) { log.warn('Cierre de sesión', e); }
+      } catch (e) { log.warn('Session close', e); }
       try { if (prefs) await Promise.race([prefs.flush(), espera(PREFS_ESPERA_MS)]); } catch (e) { /* offline: the cache is discarded anyway */ }
       try { prefs?.desconectar(); } catch (e) { /* ignore */ }
       try { auth.disconnect(); } catch (e) { /* ignore */ }
