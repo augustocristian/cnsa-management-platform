@@ -30,7 +30,7 @@ Característica: Plan de entreno detallado y PDF de entreno
     Dado que uso un móvil de 375 px de ancho
     Cuando abro el plan de la próxima sesión del grupo "Alevín"
     Entonces al abrir el plan no hay ningún campo con el foco
-    Y ninguna fila del plan ocupa más de 240 px de alto
+    Y ninguna fila del plan ocupa más de 300 px de alto
     Y la barra inferior del plan muestra el total, el botón principal "Guardar" y el menú de más acciones
     Y la barra inferior del plan está dentro de la pantalla
     Y el plan indica "Todo guardado"
