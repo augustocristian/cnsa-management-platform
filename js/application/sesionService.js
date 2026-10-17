@@ -13,6 +13,8 @@
 //   limpiarDatosLocales()                                                  erases every local mirror of personal data
 //   espera(ms)                                                             timer, injectable for tests
 //   log       { warn }
+import { demoDisponible } from './modoService.js';
+
 const SALIDA_ESPERA_MS = 10000;
 const PREFS_ESPERA_MS = 1500;
 
@@ -22,18 +24,22 @@ export function crearSesionService({ auth, drive, prefs, CLAVES, store, banderas
   const sinBanderas = { selectorForzado: () => false, limpiarSelectorForzado: () => {}, demoGuardada: () => false };
   const flags = banderas || sinBanderas;
 
-  // Which mode does the app start in? -> 'drive' (Drive already authorized) | 'demo' (the demo was left open) | 'start' (neither:
-  // the start screen offers "Connect Google Drive" and "Try the demo"). A Drive authorization wins over a stale demo flag.
+  // Which mode does the app start in? -> 'drive' (Drive already authorized) | 'demo' (the demo was left open and is still allowed)
+  //   | 'demo-cerrada' (the demo was left open but a Google Client ID is configured now: the caller closes it and tells the person)
+  //   | 'start' (neither). A Drive authorization wins over a stale demo flag. The demo rule is demoDisponible() (modoService.js).
   const resolveStartMode = () => {
-    if (auth.isConnected()) return 'drive';
-    return flags.demoGuardada() ? 'demo' : 'start';
+    const driveAuth = !!auth.isConnected();
+    if (driveAuth) return 'drive';
+    if (!flags.demoGuardada()) return 'start';
+    return demoDisponible({ clientId: !!auth.enabled, driveAuth }) ? 'demo' : 'demo-cerrada';
   };
 
   return {
     resolveStartMode,
 
-    // What to show when the app starts. -> 'config' (no Client ID and nothing to run) | 'inicio' (connect or try the demo)
-    //   | 'demo' (the demo was left open) | 'drive' (Drive already authorized: resolve the club)
+    // What to show when the app starts. -> 'config' (no Client ID: "Configuration needed" with "Try the demo" + owner setup)
+    //   | 'inicio' (Client ID set: only "Connect Google Drive") | 'demo' (the demo was left open)
+    //   | 'demo-cerrada' (see resolveStartMode) | 'drive' (Drive already authorized: resolve the club) | 'tutorial'
     decidirArranque({ tutorial = false } = {}) {
       const modo = resolveStartMode();
       if (modo !== 'start') return modo;

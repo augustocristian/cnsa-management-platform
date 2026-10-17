@@ -120,6 +120,7 @@ export default {
   "shell.desconectar.texto": 'Se subirán los cambios pendientes, se retirará el permiso de esta aplicación y se borrarán las copias locales de este dispositivo. Tus datos siguen en tu Drive.',
   "shell.demo.titulo": 'Modo demostración',
   "shell.demo.texto": 'Modo demostración: tus datos no se guardan en Drive.',
+  "shell.demo.configurar": 'Configurar Google Drive',
   "shell.demo.conectar": 'Conectar Google Drive',
   "shell.demo.salir": 'Salir de la demo',
   "shell.demo.salir.texto": 'Al salir de la demo se borran sus datos de ejemplo de este navegador. Tu Drive no se ve afectado.',

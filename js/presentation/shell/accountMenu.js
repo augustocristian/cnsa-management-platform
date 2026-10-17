@@ -6,6 +6,7 @@ import { icon } from '../../icons.js';
 import { t } from '../../i18n.js';
 import { langSwitch } from '../../lang-switch.js';
 import { themeSelect } from '../../theme.js';
+import { accionDriveEnDemo } from './conexion.js';
 
 // Visible state of the connection: 'demo' or the store status ('sincronizado' | 'pendiente' | 'error' | 'offline').
 export function estadoVisible(rt) {
@@ -50,7 +51,7 @@ export function crearMenuCuenta(rt) {
       h('section', { class: 'account-sec' }, h('p', { class: 'account-label' }, t('lang.etiqueta')), lang),
       h('section', { class: 'account-sec' }, h('label', { class: 'account-field' }, h('span', { class: 'account-label' }, t('tema.etiqueta')), themeSelect())),
       h('section', { class: 'account-sec account-sec--actions' },
-        demo ? h('button', { type: 'button', class: 'btn btn--primary account-action', onclick: () => { cerrar(); rt.conexion.conectarDesdeDemo(); } }, icon('nube', { size: 18 }), t('shell.demo.conectar')) : null,
+        demo ? h('button', { type: 'button', class: 'btn btn--primary account-action', onclick: () => { cerrar(); accionDriveEnDemo(rt.conexion)[1](); } }, icon('nube', { size: 18 }), accionDriveEnDemo(rt.conexion)[0]) : null,
         demo
           ? h('button', { type: 'button', class: 'btn account-action', onclick: () => { cerrar(); rt.conexion.salirDeDemo(); } }, icon('salir', { size: 18 }), t('shell.demo.salir'))
           : h('button', { type: 'button', class: 'btn account-action account-disconnect', onclick: desconectar }, icon('salir', { size: 18 }), t('shell.desconectar'))));

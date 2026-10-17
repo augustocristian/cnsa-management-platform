@@ -69,3 +69,44 @@ When('recargo la pantalla de inicio', async function () {
   await this.page.reload();
   await this.page.locator('main.auth-card').waitFor({ timeout: this.timeout });
 });
+
+// ---- The demo is only offered while there is no Google Client ID ----
+Given('que la aplicación está abierta sin Client ID de Google y Google rechaza la conexión con {string}', async function (codigo) {
+  await this.abrirApp({ sinClientId: true, errorConexion: codigo });
+});
+
+When('se configura un ID de cliente de Google y recargo la aplicación', async function () {
+  // The fake adapter reads its options from localStorage on every load: this is what pasting a Client ID (or setting
+  // BUILTIN_CLIENT_ID) means for it.
+  await this.page.evaluate(() => {
+    const o = JSON.parse(localStorage.getItem('cnl:test:opts') || '{}');
+    o.sinClientId = false;
+    localStorage.setItem('cnl:test:opts', JSON.stringify(o));
+  });
+  await this.page.reload();
+});
+
+Then('la demo es la primera acción de la pantalla', async function () {
+  const primero = await this.page.locator('main.auth-card').evaluate((card) => {
+    const acciones = [...card.querySelectorAll('button, a[href]')].filter((e) => e.offsetParent !== null);
+    return acciones[0]?.id || null;
+  });
+  assert.equal(primero, 'btn-demo', 'La primera acción de la pantalla no es "Probar la demo"');
+});
+
+Then('el aviso de la demo ofrece {string}', async function (texto) {
+  await this.verVisible(this.page.locator('#cnl-avisos [data-aviso="demo"]').getByRole('button', { name: texto }), `El aviso de la demo no ofrece "${texto}"`);
+});
+
+Then('el aviso de la demo no ofrece {string}', async function (texto) {
+  assert.equal(await this.page.locator('#cnl-avisos [data-aviso="demo"]').getByRole('button', { name: texto }).count(), 0);
+});
+
+Then('la pantalla de inicio no menciona la demo', async function () {
+  const txt = (await this.page.locator('main.auth-card').innerText()).toLowerCase();
+  assert.ok(!txt.includes('demo'), 'La pantalla de inicio menciona la demo');
+});
+
+Then('la pantalla de inicio no muestra el aviso de demo cerrada', async function () {
+  assert.equal(await this.page.locator('#acc-aviso').count(), 0);
+});

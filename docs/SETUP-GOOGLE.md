@@ -2,7 +2,7 @@
 
 The app **has no sign-in and no user accounts**: it never knows who the person is (no name, e-mail or picture is requested, shown or stored). The person only **connects Google Drive**, which is an OAuth *authorization* (Google Identity Services token flow) with a single permission, `drive.file`. For that the app needs a Google client ID, set up once by whoever publishes it.
 
-Without a connected Drive the app can still be shown and tested in **demo mode** (*Try the demo* on the start screen): sample data kept only in the browser, never sent to Drive. The demo does not need a client ID.
+While no client ID is set the app can still be shown and tried in **demo mode** (*Try the demo* on the *Configuration needed* screen): sample data kept only in the browser, never sent to Drive. **The demo is available only without a client ID** (neither saved in the browser nor in `js/config.js`). As soon as one is set, the start screen offers only *Connect Google Drive*; a demo left open is closed on the next start with a notice and its data is erased.
 
 ## Who does what
 
@@ -57,7 +57,7 @@ To try it **before** publishing, open the app: while the constant is empty you w
 - Changes are saved automatically (after a few seconds), with a local cache so the app works offline and a queue of pending changes that is uploaded when the network returns. If the same person edits from another device, the app detects the change (`md5Checksum`/`modifiedTime`) and merges field by field without losing anything.
 - **Backup**: *Configuration* lets the person export/import `.xlsx` and save a copy in `cnl/`.
 - *Disconnect Drive* **revokes** the permission granted to the app and clears the local cache on that device (it first uploads pending changes, or offers a downloadable copy).
-- **Demo mode** (*Try the demo*) works without connecting: its data lives only in the browser (`localStorage` keys `cnl:demo:*`), a banner says so, and *Exit demo* erases it. Connecting Drive from the demo starts an empty real club; demo data never reaches Drive. Backups in Drive and Google Calendar sync are disabled in the demo.
+- **Demo mode** (*Try the demo*, only while there is no client ID) works without connecting: its data lives only in the browser (`localStorage` keys `cnl:demo:*`), a banner says so, and *Exit demo* erases it. From the demo banner, *Set up Google Drive* opens the *Configuration needed* screen so the owner can paste the client ID; connecting then closes the demo and starts an empty real club; demo data never reaches Drive. Backups in Drive and Google Calendar sync are disabled in the demo.
 
 ## Common problems
 - **"Access blocked" / "app not verified" / `access_denied`**: the person's Google account is not listed under **Test users** (step 3.4) while the app is in *Testing* mode. Add it (the app links to the consent screen) or publish the app.

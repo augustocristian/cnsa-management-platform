@@ -8,11 +8,12 @@ const { store } = await importApp('js/store.js');
 const { drive } = await importApp('js/drive.js');
 const { driveConnection } = await importApp('js/infrastructure/driveConnection.js');
 const { crearDemoStorage, DEMO_PREFIX } = await importApp('js/infrastructure/demoStorage.js');
-const { crearModoService } = await importApp('js/application/modoService.js');
+const { crearModoService, demoDisponible } = await importApp('js/application/modoService.js');
 const { crearSesionService } = await importApp('js/application/sesionService.js');
 const { limpiarDatosLocales } = await importApp('js/cache.js');
 const { instalarFakeGoogle } = await importApp('js/infrastructure/fakeGoogle.js');
 
+const CLIENT_ID = '123456-abc.apps.googleusercontent.com';
 const HOY = new Date(2026, 9, 14, 10, 30); // Wednesday 14-Oct-2026
 const ymd = (d) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 const hasta = async (fn, ms = 2000) => { const fin = Date.now() + ms; while (!fn()) { if (Date.now() > fin) throw new Error('timeout'); await new Promise((r) => setTimeout(r, 10)); } };
@@ -135,12 +136,13 @@ test('salir de la demo borra TODOS los datos de la demo, la bandera y deja el st
 });
 
 test('conectar Drive desde la demo: se pide la autorización, la demo se borra y el club real empieza vacío', async () => {
-  fake = instalarFakeGoogle({ conexion: driveConnection, drive, opciones: { conectado: false } });
+  fake = instalarFakeGoogle({ conexion: driveConnection, drive, opciones: { sinClientId: true } });
   await driveConnection.init();
   await modo.enterDemo();
   const marcador = store.list('Nadadores').length;
   assert.ok(marcador > 0);
-  assert.equal((await modo.connectDrive()).modo, 'drive');
+  assert.equal(modo.demoDisponible(), true);
+  assert.equal((await modo.connectDrive({ clientId: CLIENT_ID })).modo, 'drive');
   assert.equal(driveConnection.isConnected(), true);
   assert.equal(store.mode, 'drive');
   assert.equal(demo.existe(), false);
@@ -154,9 +156,11 @@ test('conectar Drive desde la demo: se pide la autorización, la demo se borra y
 });
 
 test('si conectar Drive falla, la demo sigue intacta', async () => {
-  fake = instalarFakeGoogle({ conexion: driveConnection, drive, opciones: { errorConexion: 'popup-cerrado' } });
+  fake = instalarFakeGoogle({ conexion: driveConnection, drive, opciones: { sinClientId: true, errorConexion: 'popup-cerrado' } });
   await modo.enterDemo();
-  await assert.rejects(modo.connectDrive(), (e) => e.code === 'popup-cerrado');
+  await assert.rejects(modo.connectDrive({ clientId: CLIENT_ID }), (e) => e.code === 'popup-cerrado');
+  assert.equal(driveConnection.enabled, false, 'a Client ID that could not connect is not kept');
+  assert.equal(modo.demoDisponible(), true, 'the demo keeps being available');
   assert.equal(store.mode, 'demo');
   assert.ok(store.list('Nadadores').length > 0);
   assert.equal(demo.existe(), true);
@@ -168,10 +172,48 @@ test('no se puede abrir la demo con Drive conectado', async () => {
   await assert.rejects(modo.enterDemo(), (e) => e.code === 'demo-con-drive');
 });
 
+test('enterDemo throws demo-con-cliente when a Google Client ID is configured and writes nothing', async () => {
+  fake = instalarFakeGoogle({ conexion: driveConnection, drive, opciones: { conectado: false } }); // the simulator has a Client ID
+  await driveConnection.init();
+  assert.equal(driveConnection.enabled, true);
+  assert.equal(modo.demoDisponible(), false);
+  await assert.rejects(modo.enterDemo(), (e) => e.code === 'demo-con-cliente');
+  assert.equal(flag.leer(), null);
+  assert.equal(demo.existe(), false);
+  assert.deepEqual(Object.keys(localStorage).filter((k) => k.startsWith('cnl:demo:') || k === 'cnl:mode'), []);
+});
+
+test('a demo left open is closed and wiped when a Google Client ID appears', async () => {
+  fake = instalarFakeGoogle({ conexion: driveConnection, drive, opciones: { sinClientId: true } });
+  await driveConnection.init();
+  const sesion = crearSesionService({ auth: driveConnection, store, banderas: { demoGuardada: () => flag.leer() === 'demo' }, limpiarDatosLocales });
+  await modo.enterDemo();
+  assert.equal(sesion.decidirArranque(), 'demo');
+  fake.opciones.sinClientId = false; // the owner pasted a Client ID (or set BUILTIN_CLIENT_ID)
+  assert.equal(modo.demoDisponible(), false);
+  assert.equal(sesion.decidirArranque(), 'demo-cerrada');
+  await modo.exitDemo(); // what the boot does before showing the notice
+  assert.equal(demo.existe(), false);
+  assert.equal(flag.leer(), null);
+  assert.deepEqual(Object.keys(localStorage).filter((k) => k.startsWith('cnl:demo:') || k === 'cnl:mode'), []);
+  assert.equal(sesion.decidirArranque(), 'inicio');
+});
+
+test('demoDisponible: only without a Client ID and without authorised Drive (full matrix)', () => {
+  for (const clientId of [false, true]) {
+    for (const driveAuth of [false, true]) {
+      assert.equal(demoDisponible({ clientId, driveAuth }), !clientId && !driveAuth, JSON.stringify({ clientId, driveAuth }));
+    }
+  }
+  assert.equal(demoDisponible(), true);
+  assert.equal(demoDisponible({ clientId: 'x.apps.googleusercontent.com' }), false);
+  assert.equal(demoDisponible({ clientId: '' }), true);
+});
+
 test('arranque: la autorización de Drive manda sobre la bandera de la demo (sesionService.resolveStartMode)', async () => {
   let conectado = false;
   const sesion = crearSesionService({
-    auth: { isConnected: () => conectado, enabled: true }, store, banderas: { demoGuardada: () => flag.leer() === 'demo', guardarDemo() {} }, limpiarDatosLocales,
+    auth: { isConnected: () => conectado, enabled: false }, store, banderas: { demoGuardada: () => flag.leer() === 'demo', guardarDemo() {} }, limpiarDatosLocales,
   });
   assert.equal(sesion.resolveStartMode(), 'start');
   flag.escribir('demo');

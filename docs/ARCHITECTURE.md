@@ -151,7 +151,7 @@ Whoever signs in is the coach and can do everything. There are no roles, no `Usu
 
 Business rules left the shell and live in the application layer, with every concrete dependency injected:
 
-- `js/application/sesionService.js` — `crearSesionService({auth, drive, prefs, CLAVES, store, banderas, limpiarDatosLocales, espera, log})`: `resolveStartMode()` / `decidirArranque()` (drive | demo | start | config | tutorial), `resolverClub()` (-> abrir | crear | elegir | error), `reconectar()`, `cerrarSesion({preguntarPendientes})` (upload with a deadline, ask when it could not, revoke, erase local mirrors; the demo never uploads). Entering and leaving the demo is `application/modoService.js`.
+- `js/application/sesionService.js` — `crearSesionService({auth, drive, prefs, CLAVES, store, banderas, limpiarDatosLocales, espera, log})`: `resolveStartMode()` / `decidirArranque()` (drive | demo | demo-cerrada | start | config | inicio | tutorial; the demo rule is `demoDisponible()` in `modoService.js`: only without a Client ID), `resolverClub()` (-> abrir | crear | elegir | error), `reconectar()`, `cerrarSesion({preguntarPendientes})` (upload with a deadline, ask when it could not, revoke, erase local mirrors; the demo never uploads). Entering and leaving the demo is `application/modoService.js`.
 - `js/application/avisosService.js` (+ `domain/avisos.js`) — `crearAvisosService({listar, ahora, visto})`: `contarNoLeidos()` for the bell (notices of the last 7 days written after the last visit) and `marcarVistos()`.
 
 Ports used by the shell services (browser implementations are in `boot.js`):

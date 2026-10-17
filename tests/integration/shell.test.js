@@ -22,8 +22,8 @@ before(async () => {
   }
 });
 
-function crearRt({ demo = false, comunicaciones = [], offline = false } = {}) {
-  const llamadas = { logout: 0, sync: 0, conectarDemo: 0, salirDemo: 0 };
+function crearRt({ demo = false, comunicaciones = [], offline = false, clientId = false } = {}) {
+  const llamadas = { logout: 0, sync: 0, conectarDemo: 0, salirDemo: 0, configurarDrive: 0 };
   const store = {
     club: { nombre: 'Club Prueba', lema: 'Siempre adelante' }, status: 'sincronizado', mode: demo ? 'demo' : 'drive',
     list: (hoja) => (hoja === 'Comunicaciones' ? comunicaciones : []), on() {},
@@ -33,6 +33,8 @@ function crearRt({ demo = false, comunicaciones = [], offline = false } = {}) {
     ahora: () => new Date(2026, 9, 14, 10, 30),
     conexion: {
       esDemo: () => store.mode === 'demo',
+      puedeConectar: () => clientId, // a Google Client ID exists
+      configurarDrive: () => { llamadas.configurarDrive++; },
       conectarDesdeDemo: () => { llamadas.conectarDemo++; }, salirDeDemo: () => { llamadas.salirDemo++; },
     },
     logout: () => { llamadas.logout++; },
@@ -223,11 +225,11 @@ test('banners: demo mode, offline and update use the alert component and are rep
   assert.ok(demo.classList.contains('alert'));
   assert.equal(demo.getAttribute('aria-label'), 'Modo demostración');
   assert.match(demo.textContent, /Modo demostración: tus datos no se guardan en Drive\./);
-  const [conectar, salir] = demo.querySelectorAll('button');
-  assert.equal(conectar.textContent, 'Conectar Google Drive');
+  const [configurar, salir] = demo.querySelectorAll('button');
+  assert.equal(configurar.textContent, 'Configurar Google Drive', 'without a Client ID there is no Connect button yet');
   assert.equal(salir.textContent, 'Salir de la demo');
-  conectar.click(); salir.click();
-  assert.deepEqual([rt.llamadas.conectarDemo, rt.llamadas.salirDemo], [1, 1]);
+  configurar.click(); salir.click();
+  assert.deepEqual([rt.llamadas.configurarDrive, rt.llamadas.conectarDemo, rt.llamadas.salirDemo], [1, 0, 1]);
   assert.equal(slot.querySelector('[data-aviso="sin-conexion"]'), null, 'no offline banner in demo');
   // the menu shows the demo status and "Exit demo" instead of "Disconnect"
   document.querySelector('.account-btn').click();
@@ -252,6 +254,27 @@ test('banners: demo mode, offline and update use the alert component and are rep
   assert.equal(up.textContent.includes('versión nueva'), true);
   up.querySelector('button').click();
   assert.equal(recargado, 1);
+});
+
+test('banner in demo mode: once a Client ID exists the action is Connect Google Drive', async () => {
+  const rt = crearRt({ demo: true, clientId: true });
+  await shell.renderShell(rt);
+  const [conectar, salir] = document.querySelectorAll('#cnl-avisos [data-aviso="demo"] button');
+  assert.equal(conectar.textContent, 'Conectar Google Drive');
+  assert.equal(salir.textContent, 'Salir de la demo');
+  conectar.click();
+  assert.deepEqual([rt.llamadas.conectarDemo, rt.llamadas.configurarDrive], [1, 0]);
+  document.querySelector('.account-btn').click();
+  assert.ok([...document.querySelectorAll('.account-panel button')].some((b) => b.textContent.trim() === 'Conectar Google Drive'));
+});
+
+test('banner in demo mode without a Client ID: menu offers Set up Google Drive', async () => {
+  const rt = crearRt({ demo: true });
+  await shell.renderShell(rt);
+  document.querySelector('.account-btn').click();
+  const botones = [...document.querySelectorAll('.account-panel button')].map((b) => b.textContent.trim());
+  assert.ok(botones.includes('Configurar Google Drive'));
+  assert.ok(!botones.includes('Conectar Google Drive'));
 });
 
 test('bell: counts recent notices written after the last visit and resets when Notices opens', async () => {

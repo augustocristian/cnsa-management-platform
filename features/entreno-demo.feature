@@ -5,7 +5,7 @@ Característica: El plan de entreno en el modo demo
   y saber por qué guardarlo en Drive no está disponible
 
   Escenario: En el modo demo guardar en Drive está desactivado y se puede descargar el PDF
-    Dado que la aplicación está recién abierta sin sesión
+    Dado que la aplicación está abierta sin Client ID de Google
     Cuando pulso "Probar la demo"
     Y abro el módulo "Entrenamientos"
     Y abro el plan de la próxima sesión del grupo "Alevín"

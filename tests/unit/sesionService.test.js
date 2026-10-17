@@ -43,13 +43,35 @@ function entorno({ conectado = true, enabled = true, demo = false, clubes = [], 
 
 test('decidirArranque: drive, demo left open, config, start screen and tutorial', () => {
   assert.equal(entorno({ conectado: true }).svc.decidirArranque(), 'drive');
-  assert.equal(entorno({ conectado: false, demo: true }).svc.decidirArranque(), 'demo');
+  assert.equal(entorno({ conectado: false, enabled: false, demo: true }).svc.decidirArranque(), 'demo');
   assert.equal(entorno({ conectado: false, enabled: false }).svc.decidirArranque(), 'config');
   assert.equal(entorno({ conectado: false, enabled: false }).svc.decidirArranque({ tutorial: true }), 'tutorial');
   assert.equal(entorno({ conectado: false }).svc.decidirArranque(), 'inicio');
   assert.equal(entorno({ conectado: false }).svc.decidirArranque({ tutorial: true }), 'tutorial');
   // an authorized Drive wins over a stale demo flag
   assert.equal(entorno({ conectado: true, demo: true }).svc.decidirArranque(), 'drive');
+});
+
+test('start mode matrix: client ID x Drive authorisation x demo flag', () => {
+  const casos = [
+    // conectado, enabled (Client ID), demo flag -> resolveStartMode / decidirArranque
+    [false, false, false, 'start', 'config'],        // no Client ID: Configuration needed (offers the demo)
+    [false, false, true, 'demo', 'demo'],            // demo left open and still allowed: straight into the demo
+    [false, true, false, 'start', 'inicio'],         // Client ID set: only "Connect Google Drive"
+    [false, true, true, 'demo-cerrada', 'demo-cerrada'], // a Client ID appeared while the demo was open: it is closed
+    [true, true, false, 'drive', 'drive'],
+    [true, true, true, 'drive', 'drive'],            // Drive wins over a stale demo flag
+    [true, false, false, 'drive', 'drive'],
+    [true, false, true, 'drive', 'drive'],
+  ];
+  for (const [conectado, enabled, demo, modo, arranque] of casos) {
+    const { svc } = entorno({ conectado, enabled, demo });
+    const quien = JSON.stringify({ conectado, enabled, demo });
+    assert.equal(svc.resolveStartMode(), modo, 'resolveStartMode ' + quien);
+    assert.equal(svc.decidirArranque(), arranque, 'decidirArranque ' + quien);
+  }
+  // the tutorial is still reachable before connecting, but a demo that must be closed is closed first
+  assert.equal(entorno({ conectado: false, enabled: true, demo: true }).svc.decidirArranque({ tutorial: true }), 'demo-cerrada');
 });
 
 test('resolverClub: no clubs -> wizard; one club or the last one -> open; several -> picker', async () => {
@@ -135,6 +157,6 @@ test('cerrarSesion: a hung upload does not block leaving (deadline) and the demo
 
 test('resolveStartMode: drive wins over a stale demo flag; demo; start', () => {
   assert.equal(entorno({ conectado: true, demo: true }).svc.resolveStartMode(), 'drive');
-  assert.equal(entorno({ conectado: false, demo: true }).svc.resolveStartMode(), 'demo');
+  assert.equal(entorno({ conectado: false, enabled: false, demo: true }).svc.resolveStartMode(), 'demo');
   assert.equal(entorno({ conectado: false }).svc.resolveStartMode(), 'start');
 });

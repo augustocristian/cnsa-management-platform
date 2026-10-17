@@ -14,15 +14,17 @@ Característica: Acceso con Google y primer arranque
     Y veo el botón "Conectar Google Drive"
     Y no veo ningún texto sobre el modo local
     Y no veo el botón "Probar en modo local"
+    Y no veo el botón "Probar la demo"
     Y el menú de la aplicación no se muestra
     Y la pantalla de inicio no habla de cuentas ni de iniciar sesión
 
   @smoke
-  Escenario: La pantalla de inicio explica el valor y la privacidad y ofrece probar la demo
+  Escenario: La pantalla de inicio explica el valor y la privacidad y, con ID de Google, no ofrece la demo
     Dado que la aplicación está recién abierta sin sesión
     Entonces veo el texto "Planifica entrenamientos, pasa lista y controla las cargas de tu club"
     Y veo el texto "Tus datos se guardan en tu propio Google Drive; no se comparte nada con nadie"
-    Y veo el botón "Probar la demo"
+    Y no veo el botón "Probar la demo"
+    Y la pantalla de inicio no menciona la demo
 
   Escenario: El selector de idioma son banderas en el pie de la tarjeta, no un desplegable ni lo primero
     Dado que la aplicación está recién abierta sin sesión
@@ -35,6 +37,7 @@ Característica: Acceso con Google y primer arranque
   Escenario: Sin Client ID la aplicación pide la configuración necesaria
     Dado que la aplicación está abierta sin Client ID de Google
     Entonces veo el encabezado "Configuración necesaria"
+    Y veo el botón "Probar la demo"
     Y no veo el botón "Conectar Google Drive"
     Y no veo ningún texto sobre el modo local
     Cuando pulso "Abrir el tutorial (5 minutos)"
@@ -102,8 +105,8 @@ Característica: Acceso con Google y primer arranque
     Y pulso "Atrás"
     Entonces el campo "Nombre del club" contiene "Club Atrás"
 
-  Escenario: La demo se ofrece desde la pantalla de inicio y abre el panel con datos de ejemplo
-    Dado que la aplicación está recién abierta sin sesión
+  Escenario: Sin ID de Google la demo se ofrece en la configuración necesaria y abre el panel con datos de ejemplo
+    Dado que la aplicación está abierta sin Client ID de Google
     Cuando pulso "Probar la demo"
     Entonces estoy en el módulo "Inicio"
     Y veo el encabezado "Acciones rápidas"

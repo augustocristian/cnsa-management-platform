@@ -5,6 +5,7 @@ import { h } from '../../ui.js';
 import { icon } from '../../icons.js';
 import { t } from '../../i18n.js';
 import { estaOffline } from './offline.js';
+import { accionDriveEnDemo } from './conexion.js';
 
 const PRIVACIDAD = 'privacidadAceptada';
 const ICONO = { info: 'info', warn: 'aviso', danger: 'aviso', ok: 'check' };
@@ -14,7 +15,7 @@ export function avisosActuales(rt) {
   const { store, auth, prefs } = rt;
   const out = [];
   if (rt.conexion?.esDemo()) {
-    out.push({ id: 'demo', tono: 'info', texto: t('shell.demo.texto'), boton: [t('shell.demo.conectar'), () => rt.conexion.conectarDesdeDemo()], boton2: [t('shell.demo.salir'), () => rt.conexion.salirDeDemo()], region: t('shell.demo.titulo') });
+    out.push({ id: 'demo', tono: 'info', texto: t('shell.demo.texto'), boton: accionDriveEnDemo(rt.conexion), boton2: [t('shell.demo.salir'), () => rt.conexion.salirDeDemo()], region: t('shell.demo.titulo') });
   }
   if (rt.actualizarVersion) out.push({ id: 'actualizacion', tono: 'info', texto: t('shell.update.texto'), boton: [t('shell.update.boton'), () => rt.actualizarVersion()] });
   if (rt.offline && !rt.conexion?.esDemo()) out.push({ id: 'sin-conexion', tono: 'warn', texto: t('shell.offline.texto'), icono: 'sin-conexion' });

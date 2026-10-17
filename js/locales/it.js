@@ -120,6 +120,7 @@ export default {
   "shell.desconectar.texto": 'Le modifiche in sospeso verranno caricate, il permesso di questa app verrà revocato e le copie locali su questo dispositivo verranno cancellate. I tuoi dati restano nel tuo Drive.',
   "shell.demo.titulo": 'Modalità demo',
   "shell.demo.texto": 'Modalità demo: i tuoi dati non vengono salvati su Drive.',
+  "shell.demo.configurar": 'Configura Google Drive',
   "shell.demo.conectar": 'Collega Google Drive',
   "shell.demo.salir": 'Esci dalla demo',
   "shell.demo.salir.texto": 'Uscendo dalla demo i suoi dati di esempio vengono cancellati da questo browser. Il tuo Drive non viene toccato.',

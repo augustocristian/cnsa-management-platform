@@ -5,7 +5,7 @@ Característica: Copia de seguridad en modo demostración
   aunque no haya conectado mi Drive.
 
   Escenario: En modo demostración se puede descargar y restaurar, pero las copias de Drive están desactivadas
-    Dado que la aplicación está recién abierta sin sesión
+    Dado que la aplicación está abierta sin Client ID de Google
     Cuando pulso "Probar la demo"
     Y abro el módulo "Configuración"
     Entonces las copias en Drive aparecen desactivadas con una explicación

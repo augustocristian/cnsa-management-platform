@@ -11,19 +11,32 @@ import { t } from '../../i18n.js';
 
 const volverAlInicio = () => { location.hash = ''; location.reload(); };
 
+// The demo banner / menu / settings action for Drive while the demo runs: with a Google Client ID it is "Connect Google Drive";
+// without one it is "Set up Google Drive" (opens the Configuration-needed screen). -> [label, onclick]
+export function accionDriveEnDemo(conexion) {
+  const puede = conexion.puedeConectar ? conexion.puedeConectar() : true;
+  return puede ? [t('shell.demo.conectar'), () => conexion.conectarDesdeDemo()] : [t('shell.demo.configurar'), () => conexion.configurarDrive()];
+}
+
 export function crearConexion(rt) {
   return {
     esDemo: () => rt.store?.mode === 'demo',
+
+    // Can a Drive connection be started? Yes once a Google Client ID exists (the same rule that closes the demo: modoService).
+    puedeConectar: () => !rt.modo?.demoDisponible(),
 
     async entrarEnDemo() {
       try {
         await rt.modo.enterDemo();
       } catch (e) {
-        toast.error((e && e.message) || t('common.error'));
+        toast.error(e && (e.code === 'demo-con-cliente' || e.code === 'demo-con-drive') ? t('acceso.demo-no-disponible') : (e && e.message) || t('common.error'));
         return;
       }
       await rt.start();
     },
+
+    // "Set up Google Drive" from the demo: the Configuration-needed screen (tutorial + paste the Client ID) with a way back.
+    configurarDrive() { rt.configurar(); },
 
     // Opens the demo club (it reopens what the person had). No-op if it is already open.
     async abrirDemo() {

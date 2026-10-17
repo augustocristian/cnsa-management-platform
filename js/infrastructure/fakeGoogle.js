@@ -50,6 +50,8 @@ export function leerOpciones(entorno = globalThis) {
   let o = {};
   try { o = JSON.parse((ls && ls.getItem(CLAVE_OPCIONES)) || '{}') || {}; } catch (e) { o = {}; }
   if (flag && typeof flag === 'object') o = { ...o, ...flag };
+  // A Client ID saved in this browser (config.setClientId) counts as configured, like in the real app.
+  try { if (o.sinClientId && ls && (ls.getItem('cnl:clientId') || '').trim()) o = { ...o, sinClientId: false }; } catch (e) { /* ignorar */ }
   return normalizarOpciones(o);
 }
 
@@ -238,20 +240,24 @@ export function instalarFakeGoogle({ auth: authParam, conexion, drive, config, o
     },
     isConnected: () => conectado,
     async connect({ interactive = true, clientId } = {}) {
+      let idNuevo = false; // a tried Client ID is only kept if the connection works (like driveConnection)
       if (opts.sinClientId) {
         if (!clientId) {
           if (!interactive) return false;
           throw Object.assign(new Error('Falta el Client ID'), { code: 'sin-client-id' });
         }
         if (opts.clientIdInvalido) throw Object.assign(new Error('origin_mismatch'), { code: 'origen-no-autorizado', origin: location.origin });
-        opts.sinClientId = false;
-        try { config && config.setClientId && config.setClientId(clientId); } catch (e) { /* ignorar */ }
+        idNuevo = true;
       }
       if (opts.errorConexion) {
         if (!interactive) return false;
         throw Object.assign(new Error(opts.errorConexion), { code: opts.errorConexion, origin: location.origin });
       }
       if (!interactive && !conectado) return false;
+      if (idNuevo) {
+        opts.sinClientId = false;
+        try { config && config.setClientId && config.setClientId(clientId); } catch (e) { /* ignorar */ }
+      }
       sesionCaducada = false;
       auth.expired = false;
       abrirConexion();

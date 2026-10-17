@@ -1,4 +1,4 @@
-// Screens shown before the application: "configuration needed", the start screen (connect Google Drive or try the demo),
+// Screens shown before the application: "configuration needed" (with the demo), the start screen (connect Google Drive),
 // the first-run wizard (create the club) and the club picker. Presentation only: the logic lives in
 // application/asistenteClub.js, application/sesionService.js and the shell. Styles: css/views/acceso.css.
 // There is no account or sign-in: Google Drive is only authorised (scope drive.file) to keep the user's own data.
@@ -67,8 +67,13 @@ function accionOcupada(btn, salida, fn) {
 }
 
 // ---------- Configuration needed (no Client ID) ----------
-// -> nodes for the card. onListo() is called when the tested ID works (Drive is connected).
-export function configNecesaria({ auth, onListo }) {
+// The only screen that offers the demo (it exists to try the app before Google Drive is set up), so "Try the demo" is the first
+// action; the owner setup (tutorial, origin, paste/test/save the Client ID) comes below it.
+//   onDemo()        "Try the demo" (omit it, e.g. when the demo is already open, to hide the button)
+//   onVolverDemo()  "Back to the demo" (the screen was opened from the demo banner)
+//   onListo()       the tested ID works (Drive is connected)
+// -> nodes for the card.
+export function configNecesaria({ auth, onListo, onDemo, onVolverDemo }) {
   useStyles('acceso');
   const id = h('input', { type: 'text', id: 'cfg-clientid', autocomplete: 'off', spellcheck: 'false', placeholder: '123456-abc.apps.googleusercontent.com' });
   const salida = h('div', { id: 'cfg-salida', class: 'acc-salida', 'aria-live': 'polite' });
@@ -79,25 +84,39 @@ export function configNecesaria({ auth, onListo }) {
     await auth.connect({ interactive: true, clientId: v });
     onListo();
   });
+  const demo = onDemo ? h('section', { class: 'acc-demo-cta', 'aria-labelledby': 'cfg-demo-t' },
+    h('h2', { id: 'cfg-demo-t' }, t('cfgreq.demo-titulo')),
+    h('p', null, t('acceso.demo-nota')),
+    h('button', { class: 'btn btn--primary btn-primary btn-lg', type: 'button', id: 'btn-demo', onclick: () => onDemo() }, t('acceso.demo'))) : null;
+  const volver = onVolverDemo ? h('section', { class: 'acc-demo-cta', 'aria-labelledby': 'cfg-demo-t' },
+    h('h2', { id: 'cfg-demo-t' }, t('cfgreq.demo-activa-titulo')),
+    h('p', null, t('cfgreq.demo-activa')),
+    h('button', { class: 'btn btn--primary btn-primary btn-lg', type: 'button', id: 'cfg-volver-demo', onclick: () => onVolverDemo() }, t('cfgreq.demo-volver'))) : null;
   return [
     logo(64),
     h('h1', null, t('cfgreq.titulo')),
-    h('p', null, t('cfgreq.texto')),
-    h('p', { class: 'hint' }, t('cfgreq.quien')),
-    h('a', { class: 'btn btn--primary btn-primary btn-lg', href: '#/tutorial', id: 'cfg-tutorial' }, t('cfgreq.tutorial')),
-    h('a', { class: 'btn btn-link', href: '#/tutorial/5', id: 'cfg-tutorial-id' }, t('cfgreq.tutorial-id')),
-    h('section', { class: 'acc-help', 'aria-labelledby': 'cfg-ayuda' },
+    demo,
+    volver,
+    h('section', { class: 'acc-help acc-owner', 'aria-labelledby': 'cfg-ayuda' },
       h('h2', { id: 'cfg-ayuda' }, t('cfgreq.ayuda-titulo')),
+      h('p', null, t('cfgreq.texto')),
+      h('p', { class: 'hint' }, t('cfgreq.quien')),
+      h('div', { class: 'acc-owner-links' },
+        h('a', { class: 'btn', href: '#/tutorial', id: 'cfg-tutorial' }, t('cfgreq.tutorial')),
+        h('a', { class: 'btn btn-link', href: '#/tutorial/5', id: 'cfg-tutorial-id' }, t('cfgreq.tutorial-id'))),
       filaCopiar(t('cfgreq.origen'), origenActual()),
       field({ label: t('cfgreq.campo'), input: id, hint: t('cfgreq.nota-guardado') }),
+      onVolverDemo ? h('p', { class: 'hint' }, t('cfgreq.cierra-demo')) : null,
       btn, salida),
     pie(),
   ];
 }
 
-// ---------- Start screen: connect Google Drive or try the demo ----------
-// onConectar()/onSesion(): Drive is connected. onDemo(): the user wants to try the demo (omit it to hide the button).
-export function login({ auth, onSesion, onConectar, onDemo }) {
+// ---------- Start screen: connect Google Drive ----------
+// Shown only when a Google Client ID exists and Drive is not connected: the demo is NOT offered here (it is only available while
+// there is no Client ID, see the "Configuration needed" screen).
+// onConectar()/onSesion(): Drive is connected. `aviso`: optional one-off notice (e.g. the demo was closed).
+export function login({ auth, onSesion, onConectar, aviso }) {
   useStyles('acceso');
   const salida = h('div', { id: 'login-salida', class: 'acc-salida', 'aria-live': 'polite' });
   const btn = h('button', { class: 'btn btn--primary btn-primary btn-lg', type: 'button', id: 'btn-google' }, icon('nube', { size: 20 }), t('acceso.login.google'));
@@ -105,14 +124,12 @@ export function login({ auth, onSesion, onConectar, onDemo }) {
     await auth.connect({ interactive: true });
     (onConectar || onSesion)?.();
   });
-  const demo = onDemo ? h('div', { class: 'acc-demo' },
-    h('button', { class: 'btn btn-lg', type: 'button', id: 'btn-demo', onclick: () => onDemo() }, t('acceso.demo')),
-    h('p', { class: 'hint' }, t('acceso.demo-nota'))) : null;
   return [
     logo(72),
     h('h1', null, t('shell.titulo')),
     h('p', { class: 'acc-propuesta' }, t('acceso.propuesta')),
-    h('div', { class: 'acc-acciones' }, btn, demo),
+    aviso ? h('div', { class: 'alert alert--info acc-aviso', role: 'status', id: 'acc-aviso' }, icon('info', { size: 20 }), h('p', null, aviso)) : null,
+    h('div', { class: 'acc-acciones' }, btn),
     salida,
     h('p', { class: 'acc-privacidad' }, icon('info', { size: 16 }), h('span', null, t('acceso.privacidad'))),
     h('p', { class: 'hint' }, t('acceso.login.nota')),

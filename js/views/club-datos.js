@@ -4,6 +4,7 @@
 import { h, toast } from '../ui.js';
 import { t } from '../i18n.js';
 import { preferencias } from '../preferencias.js';
+import { accionDriveEnDemo } from '../presentation/shell/conexion.js';
 import { servicioCategorias } from './categorias-panel.js';
 import { confirmarImportacion, textoErrorImportacion } from './datos-integridad.js';
 
@@ -71,7 +72,7 @@ export function tarjetaDatos(ctx, svc, recargar) {
   const desconectar = () => (ctx.desconectar ? ctx.desconectar() : window.dispatchEvent(new CustomEvent('cnl:desconectar')));
   // Connection actions are offered when the shell provides them (they also live in the header menu).
   const conexion = demo
-    ? [ctx.conexion && h('button', { type: 'button', class: 'btn btn--primary', onclick: () => ctx.conexion.conectarDesdeDemo() }, t('shell.demo.conectar')),
+    ? [ctx.conexion && h('button', { type: 'button', class: 'btn btn--primary', onclick: accionDriveEnDemo(ctx.conexion)[1] }, accionDriveEnDemo(ctx.conexion)[0]),
       ctx.conexion && h('button', { type: 'button', class: 'btn', onclick: () => ctx.conexion.salirDeDemo() }, t('shell.demo.salir'))]
     : [h('button', { type: 'button', class: 'btn', id: 'clb-desconectar', onclick: desconectar }, t('shell.desconectar'))];
 

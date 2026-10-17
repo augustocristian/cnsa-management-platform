@@ -14,8 +14,8 @@
 .acc-propuesta { color: var(--text); font-size: var(--fs-h3); }
 .acc-acciones { display: grid; gap: var(--sp-3); }
 .acc-acciones .btn-lg { width: 100%; }
-.acc-demo { display: grid; gap: var(--sp-1); justify-items: center; text-align: center; }
-.acc-demo .hint { margin: 0; }
+.acc-aviso { text-align: left; }
+.acc-aviso p { margin: 0; }
 .acc-privacidad { display: flex; align-items: flex-start; gap: var(--sp-2); padding: var(--sp-3); border-radius: var(--r-md); background: var(--info-bg); color: var(--text); font-size: var(--fs-sm); }
 .acc-privacidad .icon { color: var(--info); margin-top: 2px; }
 .auth-card .hint { text-align: center; }
@@ -41,9 +41,16 @@
 }
 .acc-copy .btn { flex: none; }
 
-/* Config needed */
+/* Config needed: the demo call to action comes first, the owner setup below it */
+.acc-demo-cta { display: grid; gap: var(--sp-2); padding: var(--sp-4); border: 1px solid var(--border); border-radius: var(--r-md); background: var(--info-bg); text-align: center; }
+.acc-demo-cta h2 { margin: 0; font-size: var(--fs-h3); }
+.acc-demo-cta p { margin: 0; color: var(--text); }
+.acc-demo-cta .btn-lg { width: 100%; margin-top: var(--sp-1); }
 .acc-help { display: grid; gap: var(--sp-3); padding-top: var(--sp-4); border-top: 1px solid var(--border); }
 .acc-help h2 { margin: 0; font-size: var(--fs-h3); }
+.acc-help > p { margin: 0; }
+.acc-owner-links { display: flex; flex-wrap: wrap; gap: var(--sp-2); align-items: center; }
+.acc-owner-links .btn { flex: 0 1 auto; }
 
 /* Wizard */
 .acc-form { display: grid; gap: var(--sp-3); }

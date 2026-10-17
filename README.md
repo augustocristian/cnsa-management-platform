@@ -38,16 +38,16 @@ This is an **individual-use** app: there is **no sign-in and no user account**: 
 
 ### 1. First launch
 
-Connect Google Drive (or try the demo), then a two-step wizard creates the club file inside `cnl/`. The club starts **empty**: no sample data, a *First steps* card and empty states with calls to action.
+Connect Google Drive, then a two-step wizard creates the club file inside `cnl/`. The club starts **empty**: no sample data, a *First steps* card and empty states with calls to action.
 
 | Desktop | Mobile |
 |---|---|
-| <img src="docs/screenshots/escritorio-acceso.png" width="620" alt="Start screen with the Connect Google Drive and Try the demo buttons and the language selector"> | <img src="docs/screenshots/movil-acceso.png" width="200" alt="Mobile start screen with the Connect Google Drive button"> |
+| <img src="docs/screenshots/escritorio-acceso.png" width="620" alt="Start screen with the Connect Google Drive button and the language selector"> | <img src="docs/screenshots/movil-acceso.png" width="200" alt="Mobile start screen with the Connect Google Drive button"> |
 | <img src="docs/screenshots/escritorio-asistente.png" width="620" alt="Wizard step 1 of 2: club name and motto already filled in"> | <img src="docs/screenshots/movil-asistente.png" width="200" alt="Mobile wizard step 1 of 2"> |
 | <img src="docs/screenshots/escritorio-asistente-colores.png" width="620" alt="Wizard step 2 of 2: club colours and time zone"> | <img src="docs/screenshots/movil-asistente-colores.png" width="200" alt="Mobile wizard step 2 of 2"> |
 | <img src="docs/screenshots/escritorio-primeros-pasos.png" width="620" alt="Home of a brand new club with the First steps card: create groups, add swimmers, define the pool, schedule a session"> | <img src="docs/screenshots/movil-primeros-pasos.png" width="200" alt="Mobile home of a new club with the First steps card"> |
 
-If the copy of the app has no Google Client ID (`BUILTIN_CLIENT_ID` in `js/config.js`), a *Configuración necesaria* screen links to the 5-minute tutorial ([docs/SETUP-GOOGLE.md](docs/SETUP-GOOGLE.md)). That is a one-off task for the owner of the app. You can have **several clubs** (several files in `cnl/`) and switch between them from *Configuración*.
+If the copy of the app has no Google Client ID (`BUILTIN_CLIENT_ID` in `js/config.js`), a *Configuración necesaria* screen offers **Try the demo** first (sample data kept only in the browser, nothing sent to Drive) and, below it, the owner setup: the 5-minute tutorial ([docs/SETUP-GOOGLE.md](docs/SETUP-GOOGLE.md)). That is a one-off task for the owner of the app. You can have **several clubs** (several files in `cnl/`) and switch between them from *Configuración*.
 
 ### 2. Day to day at the pool: attendance and loads
 
@@ -238,7 +238,7 @@ npm run check      # checks the syntax of the modules
 npm run serve      # static server on http://localhost:4173 (or: python -m http.server 8080)
 ```
 
-Connecting Drive needs a Google Client ID ([docs/SETUP-GOOGLE.md](docs/SETUP-GOOGLE.md)): paste it in `js/config.js` (`BUILTIN_CLIENT_ID`) or in the *Configuración necesaria* screen, and add your local origin to the authorised origins. Without real Google, the test tool (below) starts the app with a simulated Drive connection; the demo mode needs neither.
+Connecting Drive needs a Google Client ID ([docs/SETUP-GOOGLE.md](docs/SETUP-GOOGLE.md)): paste it in `js/config.js` (`BUILTIN_CLIENT_ID`) or in the *Configuración necesaria* screen, and add your local origin to the authorised origins. Without real Google, the test tool (below) starts the app with a simulated Drive connection; the demo mode needs neither. **The demo is available only while no Google Client ID is set** (neither in `localStorage['cnl:clientId']` nor in `BUILTIN_CLIENT_ID`): once one exists the start screen offers only *Connect Google Drive* and a demo left open is closed with a notice and its data erased.
 
 ### Regenerating the screenshots
 

@@ -9,27 +9,33 @@ const test = (name, fn) => base(name, async (t) => { c = await fresh(); return f
 const montar = (nodos) => { c.container.replaceChildren(...nodos.flat().filter(Boolean)); return c.container; };
 const botonPorTexto = (root, texto) => [...root.querySelectorAll('button, a')].find((b) => b.textContent.trim() === texto);
 
-test('inicio: propuesta de valor, privacidad, conectar Drive y demo; sin cuenta ni inicio de sesión', async () => {
+test('start screen (Client ID set): value proposition, privacy and ONLY Connect Google Drive; no demo, no account wording', async () => {
   const acceso = await importApp('js/views/acceso.js');
-  let demo = 0;
-  const root = montar(acceso.login({ auth: { connect: async () => {} }, onConectar: () => {}, onDemo: () => { demo++; } }));
+  const root = montar(acceso.login({ auth: { connect: async () => {} }, onConectar: () => {} }));
   assert.equal(root.querySelector('h1').textContent, 'CNL Plataforma');
   const primario = root.querySelector('#btn-google');
   assert.equal(primario.textContent.trim(), 'Conectar Google Drive');
   assert.ok(primario.classList.contains('btn--primary'));
   assert.match(root.textContent, /Tus datos se guardan en tu propio Google Drive; no se comparte nada con nadie/);
   assert.match(root.querySelector('.acc-propuesta').textContent, /Planifica entrenamientos/);
-  botonPorTexto(root, 'Probar la demo').click();
-  assert.equal(demo, 1);
+  assert.equal(root.querySelector('#btn-demo'), null);
+  assert.equal(botonPorTexto(root, 'Probar la demo'), undefined);
+  assert.doesNotMatch(root.textContent, /demo/i);
+  assert.equal(root.querySelectorAll('button.btn-primary').length, 1, 'a single primary action');
   assert.doesNotMatch(root.textContent, /iniciar sesi|inicia sesi|cuenta|correo|bienvenid|e-?mail/i);
   assert.ok(document.head.querySelector('link[data-view-css="acceso"]'));
   assert.equal(document.querySelectorAll('style').length, 0);
 });
 
-test('inicio: sin onDemo no hay botón de demo', async () => {
+test('start screen: the one-off notice that the demo was closed is announced politely', async () => {
   const acceso = await importApp('js/views/acceso.js');
-  const root = montar(acceso.login({ auth: { connect: async () => {} }, onConectar: () => {} }));
-  assert.equal(root.querySelector('#btn-demo'), null);
+  const aviso = 'A Google Client ID is now configured: the demo was closed. Connect Google Drive to continue.';
+  const root = montar(acceso.login({ auth: { connect: async () => {} }, onConectar: () => {}, aviso }));
+  const caja = root.querySelector('#acc-aviso.alert.alert--info[role="status"]');
+  assert.ok(caja);
+  assert.equal(caja.textContent.trim(), aviso);
+  assert.ok(root.querySelector('#btn-google'));
+  assert.equal(montar(acceso.login({ auth: { connect: async () => {} }, onConectar: () => {} })).querySelector('#acc-aviso'), null);
 });
 
 test('inicio: el selector de idioma no es lo primero de la tarjeta y es un grupo de botones, no un select', async () => {
@@ -95,6 +101,38 @@ test('configuración necesaria: texto de conexión (no de sesión), campo con et
   root.querySelector('#cfg-probar').click();
   await tick(5);
   assert.equal(listo, 1);
+});
+
+test('configuration needed (no Client ID): Try the demo is the first action, the owner setup comes below', async () => {
+  const acceso = await importApp('js/views/acceso.js');
+  let demo = 0;
+  const root = montar(acceso.configNecesaria({ auth: { connect: async () => {} }, onListo: () => {}, onDemo: () => { demo++; } }));
+  const botones = [...root.querySelectorAll('button, a.btn')];
+  assert.equal(botones[0].id, 'btn-demo', 'the demo button is the first action');
+  assert.equal(botones[0].textContent.trim(), 'Probar la demo');
+  assert.ok(botones[0].classList.contains('btn--primary'));
+  assert.match(root.querySelector('.acc-demo-cta').textContent, /Datos de ejemplo guardados solo en este dispositivo; no se envía nada a Drive\./);
+  const setup = root.querySelector('.acc-owner');
+  assert.ok(setup && root.querySelector('.acc-demo-cta').compareDocumentPosition(setup) & 4, 'owner setup after the demo');
+  for (const id of ['cfg-tutorial', 'cfg-tutorial-id', 'cfg-clientid', 'cfg-probar']) assert.ok(setup.querySelector('#' + id), id);
+  assert.equal(root.querySelector('#btn-google'), null, 'no Connect button before a Client ID exists');
+  assert.equal(root.querySelector('#cfg-volver-demo'), null);
+  root.querySelector('#btn-demo').click();
+  assert.equal(demo, 1);
+  assert.equal(root.querySelectorAll('h1').length, 1);
+});
+
+test('configuration needed reached from the demo: Back to the demo instead of Try the demo, and a note that connecting closes it', async () => {
+  const acceso = await importApp('js/views/acceso.js');
+  let volver = 0;
+  const root = montar(acceso.configNecesaria({ auth: { connect: async () => {} }, onListo: () => {}, onVolverDemo: () => { volver++; } }));
+  assert.equal(root.querySelector('#btn-demo'), null);
+  const b = root.querySelector('#cfg-volver-demo');
+  assert.equal(b.textContent.trim(), 'Volver a la demo');
+  assert.equal([...root.querySelectorAll('button, a.btn')][0], b);
+  assert.match(root.querySelector('.acc-owner').textContent, /se cierra la demo y se borran sus datos/);
+  b.click();
+  assert.equal(volver, 1);
 });
 
 test('asistente: errores inline accesibles, vista previa en vivo de los colores y sin saltos al avanzar', async () => {

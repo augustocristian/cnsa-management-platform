@@ -120,6 +120,7 @@ export default {
   "shell.desconectar.texto": 'Pending changes will be uploaded, this app\'s permission will be revoked and the local copies on this device will be erased. Your data stays in your Drive.',
   "shell.demo.titulo": 'Demo mode',
   "shell.demo.texto": 'Demo mode — your data is not saved to Drive.',
+  "shell.demo.configurar": 'Set up Google Drive',
   "shell.demo.conectar": 'Connect Google Drive',
   "shell.demo.salir": 'Exit demo',
   "shell.demo.salir.texto": 'Exiting the demo erases its sample data from this browser. Your Drive is not affected.',

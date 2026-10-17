@@ -35,19 +35,28 @@ export async function tutorialScreen(rt) {
   } catch (e) { holder.replaceChildren(h('p', { class: 'form-error', role: 'alert' }, e?.message || String(e))); }
 }
 
-export function configScreen(rt) {
-  rt.redraw = () => configScreen(rt);
-  centerCard(rt, acceso.configNecesaria({ auth: rt.auth, onListo: () => rt.start() }));
+// "Configuration needed" (no Google Client ID). It is the ONLY place where the demo is offered (modoService.demoDisponible):
+// "Try the demo" comes first, the owner setup (tutorial, paste and test the Client ID) below. `demoActiva`: reached from the demo
+// banner, so it offers "Back to the demo" instead and connecting closes the demo (rt.modo.connectDrive drops it).
+export function configScreen(rt, { demoActiva = false } = {}) {
+  rt.redraw = () => configScreen(rt, { demoActiva });
+  centerCard(rt, acceso.configNecesaria({
+    auth: { connect: ({ clientId } = {}) => rt.modo.connectDrive({ clientId }) },
+    onListo: () => { if (demoActiva) { location.hash = ''; location.reload(); } else rt.start(); },
+    onDemo: demoActiva ? null : () => rt.conexion.entrarEnDemo(),
+    onVolverDemo: demoActiva ? () => rt.start() : null,
+  }));
 }
 
-// Start screen: connect Google Drive or try the demo (the markup is owned by views/acceso.js).
-export function inicioScreen(rt) {
-  rt.redraw = () => inicioScreen(rt);
+// Start screen with a Google Client ID configured: ONLY "Connect Google Drive" (the markup is owned by views/acceso.js).
+// `demoCerrada`: a demo left open was closed because a Client ID is configured now; the person is told once.
+export function inicioScreen(rt, { demoCerrada = false } = {}) {
+  rt.redraw = () => inicioScreen(rt, { demoCerrada });
   centerCard(rt, acceso.login({
     auth: rt.auth,
     onSesion: () => rt.start(),
     onConectar: () => rt.start(),
-    onDemo: () => rt.conexion.entrarEnDemo(),
+    aviso: demoCerrada ? t('acceso.demo-cerrada') : null,
   }));
 }
 

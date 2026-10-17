@@ -1,7 +1,7 @@
 // Boot (composition of the shell): loads the core modules, wires the application services to the real adapters
 // (localStorage/sessionStorage flags, clock, cache cleanup) and runs the start flow:
-//   no Client ID -> "Configuration needed" | not connected -> start screen (connect Drive / try the demo)
-//   | demo left open -> demo | connected -> preferences + clubs -> wizard / club picker / club -> shell.
+//   no Client ID -> "Configuration needed" (Try the demo first, owner setup below) | Client ID, not connected -> start screen
+//   (Connect Google Drive only) | demo left open -> demo (closed with a notice if a Client ID appeared meanwhile) | connected -> preferences + clubs -> wizard / club picker / club -> shell.
 import { h, toast } from '../../ui.js';
 import * as ui from '../../ui.js';
 import * as router from '../../router.js';
@@ -67,6 +67,7 @@ export function crearRuntime() {
   // Views (Settings) disconnect Drive through the view context; the shell owns the flow (pending-changes dialog, wipe, reload).
   rt.ctxVista.desconectar = () => rt.logout();
   rt.reconectar = () => reconectar(rt);
+  rt.configurar = () => configScreen(rt, { demoActiva: true }); // "Set up Google Drive" from the demo banner
   rt.sincronizar = async () => { await rt.store.sync(); await rt.prefs.flush(); };
   return rt;
 }
@@ -131,6 +132,10 @@ async function start(rt) {
   if (accion === 'tutorial') return tutorialScreen(rt);
   if (accion === 'config') return configScreen(rt);
   if (accion === 'inicio') return inicioScreen(rt);
+  if (accion === 'demo-cerrada') { // a Client ID was configured while the demo was left open: close it and say so
+    await rt.modo.exitDemo();
+    return inicioScreen(rt, { demoCerrada: true });
+  }
   if (accion === 'demo') return abrirDemo(rt);
   const elegido = await resolverClub(rt);
   if (elegido) await abrirClub(rt, elegido);
