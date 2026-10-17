@@ -1,4 +1,4 @@
-/* Times / personal bests view (js/views/marcas*.js). Tokens only; works in light and dark. */
+/* Times / personal bests view (js/presentation/views/marcas*.js). Tokens only; works in light and dark. */
 .mc-fab {
   display: none; position: fixed; right: var(--sp-4); bottom: calc(var(--bottom-h) + var(--sp-4)); z-index: var(--z-sticky);
   width: 56px; height: 56px; padding: 0; border: 0; border-radius: 50%; place-items: center;

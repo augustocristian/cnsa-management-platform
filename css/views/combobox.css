@@ -1,4 +1,4 @@
-/* Searchable combobox (js/views/combobox.js). Tokens only; works in light and dark. */
+/* Searchable combobox (js/presentation/views/combobox.js). Tokens only; works in light and dark. */
 .combo { position: relative; }
 .combo-list {
   position: absolute; z-index: calc(var(--z-sheet) + 1); left: 0; right: 0; top: 100%; margin: 2px 0 0; padding: var(--sp-1);

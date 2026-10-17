@@ -3,7 +3,7 @@
 // store, nor the DOM, nor fetch, so it can be tested with an in-memory repository.
 import * as D from '../domain/<module>.js';
 
-export function crear<Module>Service(repo, { puedeEditar = () => true, ahora = () => new Date(), genId } = {}) {
+export function crear<Module>Service(repo, { puedeEditar = () => true, ahora, genId } = {}) {
   const exigirPermiso = () => { if (!puedeEditar()) throw new Error('sin-permiso'); };
 
   return {

@@ -1,4 +1,4 @@
-/* Backup panel (js/views/backup-panel.js), shown in Settings. Tokens only: no hard-coded colours. */
+/* Backup panel (js/presentation/views/backup-panel.js), shown in Settings. Tokens only: no hard-coded colours. */
 .backup-panel { display: grid; gap: var(--sp-4); min-width: 0; }
 .backup-card { display: grid; gap: var(--sp-3); min-width: 0; }
 .backup-card > * { margin: 0; }

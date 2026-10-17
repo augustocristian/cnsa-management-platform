@@ -5,9 +5,9 @@
    Themes: light (default) | dark.
      - [data-theme="dark"] forces dark.   - [data-theme="light"] forces light.
      - No attribute (automatic): the system prefers-color-scheme decides.
-     - js/theme.js (setTheme) and js/theme-boot.js (before first paint) manage the attribute.
+     - js/presentation/theme.js (setTheme) and js/presentation/theme-boot.js (before first paint) manage the attribute.
 
-   Club colour (dynamic). js/app.js -> applyTheme() sets these on <html style> from js/domain/tema.js:
+   Club colour (dynamic). js/presentation/shell/themeApply.js -> aplicarTema() sets these on <html style> from js/domain/tema.js:
      --c-primary   chosen primary colour (in dark mode, lightened just enough to be readable)
      --c-secondary chosen secondary colour (same)
      --c-action    background of primary buttons / active menu item (text on it: --c-on-primary)

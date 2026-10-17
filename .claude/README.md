@@ -11,7 +11,7 @@ Project-level Claude Code configuration, specific to this repository (static ES-
 
 ## Golden rule (applies to every agent and skill)
 
-Small, descriptive commits; push at every milestone; **never break the app** - `npm run check` + `npm run test:unit` + `npm run test:integration` + the relevant e2e area before each commit, the full `npm run test:e2e` before each push. Agents running in parallel work on **disjoint file zones** (hot files: `sw.js`, `js/i18n.js`, `js/store.js`, `js/schema.js`, `js/app.js`, `README.md`, `docs/ARCHITECTURE.md`, `package*.json`) and stage explicit paths, never `git add -A`.
+Small, descriptive commits; push at every milestone; **never break the app** - `npm run check` + `npm run test:unit` + `npm run test:integration` + the relevant e2e area before each commit, the full `npm run test:e2e` before each push. Agents running in parallel work on **disjoint file zones** (hot files: `sw.js`, `js/presentation/i18n/i18n.js`, `js/composicion/store.js`, `js/domain/schema.js`, `js/main.js`, `README.md`, `docs/ARCHITECTURE.md`, `package*.json`) and stage explicit paths, never `git add -A`.
 
 ## Verified commands
 
@@ -55,9 +55,9 @@ The `*.tpl` files are templates (not executed): copy, replace `<module>`/`<Modul
 
 ## Example flow: "add a new feature" (injury log per swimmer)
 
-1. **`arquitecto`** (optional, 5 min): confirms the layering (pure `js/domain/lesiones.js`, `js/application/lesionesService.js` with injected repository, `js/views/lesiones.js`) and flags any debt it would touch.
-2. **`datos-drive`** with the `nueva-hoja-datos` skill: designs the `Lesiones` sheet (columns appended in `js/schema.js`, `RELACIONES` entry so it enters swimmer export/erasure, demo data, migration/round-trip tests). Commit: `feat(data): Lesiones sheet`.
-3. **`desarrollador-funcionalidades`** with `nueva-funcionalidad`: domain + service + view + route/menu + `sw.js` `SHELL`/`VERSION`, with unit and integration tests, committing after each green step. In parallel, **`i18n`** writes `js/locales/lesiones.{es,en,it}.js` (disjoint files; the dev agent only wires the three imports into `js/i18n.js`).
+1. **`arquitecto`** (optional, 5 min): confirms the layering (pure `js/domain/lesiones.js`, `js/application/lesionesService.js` with injected repository, `js/presentation/views/lesiones.js`) and flags any debt it would touch.
+2. **`datos-drive`** with the `nueva-hoja-datos` skill: designs the `Lesiones` sheet (columns appended in `js/domain/schema.js`, `RELACIONES` entry so it enters swimmer export/erasure, demo data, migration/round-trip tests). Commit: `feat(data): Lesiones sheet`.
+3. **`desarrollador-funcionalidades`** with `nueva-funcionalidad`: domain + service + view + route/menu + `sw.js` `SHELL`/`VERSION`, with unit and integration tests, committing after each green step. In parallel, **`i18n`** writes `js/presentation/i18n/locales/lesiones.{es,en,it}.js` (disjoint files; the dev agent only wires the three imports into `js/presentation/i18n/i18n.js`).
 4. **`qa-tests`** with `nuevo-escenario-cucumber`: `features/lesiones.feature` (+ `@smoke`) and steps; runs the area on desktop and mobile; diagnoses failures.
 5. **`ux-a11y`**: reviews the view at 390x844 and 1366x850, light and dark, keyboard-only; fixes findings (new component via `nuevo-componente-ui` only if needed).
 6. **`seguridad-rgpd`**: reviews personal-data handling (minors), exports and escaping.

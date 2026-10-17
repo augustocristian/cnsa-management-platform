@@ -1,4 +1,4 @@
-/* Training sessions view (js/views/entrenamientos*.js). Tokens only; works in light and dark. */
+/* Training sessions view (js/presentation/views/entrenamientos*.js). Tokens only; works in light and dark. */
 .ent-bar { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--sp-2) var(--sp-3); margin-bottom: var(--sp-2); }
 .ent-nav { display: flex; align-items: center; gap: var(--sp-1); min-width: 0; }
 .ent-week { min-width: 0; padding: 0 var(--sp-2); font-weight: 650; text-align: center; white-space: nowrap; }

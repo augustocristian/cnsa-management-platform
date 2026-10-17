@@ -1,7 +1,7 @@
 // Domain of <module>: PURE logic (no DOM, network, storage, i18n or clock; dates always arrive as parameters).
 // Messages are returned as codes + params; the presentation translates them with t('<prefix>.c.<code>').
 
-export const HOJA = '<Hoja>'; // sheet name in js/schema.js
+export const HOJA = '<Hoja>'; // sheet name in js/domain/schema.js
 export const ESTADOS = ['activo', 'cerrado']; // stored values: neutral, in Spanish
 
 const texto = (v) => String(v ?? '').trim();
@@ -18,7 +18,7 @@ export function normalizar(fila = {}) {
   };
 }
 
-// Normalised object -> row to store (columns from js/schema.js, all text)
+// Normalised object -> row to store (columns from js/domain/schema.js, all text)
 export function aFila(x) {
   const n = normalizar(x);
   return { id: n.id, nombre: n.nombre, fecha: n.fecha, estado: n.estado, notas: n.notas };

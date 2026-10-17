@@ -1,5 +1,5 @@
 // <Module> view: presentation only. Logic lives in js/domain/<module>.js and orchestration in js/application/<module>Service.js.
-// UI texts go through t('<pre>.key') (es/en/it in js/locales/<module>.*.js).
+// UI texts go through t('<pre>.key') (es/en/it in js/presentation/i18n/locales/<module>.*.js).
 import { t, tDate } from '../i18n.js';
 import { h, sheet, formFields, empty, badge, toast } from '../ui.js';
 import { icon } from '../icons.js';

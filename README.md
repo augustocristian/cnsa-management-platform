@@ -47,7 +47,7 @@ Connect Google Drive, then a two-step wizard creates the club file inside `cnl/`
 | <img src="docs/screenshots/escritorio-asistente-colores.png" width="620" alt="Wizard step 2 of 2: club colours and time zone"> | <img src="docs/screenshots/movil-asistente-colores.png" width="200" alt="Mobile wizard step 2 of 2"> |
 | <img src="docs/screenshots/escritorio-primeros-pasos.png" width="620" alt="Home of a brand new club with the First steps card: create groups, add swimmers, define the pool, schedule a session"> | <img src="docs/screenshots/movil-primeros-pasos.png" width="200" alt="Mobile home of a new club with the First steps card"> |
 
-If the copy of the app has no Google Client ID (`BUILTIN_CLIENT_ID` in `js/config.js`), a *Configuración necesaria* screen offers **Try the demo** first (sample data kept only in the browser, nothing sent to Drive) and, below it, the owner setup: the 5-minute tutorial ([docs/SETUP-GOOGLE.md](docs/SETUP-GOOGLE.md)). That is a one-off task for the owner of the app. You can have **several clubs** (several files in `cnl/`) and switch between them from *Configuración*.
+If the copy of the app has no Google Client ID (`BUILTIN_CLIENT_ID` in `js/infrastructure/config.js`), a *Configuración necesaria* screen offers **Try the demo** first (sample data kept only in the browser, nothing sent to Drive) and, below it, the owner setup: the 5-minute tutorial ([docs/SETUP-GOOGLE.md](docs/SETUP-GOOGLE.md)). That is a one-off task for the owner of the app. You can have **several clubs** (several files in `cnl/`) and switch between them from *Configuración*.
 
 ### 2. Day to day at the pool: attendance and loads
 
@@ -210,11 +210,11 @@ Google setup (5 minutes, once): [docs/SETUP-GOOGLE.md](docs/SETUP-GOOGLE.md).
 
 ## Languages
 
-The interface is available in **Spanish, English and Italian** (`js/locales/`, covered by dictionary parity tests). The language is selected in the header, stored in `cnl/preferencias.json` and mirrored in localStorage so the first paint already uses it. The exact UI strings in the screenshots are the Spanish ones, plus the English and Italian examples above.
+The interface is available in **Spanish, English and Italian** (`js/presentation/i18n/locales/`, covered by dictionary parity tests). The language is selected in the header, stored in `cnl/preferencias.json` and mirrored in localStorage so the first paint already uses it. The exact UI strings in the screenshots are the Spanish ones, plus the English and Italian examples above.
 
 ## Accessibility and design
 
-Own design system (no UI libraries): tokens in `css/tokens.css`, components in `css/components.css` and helpers in `js/ui.js` (`field`, `sheet`, `toast.undo`, `empty`, `fieldError`...). Light, dark or automatic theme (`js/theme.js`, saved in the Drive preferences), club colour with guaranteed AA contrast, visible focus, skip link, 44 px touch targets, inline validation with `aria-invalid`, live regions for totals and statuses, and CSP + SRI. On phones the app uses a bottom navigation bar and cards instead of wide tables. The contract and markup examples are in [docs/DESIGN.md](docs/DESIGN.md). The interface is being redesigned, so the screenshots in this README may differ slightly from the latest version until they are regenerated.
+Own design system (no UI libraries): tokens in `css/tokens.css`, components in `css/components.css` and helpers in `js/presentation/ui.js` (`field`, `sheet`, `toast.undo`, `empty`, `fieldError`...). Light, dark or automatic theme (`js/presentation/theme.js`, saved in the Drive preferences), club colour with guaranteed AA contrast, visible focus, skip link, 44 px touch targets, inline validation with `aria-invalid`, live regions for totals and statuses, and CSP + SRI. On phones the app uses a bottom navigation bar and cards instead of wide tables. The contract and markup examples are in [docs/DESIGN.md](docs/DESIGN.md). The interface is being redesigned, so the screenshots in this README may differ slightly from the latest version until they are regenerated.
 
 ## Architecture
 
@@ -223,11 +223,12 @@ Own design system (no UI libraries): tokens in `css/tokens.css`, components in `
 ```
 index.html · manifest.webmanifest · sw.js
 css/  tokens.css app.css components.css
-js/  app.js router.js ui.js store.js drive.js modo.js preferencias.js schema.js config.js theme.js i18n.js
-js/domain/ (pure logic)  js/application/ (services)  js/infrastructure/ (external APIs; fakeGoogle.js = test tool)
-js/views/  acceso (start screen, wizard, configuration needed) inicio nadadores grupos entrenamientos planificacion calendario asistencia cargas marcas comunicaciones club tutorial
+js/main.js  (entry point)   js/composicion/ (composition root: wires adapters into services)
+js/domain/ (pure logic)  js/application/ (services + ports)  js/infrastructure/ (Drive, cache, Excel, PDF...; fakeGoogle.js = test tool)
+js/presentation/ (shell, ui, router, theme, i18n/ + locales/)
+js/presentation/views/  acceso (start screen, wizard, configuration needed) inicio nadadores grupos entrenamientos planificacion calendario asistencia cargas marcas comunicaciones club tutorial
 vendor/  xlsx.full.min.js  jspdf.umd.min.js  jspdf.plugin.autotable.min.js   (generated from npm; jsPDF is loaded lazily, only when a PDF is requested)
-scripts/  serve.mjs check.mjs e2e.mjs capturas.mjs ...
+scripts/  serve.mjs check.mjs check-arch.mjs (layer rules) e2e.mjs capturas.mjs ...
 ```
 
 ## Development
@@ -238,7 +239,7 @@ npm run check      # checks the syntax of the modules
 npm run serve      # static server on http://localhost:4173 (or: python -m http.server 8080)
 ```
 
-Connecting Drive needs a Google Client ID ([docs/SETUP-GOOGLE.md](docs/SETUP-GOOGLE.md)): paste it in `js/config.js` (`BUILTIN_CLIENT_ID`) or in the *Configuración necesaria* screen, and add your local origin to the authorised origins. Without real Google, the test tool (below) starts the app with a simulated Drive connection; the demo mode needs neither. **The demo is available only while no Google Client ID is set** (neither in `localStorage['cnl:clientId']` nor in `BUILTIN_CLIENT_ID`): once one exists the start screen offers only *Connect Google Drive* and a demo left open is closed with a notice and its data erased.
+Connecting Drive needs a Google Client ID ([docs/SETUP-GOOGLE.md](docs/SETUP-GOOGLE.md)): paste it in `js/infrastructure/config.js` (`BUILTIN_CLIENT_ID`) or in the *Configuración necesaria* screen, and add your local origin to the authorised origins. Without real Google, the test tool (below) starts the app with a simulated Drive connection; the demo mode needs neither. **The demo is available only while no Google Client ID is set** (neither in `localStorage['cnl:clientId']` nor in `BUILTIN_CLIENT_ID`): once one exists the start screen offers only *Connect Google Drive* and a demo left open is closed with a notice and its data erased.
 
 ### Regenerating the screenshots
 

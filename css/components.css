@@ -1,7 +1,7 @@
 /* =============================================================================
    CNL Plataforma - reusable COMPONENTS (see docs/DESIGN.md for full markup examples)
    Order: tokens.css -> app.css (shell) -> components.css. Everything is built on tokens: no hard-coded colours.
-   The js/ui.js helpers (field, empty, sheet, toast, confirmDialog, fieldError...) generate this markup.
+   The js/presentation/ui.js helpers (field, empty, sheet, toast, confirmDialog, fieldError...) generate this markup.
 
    Index:  1 Forms (.field .check .filters input[type=file])   2 .btn   3 .badge .chip .alert
             4 .card .page-head .stat .avatar .progress   5 .table-wrap .table .table--cards   6 .empty
@@ -37,7 +37,7 @@ input[type="file"]::file-selector-button {
 }
 input[type="file"]::file-selector-button:hover { background: var(--c-primary-soft); }
 
-/* .field = label + control + .hint + .field-error.  Markup: see js/ui.js field() */
+/* .field = label + control + .hint + .field-error.  Markup: see js/presentation/ui.js field() */
 .field { display: flex; flex-direction: column; gap: var(--sp-1); min-width: 0; }
 .field-control { display: flex; flex-direction: column; gap: var(--sp-1); min-width: 0; }
 .field-label, .field > span:first-child:not(.field-error):not(.hint) { font-size: var(--fs-sm); font-weight: 600; color: var(--text); }
@@ -261,7 +261,7 @@ a.btn { text-decoration: none; }
 .segmented > [aria-pressed="true"], .segmented > [aria-selected="true"], .segmented > .is-active { background: var(--c-action); color: var(--c-on-primary); }
 
 /* ---------- 8. Sheet (modal) and toasts ---------- */
-/* .sheet = dialog. Desktop: centred. Mobile: bottom sheet. js/ui.js sheet() / modal() generate this markup. */
+/* .sheet = dialog. Desktop: centred. Mobile: bottom sheet. js/presentation/ui.js sheet() / modal() generate this markup. */
 .sheet-overlay, .modal-overlay {
   position: fixed; inset: 0; z-index: var(--z-sheet); display: grid; place-items: center;
   padding: var(--sp-4); background: var(--overlay);
@@ -348,7 +348,7 @@ a.btn { text-decoration: none; }
   :root:not([data-theme="light"]):not([data-theme="dark"]) .card :is(h2, h3) { color: var(--text) !important; }
 }
 
-/* Language switch (js/lang-switch.js): radio group of flag buttons */
+/* Language switch (js/presentation/lang-switch.js): radio group of flag buttons */
 .lang-switch { display: inline-flex; gap: 2px; padding: 2px; border: 1px solid var(--border); border-radius: 999px; background: var(--surface); }
 .lang-switch__btn { display: inline-flex; align-items: center; justify-content: center; gap: 6px; min-width: 36px; min-height: 36px; padding: 0 8px; border: 0; border-radius: 999px; background: transparent; color: var(--text); font: inherit; font-size: .8125rem; font-weight: 600; cursor: pointer; opacity: .72; }
 .lang-switch__btn:hover { opacity: 1; background: var(--surface-2); }

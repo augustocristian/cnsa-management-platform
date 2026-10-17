@@ -1,4 +1,4 @@
-/* Attendance view (js/views/asistencia.js). Tokens only; works in light and dark. */
+/* Attendance view (js/presentation/views/asistencia.js). Tokens only; works in light and dark. */
 .asi-session { display: grid; gap: var(--sp-3); margin-bottom: var(--sp-3); }
 .asi-pick { display: flex; align-items: flex-end; gap: var(--sp-2); }
 .asi-pick .field { flex: 1 1 auto; }

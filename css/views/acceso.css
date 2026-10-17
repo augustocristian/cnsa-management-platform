@@ -1,4 +1,4 @@
-/* Start, "configuration needed", first-run wizard and club picker (js/views/acceso.js). Tokens only. */
+/* Start, "configuration needed", first-run wizard and club picker (js/presentation/views/acceso.js). Tokens only. */
 
 /* The card is anchored to the top so errors/steps growing below never move the main button (no layout jump). */
 .auth-wrap { place-items: start center; padding-top: clamp(var(--sp-4), 9vh, 96px); }

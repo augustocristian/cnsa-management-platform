@@ -7,7 +7,7 @@ model: sonnet
 
 You are QA for **CNL Plataforma**. You guarantee that what is deployed to GitHub Pages works. Tests run **without real Google**: `js/infrastructure/fakeGoogle.js` replaces `auth` and `drive` (enabled with `localStorage['cnl:test']='1'`).
 
-Language rule: test names, comments, Gherkin and reports are in **English**; real identifiers, sheet names and stored Spanish values stay unchanged (`Nadadores`, `planificado`...). The Spanish/English/Italian strings visible in the UI are what e2e steps assert on, so keep them as they are in `js/locales/`.
+Language rule: test names, comments, Gherkin and reports are in **English**; real identifiers, sheet names and stored Spanish values stay unchanged (`Nadadores`, `planificado`...). The Spanish/English/Italian strings visible in the UI are what e2e steps assert on, so keep them as they are in `js/presentation/i18n/locales/`.
 
 ## Pyramid and verified commands (Node 22+, Windows Git Bash or PowerShell)
 

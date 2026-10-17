@@ -2,11 +2,11 @@
 
 The app **has no sign-in and no user accounts**: it never knows who the person is (no name, e-mail or picture is requested, shown or stored). The person only **connects Google Drive**, which is an OAuth *authorization* (Google Identity Services token flow) with a single permission, `drive.file`. For that the app needs a Google client ID, set up once by whoever publishes it.
 
-While no client ID is set the app can still be shown and tried in **demo mode** (*Try the demo* on the *Configuration needed* screen): sample data kept only in the browser, never sent to Drive. **The demo is available only without a client ID** (neither saved in the browser nor in `js/config.js`). As soon as one is set, the start screen offers only *Connect Google Drive*; a demo left open is closed on the next start with a notice and its data is erased.
+While no client ID is set the app can still be shown and tried in **demo mode** (*Try the demo* on the *Configuration needed* screen): sample data kept only in the browser, never sent to Drive. **The demo is available only without a client ID** (neither saved in the browser nor in `js/infrastructure/config.js`). As soon as one is set, the start screen offers only *Connect Google Drive*; a demo left open is closed on the next start with a notice and its data is erased.
 
 ## Who does what
 
-- **The deployment owner** (whoever publishes the app) creates the Client ID **once** and puts it in `js/config.js`. Nothing else has to be configured per user.
+- **The deployment owner** (whoever publishes the app) creates the Client ID **once** and puts it in `js/infrastructure/config.js`. Nothing else has to be configured per user.
 - **End users** only click *Connect Google Drive*. Google shows its consent screen **once** ("CNL Plataforma wants to see and manage the files it creates in your Drive"); after that the app reconnects silently on every visit. They never see the Google Cloud console.
 - **Each person's data is isolated**: it lives in the Drive that person connected (`cnl` folder). Drive is used only so the data persists and is available on all of that person's devices (for example computer and phone). It is **not** a shared database: the app has no sharing, roles or multi-user features, and it shares data with nobody. The swimmers, groups, etc. are records the person manages, not app users.
 
@@ -40,7 +40,7 @@ The app's own interactive tutorial (the *Tutorial* menu, or the link on the *Con
 5. Click **Create** and copy the **client ID** (it ends in `.apps.googleusercontent.com`).
 
 ## 5. Paste the ID into the app
-Edit `js/config.js` and paste it between the quotes of `BUILTIN_CLIENT_ID`:
+Edit `js/infrastructure/config.js` and paste it between the quotes of `BUILTIN_CLIENT_ID`:
 
 ```js
 const BUILTIN_CLIENT_ID = '1234567890-abc.apps.googleusercontent.com';

@@ -1,4 +1,4 @@
-/* Swimsuit catalogue manager (js/views/banadores-catalogo.js). Loaded with useStyles('banadores'). Tokens only. */
+/* Swimsuit catalogue manager (js/presentation/views/banadores-catalogo.js). Loaded with useStyles('banadores'). Tokens only. */
 .bn-gestor { display: grid; gap: var(--sp-3); }
 .bn-head { display: flex; flex-wrap: wrap; gap: var(--sp-3); align-items: center; justify-content: space-between; }
 .bn-intro { margin: 0; flex: 1 1 260px; color: var(--muted); font-size: var(--fs-sm); }

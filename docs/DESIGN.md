@@ -1,6 +1,6 @@
 # Design system
 
-Contract for every view. Files: `css/tokens.css` (variables), `css/app.css` (shell), `css/components.css` (components), `js/ui.js` (helpers that generate the markup), `js/theme.js` (light/dark), `js/domain/tema.js` (club colour and contrast, pure logic).
+Contract for every view. Files: `css/tokens.css` (variables), `css/app.css` (shell), `css/components.css` (components), `js/presentation/ui.js` (helpers that generate the markup), `js/presentation/theme.js` (light/dark), `js/domain/tema.js` (club colour and contrast, pure logic).
 
 Load order: `tokens.css` → `app.css` → `components.css`.
 
@@ -15,7 +15,7 @@ Load order: `tokens.css` → `app.css` → `components.css`.
 7. **Empty states with a CTA**: `empty({ icon, title, text, action })`; never a blank screen or a loose paragraph.
 8. **Forms and dialogs in `sheet()`** (bottom sheet on mobile). Visible labels on every field (`field()`/`formFields()`).
 9. **Status = colour + icon or dot + text** (`badge`, `alert`); never colour alone.
-10. **No emojis**: icons from `js/icons.js` (`icon('name')`, `currentColor`).
+10. **No emojis**: icons from `js/presentation/icons.js` (`icon('name')`, `currentColor`).
 11. **44 px** touch targets on mobile (the components already comply); text never below 12 px.
 12. All UI text through `t('key')` (es/en/it). Code, comments and docs are in English.
 
@@ -32,7 +32,7 @@ Load order: `tokens.css` → `app.css` → `components.css`.
 | Typography | `--fs-h1` 1.5rem/700, `--fs-h2` 1.125rem/650, `--fs-h3` 1rem/600, body 1rem, `--fs-sm` .875rem, `--fs-xs` .75rem (minimum). Figures: `.num` / `font-variant-numeric: tabular-nums` |
 | Control | `--control-h` 40 px (44 px on mobile or touch pointers), `--touch` 44 px |
 
-**Theme.** Light by default; `[data-theme="dark"]` forces dark and `prefers-color-scheme: dark` enables it unless `[data-theme="light"]`. `setTheme('auto'|'light'|'dark')` (`js/theme.js`) sets the attribute, mirrors it in `localStorage['cnl:tema']` (read by `js/theme-boot.js` before first paint: no flash) and stores it in the Drive preferences (key `tema`). `themeSelect()` is the ready-made selector. `onThemeChange(fn)` also fires when the system theme changes.
+**Theme.** Light by default; `[data-theme="dark"]` forces dark and `prefers-color-scheme: dark` enables it unless `[data-theme="light"]`. `setTheme('auto'|'light'|'dark')` (`js/presentation/theme.js`) sets the attribute, mirrors it in `localStorage['cnl:tema']` (read by `js/presentation/theme-boot.js` before first paint: no flash) and stores it in the Drive preferences (key `tema`). `themeSelect()` is the ready-made selector. `onThemeChange(fn)` also fires when the system theme changes.
 
 **Club colour.** `aplicarTema()` (`js/presentation/shell/themeApply.js`) calls `variablesTema({primario, secundario}, mode)`: it validates (only `#rgb`/`#rrggbb`; anything else falls back to the default blue), keeps the colour as chosen in light mode and guarantees ≥ 4.5:1 for the primary button, links and headings (darkening/lightening just enough). Use `--c-action`/`--c-on-primary` for brand-coloured backgrounds and `--c-accent`/`--c-heading` for text; avoid `--c-primary` as a text colour in new code.
 
@@ -85,7 +85,7 @@ Load order: `tokens.css` → `app.css` → `components.css`.
 <a class="skip-link" href="#view">Skip to content</a>
 ```
 
-## `js/ui.js` helpers
+## `js/presentation/ui.js` helpers
 
 | Function | Use |
 |---|---|
@@ -102,7 +102,7 @@ Load order: `tokens.css` → `app.css` → `components.css`.
 
 ## Security and PWA
 
-- **CSP** (meta in `index.html`): `default-src 'none'`, scripts only from self + Google Identity; no `unsafe-inline` for scripts (hence `js/theme-boot.js` is a file). Injected `<style>` needs `'unsafe-inline'` for styles until the views are migrated.
+- **CSP** (meta in `index.html`): `default-src 'none'`, scripts only from self + Google Identity; no `unsafe-inline` for scripts (hence `js/presentation/theme-boot.js` is a file). Injected `<style>` needs `'unsafe-inline'` for styles until the views are migrated.
 - **SRI**: `scripts/vendor.mjs` generates `vendor/integrity.json` (sha384); `js/infrastructure/vendorIntegridad.js` (`integridad(name)`) applies it to `jsPDF`/`autotable` (`pdfEntreno.js`) and SheetJS (`lazy.js`). Any new `vendor/` script must be loaded the same way. Google Identity does not support SRI.
 - **Icons**: `scripts/iconos.mjs` generates `apple-touch-icon.png` (180, opaque) and `icon-maskable-512.png` (motif inside the safe zone).
 - When adding new CSS/JS files run `npm run build:sw` (the precache list and `VERSION` are generated from the disk; `npm run check` fails if they are stale).

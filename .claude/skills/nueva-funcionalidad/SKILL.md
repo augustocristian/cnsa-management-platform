@@ -5,7 +5,7 @@ description: Step-by-step recipe to add a complete feature to CNL Plataforma (pu
 
 # New feature (the repo recipe)
 
-Replace `<module>` (lower case, no accents: `lesiones`) and `<Module>` (`Lesiones`). Templates live in this folder (`*.tpl`): copy and adapt them, never paste blindly. Living reference of the pattern: `js/domain/temporada.js`, `js/application/temporadaService.js`, `js/views/temporada.js`, `tests/unit/temporadaService.test.js`, `tests/integration/temporada.test.js`, `features/temporada.feature`. Identifiers follow the project's Spanish domain vocabulary; comments, docs, test names, Gherkin and commits are in English; only the app's UI strings are Spanish/English/Italian.
+Replace `<module>` (lower case, no accents: `lesiones`) and `<Module>` (`Lesiones`). Templates live in this folder (`*.tpl`): copy and adapt them, never paste blindly. Living reference of the pattern: `js/domain/temporada.js`, `js/application/temporadaService.js`, `js/presentation/views/temporada.js`, `tests/unit/temporadaService.test.js`, `tests/integration/temporada.test.js`, `features/temporada.feature`. Identifiers follow the project's Spanish domain vocabulary; comments, docs, test names, Gherkin and commits are in English; only the app's UI strings are Spanish/English/Italian.
 
 **Golden rule:** small descriptive commits (one per step), push at every milestone, and never break the app: `npm run check` + `npm run test:unit` + `npm run test:integration` + the relevant e2e area before each commit; the full `npm run test:e2e` before each push. With parallel agents, disjoint file zones and `git add <paths>`.
 
@@ -21,20 +21,21 @@ No DOM, network, storage, `i18n` or clock (dates by parameter). Export: constant
 
 ## 2. Service - `js/application/<module>Service.js` (template `servicio.js.tpl`)
 
-`crear<Module>Service(repo, { puedeEditar = () => true, ahora = () => new Date(), genId } = {})`. The repository (`list/get/upsert/remove`) is injected; errors block saving, warnings require `forzar`; without permission it throws `Error('sin-permiso')`. Commit: `feat(<module>): service ...`.
+`crear<Module>Service(repo, { puedeEditar = () => true, ahora, genId } = {})`. The repository (`list/get/upsert/remove`) is injected; errors block saving, warnings require `forzar`; without permission it throws `Error('sin-permiso')`. Commit: `feat(<module>): service ...`.
 
 ## 3. Data (only if there are new sheets or columns)
 
-Skill `nueva-hoja-datos`: `js/schema.js`, normalisation, `RELACIONES`, demo, xlsx, merge, compatible migration, table in `docs/ARCHITECTURE.md`.
+Skill `nueva-hoja-datos`: `js/domain/schema.js`, normalisation, `RELACIONES`, demo, xlsx, merge, compatible migration, table in `docs/ARCHITECTURE.md`.
 
-## 4. i18n - `js/locales/<module>.{es,en,it}.js`
+## 4. i18n - `js/presentation/i18n/locales/<module>.{es,en,it}.js`
 
-Own key prefix (`les.`), parity of keys and `{variables}`. Import and merge into `DICTS` of `js/i18n.js`. Stored values neutral, in Spanish. Add the parity test (pattern of `tests/unit/temporada-i18n.test.js`). Delegate to the `i18n` agent if there are many texts. Commit: `feat(<module>): es/en/it texts`.
+Own key prefix (`les.`), parity of keys and `{variables}`. Import and merge into `DICTS` of `js/presentation/i18n/i18n.js`. Stored values neutral, in Spanish. Add the parity test (pattern of `tests/unit/temporada-i18n.test.js`). Delegate to the `i18n` agent if there are many texts. Commit: `feat(<module>): es/en/it texts`.
 
-## 5. View - `js/views/<module>.js` (template `vista.js.tpl`)
+## 5. View - `js/presentation/views/<module>.js` (template `vista.js.tpl`)
 
-`export async function render(container, params, ctx)`. It only presents: `h()` from `js/ui.js`, components from `docs/DESIGN.md` (`.page-head` with one `h1`, `sheet()`, `field()`/`formFields()`, `empty()` with a CTA, `toast.undo`, `badge`, icons from `js/icons.js`), no emojis, no hard-coded colours, no new `<style>` (if a component is missing use the `nuevo-componente-ui` skill). If it is a new tab:
-- `MENU` in `js/app.js` (`['<module>', 'Label']`), the `nav.<module>` key in `js/locales/{es,en,it}.js` (the menu uses `tNav(route)`) and an icon named after the route in `js/icons.js` (SVG path with `currentColor`, like `cargas` or `marcas`).
+`export async function render(container, params, ctx)`. It only presents: `h()` from `js/presentation/ui.js`, components from `docs/DESIGN.md` (`.page-head` with one `h1`, `sheet()`, `field()`/`formFields()`, `empty()` with a CTA, `toast.undo`, `badge`, icons from `js/presentation/icons.js`), no emojis, no hard-coded colours, no new `<style>` (if a component is missing use the `nuevo-componente-ui` skill). If it is a new tab:
+A view NEVER imports `js/infrastructure/*` or `js/composicion/*` (rules R4/R8 of `scripts/check-arch.mjs`, part of `npm run check`): clock, ids, preferences, PDF / Drive / backup / calendar adapters come from `ctx` (`ahoraDe(ctx)`, `genIdDe(ctx)` from `js/presentation/contexto.js`; anything else is added to `serviciosDeVista` in `js/composicion/contexto.js`). The route is registered by the navigation model in `js/presentation/shell/navModel.js` (not in `main.js`).
+- `MENU` in `js/main.js` (`['<module>', 'Label']`), the `nav.<module>` key in `js/presentation/i18n/locales/{es,en,it}.js` (the menu uses `tNav(route)`) and an icon named after the route in `js/presentation/icons.js` (SVG path with `currentColor`, like `cargas` or `marcas`).
 - `MODULES` in `features/support/world.js` (menu label -> route) and `VIEWS` in `tests/helpers/app.js` if applicable.
 - If it is not a tab (sub-view/panel), call it from the parent view.
 
@@ -50,7 +51,7 @@ Skill `nuevo-escenario-cucumber` (templates in its folder). Minimum: one happy-p
 
 ## 8. Service worker
 
-In `sw.js`: add to `SHELL` **all** new files (`./js/domain/<module>.js`, `./js/application/<module>Service.js`, `./js/views/<module>.js`, the 3 locales, CSS if any) and bump `VERSION` (`'vN'` -> `'vN+1'`). Outside `SHELL` it does not work offline. If the app needs a new folder at runtime, add it to the `cp` of the `build` job in `.github/workflows/pages.yml`.
+In `sw.js`: add to `SHELL` **all** new files (`./js/domain/<module>.js`, `./js/application/<module>Service.js`, `./js/presentation/views/<module>.js`, the 3 locales, CSS if any) and bump `VERSION` (`'vN'` -> `'vN+1'`). Outside `SHELL` it does not work offline. If the app needs a new folder at runtime, add it to the `cp` of the `build` job in `.github/workflows/pages.yml`.
 
 ## 9. Docs and screenshots
 

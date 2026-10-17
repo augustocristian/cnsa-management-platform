@@ -1,4 +1,4 @@
-/* Overflow menu (js/views/entreno-menu.js): button + fixed-position list. Tokens only (light and dark). */
+/* Overflow menu (js/presentation/views/entreno-menu.js): button + fixed-position list. Tokens only (light and dark). */
 .enp-mn-caja { position: relative; display: inline-flex; flex: none; }
 .enp-mn-btn { gap: var(--sp-2); }
 .enp-mn {

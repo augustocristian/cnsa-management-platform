@@ -5,18 +5,18 @@ description: Adds a new UI language (besides es/en/it) to CNL Plataforma - dicti
 
 # New language
 
-Example with `fr` (Français, `fr-FR`). Structure reference: `js/i18n.js`. Hand quality translation work to the `i18n` agent. Only the app's UI strings are translated; code comments, docs and commits stay in English, and stored values stay Spanish.
+Example with `fr` (Français, `fr-FR`). Structure reference: `js/presentation/i18n/i18n.js`. Hand quality translation work to the `i18n` agent. Only the app's UI strings are translated; code comments, docs and commits stay in English, and stored values stay Spanish.
 
 ## 1. Dictionary inventory (each one needs its `fr`)
 
 ```bash
-ls js/locales/*.es.js js/locales/es.js
+ls js/presentation/i18n/locales/*.es.js js/presentation/i18n/locales/es.js
 ```
 Today: `es/en/it.js` (base), `vistas-a|b|c`, `planificacion`, `calendario`, `entreno`, `cargas-tipos`, `acceso`, `diseno`, `temporada`, `categorias`, `datos`. For every `X.en.js` create `X.fr.js` (`export default {...}`) with **exactly the same keys** as `X.es.js` and the same `{variables}`. The base `en.js` -> `fr.js`. Start by copying `en` and translate; leave no text in another language or empty (the test rejects it).
 
 ## 2. Code
 
-1. `js/i18n.js`: import `fr` from every file; add the `fr: { ...fr, ...vistasAfr, ... }` branch in `DICTS` (same spread order as `es`); `LANGS.push({ code: 'fr', label: 'Français' })`; `INTL.fr = 'fr-FR'`.
+1. `js/presentation/i18n/i18n.js`: import `fr` from every file; add the `fr: { ...fr, ...vistasAfr, ... }` branch in `DICTS` (same spread order as `es`); `LANGS.push({ code: 'fr', label: 'Français' })`; `INTL.fr = 'fr-FR'`.
 2. `js/domain/preferencias.js`: `IDIOMAS = ['es', 'en', 'it', 'fr']` (otherwise the language preference saved in Drive is discarded as invalid).
 3. `sw.js`: all the new `*.fr.js` files in `SHELL` and `VERSION` bumped.
 4. `js/infrastructure/pdfEntreno.js` and `js/domain/calendario.js` receive texts/language by parameter from `entreno.fr.js`/`calendario.fr.js`: no new code, but check with a PDF and an `.ics` generated in `fr`.

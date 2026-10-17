@@ -1,4 +1,4 @@
-/* Training plan editor (js/views/entreno-editor*.js). Tokens only (light and dark). Mobile first: compact two-line rows with
+/* Training plan editor (js/presentation/views/entreno-editor*.js). Tokens only (light and dark). Mobile first: compact two-line rows with
    chips; from 1000 px every pane except the contents one is visible at once and those chips disappear. */
 body:has(.enp-ov) { --enp-bar-h: 84px; } /* fallback; the editor measures the real bar */
 

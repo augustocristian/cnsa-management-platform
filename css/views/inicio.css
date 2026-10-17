@@ -1,4 +1,4 @@
-/* Home dashboard (js/views/inicio.js, inicio-grafico.js, primerospasos.js). Tokens only: no hard-coded colours. */
+/* Home dashboard (js/presentation/views/inicio.js, inicio-grafico.js, primerospasos.js). Tokens only: no hard-coded colours. */
 
 .ini-page { display: grid; gap: var(--sp-4); min-width: 0; }
 

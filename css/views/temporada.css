@@ -1,6 +1,6 @@
 /* =============================================================================
    Planificación > Temporada. Tokens only; phase colours and content-type colours are stored data and are applied inline.
-   Event kinds use semantic tones (--tp-tono) AND different shapes/letters (see js/views/temporada-grafico.js).
+   Event kinds use semantic tones (--tp-tono) AND different shapes/letters (see js/presentation/views/temporada-grafico.js).
    ============================================================================= */
 
 .tp-root { min-width: 0; }

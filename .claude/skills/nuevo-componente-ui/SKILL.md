@@ -1,11 +1,11 @@
 ---
 name: nuevo-componente-ui
-description: Adds a reusable UI component to the CNL Plataforma design system (tokens, css/components.css, js/ui.js helper, docs/DESIGN.md, tests, service worker) keeping WCAG 2.2 AA, mobile-first and dark mode. Use it when a view needs a visual piece that is not yet in the system, e.g. "a timeline component", "a stepper", "a stat card with a sparkline", or when migrating a view's private <style> into shared components.
+description: Adds a reusable UI component to the CNL Plataforma design system (tokens, css/components.css, js/presentation/ui.js helper, docs/DESIGN.md, tests, service worker) keeping WCAG 2.2 AA, mobile-first and dark mode. Use it when a view needs a visual piece that is not yet in the system, e.g. "a timeline component", "a stepper", "a stat card with a sparkline", or when migrating a view's private <style> into shared components.
 ---
 
 # New UI component
 
-Contract: `docs/DESIGN.md` (read it first). Load order: `css/tokens.css` -> `css/app.css` -> `css/components.css`. Helpers that generate markup live in `js/ui.js`; icons in `js/icons.js`. Class names, tokens and file names stay as in the code; docs and comments are English; UI texts go through `t()` (es/en/it).
+Contract: `docs/DESIGN.md` (read it first). Load order: `css/tokens.css` -> `css/app.css` -> `css/components.css`. Helpers that generate markup live in `js/presentation/ui.js`; icons in `js/presentation/icons.js`. Class names, tokens and file names stay as in the code; docs and comments are English; UI texts go through `t()` (es/en/it).
 
 ## 0. Do you really need a new one?
 
@@ -25,11 +25,11 @@ Add it to `css/components.css` as a new numbered block **before** block 10/11 (m
 
 ## 4. JS helper (only if it avoids repeating non-trivial markup)
 
-In `js/ui.js`: `export function <name>({ ... } = {})` returning a node built with `h()`; never `innerHTML` with data; accept already-translated strings (the caller uses `t()`); wire `aria-*` ids with the existing id helper pattern used in `field()`; add JSDoc-style comment of the options. Keep it free of business logic.
+In `js/presentation/ui.js`: `export function <name>({ ... } = {})` returning a node built with `h()`; never `innerHTML` with data; accept already-translated strings (the caller uses `t()`); wire `aria-*` ids with the existing id helper pattern used in `field()`; add JSDoc-style comment of the options. Keep it free of business logic.
 
 ## 5. Docs
 
-`docs/DESIGN.md`: the markup example in the "Components" section and a row in the "Helpers of `js/ui.js`" table; new tokens in the tokens table.
+`docs/DESIGN.md`: the markup example in the "Components" section and a row in the "Helpers of `js/presentation/ui.js`" table; new tokens in the tokens table.
 
 ## 6. Tests
 
