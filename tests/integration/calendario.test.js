@@ -1,4 +1,4 @@
-// Integración del calendario: vista (jsdom + store real) y servicio (store/auth/cliente simulados).
+// Integración del calendario: vista (jsdom + store real) y servicio (store/conexión/cliente simulados).
 import base from 'node:test';
 import assert from 'node:assert/strict';
 import { fresh, tick } from '../helpers/app.js';
@@ -21,9 +21,9 @@ function sembrar() {
   store.upsert('Entrenamientos', { id: 'e3', fecha: hoy, hora: '20:00', duracionMin: 90, grupoId: '', titulo: 'Reunión del club', piscina: '' });
 }
 
-async function montar(extra = {}) {
+async function montar(extra = {}, vistaGuardada = 'agenda') {
   sembrar();
-  c.preferencias.set('calendario.vista', 'agenda');
+  c.preferencias.set('calendario.vista', vistaGuardada);
   const mod = await importApp('js/views/calendario.js');
   const cal = { ...extra };
   await mod.render(c.container, [], { store: c.store, auth: c.auth, ui: c.ui, cal });
@@ -31,36 +31,90 @@ async function montar(extra = {}) {
   return cal;
 }
 const titulos = () => [...c.container.querySelectorAll('.cal-ev-titulo')].map((e) => e.textContent);
-const clic = (el) => el.dispatchEvent(new window.MouseEvent('click', { bubbles: true }));
+const clic = async (el) => { el.dispatchEvent(new window.MouseEvent('click', { bubbles: true })); await tick(); };
 const cambiar = (el, v) => { el.value = v; el.dispatchEvent(new window.Event('change', { bubbles: true })); };
+const vista = (v) => clic(c.container.querySelector(`.segmented button[data-vista="${v}"]`));
+// The single "Exportar" menu of the page header
+const exportarMenu = async (etiqueta) => {
+  await clic(c.container.querySelector('#cal-exportar .enp-mn-btn'));
+  const item = [...document.querySelectorAll('[role=menuitem]')].find((b) => b.textContent.trim() === etiqueta);
+  assert.ok(item, 'opción de menú: ' + etiqueta);
+  await clic(item);
+};
+const modal = () => document.querySelector('.modal');
+const textoAvisos = () => document.getElementById('toasts')?.textContent || '';
 
-test('admin ve todos los grupos y puede filtrar por grupo', async () => {
+test('estructura: un h1 en la cabecera, un único menú Exportar y sin estilos inyectados', async () => {
   await montar();
-  assert.deepEqual(titulos().sort(), ['Reunión del club', 'Sesión Alevín', 'Sesión Promo']);
-  cambiar(c.container.querySelector('#cal-grupo'), 'g2');
-  assert.deepEqual(titulos().sort(), ['Reunión del club', 'Sesión Alevín']); // las del club entero siempre
-  assert.ok(c.container.querySelectorAll('.cal-gchip').length >= 2, 'leyenda con chips');
+  assert.equal(c.container.querySelectorAll('h1').length, 1);
+  assert.equal(c.container.querySelector('.page-head h1').textContent, 'Calendario');
+  assert.equal(c.container.querySelectorAll('.page-head .enp-mn-btn').length, 1);
+  assert.equal(c.container.querySelector('.page-head .enp-mn-btn').textContent.trim(), 'Exportar');
+  assert.equal(c.container.querySelector('.segmented').getAttribute('role'), 'group');
+  assert.ok(!document.getElementById('cal-style'), 'sin <style> inyectado');
 });
 
-test('un solo usuario: se ven todos los grupos, sin ámbito por rol ni vista de nadador', async () => {
+test('un solo usuario: se ven todos los grupos y se puede filtrar por grupo y piscina', async () => {
   await montar();
   assert.deepEqual(titulos().sort(), ['Reunión del club', 'Sesión Alevín', 'Sesión Promo']);
   assert.match(c.container.querySelector('#cal-ambito').textContent, /todo el club/);
   assert.equal(c.container.querySelector('#cal-nadador'), null, 'sin previsualización como nadador');
-  assert.equal(c.container.querySelector('#cal-todos'), null, 'sin interruptor de grupos propios');
+  cambiar(c.container.querySelector('#cal-grupo'), 'g2');
+  assert.deepEqual(titulos().sort(), ['Reunión del club', 'Sesión Alevín']); // las del club entero siempre
+  assert.ok(c.container.querySelectorAll('.cal-gchip').length >= 2, 'leyenda con chips');
+  cambiar(c.container.querySelector('#cal-grupo'), '');
   cambiar(c.container.querySelector('#cal-piscina'), '50');
   assert.deepEqual(titulos(), ['Reunión del club'], 'el filtro de piscina responde (el evento sin piscina siempre se ve)');
 });
 
+test('la Agenda abre en HOY (ventana móvil que empieza hoy), no el día 1 del mes', async () => {
+  const { store, ui } = c;
+  const hoyLocal = ui.isoDate();
+  const ayer = ui.isoDate(new Date(new Date().setDate(new Date().getDate() - 1)));
+  store.upsert('Entrenamientos', { id: 'p', fecha: ayer, hora: '10:00', duracionMin: 60, grupoId: '', titulo: 'Ayer', estado: 'realizado' });
+  store.upsert('Entrenamientos', { id: 'h', fecha: hoyLocal, hora: '10:00', duracionMin: 60, grupoId: '', titulo: 'Hoy mismo' });
+  c.preferencias.set('calendario.vista', 'agenda');
+  const mod = await importApp('js/views/calendario.js');
+  await mod.render(c.container, [], { store, auth: c.auth, ui, cal: {} });
+  await tick();
+  const dias = [...c.container.querySelectorAll('.cal-agenda-dia')];
+  assert.ok(dias.length >= 1);
+  assert.ok(dias[0].classList.contains('cal-hoy'), 'la primera sección es hoy');
+  assert.match(dias[0].querySelector('h2').textContent, /Hoy/);
+  assert.deepEqual(titulos(), ['Hoy mismo'], 'lo anterior a hoy no aparece en la agenda');
+});
+
+test('la Agenda muestra hoy aunque no haya eventos ese día', async () => {
+  c.preferencias.set('calendario.vista', 'agenda');
+  const mod = await importApp('js/views/calendario.js');
+  await mod.render(c.container, [], { store: c.store, auth: c.auth, ui: c.ui, cal: {} });
+  await tick();
+  assert.ok(c.container.querySelector('.cal-agenda-dia.cal-hoy'));
+  assert.match(c.container.querySelector('.cal-agenda-dia.cal-hoy').textContent, /No hay eventos este día/);
+});
+
+test('en móvil la vista por defecto es la Agenda (un «Mes» guardado se ignora allí)', async () => {
+  window.matchMedia = (q) => ({ matches: /max-width:\s*759px/.test(q), media: q, addEventListener() {}, removeEventListener() {} });
+  try {
+    await montar({}, 'mes');
+    assert.equal(c.container.querySelector('.segmented [aria-pressed="true"]').dataset.vista, 'agenda');
+    c.container.replaceChildren();
+    c.preferencias.set('calendario.vista', 'semana');
+    const mod = await importApp('js/views/calendario.js');
+    await mod.render(c.container, [], { store: c.store, auth: c.auth, ui: c.ui, cal: {} });
+    assert.equal(c.container.querySelector('.segmented [aria-pressed="true"]').dataset.vista, 'semana', 'una elección explícita de semana se respeta');
+  } finally { delete window.matchMedia; }
+});
+
 test('la vista, la ventana y el recordatorio elegidos se guardan en las preferencias del usuario (Drive)', async () => {
   await montar();
-  clic(c.container.querySelector('.cal-seg button[data-vista="semana"]'));
+  await vista('semana');
   assert.equal(c.preferencias.get('calendario.vista'), 'semana');
   cambiar(c.container.querySelector('#cal-ventana'), '180');
   assert.equal(c.preferencias.get('calendario.ventanaDias'), 180);
-  cambiar(c.container.querySelector('select[aria-label="Recordatorio"]'), '60');
+  cambiar(c.container.querySelector('.cal-sync select[aria-label="Recordatorio"]'), '60');
   assert.equal(c.preferencias.get('calendario.alarmaMin'), 60);
-  await c.preferencias.conectar({ remoto: c.drive.preferencias, email: c.auth.user.email });
+  await c.preferencias.conectar({ remoto: c.drive.preferencias, email: 'yo@club.test' });
   const enDrive = c.fake.prefs();
   assert.equal(enDrive.valores['calendario.vista'], 'semana');
   assert.equal(enDrive.valores['calendario.ventanaDias'], 180);
@@ -69,32 +123,51 @@ test('la vista, la ventana y el recordatorio elegidos se guardan en las preferen
   await mod.render(c.container, [], { store: c.store, auth: c.auth, ui: c.ui, cal: {} });
   await tick();
   assert.equal(c.container.querySelector('#cal-ventana').value, '180');
-  assert.equal(c.container.querySelector('.cal-seg button[aria-pressed="true"]').dataset.vista, 'semana');
+  assert.equal(c.container.querySelector('.segmented [aria-pressed="true"]').dataset.vista, 'semana');
 });
 
 test('cambiar de vista (mes/semana/agenda) y navegar mantiene el contenido', async () => {
   await montar();
-  const vista = (v) => clic(c.container.querySelector(`.cal-seg button[data-vista="${v}"]`));
-  vista('mes');
+  await vista('mes');
   assert.ok(c.container.querySelector('table.cal-mes'));
   assert.ok(c.container.querySelectorAll('td.cal-celda').length >= 28);
   assert.equal(c.container.querySelector('.cal-hoy .cal-num').getAttribute('aria-current'), 'date');
   assert.equal(titulos().length, 3, 'detalle del día seleccionado (hoy)');
-  vista('semana');
+  await vista('semana');
   assert.equal(c.container.querySelectorAll('.cal-col').length, 7);
   assert.equal(titulos().length, 3);
   const tit = c.container.querySelector('#cal-titulo').textContent;
-  clic(c.container.querySelector('button[aria-label="Siguiente"]'));
+  await clic(c.container.querySelector('button[aria-label="Siguiente"]'));
   assert.notEqual(c.container.querySelector('#cal-titulo').textContent, tit);
   assert.equal(titulos().length, 0);
-  clic([...c.container.querySelectorAll('button')].find((b) => b.textContent === 'Hoy'));
+  await clic([...c.container.querySelectorAll('button')].find((b) => b.textContent === 'Hoy'));
   assert.equal(titulos().length, 3);
 });
 
-test('exportar genera un .ics con N eventos (Blob text/calendar) y respeta los filtros', async () => {
+test('rejilla del mes: un solo día en el orden de tabulación y navegación con flechas e Inicio/Fin', async () => {
+  await montar({}, 'mes');
+  const botones = [...c.container.querySelectorAll('button.cal-num')];
+  assert.equal(botones.filter((b) => b.getAttribute('tabindex') === '0').length, 1, 'tabindex itinerante');
+  assert.equal(c.container.querySelector('button.cal-num[tabindex="0"]').dataset.fecha, hoy);
+  const tecla = async (key) => {
+    c.container.querySelector('button.cal-num[tabindex="0"]').dispatchEvent(new window.KeyboardEvent('keydown', { key, bubbles: true, cancelable: true }));
+    await tick();
+    return c.container.querySelector('button.cal-num[tabindex="0"]').dataset.fecha;
+  };
+  const D = await importApp('js/domain/calendario.js');
+  assert.equal(await tecla('ArrowRight'), D.addDias(hoy, 1));
+  assert.equal(await tecla('ArrowLeft'), hoy);
+  assert.equal(await tecla('ArrowDown'), D.addDias(hoy, 7));
+  assert.equal(await tecla('ArrowUp'), hoy);
+  assert.equal(await tecla('Home'), D.lunesDe(hoy));
+  assert.equal(await tecla('End'), D.addDias(D.lunesDe(hoy), 6));
+  assert.equal(c.container.querySelector('table.cal-mes').getAttribute('role'), 'grid');
+});
+
+test('exportar: un único menú «Exportar» genera un .ics con N eventos (Blob text/calendar) y respeta los filtros', async () => {
   const capturas = [];
   await montar({ descargar: (blob, nombre, extra) => capturas.push({ blob, nombre, ...extra }) });
-  clic(c.container.querySelector('#cal-descargar'));
+  await exportarMenu('Descargar calendario (.ics)');
   assert.equal(capturas.length, 1);
   assert.match(capturas[0].blob.type, /^text\/calendar/);
   assert.match(capturas[0].nombre, /\.ics$/);
@@ -102,13 +175,15 @@ test('exportar genera un .ics con N eventos (Blob text/calendar) y respeta los f
   assert.equal(txt.split('BEGIN:VEVENT').length - 1, 3);
   assert.ok(txt.includes('X-WR-CALNAME:CNL – Club Test'));
   assert.equal(await capturas[0].blob.text(), txt);
-  assert.match(c.container.textContent, /Calendario exportado: 3 eventos/);
+  assert.match(textoAvisos(), /Calendario exportado: 3 eventos/);
   cambiar(c.container.querySelector('#cal-grupo'), 'g1');
-  clic(c.container.querySelector('#cal-descargar'));
+  await exportarMenu('Descargar calendario (.ics)');
   assert.equal(capturas[1].ics.split('BEGIN:VEVENT').length - 1, 2);
-  // recordatorio configurable
-  cambiar(c.container.querySelector('#cal-exp-t').parentElement.querySelector('select[aria-label="Recordatorio"]'), '30');
-  clic(c.container.querySelector('#cal-anadir'));
+  // el recordatorio se elige en las opciones de exportación
+  await exportarMenu('Opciones de exportación');
+  cambiar(modal().querySelector('#cal-alarma'), '30');
+  await clic([...modal().querySelectorAll('.sheet-actions button')].pop());
+  await exportarMenu('Añadir a mi calendario');
   assert.equal(capturas[2].abrir, true);
   assert.ok(capturas[2].ics.includes('TRIGGER:-PT30M'));
 });
@@ -117,33 +192,68 @@ test('exportar un periodo sin eventos avisa y no descarga', async () => {
   const capturas = [];
   await montar({ descargar: (...a) => capturas.push(a) });
   c.store.remove('Entrenamientos', 'e1'); c.store.remove('Entrenamientos', 'e2'); c.store.remove('Entrenamientos', 'e3');
-  clic(c.container.querySelector('#cal-descargar'));
+  await exportarMenu('Descargar calendario (.ics)');
   assert.equal(capturas.length, 0);
-  assert.match(c.container.textContent, /No hay eventos que exportar/);
+  assert.match(textoAvisos(), /No hay eventos que exportar/);
 });
 
-test('el admin guarda la zona horaria en Club.zonaHoraria y el .ics la usa; una inválida se rechaza', async () => {
+test('la zona horaria se guarda en Club.zonaHoraria desde las opciones y el .ics la usa; una inválida se rechaza en línea', async () => {
   const capturas = [];
   await montar({ descargar: (b, n, x) => capturas.push(x) });
-  const input = c.container.querySelector('#cal-zona');
+  await exportarMenu('Opciones de exportación');
+  const input = modal().querySelector('#cal-zona');
   assert.equal(input.value, 'Europe/Madrid');
   input.value = 'No/Existe';
-  clic(c.container.querySelector('#cal-zona-guardar'));
-  assert.match(c.container.textContent, /no válida/);
+  await clic(modal().querySelector('#cal-zona-guardar'));
+  assert.match(modal().textContent, /no válida/);
+  assert.equal(input.getAttribute('aria-invalid'), 'true');
   assert.equal(c.store.club.zonaHoraria, undefined);
   input.value = 'America/Mexico_City';
-  clic(c.container.querySelector('#cal-zona-guardar'));
+  await clic(modal().querySelector('#cal-zona-guardar'));
   assert.equal(c.store.club.zonaHoraria, 'America/Mexico_City');
-  clic(c.container.querySelector('#cal-descargar'));
+  await clic([...modal().querySelectorAll('.sheet-actions button')].pop());
+  await exportarMenu('Descargar calendario (.ics)');
   assert.ok(capturas[0].ics.includes('DTSTART;TZID=America/Mexico_City:'));
 });
 
-test('con la sesión de Google la sincronización de Calendar está disponible (ya no hay modo local)', async () => {
+test('con la conexión a Drive, la sincronización de Calendar está disponible', async () => {
   await montar();
   assert.equal(c.container.querySelector('#cal-sync').disabled, false);
   assert.equal(c.container.querySelector('#cal-sync-parar').disabled, false);
   assert.equal(c.container.querySelector('#cal-sync-motivo'), null);
   assert.equal(c.container.querySelector('#cal-sync-estado').textContent.length > 0, true);
+});
+
+test('en modo demo la sincronización está desactivada y se explica por qué', async () => {
+  sembrar();
+  const store = Object.create(c.store, { mode: { value: 'demo' } });
+  const mod = await importApp('js/views/calendario.js');
+  await mod.render(c.container, [], { store, auth: c.auth, ui: c.ui, cal: {} });
+  await tick();
+  assert.equal(c.container.querySelector('#cal-sync').disabled, true);
+  assert.equal(c.container.querySelector('#cal-sync-parar').disabled, true);
+  assert.match(c.container.querySelector('#cal-sync-motivo').textContent, /modo demo/i);
+});
+
+test('sin conexión a Drive la sincronización se explica y se puede exportar igualmente', async () => {
+  sembrar();
+  const auth = { isConnected: () => false, tokenForScope: async () => null };
+  const mod = await importApp('js/views/calendario.js');
+  await mod.render(c.container, [], { store: c.store, auth, ui: c.ui, cal: {} });
+  await tick();
+  assert.equal(c.container.querySelector('#cal-sync').disabled, true);
+  assert.match(c.container.querySelector('#cal-sync-motivo').textContent, /Conecta Google Drive/);
+  assert.ok(c.container.querySelector('#cal-exportar .enp-mn-btn'));
+});
+
+test('idiomas: el menú y la sección de sincronización se traducen', async () => {
+  const { setLang } = await importApp('js/i18n.js');
+  setLang('en', { persist: false });
+  try {
+    await montar();
+    assert.equal(c.container.querySelector('.page-head .enp-mn-btn').textContent.trim(), 'Export');
+    assert.match(c.container.querySelector('.cal-sync h2').textContent, /Google Calendar/);
+  } finally { setLang('es', { persist: false }); }
 });
 
 // ---------- servicio con store/auth/cliente simulados ----------
@@ -216,6 +326,6 @@ base('servicio: errores fatales abortan y se resumen; sin sesión no se puede si
   assert.equal(r.creados, 0);
   assert.ok(r.errores.length >= 1);
   s.auth.user = null;
-  await assert.rejects(original.sincronizar({}), (e) => e.code === 'sin-sesion');
-  assert.deepEqual(original.puedeSincronizar(), { ok: false, motivo: 'sin-sesion' });
+  await assert.rejects(original.sincronizar({}), (e) => e.code === 'sin-conexion');
+  assert.deepEqual(original.puedeSincronizar(), { ok: false, motivo: 'sin-conexion' });
 });

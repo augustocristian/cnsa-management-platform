@@ -70,7 +70,8 @@ Característica: Panel de inicio
 
   @smoke
   Escenario: Un club vacío ofrece una acción en cada tarjeta y los primeros pasos
-    Dado un club vacío con la sesión de Google iniciada
+    Dado que la aplicación está recién abierta sin sesión
+    Y que he creado el club "Club Vacío" con el asistente
     Entonces veo el encabezado "Primeros pasos"
     Y la tarjeta "Hoy" ofrece "Programar una sesión"
     Y la tarjeta "Asistencia hoy" ofrece "Abrir asistencia"
@@ -80,7 +81,8 @@ Característica: Panel de inicio
     Y la tarjeta "Próximo evento de la temporada" ofrece "Planificar la temporada"
 
   Escenario: Los primeros pasos se pueden ocultar y no vuelven a aparecer
-    Dado un club vacío con la sesión de Google iniciada
+    Dado que la aplicación está recién abierta sin sesión
+    Y que he creado el club "Club Vacío" con el asistente
     Entonces veo el encabezado "Primeros pasos"
     Cuando oculto los primeros pasos
     Entonces no veo el texto "Primeros pasos"

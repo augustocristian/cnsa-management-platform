@@ -18,10 +18,27 @@ Característica: Cargas de entrenamiento
       | Minutos   | 75                    |
     Entonces la carga de 3250 metros de "Lucía Fernández" aparece en las cargas de la semana
 
-  Escenario: No se registra una carga sin metros
-    Cuando relleno "Nadador" con "Lucía Fernández Roces"
+  Escenario: Registrar metros que no son múltiplo de 50 y ver la fila resaltada
+    Cuando registro una carga con los datos:
+      | Nadador   | Lucía Fernández Roces |
+      | Contenido | Técnica               |
+      | Metros    | 1234                  |
+    Entonces la carga de 1234 metros de "Lucía Fernández" aparece en las cargas de la semana
+    Y la carga recién registrada aparece resaltada
+
+  Escenario: No se registra una carga sin metros y el error se explica junto al campo
+    Cuando abro el formulario para registrar una carga
+    Y relleno "Nadador" con "Lucía Fernández Roces"
     Y pulso "Registrar"
-    Entonces no veo el texto "Carga registrada"
+    Entonces veo el error en el campo "Metros": "Indica los metros"
+    Y no veo el texto "Carga registrada"
+
+  Escenario: Deshacer el borrado de una carga
+    Dado que he registrado una carga de 2400 metros para "Noa Díaz Llano"
+    Cuando elimino la carga de 2400 metros de "Noa Díaz"
+    Entonces la carga de 2400 metros de "Noa Díaz" no aparece en las cargas de la semana
+    Cuando deshago el último borrado
+    Entonces la carga de 2400 metros de "Noa Díaz" aparece en las cargas de la semana
 
   Escenario: Las cargas se relacionan con el deportista que las realizó
     Dado que he registrado una carga de 2400 metros para "Noa Díaz Llano"
@@ -38,6 +55,7 @@ Característica: Cargas de entrenamiento
     Dado que he registrado una carga de 3000 metros para "Noa Díaz Llano"
     Cuando fijo el objetivo semanal de "Aeróbico medio / Umbral anaeróbico" entre 0 y 100 metros
     Entonces veo la alerta "Aeróbico medio / Umbral anaeróbico: por encima del objetivo"
+    Y veo el aviso "Objetivos guardados"
 
   Escenario: Sin alertas cuando las cargas están dentro de los objetivos
     Cuando dejo sin objetivo semanal todos los contenidos de entrenamiento

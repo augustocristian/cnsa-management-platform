@@ -67,3 +67,22 @@ Característica: Planificación de temporada
     Cuando abro el módulo "Planificación"
     Entonces veo el encabezado "Sugerencias"
     Y veo el botón "Aplicar"
+
+  Escenario: Eliminar una fase se puede deshacer
+    Cuando abro el módulo "Planificación"
+    Y pulso "Editar fase: Tapering"
+    Y pulso "Eliminar"
+    Entonces veo 4 fases en la temporada
+    Cuando pulso "Deshacer" en el aviso
+    Entonces veo 5 fases en la temporada
+
+  Escenario: Los diálogos validan en línea y no cierran con datos incorrectos
+    Cuando abro el módulo "Planificación"
+    Y pulso "Añadir fase"
+    Y pulso "Guardar"
+    Entonces veo el texto "Este campo es obligatorio"
+
+  Escenario: La temporada no desborda horizontalmente la página
+    Cuando abro el módulo "Planificación"
+    Entonces veo el encabezado "Fases"
+    Y la página no se desborda horizontalmente

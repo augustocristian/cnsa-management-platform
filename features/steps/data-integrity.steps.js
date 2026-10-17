@@ -40,7 +40,7 @@ When('I change the club motto to {string}', async function (motto) {
   await this.vista.getByRole('button', { name: 'Guardar identidad' }).click();
 });
 
-When('I sign out', async function () {
+When('I disconnect Drive', async function () {
   await this.desconectarDrive();
 });
 
@@ -48,7 +48,7 @@ Then('the browser holds no local club or session copies', async function () {
   await this.page.locator('body').waitFor();
   await this.eventually(async () => {
     const { local, session } = await storageKeys(this.page);
-    const personal = [...local, ...session].filter((k) => k.startsWith('cnl:club:') || k.startsWith('cnl:cal-sync:') || ['cnl:user', 'cnl:prefs', 'cnl:token'].includes(k));
+    const personal = [...local, ...session].filter((k) => k.startsWith('cnl:club:') || k.startsWith('cnl:cal-sync:') || ['cnl:user', 'cnl:prefs', 'cnl:token', 'cnl:drive-auth', 'cnl:mode'].includes(k) || k.startsWith('cnl:demo:'));
     assert.deepEqual(personal, [], 'Personal data is left in the browser: ' + personal.join(', '));
   });
 });
@@ -118,7 +118,7 @@ Then('the club name in the header is {string}', async function (name) {
   await this.eventually(async () => assert.equal((await this.page.locator('.topbar .brand-name').innerText()).trim(), name));
 });
 
-When('the Google session expires', async function () {
+When('the Drive connection expires', async function () {
   await this.page.evaluate(() => window.__CNL_FAKE__.caducarSesion());
 });
 
@@ -134,7 +134,7 @@ Then('el navegador no guarda copias locales de datos del club ni de la sesión',
   await this.page.locator('body').waitFor();
   await this.eventually(async () => {
     const { local, session } = await storageKeys(this.page);
-    const personal = [...local, ...session].filter((k) => k.startsWith('cnl:club:') || k.startsWith('cnl:cal-sync:') || ['cnl:user', 'cnl:prefs', 'cnl:token'].includes(k));
+    const personal = [...local, ...session].filter((k) => k.startsWith('cnl:club:') || k.startsWith('cnl:cal-sync:') || ['cnl:user', 'cnl:prefs', 'cnl:token', 'cnl:drive-auth', 'cnl:mode'].includes(k) || k.startsWith('cnl:demo:'));
     assert.deepEqual(personal, [], 'Personal data is left in the browser: ' + personal.join(', '));
   });
 });

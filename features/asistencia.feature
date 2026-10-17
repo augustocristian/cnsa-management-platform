@@ -12,12 +12,31 @@ Característica: Asistencia
   @smoke
   Escenario: Registrar la asistencia de un nadador con un toque
     Cuando selecciono la sesión "Lista E2E" para pasar lista
-    Entonces el recuento de asistencia muestra "Presentes: 0"
+    Entonces el recuento de asistencia muestra "0 presentes"
+    Y el resumen de asistencia indica "0 de 3 marcados"
     Cuando marco como presente a "Martina Suárez"
     Entonces "Martina Suárez" figura como "Presente" en la lista
-    Y el recuento de asistencia muestra "Presentes: 1"
+    Y el recuento de asistencia muestra "1 presentes"
+    Y el resumen de asistencia indica "1 de 3 marcados"
 
-  Esquema del escenario: La asistencia recorre los estados con toques sucesivos
+  Escenario: Nadie está marcado al abrir la lista y los botones son grandes
+    Cuando selecciono la sesión "Lista E2E" para pasar lista
+    Entonces "Martina Suárez" figura como "Sin marcar" en la lista
+    Y cada nadador de la lista tiene botones de Presente y Ausente de al menos 44 píxeles
+
+  Escenario: Tocar de nuevo el mismo estado lo desmarca
+    Cuando selecciono la sesión "Lista E2E" para pasar lista
+    Y marco como presente a "Martina Suárez"
+    Y toco de nuevo "presente" en "Martina Suárez"
+    Entonces "Martina Suárez" figura como "Sin marcar" en la lista
+
+  Escenario: Se puede deshacer una marca
+    Cuando selecciono la sesión "Lista E2E" para pasar lista
+    Y marco como ausente a "Martina Suárez"
+    Y deshago la última acción de asistencia
+    Entonces "Martina Suárez" figura como "Sin marcar" en la lista
+
+  Esquema del escenario: Presente y ausente con un toque, justificado desde más opciones
     Cuando selecciono la sesión "Lista E2E" para pasar lista
     Y marco como <estado> a "Pelayo García"
     Entonces "Pelayo García" figura como "<etiqueta>" en la lista
@@ -31,8 +50,10 @@ Característica: Asistencia
   Escenario: Marcar a todo el grupo como presente
     Cuando selecciono la sesión "Lista E2E" para pasar lista
     Y marco a todos los nadadores como presentes
-    Entonces el recuento de asistencia muestra "Presentes: 3"
-    Y el recuento de asistencia muestra "Sin marcar: 0"
+    Entonces el recuento de asistencia muestra "3 presentes"
+    Y el recuento de asistencia muestra "0 sin marcar"
+    Cuando deshago la última acción de asistencia
+    Entonces el recuento de asistencia muestra "0 presentes"
 
   Escenario: La lista sólo incluye a los nadadores del grupo de la sesión
     Cuando selecciono la sesión "Lista E2E" para pasar lista

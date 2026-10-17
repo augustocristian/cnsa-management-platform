@@ -305,7 +305,7 @@ test('eventos de la temporada para el calendario y el .ics (fuente registrable)'
   assert.match(ics, /DTSTART;VALUE=DATE:20261107/);
   assert.match(ics, /LOCATION:Avilés/);
   assert.equal(D.colorEventoCalendario({ origen: 'sesion' }), null);
-  assert.equal(D.colorEventoCalendario(evs[0]).acento, D.COLOR_PRIORIDAD.A);
+  assert.deepEqual(D.colorEventoCalendario(evs[0]), { semantico: 'danger' }, 'priority A is the danger tone (no hex in the domain)');
 });
 
 test('temporadaDemo: fases con fechas continuas, semanas con previsto y eventos de distinta prioridad', () => {

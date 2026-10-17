@@ -1,12 +1,18 @@
 import { When, Then } from '@cucumber/cucumber';
 import assert from 'node:assert/strict';
 
-const editor = (mundo) => mundo.page.locator('.enp-ov:not(.enp-prev-ov)');
+const editor = (mundo) => mundo.page.locator('.enp-ov');
 const filaPlan = (mundo, set, orden) => editor(mundo).locator(`.enp-row[data-set="${set}"][data-orden="${orden}"]`);
 const chip = (mundo, set, orden, nombre) => filaPlan(mundo, set, orden).locator(`.enp-c[data-contenido="${nombre}"]`);
+// The contents pane of a row opens with its chip (on wide screens it is always visible)
+async function abrir(mundo, set, orden) {
+  const pane = filaPlan(mundo, set, orden).locator('[data-pane="contenidos"]');
+  if (!(await pane.isVisible())) await filaPlan(mundo, set, orden).locator('[data-chip="contenidos"]').click();
+}
 const texto = async (loc) => ((await loc.first().textContent()) || '').replace(/\s+/g, ' ').trim();
 
 When('añado el contenido {string} a la fila {int} del set {int}', async function (nombre, orden, set) {
+  await abrir(this, set, orden);
   await filaPlan(this, set, orden).locator('select.enp-c-add').selectOption({ value: nombre });
   await chip(this, set, orden, nombre).waitFor({ timeout: this.timeout });
 });
@@ -14,15 +20,18 @@ Then('el contenido {string} de la fila {int} del set {int} reparte {string}', as
   await this.eventually(async () => assert.ok((await texto(chip(this, set, orden, nombre).locator('.enp-c-res'))).includes(parte), `No reparte «${parte}»`));
 });
 When('fijo {string} metros por repetición de {string} en la fila {int} del set {int}', async function (valor, nombre, orden, set) {
+  await abrir(this, set, orden);
   await chip(this, set, orden, nombre).locator('.enp-c-val').fill(valor);
 });
 Then('el contenido {string} de la fila {int} del set {int} está en modo {string}', async function (nombre, orden, set, modo) {
   await this.eventually(async () => assert.equal(await texto(chip(this, set, orden, nombre).locator('.enp-c-modo')), modo));
 });
 When('autocompleto desde el texto la fila {int} del set {int}', async function (orden, set) {
+  await abrir(this, set, orden);
   await filaPlan(this, set, orden).getByRole('button', { name: /Autocompletar desde el texto/ }).click();
 });
 Then('veo el resto sin asignar {string} en la fila {int} del set {int}', async function (parte, orden, set) {
+  await abrir(this, set, orden);
   const resto = filaPlan(this, set, orden).locator('.enp-c-resto');
   await this.eventually(async () => {
     assert.ok(await resto.isVisible(), 'El indicador de resto no está visible');
@@ -33,6 +42,7 @@ Then('no hay resto sin asignar en la fila {int} del set {int}', async function (
   await this.eventually(async () => assert.equal(await filaPlan(this, set, orden).locator('.enp-c-resto').isVisible(), false));
 });
 When('asigno el resto de la fila {int} del set {int} a {string}', async function (orden, set, nombre) {
+  await abrir(this, set, orden);
   const resto = filaPlan(this, set, orden).locator('.enp-c-resto');
   await resto.locator('select').selectOption({ value: nombre });
   await resto.getByRole('button', { name: 'Asignar resto' }).click();

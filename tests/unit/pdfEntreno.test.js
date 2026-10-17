@@ -9,6 +9,7 @@ const P = await importApp('js/infrastructure/pdfEntreno.js');
 const D = await importApp('js/domain/entreno.js');
 const I18N = await importApp('js/i18n.js');
 const { guardarPdfEnDrive } = await importApp('js/infrastructure/driveEntrenos.js');
+const { crearEtiquetasPdf } = await importApp('js/application/etiquetasPdf.js');
 
 const lib = libNode();
 const AHORA = new Date('2026-10-15T18:00:00');
@@ -27,7 +28,9 @@ const ficha = (extra = {}, ls = lineas) => ({
   sesion: { fecha: '2026-10-15', hora: '19:50', titulo: 'Alevín - Aeróbico', grupo: 'Alevín', piscina: '50 m', tipoSesion: 'Aer+Ritmo', materialDia: 'JJDD', notasGenerales: 'Tabla: 200L-50E-100X-4x100L', descripcion: '', ...extra },
   sets: D.agruparSets(ls), totales: D.totales(ls),
 });
-const generar = (fichas, o = {}) => P.generarPdfEntreno(fichas, { lib, ahora: AHORA, ...o });
+// The adapter receives already translated labels (application/etiquetasPdf.js); the tests build them from the real dictionaries.
+const etiquetas = (o = {}) => crearEtiquetasPdf({ t: I18N.t, locale: I18N.locale(), ahora: AHORA, ...o });
+const generar = (fichas, o = {}) => P.generar(fichas, etiquetas(o), { lib });
 const plano = (txt) => txt.replace(/\s+/g, ' ');
 const compacto = (txt) => txt.replace(/\s+/g, '');
 
@@ -201,7 +204,7 @@ test('textos entreno: es/en/it con las mismas claves y variables, sin vacíos', 
 
 test('todas las claves entreno.* usadas en el código existen en el diccionario', async () => {
   const es = (await importApp('js/locales/entreno.es.js')).default;
-  const ficheros = ['js/views/entreno-editor.js', 'js/views/entreno-acciones.js', 'js/views/entrenamientos.js', 'js/infrastructure/pdfEntreno.js'];
+  const ficheros = [...readdirSync(path.join(ROOT, 'js/views')).filter((f) => /^entren/.test(f)).map((f) => 'js/views/' + f), 'js/application/etiquetasPdf.js', 'js/application/entrenamientosService.js', 'js/domain/entrenamientos.js'];
   const dinamicas = { 'entreno.av.': D_CODIGOS(), 'entreno.col.': ['tiempo', 'objetivo', 'bloque', 'series', 'distancia', 'salida', 'ejercicio', 'contenidos', 'dist-bloque', 'material', 'notas'], 'entreno.estilo.': ['crol', 'espalda', 'braza', 'mariposa', 'estilos'], 'entreno.pl.': D.PLANTILLAS.map((p) => p.id),
     'entreno.pdf.': ['dia', 'fecha', 'hora', 'grupo', 'tipo-sesion', 'piscina', 'material-dia', 'notas-generales', 'tiempo', 'objetivo', 'bloques', 'series', 'distancia', 'salida', 'ejercicio', 'dist-bloque', 'dist-set', 'material', 'notas', 'totales', 'sin-plan'] };
   const usadas = new Set();
@@ -230,7 +233,7 @@ test('jsPDF y jspdf-autotable son dependencias de producción y están copiadas 
 
 test('service worker: precachea los módulos del plan de entreno y las librerías PDF', () => {
   const sw = readFileSync(path.join(ROOT, 'sw.js'), 'utf8');
-  for (const f of ['js/domain/entreno.js', 'js/domain/desglose.js', 'js/application/entrenoService.js', 'js/infrastructure/pdfEntreno.js', 'js/infrastructure/driveEntrenos.js', 'js/views/entreno-editor.js', 'js/views/entreno-acciones.js', 'js/locales/entreno.es.js', 'js/locales/entreno.en.js', 'js/locales/entreno.it.js', 'vendor/jspdf.umd.min.js', 'vendor/jspdf.plugin.autotable.min.js']) {
+  for (const f of ['js/domain/entreno.js', 'js/domain/desglose.js', 'js/application/entrenoService.js', 'js/infrastructure/pdfEntreno.js', 'js/infrastructure/driveEntrenos.js', 'js/views/entreno-editor.js', 'js/views/entreno-acciones.js', 'js/views/entrenamientos.js', 'js/locales/entreno.es.js', 'js/locales/entreno.en.js', 'js/locales/entreno.it.js', 'vendor/jspdf.umd.min.js', 'vendor/jspdf.plugin.autotable.min.js']) {
     assert.ok(sw.includes('./' + f), 'sw.js sin ' + f);
   }
 });
@@ -291,4 +294,35 @@ test('PDF sin desglose (fichas antiguas) no dibuja el resumen; con muchos conten
   assert.ok(info.paginas >= 1);
   const c = compacto(info.texto);
   assert.ok(c.includes('Tortuga') && c.includes('Virajes/volteos'));
+});
+
+// ---------- PdfPort: independent of i18n ----------
+test('pdfEntreno.js does not import i18n nor read the clock: labels and date arrive as parameters', () => {
+  const src = readFileSync(path.join(ROOT, 'js/infrastructure/pdfEntreno.js'), 'utf8');
+  assert.ok(!/from '\.\.\/i18n\.js'/.test(src));
+  assert.ok(!/new Date\(\)|Date\.now/.test(src));
+  assert.equal(typeof P.pdfEntreno.generar, 'function');
+});
+
+test('generar requires labels and prints only the texts it receives', async () => {
+  await assert.rejects(() => P.generar([ficha()], null, { lib }), /sin-etiquetas/);
+  const e = etiquetas();
+  e.totales = 'GRAND TOTAL';
+  e.pagina = (n, total) => `P ${n}/${total}`;
+  const t = plano(infoPdf((await P.generar([ficha()], e, { lib })).bytes).texto);
+  assert.ok(t.includes('GRAND TOTAL') && t.includes('P 1/1'));
+});
+
+test('PDF labels: translated texts and parametrised functions', () => {
+  I18N.setLang('es', { persist: false });
+  const e = etiquetas();
+  assert.equal(e.pagina(2, 5), 'Página 2 de 5');
+  assert.equal(e.sets(3), '3 sets');
+  assert.equal(e.cols.length, 11);
+  assert.equal(e.nombreEstilo('Crol'), 'Crol');
+  assert.equal(e.nombreEstilo(''), 'Sin estilo');
+  assert.equal(e.nombreEstilo('Tortuga'), 'Tortuga');
+  I18N.setLang('en', { persist: false });
+  assert.equal(etiquetas().pagina(1, 1), 'Page 1 of 1');
+  I18N.setLang('es', { persist: false });
 });

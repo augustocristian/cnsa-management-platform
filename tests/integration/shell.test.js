@@ -9,9 +9,6 @@ let shell, nav, banners, menu, header, model, router, ui, a11y, i18n, avisosSvc;
 before(async () => {
   // Reuse the jsdom of the other tests when they ran first in this process; create one when run alone.
   if (typeof globalThis.window === 'undefined') setupEnv();
-  if (typeof globalThis.history === 'undefined') Object.defineProperty(globalThis, 'history', { value: window.history, configurable: true, writable: true });
-  if (typeof globalThis.getComputedStyle === 'undefined') Object.defineProperty(globalThis, 'getComputedStyle', { value: window.getComputedStyle.bind(window), configurable: true, writable: true });
-  window.scrollTo = () => {};
   [shell, nav, banners, menu, header, model, router, ui, a11y, i18n, avisosSvc] = await Promise.all([
     importApp('js/presentation/shell/shell.js'), importApp('js/presentation/shell/nav.js'), importApp('js/presentation/shell/banners.js'),
     importApp('js/presentation/shell/accountMenu.js'), importApp('js/presentation/shell/header.js'), importApp('js/presentation/shell/navModel.js'),
@@ -47,7 +44,17 @@ function crearRt({ demo = false, comunicaciones = [], offline = false } = {}) {
   return rt;
 }
 
+// Other test files may swap the global jsdom between tests: bind what the shell needs to the CURRENT window every time.
+function enlazarGlobales() {
+  for (const k of ['history', 'getComputedStyle']) {
+    const v = typeof window[k] === 'function' ? window[k].bind(window) : window[k];
+    Object.defineProperty(globalThis, k, { value: v, configurable: true, writable: true });
+  }
+  window.scrollTo = () => {};
+}
+
 beforeEach(() => {
+  enlazarGlobales();
   document.body.replaceChildren(ui.h('div', { id: 'app' }));
   document.title = '';
   location.hash = '';

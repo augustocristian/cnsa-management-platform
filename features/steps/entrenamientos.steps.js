@@ -1,50 +1,68 @@
-import { Given, When, Then } from '@cucumber/cucumber';
+import { Before, Given, When, Then } from '@cucumber/cucumber';
 import assert from 'node:assert/strict';
-import { regexTexto, todasLasPalabras } from '../support/world.js';
+import { regexTexto } from '../support/world.js';
 
-const sesion = (mundo, titulo) => mundo.vista.locator('.ent-sess').filter({ hasText: regexTexto(titulo) });
+// Desktop browsers download the PDF; touch devices may open the share sheet. The e2e scenarios of this area that capture the
+// download switch Web Share off so the same steps work in both profiles (a dedicated scenario enables a fake share sheet).
+Before({ tags: '@entreno or @entrenamientos or @entreno-pdf or @entreno-contenidos or @entreno-demo' }, async function () {
+  await this.contexto.addInitScript(() => {
+    try { Object.defineProperty(Navigator.prototype, 'canShare', { value: undefined, configurable: true }); } catch (e) { /* ignore */ }
+  });
+});
+
+export const sesion = (mundo, titulo) => mundo.vista.locator('.ent-sess').filter({ hasText: regexTexto(titulo) });
+// The form of a session is a sheet (bottom sheet on mobile)
+export const formulario = (mundo) => mundo.page.locator('.sheet');
+
+// Opens the "more actions" menu of a session card and clicks an item by its id (estado, editar, duplicar, pdf, eliminar)
+export async function elegirEnMenu(mundo, fila, id) {
+  await fila.first().locator('button[aria-haspopup="menu"]').click();
+  await mundo.page.locator(`.enp-mn [data-accion="${id}"]`).click();
+}
 
 async function guardarSesion(mundo) {
-  await mundo.page.locator('.ent-modal').getByRole('button', { name: 'Guardar' }).click();
+  await formulario(mundo).getByRole('button', { name: 'Guardar' }).click();
   await mundo.verVisible(mundo.page.locator('#toasts .toast', { hasText: 'Sesión guardada' }));
 }
 
 When('creo la sesión de entrenamiento con los datos:', async function (tabla) {
-  await this.vista.getByRole('button', { name: 'Nueva sesión' }).click();
-  const m = this.page.locator('.ent-modal');
-  await m.waitFor({ timeout: this.timeout });
-  await this.rellenarTabla(m, tabla);
+  await this.vista.getByRole('button', { name: 'Nueva sesión' }).first().click();
+  await formulario(this).waitFor({ timeout: this.timeout });
+  await this.rellenarTabla(formulario(this), tabla);
   await guardarSesion(this);
 });
 
 When('edito la sesión {string} con los datos:', async function (titulo, tabla) {
-  await sesion(this, titulo).first().getByRole('button', { name: 'Editar' }).click();
-  await this.rellenarTabla(this.page.locator('.ent-modal'), tabla);
+  await elegirEnMenu(this, sesion(this, titulo), 'editar');
+  await this.rellenarTabla(formulario(this), tabla);
   await guardarSesion(this);
 });
 
 When('duplico la sesión {string}', async function (titulo) {
-  await sesion(this, titulo).first().getByRole('button', { name: 'Duplicar' }).click();
+  await elegirEnMenu(this, sesion(this, titulo), 'duplicar');
   await guardarSesion(this);
 });
 
 When('marco la sesión {string} como realizada', async function (titulo) {
-  await sesion(this, titulo).first().getByRole('button', { name: 'Marcar realizado' }).click();
+  await elegirEnMenu(this, sesion(this, titulo), 'estado');
 });
 
-When('elimino la sesión {string} y lo confirmo', async function (titulo) {
-  await sesion(this, titulo).first().getByRole('button', { name: 'Eliminar' }).click();
-  await this.page.locator('.modal').getByRole('button', { name: 'Aceptar' }).click();
+When('elimino la sesión {string}', async function (titulo) {
+  await elegirEnMenu(this, sesion(this, titulo), 'eliminar');
+});
+
+When('deshago la eliminación', async function () {
+  await this.page.locator('#toasts .toast').getByRole('button', { name: 'Deshacer' }).click();
 });
 
 When('paso a la semana anterior', async function () {
-  await this.vista.locator('.ent-nav button', { hasText: '‹' }).click();
+  await this.vista.locator('[data-accion="semana-anterior"]').click();
 });
 When('paso a la semana siguiente', async function () {
-  await this.vista.locator('.ent-nav button', { hasText: '›' }).click();
+  await this.vista.locator('[data-accion="semana-siguiente"]').click();
 });
 When('vuelvo a la semana actual', async function () {
-  await this.vista.locator('.ent-nav button', { hasText: 'Hoy' }).click();
+  await this.vista.locator('[data-accion="hoy"]').click();
 });
 
 When('filtro las sesiones por el grupo {string}', async function (g) {
@@ -71,6 +89,13 @@ Then('la sesión {string} muestra {string}', async function (titulo, texto) {
   await this.verVisible(sesion(this, titulo).first().getByText(texto));
 });
 
+Then('la sesión {string} tiene una sola acción principal {string}', async function (titulo, accion) {
+  const fila = sesion(this, titulo).first();
+  await this.verVisible(fila.getByRole('button', { name: new RegExp(`^${accion}`) }));
+  assert.equal(await fila.locator('.btn--primary').count(), 1);
+  assert.equal(await fila.getByRole('button').count(), 2, 'Debe haber solo la acción principal y el menú de más acciones');
+});
+
 Then('la semana muestra sesiones {string}', async function (estado) {
   await this.verVisible(this.vista.locator('.ent-sess .badge', { hasText: new RegExp(`^${estado}$`) }), `Sin sesiones ${estado}`);
 });
@@ -95,13 +120,16 @@ Then('veo {int} sesiones esta semana', async function (n) {
   await this.verVisible(this.vista.getByText(`${n} sesiones esta semana`));
 });
 
+Then('veo el error de campo {string}', async function (texto) {
+  await this.verVisible(this.page.locator('.field-error', { hasText: texto }), `No hay error de campo «${texto}»`);
+});
+
 Given('que he creado la sesión {string} para el grupo {string}', async function (titulo, grupo) {
   await this.irA('entrenamientos');
-  await this.vista.getByRole('button', { name: 'Nueva sesión' }).click();
-  const m = this.page.locator('.ent-modal');
-  await m.waitFor({ timeout: this.timeout });
-  await this.rellenar(m, 'Título', titulo);
-  await this.rellenar(m, 'Grupo', grupo);
+  await this.vista.getByRole('button', { name: 'Nueva sesión' }).first().click();
+  await formulario(this).waitFor({ timeout: this.timeout });
+  await this.rellenar(formulario(this), 'Título', titulo);
+  await this.rellenar(formulario(this), 'Grupo', grupo);
   await guardarSesion(this);
   await this.verVisible(sesion(this, titulo));
 });

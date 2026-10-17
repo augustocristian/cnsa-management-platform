@@ -2,32 +2,37 @@ import { Given, When, Then } from '@cucumber/cucumber';
 import assert from 'node:assert/strict';
 import { regexTexto, todasLasPalabras } from '../support/world.js';
 
-const etiqueta = (c) => (c === 'Nombre' || c === 'Apellidos' ? `${c} *` : c);
+// The swimmer form shows the essential fields first; the rest sit under "Más datos" (opened on demand).
 async function rellenarNadador(mundo, tabla) {
   const ambito = mundo.page.locator('.nad-modal');
   await ambito.waitFor({ timeout: mundo.timeout });
   for (const [campo, valor] of tabla.raw()) {
-    const c = ambito.getByLabel(etiqueta(campo)).first();
+    let c = ambito.getByLabel(campo).first();
+    if (!(await c.isVisible())) {
+      await ambito.locator('summary', { hasText: 'Más datos' }).click();
+      c = ambito.getByLabel(campo).first();
+    }
     const tag = await c.evaluate((el) => el.tagName.toLowerCase() + (el.type === 'checkbox' ? ':checkbox' : ''));
     if (tag === 'select') await c.selectOption({ label: valor });
     else if (tag === 'input:checkbox') await c.setChecked(/^(s[ií]|true)$/i.test(valor));
     else await c.fill(valor);
   }
 }
+const guardarFormulario = (mundo) => mundo.page.locator('.nad-modal').getByRole('button', { name: 'Guardar', exact: true }).click();
 const fila = (mundo, nombre) => mundo.vista.locator('tr.nad-row').filter({ hasText: todasLasPalabras(nombre) });
 
 // ---- Alta, edición, ficha ----
 When('doy de alta al nadador con los datos:', async function (tabla) {
   await this.vista.getByRole('button', { name: 'Nuevo nadador' }).click();
   await rellenarNadador(this, tabla);
-  await this.page.locator('.nad-modal').getByRole('button', { name: 'Guardar' }).click();
+  await guardarFormulario(this);
   await this.verVisible(this.page.locator('#toasts .toast', { hasText: 'Nadador guardado' }));
 });
 
 When('intento dar de alta a un nadador sin apellidos', async function () {
   await this.vista.getByRole('button', { name: 'Nuevo nadador' }).click();
   await rellenarNadador(this, { raw: () => [['Nombre', 'Solo']] });
-  await this.page.locator('.nad-modal').getByRole('button', { name: 'Guardar' }).click();
+  await guardarFormulario(this);
 });
 
 Then('el formulario sigue abierto', async function () {
@@ -42,13 +47,40 @@ When('abro la ficha de {string}', async function (nombre) {
 When('edito al nadador con los datos:', async function (tabla) {
   await this.vista.getByRole('button', { name: 'Editar' }).click();
   await rellenarNadador(this, tabla);
-  await this.page.locator('.nad-modal').getByRole('button', { name: 'Guardar' }).click();
+  await guardarFormulario(this);
   await this.verVisible(this.page.locator('#toasts .toast', { hasText: 'Nadador guardado' }));
 });
 
-When('elimino al nadador y lo confirmo', async function () {
+// Deleting is undoable: no confirmation dialog, a toast with "Deshacer" instead.
+When('elimino al nadador', async function () {
   await this.vista.getByRole('button', { name: 'Eliminar', exact: true }).click();
-  await this.page.locator('.modal').getByRole('button', { name: 'Aceptar' }).click();
+});
+
+Then('el formulario muestra el error {string} en el campo {string}', async function (error, campo) {
+  const f = this.page.locator('.nad-modal, .grp-modal').locator('.field').filter({ has: this.page.getByLabel(campo) });
+  await this.verVisible(f.locator('.field-error', { hasText: error }).first(), `No se ve el error "${error}" junto a "${campo}"`);
+});
+
+When('relleno el formulario de nadador con los datos:', async function (tabla) {
+  await rellenarNadador(this, tabla);
+});
+
+When('guardo y añado otro nadador', async function () {
+  await this.page.locator('.nad-modal').getByRole('button', { name: 'Guardar y añadir otro' }).click();
+  await this.verVisible(this.page.locator('#toasts .toast', { hasText: 'Nadador guardado' }));
+});
+
+Then('el formulario sigue abierto con el nombre vacío', async function () {
+  await this.eventually(async () => assert.equal(await this.page.locator('.nad-modal').getByLabel('Nombre').first().inputValue(), ''));
+});
+
+When('cierro el formulario', async function () {
+  await this.page.locator('.nad-modal').getByRole('button', { name: 'Cancelar' }).click();
+});
+
+When('marco mostrar nadadores inactivos', async function () {
+  await abrirFiltros(this);
+  await this.vista.getByLabel('Mostrar inactivos').check();
 });
 
 Then('el listado de nadadores incluye a {string}', async function (nombre) {
@@ -85,20 +117,27 @@ Then('la ficha muestra la mejor marca {string} en {string}', async function (tie
 });
 
 // ---- Consulta ----
+// On mobile the filters fold under a "Filtros" button.
+async function abrirFiltros(mundo) {
+  const toggle = mundo.vista.locator('.nad-filter-toggle');
+  if (await toggle.isVisible() && (await toggle.getAttribute('aria-expanded')) !== 'true') await toggle.click();
+}
 When('busco nadadores por {string}', async function (texto) {
   await this.vista.locator('input[type=search]').fill(texto);
 });
 
 When('filtro los nadadores por la categoría {string}', async function (c) {
+  await abrirFiltros(this);
   await this.vista.locator('.nad-filters select').nth(0).selectOption({ label: c });
 });
 
 When('filtro los nadadores por el grupo {string}', async function (g) {
+  await abrirFiltros(this);
   await this.vista.locator('.nad-filters select').nth(1).selectOption({ label: g });
 });
 
 Then('el listado muestra {int} nadador(es)', async function (n) {
-  await this.eventually(async () => assert.equal((await this.vista.locator('span.nad-muted').first().innerText()).trim(), `${n} nadador${n === 1 ? '' : 'es'}`));
+  await this.eventually(async () => assert.equal((await this.vista.locator('p.nad-count').first().innerText()).trim(), `${n} nadador${n === 1 ? '' : 'es'}`));
 });
 
 Then('todos los nadadores listados son de la categoría {string}', async function (c) {
@@ -160,7 +199,7 @@ async function altaRapida(mundo, nombre, apellidos, nacido, manual) {
   const filas = [['Nombre', nombre], ['Apellidos', apellidos], ['Fecha de nacimiento', nacido]];
   if (manual) filas.push(['Categoría manual', 'Sí'], ['Categoría elegida', manual]);
   await rellenarNadador(mundo, { raw: () => filas });
-  await mundo.page.locator('.nad-modal').getByRole('button', { name: 'Guardar' }).click();
+  await guardarFormulario(mundo);
   await mundo.verVisible(mundo.page.locator('#toasts .toast', { hasText: 'Nadador guardado' }));
 }
 Given('que he dado de alta al nadador {string} nacido el {string}', async function (nombre, nacido) {
@@ -196,7 +235,7 @@ Then('el formulario muestra la categoría automática {string} para los nacidos 
 
 // ---- Configuración: panel de categorías ----
 Then('veo el panel {string}', async function (titulo) {
-  await this.verVisible(this.vista.locator('.catp h3', { hasText: titulo }), `No se ve el panel "${titulo}"`);
+  await this.verVisible(this.vista.locator('.catp h2', { hasText: titulo }), `No se ve el panel "${titulo}"`);
 });
 
 Then('la tabla de categorías muestra:', async function (tabla) {
@@ -249,9 +288,13 @@ When('edito el grupo {string} con los datos:', async function (nombre, tabla) {
   await this.verVisible(this.page.locator('#toasts .toast', { hasText: 'Grupo guardado' }));
 });
 
-When('elimino el grupo {string} y lo confirmo', async function (nombre) {
+When('elimino el grupo {string}', async function (nombre) {
   await tarjetaGrupo(this, nombre).first().getByRole('button', { name: 'Eliminar' }).click();
-  await this.page.locator('.modal').getByRole('button', { name: 'Aceptar' }).click();
+});
+
+Then('la página de grupos no muestra {string}', async function (texto) {
+  const txt = await this.vista.innerText();
+  assert.ok(!txt.includes(texto), `Aparece "${texto}" en Grupos`);
 });
 
 Then('veo el grupo {string}', async function (nombre) {

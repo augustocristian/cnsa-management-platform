@@ -88,7 +88,7 @@ test('gráfico accesible: columnas con nombre, foco y selección con teclado', a
 test('previsto vs real: la semana pasada trae las cargas por contenido, la desviación y el estado', async () => {
   await abrir();
   const t = temporada();
-  const m = (await importApp('js/application/temporadaService.js')).crearTemporadaService(c.store).resumen(t.id);
+  const m = (await importApp('js/application/temporadaService.js')).crearTemporadaService(c.store, { ahora: () => new Date() }).resumen(t.id);
   const pasada = [...m.semanas].reverse().find((s) => s.tiempo === 'pasada' && s.real.fuente === 'cargas');
   if (!pasada) return; // la demo no tiene cargas dentro de la temporada (verano)
   await verSemana(pasada.n);
@@ -143,7 +143,7 @@ test('añadir una competición desde el detalle de la semana: aparece marcada, e
   // Calendario: misma fuente que el .ics
   const { crearCalendarioService } = await importApp('js/application/calendarioService.js');
   const { etiquetas } = await importApp('js/views/calendario.js');
-  const svc = crearCalendarioService({ store: c.store, auth: c.auth, etq: etiquetas, storage: null });
+  const svc = crearCalendarioService({ store: c.store, auth: c.auth, etq: etiquetas, storage: null, ahora: () => new Date() });
   const evs = svc.eventos({ desde: lunesN(3), hasta: addD(lunesN(3), 9) });
   const delOpen = evs.filter((e) => e.origen === 'temporada' && /Open de Asturias/.test(e.titulo));
   assert.deepEqual(delOpen.map((e) => e.fecha), [addD(lunesN(3), 5), addD(lunesN(3), 6)]);
@@ -167,8 +167,11 @@ test('editar y eliminar un evento desde la lista de la temporada', async () => {
   assert.equal(c.store.get('EventosTemporada', ev.id).lugar, 'Gijón');
   const btn = [...c.container.querySelectorAll(`[data-evento="${ev.id}"] button`)].find((b) => b.getAttribute('aria-label')?.startsWith('Eliminar'));
   await click(btn);
-  await click(buttonByText(modal(), 'Eliminar'));
-  assert.equal(c.store.get('EventosTemporada', ev.id), null);
+  assert.equal(c.store.get('EventosTemporada', ev.id), null, 'se elimina al instante');
+  const deshacer = [...document.querySelectorAll('#toasts .toast-action')].find((b) => b.textContent === 'Deshacer');
+  assert.ok(deshacer, 'con «Deshacer»');
+  await click(deshacer);
+  assert.equal(c.store.get('EventosTemporada', ev.id).nombre, 'Copa Federación');
 });
 
 test('ajustar el volumen previsto de una semana a mano', async () => {
@@ -264,7 +267,7 @@ test('fechas incoherentes se rechazan con mensaje', async () => {
 
 test('varias temporadas: se cambia de una a otra y sólo una es la activa', async () => {
   await abrir();
-  const svc = (await importApp('js/application/temporadaService.js')).crearTemporadaService(c.store);
+  const svc = (await importApp('js/application/temporadaService.js')).crearTemporadaService(c.store, { ahora: () => new Date() });
   svc.guardarTemporada({ nombre: 'Temporada futura', inicio: '2027-09-06', fin: '2027-11-28', activa: false });
   await tick();
   const sel = c.container.querySelector('.tp-bar select');
@@ -272,7 +275,9 @@ test('varias temporadas: se cambia de una a otra y sólo una es la activa', asyn
   setValue(sel, [...sel.options].find((o) => /futura/.test(o.textContent)).value);
   await tick();
   assert.equal(filas().length, 12);
-  await click(buttonByText(c.container, 'Marcar como activa'));
+  assert.match(c.container.querySelector('.tp-bar').textContent, /No es la temporada activa/, 'se explica por qué no es la activa');
+  await click(c.container.querySelector('.page-head-actions .enp-mn-btn'));
+  await click([...document.querySelectorAll('[role=menuitem]')].find((b) => b.textContent.trim() === 'Marcar como activa'));
   assert.equal(c.store.list('Temporadas').filter((t) => t.activa === 'true').length, 1);
   assert.equal(svc.activa().nombre, 'Temporada futura');
 });
@@ -305,4 +310,42 @@ test('en móvil se muestra la lista de semanas con mini-barras en lugar del grá
     await click(items[5]);
     assert.match(c.container.querySelector('#tp-h-det').textContent, /Semana 6/);
   } finally { delete window.matchMedia; }
+});
+
+test('estructura: un h1, secciones h2, sin estilos inyectados y sin colores fijos en el gráfico', async () => {
+  await abrir();
+  assert.equal(c.container.querySelectorAll('h1').length, 1);
+  assert.ok(c.container.querySelectorAll('.tp-sec > .tp-sec-head > h2').length >= 4);
+  assert.ok(!document.getElementById('tp-style') && !document.getElementById('pl-apt-style'));
+  const svg = c.container.querySelector('svg.tp-svg');
+  // Phase and content colours are STORED data (inline per record); the event markers take their tone from CSS classes
+  const marcas = [...svg.querySelectorAll('.tp-marca')].map((g) => g.getAttribute('class'));
+  assert.ok(marcas.length >= 3 && marcas.every((cl) => /tp-t-(danger|warn|info|ok|neutral|accent)/.test(cl)), 'eventos con tono semántico');
+  const textos = [...svg.querySelectorAll('.tp-evento .tp-marca-t')].map((x) => x.textContent);
+  assert.ok(['A', 'B', 'C'].every((l) => textos.includes(l)));
+});
+
+test('eliminar una fase se deshace con «Deshacer»', async () => {
+  await abrir();
+  const n0 = c.store.list('Fases').length;
+  const f = c.container.querySelector('.tp-fase');
+  await click([...f.querySelectorAll('button')].find((b) => b.textContent.trim() === 'Editar'));
+  await click(buttonByText(modal(), 'Eliminar'));
+  assert.equal(c.store.list('Fases').length, n0 - 1);
+  await click([...document.querySelectorAll('#toasts .toast-action')].find((b) => b.textContent === 'Deshacer'));
+  assert.equal(c.store.list('Fases').length, n0);
+});
+
+test('los diálogos validan en línea: nombre vacío y fin anterior al inicio marcan sus campos', async () => {
+  await abrir();
+  await click(buttonByText(c.container, 'Añadir fase'));
+  await click(buttonByText(modal(), 'Guardar'));
+  assert.ok(modal());
+  assert.equal(fieldByLabel(modal(), 'Nombre').getAttribute('aria-invalid'), 'true');
+  setValue(fieldByLabel(modal(), 'Nombre'), 'X');
+  setValue(fieldByLabel(modal(), 'Fecha de inicio'), '2026-12-10');
+  setValue(fieldByLabel(modal(), 'Fecha de fin'), '2026-12-01');
+  await click(buttonByText(modal(), 'Guardar'));
+  assert.equal(fieldByLabel(modal(), 'Fecha de fin').getAttribute('aria-invalid'), 'true');
+  assert.match(modal().textContent, /posterior a la de inicio/);
 });

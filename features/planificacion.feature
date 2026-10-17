@@ -25,4 +25,27 @@ Característica: Planificación de la piscina
     Cuando abro el módulo "Planificación"
     Y abro el apartado "Piscina"
     Entonces veo el botón "Sugerir distribución"
+    Y veo el botón "Nueva asignación"
     Y no veo el texto "Vista de solo lectura."
+
+  Escenario: Las acciones poco frecuentes están en un menú y no ocupan la barra
+    Cuando abro el módulo "Planificación"
+    Y abro el apartado "Piscina"
+    Y pulso "Más acciones"
+    Entonces la opción "Configurar piscina" está en el menú
+    Y la opción "Nueva piscina" está en el menú
+    Y la opción "Imprimir" está en el menú
+    Cuando elijo la opción "Configurar piscina" del menú
+    Entonces veo el texto "Configuración de la piscina"
+
+  Escenario: Los conflictos se muestran como alertas con su recuento
+    Cuando abro el módulo "Planificación"
+    Y abro el apartado "Piscina"
+    Entonces veo el texto "Avisos (1)"
+
+  @smoke
+  Escenario: La rejilla de calles no desborda la página
+    Cuando abro el módulo "Planificación"
+    Y abro el apartado "Piscina"
+    Entonces veo el texto "Calle 6"
+    Y la página no se desborda horizontalmente

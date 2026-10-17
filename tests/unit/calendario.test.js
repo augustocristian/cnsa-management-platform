@@ -91,10 +91,12 @@ test('filtrarEventos: por grupos (los generales siempre) y por piscina', () => {
   assert.equal(D.filtrarEventos(evs, { piscina: '50' }).length, 0);
 });
 
-test('colorGrupo: estable por grupo y neutro para el club entero', () => {
+test('colorGrupo: a stable hue per group (no hex in the domain) and neutral for the whole club', () => {
   assert.deepEqual(D.colorGrupo('g1', GRUPOS), D.colorGrupo('g1', GRUPOS));
   assert.notDeepEqual(D.colorGrupo('g1', GRUPOS), D.colorGrupo('g2', GRUPOS));
+  assert.ok(Number.isInteger(D.colorGrupo('g1', GRUPOS).tono));
   assert.deepEqual(D.colorGrupo('', GRUPOS), D.COLOR_SIN_GRUPO);
+  assert.doesNotMatch(JSON.stringify(D.TONOS_GRUPO), /#/);
 });
 
 // ---------- iCalendar ----------
@@ -147,7 +149,7 @@ test('generarICS: estructura RFC 5545, CRLF, UID estable, TZID, DTSTAMP y SEQUEN
 test('generarICS: el UID es idéntico entre exportaciones (reimportar actualiza, no duplica)', () => {
   const evs = D.eventosEnRango(DATOS, RANGO);
   const uids = (t) => lineas(t).filter((l) => l.startsWith('UID:'));
-  assert.deepEqual(uids(ics(evs)), uids(ics(evs, { ahora: new Date(), secuencia: 99 })));
+  assert.deepEqual(uids(ics(evs)), uids(ics(evs, { ahora: new Date(2030, 0, 1), secuencia: 99 })));
 });
 
 test('generarICS: VTIMEZONE de Europe/Madrid con las transiciones reales y TZID coincidente', () => {

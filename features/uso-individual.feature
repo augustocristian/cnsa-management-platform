@@ -1,7 +1,7 @@
 # language: es
 @uso-individual
 Característica: Uso individual de la aplicación
-  Como entrenador uso la aplicación yo solo, con mi cuenta de Google.
+  Como entrenador uso la aplicación yo solo; la app no tiene inicio de sesión ni identidad: solo conecto mi Google Drive.
   Mis datos se guardan en mi propio Drive (carpeta cnl) únicamente para que persistan y los tenga en todos mis dispositivos.
   No hay roles, ni compartir datos, ni otros usuarios: los nadadores y los grupos son registros que yo gestiono.
 
@@ -29,7 +29,7 @@ Característica: Uso individual de la aplicación
   Escenario: No hay roles, selector de rol ni espacios por tipo de usuario
     Entonces no existe el selector para cambiar de rol
     Y no veo el texto "Mi espacio"
-    Y mi sesión es la de "entrenador@club.test"
+    Y no se muestra ninguna identidad de usuario
 
   Escenario: Las pantallas de gestión siempre permiten editar
     Cuando abro el módulo "Nadadores"
@@ -58,13 +58,13 @@ Característica: Uso individual de la aplicación
       | Nombre    | Itziar    |
       | Apellidos | Dos Móvil |
     Y el fichero del club en Drive contiene al nadador "Itziar"
-    Y abro la aplicación en otro dispositivo con la misma cuenta de Google
+    Y abro la aplicación en otro dispositivo con el mismo Drive
     Y en el otro dispositivo abro el módulo "Nadadores"
     Entonces en el otro dispositivo veo en pantalla a alguien llamado "Itziar"
-    Y la sesión del otro dispositivo es la de la misma cuenta
+    Y ningún dispositivo muestra ninguna identidad de usuario
 
-  Escenario: Un cambio hecho en un dispositivo llega al otro con la misma cuenta
-    Cuando abro la aplicación en otro dispositivo con la misma cuenta de Google
+  Escenario: Un cambio hecho en un dispositivo llega al otro con el mismo Drive
+    Cuando abro la aplicación en otro dispositivo con el mismo Drive
     Y en el otro dispositivo abro el módulo "Nadadores"
     Y en el otro dispositivo doy de alta al nadador "Itziar" "Desde el móvil"
     Y vuelvo al primer dispositivo y lo abro de nuevo
@@ -77,11 +77,11 @@ Característica: Uso individual de la aplicación
       | Nombre    | Itziar  |
       | Apellidos | Privado |
     Y el fichero del club en Drive contiene al nadador "Itziar"
-    Y otra persona abre la aplicación con su propia cuenta de Google
+    Y otra persona abre la aplicación con su propio Drive
     Entonces en el otro dispositivo veo el encabezado "Crea tu club"
     Y en el otro dispositivo no veo en pantalla a alguien llamado "Itziar"
 
-  Escenario: Cerrar sesión limpia la caché local del dispositivo
-    Cuando cierro la sesión
-    Entonces veo el botón "Iniciar sesión con Google"
+  Escenario: Desconectar Drive limpia la caché local del dispositivo
+    Cuando desconecto Drive
+    Entonces veo el botón "Conectar Google Drive"
     Y el navegador no guarda copias locales de datos del club ni de la sesión

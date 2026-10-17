@@ -30,7 +30,7 @@ Característica: Entrenamientos
     Y relleno "Volumen objetivo mín. (m)" con "5000"
     Y relleno "Volumen objetivo máx. (m)" con "1000"
     Y pulso "Guardar"
-    Entonces veo el aviso "El volumen mínimo no puede superar el máximo"
+    Entonces veo el error de campo "El volumen mínimo no puede superar el máximo"
 
   Escenario: Editar una sesión planificada
     Dado que he creado la sesión "Sesión editable" para el grupo "Alevín"
@@ -50,10 +50,21 @@ Característica: Entrenamientos
     Cuando marco la sesión "Sesión a cerrar" como realizada
     Entonces la sesión "Sesión a cerrar" figura como "Realizado"
 
+  Escenario: Cada sesión ofrece una sola acción principal y un menú con el resto
+    Dado que he creado la sesión "Sesión sencilla" para el grupo "Alevín"
+    Entonces la sesión "Sesión sencilla" tiene una sola acción principal "Abrir plan"
+
   Escenario: Eliminar una sesión
     Dado que he creado la sesión "Sesión temporal" para el grupo "Promoción"
-    Cuando elimino la sesión "Sesión temporal" y lo confirmo
+    Cuando elimino la sesión "Sesión temporal"
     Entonces la sesión "Sesión temporal" no aparece en el calendario semanal
+    Y veo el aviso "Sesión eliminada"
+
+  Escenario: Deshacer la eliminación de una sesión
+    Dado que he creado la sesión "Sesión recuperable" para el grupo "Alevín"
+    Cuando elimino la sesión "Sesión recuperable"
+    Y deshago la eliminación
+    Entonces la sesión "Sesión recuperable" aparece en el calendario semanal
 
   Escenario: Consultar el trabajo previsto de la semana siguiente
     Cuando paso a la semana siguiente

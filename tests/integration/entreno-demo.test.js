@@ -44,7 +44,9 @@ test('hoy hay una sesión con plan completa y su PDF se genera con los datos del
   const svc = crearEntrenoService(c.store, { club: () => c.store.club });
   const ficha = svc.ficha(delDia[0].id);
   assert.ok(ficha.sets.length >= 4);
-  const r = await P.generarPdfEntreno([ficha], { lib: libNode() });
+  const { crearEtiquetasPdf } = await importApp('js/application/etiquetasPdf.js');
+  const { t, locale } = await importApp('js/i18n.js');
+  const r = await P.generar([ficha], crearEtiquetasPdf({ t, locale: locale(), ahora: new Date(2026, 9, 15, 18, 0) }), { lib: libNode() });
   const info = infoPdf(r.bytes);
   assert.equal(info.paginas, 1);
   assert.ok(info.texto.includes('TOTALES'));
@@ -56,7 +58,7 @@ test('hoy hay una sesión con plan completa y su PDF se genera con los datos del
 test('la vista Entrenamientos muestra el resumen del plan de las sesiones de la demo', async () => {
   await renderView('entrenamientos', c.container, [], c);
   assert.match(c.container.textContent, /\d+ m · \d+ min/);
-  assert.ok([...c.container.querySelectorAll('button')].some((b) => b.textContent.trim() === 'PDF'));
+  assert.ok([...c.container.querySelectorAll('button')].some((b) => b.textContent.trim() === 'Abrir plan'));
   assert.doesNotMatch(c.container.textContent, /undefined|NaN|\[object/);
 });
 

@@ -9,7 +9,7 @@ const gestor = (m) => m.vista.locator('#cg-gestor');
 const fila = (m, nombre) => gestor(m).locator('.tc-item').filter({ has: m.page.locator('.tc-nombre', { hasText: exacto(nombre) }) });
 
 When('abro el gestor de contenidos de entrenamiento', async function () {
-  const boton = this.vista.locator('.cg-bar').getByRole('button', { name: 'Contenidos de entrenamiento' });
+  const boton = this.vista.locator('.page-head').getByRole('button', { name: /Contenidos de entrenamiento|Ocultar contenidos/ });
   if ((await boton.getAttribute('aria-expanded')) !== 'true') await boton.click();
   await this.verVisible(gestor(this), 'No se abre el gestor de contenidos');
 });
@@ -59,21 +59,30 @@ Then('el contenido {string} aparece como personalizado', async function (nombre)
 });
 
 Then('veo el error {string}', async function (texto) {
-  await this.verVisible(this.page.locator('.tc-error', { hasText: texto }), `No aparece el error "${texto}"`);
+  await this.verVisible(this.page.locator('.field-error, .tc-error', { hasText: texto }), `No aparece el error "${texto}"`);
 });
 
+// The content selector lives in the "Log load" sheet: open it, read the options and close it again.
+async function opcionesDeContenido(mundo) {
+  await mundo.vista.getByRole('button', { name: 'Registrar carga', exact: true }).click();
+  const hoja = mundo.page.locator('.sheet');
+  await mundo.verVisible(hoja);
+  const opciones = (await hoja.locator('select[name="tipoId"] option').allInnerTexts()).map((o) => o.trim());
+  await mundo.page.keyboard.press('Escape');
+  await mundo.noVer(hoja);
+  return opciones;
+}
+
 Then('el selector de contenido ofrece {string}', async function (nombre) {
-  const opciones = this.vista.locator('form.cg-form select[name="tipoId"] option');
-  await this.eventually(async () => assert.ok((await opciones.allInnerTexts()).map((o) => o.trim()).includes(nombre), `El selector no ofrece "${nombre}"`));
+  assert.ok((await opcionesDeContenido(this)).includes(nombre), `El selector no ofrece "${nombre}"`);
 });
 
 Then('el selector de contenido no ofrece {string}', async function (nombre) {
-  const opciones = this.vista.locator('form.cg-form select[name="tipoId"] option');
-  await this.eventually(async () => assert.ok(!(await opciones.allInnerTexts()).map((o) => o.trim()).includes(nombre), `El selector aún ofrece "${nombre}"`));
+  assert.ok(!(await opcionesDeContenido(this)).includes(nombre), `El selector aún ofrece "${nombre}"`);
 });
 
 Then('la carga de {int} metros de {string} aparece vinculada a la sesión {string}', async function (metros, nombre, sesion) {
-  const filas = this.vista.locator('.cg-card table tbody tr').filter({ hasText: todasLasPalabras(nombre) });
+  const filas = this.vista.locator('section.card').filter({ has: this.page.getByRole('heading', { name: 'Cargas de la semana', exact: true }) }).locator('tbody tr').filter({ hasText: todasLasPalabras(nombre) });
   await this.eventually(async () => {
     const celdas = await filas.evaluateAll((trs) => trs.map((tr) => [...tr.children].map((td) => td.textContent.trim())));
     assert.ok(celdas.some((c) => sinSeparadores(c[4] || '') === String(metros) && (c[3] || '').includes(sesion)), `Filas de ${nombre}: ${JSON.stringify(celdas)}`);

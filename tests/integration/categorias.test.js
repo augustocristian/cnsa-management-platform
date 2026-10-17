@@ -15,7 +15,7 @@ const marcar = (el, valor) => { el.checked = valor; el.dispatchEvent(new window.
 const abrirAlta = async () => {
   await renderView('nadadores', c.container, [], c);
   buttonByText(c.container, 'Nuevo nadador').click();
-  return document.querySelector('.nad-ov');
+  return document.querySelector('.sheet-overlay');
 };
 const vivo = (ov) => ov.querySelector('[data-testid=categoria-auto]').textContent;
 const porNombre = (n) => c.store.list('Nadadores').find((x) => x.nombre === n);
@@ -92,9 +92,9 @@ test('categoría manual: el interruptor muestra el selector, manda sobre el cál
   const ov = await abrirAlta();
   const chk = fieldByLabel(ov, 'Categoría manual');
   const eleg = fieldByLabel(ov, 'Categoría elegida');
-  assert.equal(eleg.closest('label').hidden, true);
+  assert.equal(eleg.closest('.field').hidden, true);
   marcar(chk, true);
-  assert.equal(eleg.closest('label').hidden, false);
+  assert.equal(eleg.closest('.field').hidden, false);
   setValue(fieldByLabel(ov, 'Nombre'), 'Mano');
   setValue(fieldByLabel(ov, 'Apellidos'), 'Manual Test');
   setValue(fieldByLabel(ov, 'Fecha de nacimiento'), '2014-05-05');
@@ -123,7 +123,7 @@ test('edición: se puede pasar de manual a automática', async () => {
   c.store.upsert('Nadadores', { ...n, categoria: 'Junior', categoriaManual: 'Junior' });
   await renderView('nadadores', c.container, [n.id], c);
   buttonByText(c.container, 'Editar').click();
-  const ov = document.querySelector('.nad-ov');
+  const ov = document.querySelector('.sheet-overlay');
   assert.equal(fieldByLabel(ov, 'Categoría manual').checked, true);
   marcar(fieldByLabel(ov, 'Categoría manual'), false);
   buttonByText(ov, 'Guardar').click();
@@ -162,7 +162,7 @@ const panel = () => c.container.querySelector('.catp');
 
 test('club: panel "Categorías de la temporada 2026-2027" con la tabla calculada', async () => {
   await renderView('club', c.container, [], c);
-  assert.match(panel().querySelector('h3').textContent, /Categorías de la temporada 2026-2027/);
+  assert.match(panel().querySelector('h2').textContent, /Categorías de la temporada 2026-2027/);
   const filas = [...panel().querySelectorAll('table[aria-label] tbody tr')].map((r) => r.textContent);
   assert.ok(filas[0].includes('Pre-Benjamín') && filas[0].includes('2018'));
   assert.ok(filas[4].includes('Junior') && filas[4].includes('2009-2011'));
@@ -191,7 +191,7 @@ test('cambiar de temporada: previsualiza quién cambia y aplica tras confirmar',
   assert.equal(porNombre('Martina').categoria, 'Alevín');
   assert.equal(c.store.club.temporadaActual, '2027-2028');
   assert.equal(c.store.club.temporadaAplicada, '2027-2028');
-  assert.match(panel().querySelector('h3').textContent, /2027-2028/);
+  assert.match(panel().querySelector('h2').textContent, /2027-2028/);
 });
 
 test('cambiar de temporada a la misma avisa y no abre previsualización; "Automática" vuelve a la temporada de hoy', async () => {
@@ -206,7 +206,7 @@ test('cambiar de temporada a la misma avisa y no abre previsualización; "Autom�
   buttonByText(document.querySelector('.modal'), 'Aplicar cambio de temporada').click();
   await tick();
   assert.equal(c.store.club.temporadaActual, '');
-  assert.match(panel().querySelector('h3').textContent, new RegExp(hoy));
+  assert.match(panel().querySelector('h2').textContent, new RegExp(hoy));
 });
 
 test('recalcular a demanda corrige categorías desactualizadas', async () => {

@@ -25,38 +25,123 @@ async function crearContenido(root, datos) {
   await tick(10);
 }
 
+// Log-load sheet
+const abrirRegistro = async () => { buttonByText(c.container, 'Registrar carga').click(); await tick(); const d = document.querySelector('.sheet'); assert.ok(d, 'se abre la hoja de registro'); return d; };
+const elegirNadador = (d, texto) => setValue(fieldByLabel(d, 'Nadador'), texto);
+const rellenar = (d, etiqueta, valor) => setValue(fieldByLabel(d, etiqueta), valor);
+const errores = (d) => [...d.querySelectorAll('.field-error')].map((e) => e.textContent.trim());
+
+test('the page has ONE primary "Registrar carga" action and the form is not buried under the charts', async () => {
+  await vista();
+  assert.equal(c.container.querySelectorAll('h1').length, 1);
+  assert.ok(c.container.querySelector('.page-head .btn--primary.cg-add'));
+  assert.equal(c.container.querySelector('form.cg-form'), null, 'the form lives in a sheet, not on the page');
+  assert.ok(c.container.querySelector('.cg-fab[aria-label="Registrar carga"]'), 'floating button for phones');
+  const d = await abrirRegistro();
+  assert.equal(d.getAttribute('role'), 'dialog');
+  assert.ok(d.querySelector('.combo input[role="combobox"]'), 'swimmer combobox');
+});
+
 test('el formulario ofrece el catálogo activo agrupado por categoría, con descripción de ayuda y "Añadir contenido…"', async () => {
   await vista();
-  const form = c.container.querySelector('form.cg-form');
-  const sel = form.elements.tipoId;
+  const d = await abrirRegistro();
+  const sel = d.querySelector('select[name="tipoId"]');
   assert.deepEqual([...sel.querySelectorAll('optgroup')].map((g) => g.label), ['Intensidad', 'Trabajo específico']);
   const nombres = opciones(sel);
   assert.equal(nombres.length, 11);
   assert.equal(nombres[0], 'Aeróbico ligero');
   assert.equal(nombres.at(-1), 'Añadir contenido…');
-  assert.match(c.container.querySelector('#cg-tipo-ayuda').textContent, /Borg 4-5\/10/);
+  assert.match(d.querySelector('#cg-tipo-ayuda').textContent, /Borg 4-5\/10/);
   sel.value = 'tc-alactico';
   sel.dispatchEvent(new window.Event('change', { bubbles: true }));
-  assert.match(c.container.querySelector('#cg-tipo-ayuda').textContent, /Velocidad máxima/);
+  assert.match(d.querySelector('#cg-tipo-ayuda').textContent, /Velocidad máxima/);
   assert.equal(sel.getAttribute('aria-describedby'), 'cg-tipo-ayuda');
-  assert.ok(form.elements.entrenamientoId, 'sesión opcional');
+  assert.ok(d.querySelector('select[name="entrenamientoId"]'), 'sesión opcional');
+  const metros = d.querySelector('input[name="metros"]');
+  assert.equal(metros.getAttribute('step'), null, 'metres are free: no 50 m step restriction');
 });
 
-test('registrar una carga eligiendo contenido y sesión la vincula a ambos', async () => {
+test('registrar una carga eligiendo contenido y sesión la vincula a ambos y resalta la fila nueva', async () => {
   await vista();
   const ses = c.store.list('Entrenamientos').find((e) => e.grupoId === 'g1');
-  const form = c.container.querySelector('form.cg-form');
-  form.elements.nadadorId.value = 'n04';
-  form.elements.fecha.value = today();
-  form.elements.tipoId.value = 'tc-tecnica';
-  form.elements.entrenamientoId.value = ses.id;
-  form.elements.metros.value = '2400';
-  form.elements.notas.value = 'vinculada';
-  form.requestSubmit();
-  await tick();
+  const d = await abrirRegistro();
+  elegirNadador(d, 'Carla Menéndez');
+  rellenar(d, 'Fecha', ses.fecha);
+  d.querySelector('select[name="tipoId"]').value = 'tc-tecnica';
+  d.querySelector('select[name="entrenamientoId"]').value = ses.id;
+  rellenar(d, 'Metros', '2437');
+  rellenar(d, 'Notas', 'vinculada');
+  buttonByText(d, 'Registrar').click();
+  await tick(10);
   const r = c.store.list('Cargas').find((x) => x.notas === 'vinculada');
-  assert.deepEqual([r.tipo, r.entrenamientoId, r.metros], ['Técnica', ses.id, 2400]);
-  assert.match(c.container.textContent, new RegExp(ses.titulo));
+  assert.deepEqual([r.tipo, r.entrenamientoId, r.metros, r.nadadorId], ['Técnica', ses.id, 2437, 'n04']);
+  assert.equal(document.querySelector('.sheet'), null, 'the sheet closes');
+  const fila = c.container.querySelector('tr.is-new');
+  assert.ok(fila, 'new row highlighted');
+  assert.match(fila.textContent, new RegExp(ses.titulo));
+  assert.match(fila.textContent, /2\.437/);
+  assert.match(document.getElementById('toasts').textContent, /Carga registrada/);
+  assert.equal(document.activeElement, c.container.querySelector('.cg-add'), 'focus returns to the Log button');
+});
+
+test('validación en línea: sin nadador ni metros no se guarda y cada campo explica su error', async () => {
+  await vista();
+  const antes = c.store.list('Cargas').length;
+  const d = await abrirRegistro();
+  buttonByText(d, 'Registrar').click();
+  await tick(5);
+  assert.ok(document.querySelector('.sheet'), 'stays open');
+  assert.equal(c.store.list('Cargas').length, antes);
+  assert.deepEqual(errores(d), ['Elige un nadador de la lista', 'Indica los metros (mayor que 0)']);
+  assert.equal(fieldByLabel(d, 'Metros').getAttribute('aria-invalid'), 'true');
+  rellenar(d, 'Metros', '500');
+  assert.equal(fieldByLabel(d, 'Metros').getAttribute('aria-invalid'), null, 'the error clears while editing');
+  elegirNadador(d, 'Carla');
+  rellenar(d, 'RPE', '11');
+  buttonByText(d, 'Registrar').click();
+  await tick(5);
+  assert.deepEqual(errores(d), ['El RPE debe estar entre 1 y 10']);
+});
+
+test('"Registrar y añadir otra" conserva nadador, fecha y contenido y vacía el resto', async () => {
+  await vista();
+  const d = await abrirRegistro();
+  elegirNadador(d, 'Carla Menéndez');
+  rellenar(d, 'Fecha', today());
+  d.querySelector('select[name="tipoId"]').value = 'tc-piernas';
+  rellenar(d, 'Metros', '600');
+  buttonByText(d, 'Registrar y añadir otra').click();
+  await tick(10);
+  assert.ok(document.querySelector('.sheet'), 'the sheet stays open');
+  assert.equal(fieldByLabel(d, 'Metros').value, '');
+  assert.equal(fieldByLabel(d, 'Nadador').value, 'Carla Menéndez Vigil');
+  assert.equal(d.querySelector('select[name="tipoId"]').value, 'tc-piernas');
+  rellenar(d, 'Metros', '750');
+  buttonByText(d, 'Registrar').click();
+  await tick(10);
+  const mias = c.store.list('Cargas').filter((x) => x.nadadorId === 'n04' && x.tipo === 'Piernas' && [600, 750].includes(x.metros));
+  assert.equal(mias.length, 2);
+  // reopening remembers the last swimmer, date and content
+  const d2 = await abrirRegistro();
+  assert.equal(fieldByLabel(d2, 'Nadador').value, 'Carla Menéndez Vigil');
+  assert.equal(d2.querySelector('select[name="tipoId"]').value, 'tc-piernas');
+});
+
+test('el selector de nadador filtra al escribir (sin tildes ni mayúsculas) y se maneja con teclado', async () => {
+  await vista();
+  const d = await abrirRegistro();
+  const input = fieldByLabel(d, 'Nadador');
+  setValue(input, 'MENENDEZ');
+  const lista = d.querySelector('[role="listbox"]');
+  assert.equal(lista.hidden, false);
+  assert.ok([...lista.querySelectorAll('[role="option"]')].every((o) => /Menéndez/.test(o.textContent)));
+  setValue(input, '');
+  const todas = lista.querySelectorAll('[role="option"]').length;
+  assert.ok(todas >= 12);
+  input.dispatchEvent(new window.KeyboardEvent('keydown', { key: 'ArrowDown', bubbles: true }));
+  input.dispatchEvent(new window.KeyboardEvent('keydown', { key: 'Enter', bubbles: true, cancelable: true }));
+  assert.ok(input.value.length > 3);
+  assert.equal(lista.hidden, true);
 });
 
 test('gestor: crear un contenido manual, rechazar el nombre duplicado y usarlo al registrar', async () => {
@@ -70,50 +155,52 @@ test('gestor: crear un contenido manual, rechazar el nombre duplicado y usarlo a
   assert.ok(item(c.container, 'Aguas abiertas'));
   assert.match(c.container.textContent, /Contenido «Aguas abiertas» creado|Personalizados/);
 
-  // duplicado (sin distinguir mayúsculas ni tildes): error y no guarda
+  // duplicado (sin distinguir mayúsculas ni tildes): error en línea y no guarda
   buttonByText(c.container.querySelector('#cg-gestor'), 'Nuevo contenido').click();
   setValue(fieldByLabel(modal(), 'Nombre'), 'AGUAS ABIERTAS');
   buttonByText(modal(), 'Guardar').click();
   await tick(10);
   assert.ok(modal(), 'el modal sigue abierto');
-  assert.match(modal().querySelector('.tc-error').textContent, /Ya existe un contenido con ese nombre/);
+  assert.match(modal().querySelector('.field-error').textContent, /Ya existe un contenido con ese nombre/);
+  assert.equal(fieldByLabel(modal(), 'Nombre').getAttribute('aria-invalid'), 'true');
   assert.equal(c.store.list('TiposCarga').filter((x) => x.nombre.toLowerCase().includes('aguas')).length, 1);
   // nombre vacío
   setValue(fieldByLabel(modal(), 'Nombre'), '  ');
   buttonByText(modal(), 'Guardar').click();
   await tick(10);
-  assert.match(modal().querySelector('.tc-error').textContent, /obligatorio/);
+  assert.match(modal().querySelector('.field-error').textContent, /obligatorio/);
   buttonByText(modal(), 'Cancelar').click();
   await tick();
 
-  const form = c.container.querySelector('form.cg-form');
-  assert.ok(opciones(form.elements.tipoId).includes('Aguas abiertas'));
-  form.elements.nadadorId.value = 'n05';
-  form.elements.fecha.value = today();
-  form.elements.tipoId.value = t.id;
-  form.elements.metros.value = '1800';
-  form.requestSubmit();
-  await tick();
+  const d = await abrirRegistro();
+  assert.ok(opciones(d.querySelector('select[name="tipoId"]')).includes('Aguas abiertas'));
+  elegirNadador(d, 'Marcos');
+  rellenar(d, 'Fecha', today());
+  d.querySelector('select[name="tipoId"]').value = t.id;
+  rellenar(d, 'Metros', '1800');
+  buttonByText(d, 'Registrar').click();
+  await tick(10);
   assert.equal(c.store.list('Cargas').filter((x) => x.tipo === 'Aguas abiertas').length, 1);
-  assert.match(c.container.querySelector('.cg-ctrack') ? c.container.textContent : '', /Aguas abiertas/);
+  assert.match(c.container.textContent, /Aguas abiertas/);
 });
 
 test('"Añadir contenido…" en el formulario crea uno al vuelo, lo selecciona y conserva lo escrito', async () => {
   await vista();
-  const form = c.container.querySelector('form.cg-form');
-  form.elements.metros.value = '1234';
-  form.elements.notas.value = 'borrador';
-  form.elements.tipoId.value = '__nuevo__';
-  form.elements.tipoId.dispatchEvent(new window.Event('change', { bubbles: true }));
-  assert.ok(modal());
-  assert.notEqual(form.elements.tipoId.value, '__nuevo__', 'no se queda en la opción de añadir');
-  setValue(fieldByLabel(modal(), 'Nombre'), 'Apnea');
-  buttonByText(modal(), 'Guardar').click();
+  const d = await abrirRegistro();
+  rellenar(d, 'Metros', '1234');
+  rellenar(d, 'Notas', 'borrador');
+  const sel = d.querySelector('select[name="tipoId"]');
+  sel.value = '__nuevo__';
+  sel.dispatchEvent(new window.Event('change', { bubbles: true }));
+  const m = [...document.querySelectorAll('.modal')].find((x) => x !== d);
+  assert.ok(m, 'se abre el formulario de contenido');
+  assert.notEqual(sel.value, '__nuevo__', 'no se queda en la opción de añadir');
+  setValue(fieldByLabel(m, 'Nombre'), 'Apnea');
+  buttonByText(m, 'Guardar').click();
   await tick(10);
   const nuevo = c.store.list('TiposCarga').find((x) => x.nombre === 'Apnea');
-  const f2 = c.container.querySelector('form.cg-form');
-  assert.equal(f2.elements.tipoId.value, nuevo.id);
-  assert.deepEqual([f2.elements.metros.value, f2.elements.notas.value], ['1234', 'borrador']);
+  assert.equal(d.querySelector('select[name="tipoId"]').value, nuevo.id);
+  assert.deepEqual([fieldByLabel(d, 'Metros').value, fieldByLabel(d, 'Notas').value], ['1234', 'borrador']);
 });
 
 test('gestor: desactivar quita el contenido del selector y reactivar lo devuelve; los predefinidos no se borran', async () => {
@@ -124,13 +211,17 @@ test('gestor: desactivar quita el contenido del selector y reactivar lo devuelve
   boton(li, 'Desactivar').click();
   await tick();
   assert.equal(c.store.get('TiposCarga', 'tc-brazos').activo, 'false');
-  assert.ok(!opciones(c.container.querySelector('form.cg-form').elements.tipoId).includes('Brazos'));
+  let d = await abrirRegistro();
+  assert.ok(!opciones(d.querySelector('select[name="tipoId"]')).includes('Brazos'));
+  buttonByText(d, 'Cancelar').click();
+  await tick();
   li = item(c.container, 'Brazos');
   assert.ok(li.classList.contains('tc-inactivo'));
   boton(li, 'Activar').click();
   await tick();
   assert.equal(c.store.get('TiposCarga', 'tc-brazos').activo, 'true');
-  assert.ok(opciones(c.container.querySelector('form.cg-form').elements.tipoId).includes('Brazos'));
+  d = await abrirRegistro();
+  assert.ok(opciones(d.querySelector('select[name="tipoId"]')).includes('Brazos'));
 });
 
 test('gestor: editar un predefinido cambia descripción, color y objetivos pero no el nombre', async () => {
@@ -145,7 +236,7 @@ test('gestor: editar un predefinido cambia descripción, color y objetivos pero 
   setValue(fieldByLabel(m, 'Objetivo máximo'), '300'); // inválido
   buttonByText(m, 'Guardar').click();
   await tick(10);
-  assert.match(modal().querySelector('.tc-error').textContent, /mínimo no puede superar/);
+  assert.match(modal().querySelector('.field-error').textContent, /mínimo no puede superar/);
   setValue(fieldByLabel(modal(), 'Objetivo máximo'), '1800');
   buttonByText(modal(), 'Guardar').click();
   await tick(10);
@@ -171,7 +262,7 @@ test('gestor: no se borra un contenido con cargas (desactivar o fusionar); sin c
   buttonByText(modal(), 'Fusionar y eliminar').click();
   await tick(10);
   assert.equal(c.store.get('TiposCarga', temp.id), null);
-  assert.ok(c.store.list('Cargas').some((x) => x.notas === '' && x.metros === 700 && x.tipo === 'Técnica') || c.store.list('Cargas').some((x) => x.tipo === 'Técnica' && Number(x.metros) === 700));
+  assert.ok(c.store.list('Cargas').some((x) => x.tipo === 'Técnica' && Number(x.metros) === 700));
 
   boton(item(c.container, 'Vacío'), 'Eliminar').click();
   await tick();
@@ -199,33 +290,73 @@ test('gestor: desactivar desde el aviso de "en uso" y reordenar con las flechas'
   assert.equal(c.store.list('TiposCarga').find((x) => x.nombre === 'Dos').activo, 'false');
 });
 
-test('objetivos: guardar desde la tabla actualiza el contenido y las alertas usan los mismos criterios en Cargas e Inicio', async () => {
+test('objetivos: UN solo botón guarda todos los cambios (todo o nada) y las alertas coinciden en Cargas e Inicio', async () => {
   await vista();
-  const fila = [...c.container.querySelectorAll('.cg-obj tbody tr')].find((tr) => tr.firstChild.textContent === 'Brazos');
-  const [mn, mx] = fila.querySelectorAll('input');
-  mn.value = '5000'; mx.value = '2000';
-  fila.querySelector('button').click();
+  const form = c.container.querySelector('form.cg-obj');
+  assert.equal([...form.querySelectorAll('button')].length, 1, 'one save button, not one per row');
+  const fila = (nombre) => [...form.querySelectorAll('tbody tr')].find((tr) => tr.firstChild.textContent === nombre);
+  const [bmn, bmx] = fila('Brazos').querySelectorAll('input');
+  const [pmn, pmx] = fila('Piernas').querySelectorAll('input');
+  const piernasAntes = c.store.get('TiposCarga', 'tc-piernas').minSemanalM;
+  bmn.value = '5000'; bmx.value = '2000'; pmn.value = '300'; pmx.value = '900';
+  buttonByText(form, 'Guardar objetivos').click();
+  await tick();
   assert.equal(c.store.get('TiposCarga', 'tc-brazos').minSemanalM, '', 'mín > máx no guarda');
+  assert.equal(c.store.get('TiposCarga', 'tc-piernas').minSemanalM, piernasAntes, 'ni siquiera las filas válidas (todo o nada)');
+  assert.equal(c.container.querySelector('form.cg-obj [aria-invalid="true"]'), bmx);
+  assert.match(c.container.querySelector('form.cg-obj .field-error').textContent, /mínimo no puede superar/);
+  const f2 = c.container.querySelector('form.cg-obj');
+  const f2fila = (nombre) => [...f2.querySelectorAll('tbody tr')].find((tr) => tr.firstChild.textContent === nombre);
+  const [mn, mx] = f2fila('Brazos').querySelectorAll('input');
   mn.value = '100'; mx.value = '900';
-  fila.querySelector('button').click();
+  buttonByText(f2, 'Guardar objetivos').click();
+  await tick();
   const b = c.store.get('TiposCarga', 'tc-brazos');
   assert.deepEqual([b.minSemanalM, b.maxSemanalM], [100, 900]);
+  assert.match(document.getElementById('toasts').textContent, /Objetivos guardados/);
 
   // objetivo imposible de cumplir: debe faltar lo mismo en las dos vistas
   const lunes = new Date(); lunes.setHours(0, 0, 0, 0); lunes.setDate(lunes.getDate() - ((lunes.getDay() + 6) % 7));
   const { crearCargasService } = await import('../../js/application/cargasService.js');
-  const svc = crearCargasService(c.store);
+  const svc = crearCargasService(c.store, { generarId: () => 'x' });
   const ev = svc.semana(lunes).evaluacion;
   assert.ok(ev.some((e) => e.tipo.id === 'tc-brazos' && e.estado === 'bajo' && e.diferencia === 100));
   await vista();
-  assert.match(c.container.querySelector('.cg-alert.lo, .cg-alert.hi').textContent, /\S/);
+  assert.ok(c.container.querySelector('.alert--warn, .alert--danger'), 'alerts use the shared .alert');
+  assert.ok([...c.container.querySelectorAll('.alert--warn')].some((a) => /Brazos/.test(a.textContent)));
   await renderView('inicio', c.container, [], c);
   const txt = c.container.querySelector('.ini-card').parentElement.textContent;
   assert.match(txt, /Faltan 100 m/);
   assert.doesNotMatch(txt, /undefined|NaN/);
 });
 
-test('inicio: alertas con "Exceso de" y "Faltan" traducidos y gráfico con los colores del catálogo', async () => {
+test('eliminar una carga se puede deshacer', async () => {
+  const carga = c.store.upsert('Cargas', { nadadorId: 'n01', fecha: today(), metros: 4321, tipo: 'Técnica' });
+  await vista();
+  const fila = () => c.container.querySelector(`tr[data-id="${carga.id}"]`);
+  assert.ok(fila());
+  fila().querySelector('button[aria-label^="Eliminar la carga"]').click();
+  await tick();
+  assert.equal(c.store.get('Cargas', carga.id), null);
+  assert.equal(fila(), null);
+  const undo = [...document.querySelectorAll('#toasts .toast-action')].find((b) => /Deshacer/.test(b.textContent));
+  assert.ok(undo, 'toast with Undo');
+  undo.click();
+  await tick();
+  assert.equal(c.store.get('Cargas', carga.id).metros, 4321);
+  assert.ok(fila());
+});
+
+test('los gráficos reflujan: lista de contenidos, barras por día con 7 filas y leyenda con chips', async () => {
+  c.store.upsert('Cargas', { nadadorId: 'n01', fecha: today(), metros: 3000, tipo: 'Técnica' });
+  await vista();
+  assert.ok(c.container.querySelector('ul[aria-label="Metros semanales por tipo"]'));
+  assert.equal(c.container.querySelectorAll('ul[aria-label="Metros por día"] > li').length, 7);
+  assert.ok(c.container.querySelector('.cg-legend .tc-chip'));
+  assert.equal(c.container.querySelector('.cg-grid svg:not(.icon)'), null, 'no tiny SVG text on phones');
+});
+
+test('inicio: alertas con "Exceso de" y "Faltan" traducidos', async () => {
   c.store.upsert('TiposCarga', { ...c.store.get('TiposCarga', 'tc-alactico'), minSemanalM: '', maxSemanalM: 100 });
   c.store.upsert('TiposCarga', { ...c.store.get('TiposCarga', 'tc-salidas'), minSemanalM: 2300, maxSemanalM: '' });
   c.store.upsert('Cargas', { nadadorId: 'n01', fecha: today(), metros: 5000, tipo: 'Aláctico / Sprint' });
@@ -233,7 +364,6 @@ test('inicio: alertas con "Exceso de" y "Faltan" traducidos y gráfico con los c
   const t = c.container.textContent;
   assert.match(t, /Exceso de [\d.]+ m/);
   assert.match(t, /Faltan 2\.300 m/);
-  assert.ok(c.container.querySelector('.ini-chart svg rect[fill="#d93025"]'), 'barras con el color del contenido');
   const { setLang } = await import('../../js/i18n.js');
   setLang('en', { persist: false });
   await renderView('inicio', c.container, [], c);
@@ -264,7 +394,7 @@ test('cargas antiguas con tipos viejos siguen visibles tras abrir el club (migra
   c.store.upsert('Cargas', { id: 'old', nadadorId: 'n01', fecha: today(), metros: 4321, tipo: 'Fuerza' });
   c.store.upsert('ObjetivosCarga', { id: 'oo', tipo: 'Fuerza', minSemanalM: 10, maxSemanalM: 5000 });
   const { crearCargasService } = await import('../../js/application/cargasService.js');
-  assert.ok(crearCargasService(c.store).asegurarCatalogo() > 0); // misma migración que se ejecuta al abrir el club (ver store.test.js)
+  assert.ok(crearCargasService(c.store, { generarId: () => 'tc-h' + Math.random().toString(36).slice(2) }).asegurarCatalogo() > 0); // misma migración que se ejecuta al abrir el club (ver store.test.js)
   await vista();
   assert.ok(c.store.list('TiposCarga').some((x) => x.nombre === 'Fuerza' && x.predefinido === 'false'));
   assert.match(c.container.textContent, /Fuerza/);

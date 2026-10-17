@@ -45,3 +45,11 @@ Característica: Personalización por club
 
   Escenario: La configuración explica dónde se guardan los datos
     Entonces la configuración explica que los datos están en la carpeta cnl de Drive
+
+  Escenario: La configuración se organiza en tarjetas sin repetir el catálogo de contenidos
+    Entonces la configuración muestra "Contenidos de entrenamiento" una sola vez
+    Y la configuración no menciona cuentas de usuario
+
+  Escenario: El logotipo por defecto se ve y el botón para elegir imagen está en español
+    Entonces el logotipo de la configuración se ve
+    Y la configuración ofrece un botón para elegir el logotipo en español

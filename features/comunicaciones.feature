@@ -40,10 +40,20 @@ Característica: Avisos y notas
 
   Escenario: Eliminar un aviso
     Dado que he guardado el aviso "Aviso erróneo" para "Todo el club"
-    Cuando elimino el aviso "Aviso erróneo" y lo confirmo
+    Cuando elimino el aviso "Aviso erróneo"
     Entonces no veo el aviso guardado "Aviso erróneo"
+
+  Escenario: Deshacer la eliminación de un aviso lo devuelve
+    Dado que he guardado el aviso "Aviso dudoso" para "Todo el club"
+    Cuando elimino el aviso "Aviso dudoso"
+    Y deshago la eliminación
+    Entonces veo el aviso guardado "Aviso dudoso"
+
+  Escenario: Un aviso recién guardado muestra su fecha de forma relativa
+    Dado que he guardado el aviso "Aviso de hoy" para "Todo el club"
+    Entonces el aviso "Aviso de hoy" muestra la fecha "hoy"
 
   Escenario: No se guarda un aviso sin texto
     Cuando relleno "Título" con "Aviso vacío"
     Y pulso "Guardar aviso"
-    Entonces no veo el texto "Aviso guardado"
+    Entonces el formulario de avisos muestra el error "Escribe el texto del aviso"

@@ -13,7 +13,7 @@ const memStorage = {
 const prev = { localStorage: globalThis.localStorage, fetch: globalThis.fetch };
 
 const { drive } = await import('../../js/drive.js');
-const { auth } = await import('../../js/auth.js');
+const { driveConnection: auth } = await import('../../js/infrastructure/driveConnection.js');
 const { SHEETS, ENTITY_SHEETS } = await import('../../js/schema.js');
 const { dataToDoc, docToData, hashData, mergeData, isEmptyData } = await import('../../js/sheetdata.js');
 const { SCOPES } = await import('../../js/config.js');
@@ -21,7 +21,7 @@ const { SCOPES } = await import('../../js/config.js');
 let calls;
 let handler;
 let tokens;
-const authOriginal = { ensureToken: auth.ensureToken, invalidate: auth.invalidate, user: auth.user };
+const authOriginal = { ensureToken: auth.ensureToken, invalidate: auth.invalidate, expired: auth.expired };
 
 const json = (obj, status = 200) => ({ ok: status < 400, status, json: async () => obj, text: async () => (typeof obj === 'string' ? obj : JSON.stringify(obj)) });
 const texto = (s) => ({ ok: true, status: 200, json: async () => JSON.parse(s), text: async () => s });
@@ -35,7 +35,6 @@ beforeEach(() => {
   calls = [];
   tokens = 0;
   handler = () => json({});
-  auth.user = { email: 'owner@x.com' };
   auth.ensureToken = async () => 'tok' + (++tokens);
   auth.invalidate = () => {};
   globalThis.fetch = async (url, opts = {}) => {
@@ -48,8 +47,9 @@ beforeEach(() => {
 });
 
 test('el único scope de datos es drive.file (sin Sheets API ni scopes sensibles)', () => {
-  assert.equal(SCOPES, 'https://www.googleapis.com/auth/drive.file openid email profile');
+  assert.equal(SCOPES, 'https://www.googleapis.com/auth/drive.file');
   assert.ok(!/spreadsheets/.test(SCOPES));
+  assert.ok(!/openid|email|profile/.test(SCOPES), 'sin scopes de identidad: la app no sabe quién es la persona');
 });
 
 test('ensureFolder reutiliza la carpeta existente (la más antigua), la crea si falta y la cachea', async () => {
@@ -274,6 +274,5 @@ after(() => {
   globalThis.fetch = prev.fetch;
   auth.ensureToken = authOriginal.ensureToken;
   auth.invalidate = authOriginal.invalidate;
-  auth.user = authOriginal.user;
 });
 });

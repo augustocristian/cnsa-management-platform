@@ -11,7 +11,7 @@ Then('el banner del panel muestra el nombre del club {string}', async function (
 Then('el banner del panel resume las sesiones de hoy', async function () {
   await this.eventually(async () => {
     const txt = (await this.vista.locator('.ini-headline').innerText()).trim();
-    assert.match(txt, /^(Hoy: \d+ sesiones? · \d+ nadadores? esperados?|Hoy no hay sesiones)/);
+    assert.match(txt, /^(Hoy: \d+ (sesión|sesiones) · \d+ (nadador|nadadores) (esperado|esperados)|Hoy no hay sesiones)/);
   });
 });
 

@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { regexTexto, todasLasPalabras } from '../support/world.js';
 
 // ---- Comunicaciones ----
-const aviso = (mundo, titulo) => mundo.vista.locator('.cm-item').filter({ has: mundo.page.locator('h4', { hasText: regexTexto(titulo) }) });
+const aviso = (mundo, titulo) => mundo.vista.locator('.cm-item').filter({ has: mundo.page.locator('h3', { hasText: regexTexto(titulo) }) });
 
 When('guardo un aviso con los datos:', async function (tabla) {
   const form = this.vista.locator('form.cm-form');
@@ -16,9 +16,17 @@ When('filtro los avisos por {string}', async function (opcion) {
   await this.vista.locator('.cm-bar select').selectOption({ label: opcion });
 });
 
-When('elimino el aviso {string} y lo confirmo', async function (titulo) {
+// Deleting is undoable: no confirmation dialog, a toast with "Deshacer" instead.
+When('elimino el aviso {string}', async function (titulo) {
   await aviso(this, titulo).first().getByRole('button', { name: 'Eliminar' }).click();
-  await this.page.locator('.modal').getByRole('button', { name: 'Aceptar' }).click();
+});
+
+Then('el aviso {string} muestra la fecha {string}', async function (titulo, fecha) {
+  await this.verVisible(aviso(this, titulo).first().locator('time', { hasText: fecha }));
+});
+
+Then('el formulario de avisos muestra el error {string}', async function (error) {
+  await this.verVisible(this.vista.locator('form.cm-form .field-error', { hasText: error }).first());
 });
 
 Then('veo el aviso guardado {string}', async function (titulo) {
@@ -38,7 +46,7 @@ When('pulso la campana de avisos', async function () {
 });
 
 // ---- Club: identidad ----
-const identidad = (m) => m.vista.locator('.clb-card').filter({ hasText: 'Identidad del club' });
+const identidad = (m) => m.vista.locator('.clb-card').filter({ has: m.page.getByRole('heading', { name: 'Identidad del club' }) });
 
 // PNG de 1x1 píxel
 const PNG = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==', 'base64');
@@ -53,7 +61,7 @@ When('personalizo la identidad del club con:', async function (tabla) {
 
 When('subo el logotipo del club', async function () {
   await identidad(this).locator('input[type=file]').setInputFiles({ name: 'logo.png', mimeType: 'image/png', buffer: PNG });
-  await this.eventually(async () => assert.ok(await identidad(this).locator('img.clb-logo').getAttribute('src')));
+  await this.eventually(async () => assert.match(await identidad(this).locator('img.clb-logo').getAttribute('src'), /^data:image\//));
 });
 
 When('quito el logotipo del club', async function () {
@@ -113,4 +121,24 @@ Given('que he guardado el aviso {string} para {string}', async function (titulo,
   await this.rellenar(form, 'Texto', `Texto de ${titulo}`);
   await form.getByRole('button', { name: 'Guardar aviso' }).click();
   await this.verVisible(this.page.locator('#toasts .toast', { hasText: 'Aviso guardado' }));
+});
+
+Then('el logotipo de la configuración se ve', async function () {
+  const img = identidad(this).locator('img.clb-logo');
+  await this.verVisible(img);
+  await this.eventually(async () => assert.ok(await img.evaluate((el) => el.complete && el.naturalWidth > 0), 'La imagen del logotipo está rota'));
+});
+
+Then('la configuración ofrece un botón para elegir el logotipo en español', async function () {
+  await this.verVisible(identidad(this).getByRole('button', { name: 'Elegir imagen' }));
+  assert.equal(await identidad(this).locator('input[type=file]').isVisible(), false);
+});
+
+Then('la configuración muestra {string} una sola vez', async function (titulo) {
+  assert.equal(await this.vista.getByRole('heading', { name: titulo, exact: true }).count(), 1);
+});
+
+Then('la configuración no menciona cuentas de usuario', async function () {
+  const txt = await this.vista.innerText();
+  assert.doesNotMatch(txt, /@|iniciar sesión|cerrar sesión/i);
 });

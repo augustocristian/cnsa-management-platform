@@ -1,4 +1,4 @@
-// Resilience of js/drive.js and js/auth.js: deadlines, retries with exponential backoff / Retry-After, Drive quota,
+// Resilience of js/drive.js and js/infrastructure/driveConnection.js: deadlines, retries with exponential backoff / Retry-After, Drive quota,
 // Drive version, revisions, non-duplicated cnl folder, pagination and memory-only token. Simulated fetch, no network.
 import { test, describe, beforeEach, after } from 'node:test';
 import assert from 'node:assert/strict';
@@ -6,13 +6,13 @@ import { setupEnv, importApp, appUrl } from '../helpers/env.js';
 
 setupEnv();
 const { drive, nombreBackup, esperaReintento } = await importApp('js/drive.js');
-const { auth } = await importApp('js/auth.js');
+const { driveConnection: auth } = await importApp('js/infrastructure/driveConnection.js');
 const config = await importApp('js/config.js');
-// Isolated copy of auth.js (other files in the same process may have replaced the shared instance's methods with the simulator)
-const { auth: authReal } = await import(appUrl('js/auth.js') + '?aislado');
+// Isolated copy of driveConnection.js (other files in the same process may have replaced the shared instance's methods with the simulator)
+const { driveConnection: authReal } = await import(appUrl('js/infrastructure/driveConnection.js') + '?aislado');
 
 const prev = { fetch: globalThis.fetch };
-const authOriginal = { ensureToken: auth.ensureToken, invalidate: auth.invalidate, user: auth.user };
+const authOriginal = { ensureToken: auth.ensureToken, invalidate: auth.invalidate, expired: auth.expired };
 let calls;
 let handler;
 let esperas;
@@ -29,8 +29,7 @@ beforeEach(() => {
   calls = [];
   esperas = [];
   Object.assign(drive.config, { timeoutMs: 30000, reintentos: 3, sleep: async (ms) => { esperas.push(ms); } });
-  auth.user = { email: 'a@b.c' };
-  auth.caducada = false;
+  auth.expired = false;
   auth.ensureToken = async () => 'tok';
   auth.invalidate = () => {};
   handler = () => resp({ id: 'F', name: 'X.json', md5Checksum: 'm', version: '3' });
@@ -103,7 +102,7 @@ test('P0-4: after an unsuccessful renewal a 401 marks the session as expired and
   await assert.rejects(drive.meta('F'), (e) => e.code === 'sesion-caducada');
   off();
   assert.deepEqual(avisos, [true]);
-  assert.equal(auth.caducada, true);
+  assert.equal(auth.expired, true);
 });
 
 test('P0-1: meta/read/write return Drive\'s `version` (integer) and request it in fields', async () => {
@@ -195,7 +194,8 @@ after(() => {
   delete window.google;
   config.setClientId('');
   globalThis.fetch = prev.fetch;
-  authReal.caducada = false;
+  authReal.expired = false;
+  authReal.disconnect();
 });
 
 test('P2: simultaneous token requests share ONE; the token is not stored in sessionStorage or localStorage', async () => {
@@ -223,27 +223,31 @@ test('P0-4: if Google does not answer, the renewal times out (does not hang) and
 test('P2: after expiry, reconnecting (from a click) renews the token and clears the expired-session mark', async () => {
   const avisos = [];
   const off = authReal.onExpired((v) => avisos.push(v));
-  authReal.marcarCaducada();
-  authReal.marcarCaducada();
+  authReal.markExpired();
+  authReal.markExpired();
   assert.deepEqual(avisos, [true], 'a single notification');
-  const p = authReal.reconectar();
+  const p = authReal.connect({ interactive: true });
   await new Promise((r) => setTimeout(r, 5));
   tc.callback({ access_token: 'nuevo', expires_in: 3600 });
-  assert.equal(await p, 'nuevo');
+  assert.equal(await p, true);
+  assert.equal(authReal.token(), 'nuevo');
+  assert.equal(authReal.state, 'connected');
   off();
   assert.deepEqual(avisos, [true, false]);
-  assert.equal(authReal.caducada, false);
+  assert.equal(authReal.expired, false);
 });
 
-test('P2: after a reload there is no token (it must be renewed) but the remembered user stays; signOut forgets everything', async () => {
-  localStorage.setItem('cnl:user', JSON.stringify({ email: 'a@b.c', name: 'A' }));
+test('P2: after a reload there is no token (it must be renewed) but the authorization flag stays; disconnect forgets everything', async () => {
+  localStorage.setItem('cnl:drive-auth', '1');
+  localStorage.setItem('cnl:user', JSON.stringify({ email: 'a@b.c', name: 'A' })); // legacy profile left by an old version
   sessionStorage.setItem('cnl:token', JSON.stringify({ access_token: 'viejo', expires: Date.now() + 1e6 }));
-  authReal.user = null;
   await authReal.init();
-  assert.equal(authReal.user.email, 'a@b.c');
+  assert.equal(authReal.isConnected(), true);
   assert.equal(authReal.token(), null);
   assert.equal(sessionStorage.getItem('cnl:token'), null, 'the legacy sessionStorage token is deleted');
-  authReal.signOut();
-  assert.equal(localStorage.getItem('cnl:user'), null);
+  assert.equal(localStorage.getItem('cnl:user'), null, 'the legacy profile is deleted');
+  authReal.disconnect();
+  assert.equal(authReal.isConnected(), false);
+  assert.equal(localStorage.getItem('cnl:drive-auth'), null);
 });
 });

@@ -7,7 +7,7 @@ import { setupEnv, importApp, ROOT } from '../helpers/env.js';
 
 setupEnv({ loadXlsx: true });
 const { store } = await importApp('js/store.js');
-const { auth } = await importApp('js/auth.js');
+const { driveConnection: auth } = await importApp('js/infrastructure/driveConnection.js');
 const { drive, nombreBackup } = await importApp('js/drive.js');
 const { instalarFakeGoogle } = await importApp('js/infrastructure/fakeGoogle.js');
 const { newId } = await importApp('js/schema.js');
@@ -29,9 +29,9 @@ let fake;
 let ref;
 beforeEach(async () => {
   localStorage.clear();
-  auth.caducada = false;
+  auth.expired = false;
   if (fake) fake.desinstalar();
-  fake = instalarFakeGoogle({ auth, drive, opciones: { sesion: true } });
+  fake = instalarFakeGoogle({ auth, drive, opciones: { conectado: true } });
   await auth.init();
   ref = await drive.createClub('Club Test');
   await store.init(ref);
@@ -504,17 +504,17 @@ test('P1-7: duplicated ids in the file are reported (not silently "last wins")',
 });
 
 // ---------- P2 ----------
-test('P2: expired session: sync fails without losing anything, a notice is raised (auth.caducada) and after reconnecting it uploads', async () => {
+test('P2: expired session: sync fails without losing anything, a notice is raised (auth.expired) and after reconnecting it uploads', async () => {
   const avisos = [];
   const off = auth.onExpired((v) => avisos.push(v));
   store.upsert('Grupos', { id: 'g', nombre: 'G' });
   fake.caducarSesion();
   await assert.rejects(store.sync(), (e) => e.code === 'sesion-caducada');
   assert.deepEqual(avisos, [true]);
-  assert.equal(auth.caducada, true);
+  assert.equal(auth.expired, true);
   assert.equal(store.pendiente, true);
   assert.equal(store.status, 'error');
-  await auth.reconectar();
+  await auth.connect();
   await store.sync();
   off();
   assert.equal(fake.club(ref.id).doc.hojas.Grupos[0].id, 'g');
@@ -538,12 +538,15 @@ test('P2: two tabs of the same browser: the storage event merges the other\'s ca
   assert.deepEqual(fake.club(ref.id).doc.hojas.Grupos.map((g) => g.id).sort(), ['g-local', 'g-otra', 'mio']);
 });
 
-test('P2: signing out erases EVERY local mirror of personal data (and keeps what is not)', async () => {
+test('P2: disconnecting Drive erases EVERY local mirror of personal data (and keeps what is not)', async () => {
   store.upsert('Grupos', { id: 'g', nombre: 'G' });
   await hasta(() => Object.keys(localStorage).some((k) => k.startsWith('cnl:club:')));
-  localStorage.setItem('cnl:user', '{"email":"a@b.c"}');
+  localStorage.setItem('cnl:drive-auth', '1');
+  localStorage.setItem('cnl:user', '{"email":"a@b.c"}'); // legacy key of the sign-in era
   localStorage.setItem('cnl:prefs', '{}');
-  localStorage.setItem('cnl:cal-sync:club:a@b.c', '{"items":{}}');
+  localStorage.setItem('cnl:cal-sync:club', '{"items":{}}');
+  localStorage.setItem('cnl:demo:file', '{}');
+  localStorage.setItem('cnl:mode', 'demo');
   localStorage.setItem('cnl:token', 'x');
   localStorage.setItem('cnl:lang', 'en');
   localStorage.setItem('cnl:tema', 'dark');
@@ -551,7 +554,7 @@ test('P2: signing out erases EVERY local mirror of personal data (and keeps what
   assert.ok(Object.keys(localStorage).some((k) => k.startsWith('cnl:club:')));
   await limpiarDatosLocales();
   const quedan = Object.keys(localStorage);
-  assert.ok(!quedan.some((k) => k.startsWith('cnl:club:') || ['cnl:user', 'cnl:prefs', 'cnl:token'].includes(k) || k.startsWith('cnl:cal-sync:')), quedan.join(','));
+  assert.ok(!quedan.some((k) => k.startsWith('cnl:club:') || ['cnl:drive-auth', 'cnl:user', 'cnl:prefs', 'cnl:token', 'cnl:mode'].includes(k) || k.startsWith('cnl:demo:') || k.startsWith('cnl:cal-sync:')), quedan.join(','));
   assert.equal(sessionStorage.getItem('cnl:elegir'), null);
   assert.ok(quedan.includes('cnl:lang') && quedan.includes('cnl:tema'));
 });

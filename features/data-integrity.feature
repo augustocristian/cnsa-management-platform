@@ -4,27 +4,27 @@ Feature: Data integrity and personal data protection
   I want my data neither to be lost nor to stay on someone else's device
   So that I can trust the app with my swimmers' data
 
-  Scenario: Signing out leaves no copy of the data on the device
+  Scenario: Disconnecting Drive leaves no copy of the data on the device
     Given a demo club is open
     And the club file in Drive contains the swimmer "Lucía"
-    When I sign out
-    Then the screen offers the button "Iniciar sesión con Google"
+    When I disconnect Drive
+    Then the screen offers the button "Conectar Google Drive"
     And the browser holds no local club or session copies
 
-  Scenario: Signing out with unsynced changes warns and allows discarding or cancelling
+  Scenario: Disconnecting Drive with unsynced changes warns and allows discarding or cancelling
     Given a demo club is open
     And the club file in Drive contains the swimmer "Lucía"
     And Drive rejects writes
     When I change the club motto to "Lema sin subir"
-    And I sign out
+    And I disconnect Drive
     Then the screen shows the text "Hay cambios sin subir a Drive"
     And the screen offers the button "Descargar copia (.xlsx)"
     When I press the button "Cancelar"
     Then I am in the "Configuración" module
-    When I sign out
+    When I disconnect Drive
     Then the screen shows the text "Hay cambios sin subir a Drive"
-    When I press the button "Descartar y salir"
-    Then the screen offers the button "Iniciar sesión con Google"
+    When I press the button "Descartar y desconectar"
+    Then the screen offers the button "Conectar Google Drive"
     And the browser holds no local club or session copies
 
   Scenario: A damaged file in Drive is not overwritten: restoring the local copy is offered
@@ -45,12 +45,12 @@ Feature: Data integrity and personal data protection
     And I reload the app
     Then the club name in the header is "12345"
 
-  Scenario: An expired Google session is announced and reconnected with one click
+  Scenario: An expired Drive connection is announced and reconnected with one click
     Given a demo club is open
-    When the Google session expires
-    Then the screen shows the text "Sesión caducada"
+    When the Drive connection expires
+    Then the screen shows the text "La conexión con Drive ha caducado"
     When I press "Reconectar" in the notices bar
-    Then the screen does not show the text "Sesión caducada"
+    Then the screen does not show the text "La conexión con Drive ha caducado"
 
   Scenario: The privacy notice appears the first time and does not come back
     Given a demo club is open

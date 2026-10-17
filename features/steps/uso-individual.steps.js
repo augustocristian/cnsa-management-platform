@@ -16,16 +16,13 @@ async function enOtroDispositivo(mundo, fn) {
   try { return await fn(); } finally { mundo.page = propia; }
 }
 
-// opciones: { copiarDrive: boolean, usuario: email }
-async function abrirOtroDispositivo(mundo, { copiarDrive, usuario }) {
+// opciones: { copiarDrive: boolean }. There is no identity: "the same person" means the same (simulated) Drive.
+async function abrirOtroDispositivo(mundo, { copiarDrive }) {
   const origen = new URL(mundo.page.url()).origin;
   let drive = null;
-  let perfil = null;
   if (copiarDrive) {
     drive = await mundo.page.evaluate((k) => localStorage.getItem(k), CLAVE_DRIVE);
-    perfil = await mundo.page.evaluate(() => localStorage.getItem('cnl:user'));
-    assert.ok(drive && perfil, 'El primer dispositivo no tiene sesión ni Drive simulado');
-    usuario = JSON.parse(perfil).email;
+    assert.ok(drive, 'El primer dispositivo no tiene Drive simulado');
   }
   mundo.contextoOtro = await mundo.contexto.browser().newContext({
     viewport: mundo.page.viewportSize(), baseURL: origen, locale: 'es-ES', acceptDownloads: true,
@@ -33,20 +30,19 @@ async function abrirOtroDispositivo(mundo, { copiarDrive, usuario }) {
   const pagina = await mundo.contextoOtro.newPage();
   pagina.setDefaultTimeout(8000);
   pagina.on('pageerror', (e) => mundo.errores.push(`pageerror (otro dispositivo): ${e}`));
-  await pagina.addInitScript(([d, p, email, k]) => {
+  await pagina.addInitScript(([d, k]) => {
     try {
       if (sessionStorage.getItem('e2e-init')) return;
       localStorage.setItem('cnl:test', '1');
-      localStorage.setItem('cnl:test:opts', JSON.stringify({ sesion: true, usuario: email }));
+      localStorage.setItem('cnl:test:opts', JSON.stringify({ conectado: true }));
       localStorage.setItem('cnl:lang', 'es');
-      if (d) { // same account: same Drive and an already signed-in session
+      if (d) { // same Drive: the copied mirror plus the "already authorized" flag
         localStorage.setItem(k, d);
-        localStorage.setItem('cnl:user', p);
-        sessionStorage.setItem('cnl:token', JSON.stringify({ fake: true }));
+        localStorage.setItem('cnl:drive-auth', '1');
       }
       sessionStorage.setItem('e2e-init', '1');
     } catch (e) { /* ignore */ }
-  }, [drive, perfil, usuario, CLAVE_DRIVE]);
+  }, [drive, CLAVE_DRIVE]);
   await pagina.goto('/');
   mundo.otraPagina = pagina;
 }
@@ -55,13 +51,13 @@ After(async function () {
   await this.contextoOtro?.close();
 });
 
-When('abro la aplicación en otro dispositivo con la misma cuenta de Google', async function () {
+When('abro la aplicación en otro dispositivo con el mismo Drive', async function () {
   await abrirOtroDispositivo(this, { copiarDrive: true });
   await enOtroDispositivo(this, () => this.esperarShell());
 });
 
-When('otra persona abre la aplicación con su propia cuenta de Google', async function () {
-  await abrirOtroDispositivo(this, { copiarDrive: false, usuario: 'otra.persona@club.test' });
+When('otra persona abre la aplicación con su propio Drive', async function () {
+  await abrirOtroDispositivo(this, { copiarDrive: false });
 });
 
 When('en el otro dispositivo abro el módulo {string}', async function (modulo) {
@@ -75,7 +71,7 @@ When('en el otro dispositivo doy de alta al nadador {string} {string}', async fu
     await modal.waitFor({ timeout: this.timeout });
     await modal.getByLabel('Nombre *').first().fill(nombre);
     await modal.getByLabel('Apellidos *').first().fill(apellidos);
-    await modal.getByRole('button', { name: 'Guardar' }).click();
+    await modal.getByRole('button', { name: 'Guardar', exact: true }).click();
     await this.verVisible(this.page.locator('#toasts .toast', { hasText: 'Nadador guardado' }));
   });
 });
@@ -95,10 +91,24 @@ Then('en el otro dispositivo veo el encabezado {string}', async function (texto)
   await enOtroDispositivo(this, () => this.verVisible(this.page.getByRole('heading', { name: texto }), `No se ve el encabezado "${texto}"`));
 });
 
-Then('la sesión del otro dispositivo es la de la misma cuenta', async function () {
-  const mia = (await this.page.locator('#user-box strong').innerText()).trim();
-  const otra = await enOtroDispositivo(this, async () => (await this.page.locator('#user-box strong').innerText()).trim());
-  assert.equal(otra, mia);
+Then('ningún dispositivo muestra ninguna identidad de usuario', async function () {
+  const sinIdentidad = async () => {
+    await this.abrirMenuCuenta();
+    const txt = await this.page.locator('.topbar, .account-panel').evaluateAll((els) => els.map((e) => e.innerText).join('\n'));
+    assert.ok(!/@/.test(txt), 'Se muestra un correo: ' + txt);
+    assert.equal(await this.page.locator('#user-box, .topbar .avatar, .account-panel .avatar, .account-btn .avatar').count(), 0);
+    assert.equal(await this.page.evaluate(() => localStorage.getItem('cnl:user')), null);
+  };
+  await sinIdentidad();
+  await enOtroDispositivo(this, sinIdentidad);
+});
+
+Then('no se muestra ninguna identidad de usuario', async function () {
+  await this.abrirMenuCuenta();
+  const txt = await this.page.locator('.topbar, .account-panel').evaluateAll((els) => els.map((e) => e.innerText).join('\n'));
+  assert.ok(!/@/.test(txt), 'Se muestra un correo: ' + txt);
+  assert.equal(await this.page.locator('#user-box, .topbar .avatar, .account-panel .avatar, .account-btn .avatar').count(), 0);
+  assert.equal(await this.page.evaluate(() => localStorage.getItem('cnl:user')), null);
 });
 
 // The first device opens the app again after the other one saved: it receives the Drive as the other device left it.

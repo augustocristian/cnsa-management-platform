@@ -10,7 +10,14 @@ const modal = () => document.querySelector('.modal');
 const cell = (calle, hora) => c.container.querySelector(`button.pl-cell[data-calle="${calle}"][data-hora="${hora}"]`);
 const click = async (el) => { el.click(); await tick(); };
 const lunes = async () => { // la vista abre en el día actual: se pasa al lunes de forma determinista
-  await click(c.container.querySelector('.pl-tabs [role=tab]'));
+  await click(c.container.querySelector('.pl-dias [role=tab]'));
+};
+// Acciones poco frecuentes: menú «Más acciones» de la cabecera de la página
+const abrirMenu = async (etiqueta) => {
+  await click(c.container.querySelector('.page-head-actions .enp-mn-btn'));
+  const item = [...document.querySelectorAll('[role=menuitem]')].find((b) => b.textContent.trim() === etiqueta);
+  if (!item) throw new Error('No hay opción de menú: ' + etiqueta);
+  await click(item);
 };
 const asignaciones = () => c.store.list('AsignacionesCalle');
 const guardarAsignacion = async () => { await click(buttonByText(modal(), 'Guardar')); };
@@ -42,7 +49,11 @@ test('la vista pinta rejilla con calles, bloques del lunes, leyenda y panel', as
   assert.equal(c.container.querySelectorAll('.pl-screen .pl-legend li').length, 4);
   assert.match(c.container.querySelector('.pl-panel').textContent, /Panel de conflictos/);
   assert.match(c.container.querySelector('.pl-chip').textContent, /0 errores · 1 avisos/);
-  assert.ok(c.container.querySelectorAll('.pl-tabs [role=tab]').length === 7);
+  assert.ok(c.container.querySelectorAll('.pl-dias [role=tab]').length === 7);
+  assert.equal(c.container.querySelectorAll('h1').length, 1, 'un único h1 (cabecera de la página)');
+  assert.equal(c.container.querySelector('.pl-gridwrap').getAttribute('role'), 'region', 'la rejilla se desplaza dentro de una región con nombre');
+  assert.ok(c.container.querySelector('.pl-gridwrap').getAttribute('aria-label'));
+  assert.match(c.container.querySelector('.pl-panel .alert--warn .alert-title').textContent, /Avisos \(1\)/, 'el panel usa alertas con recuento');
 });
 
 test('modo semana completa lista los cursos de todos los días', async () => {
@@ -114,8 +125,12 @@ test('editar y eliminar una asignación desde su bloque', async () => {
   const n0 = asignaciones().length;
   await click(c.container.querySelector('.pl-gridwrap .pl-block'));
   await click(buttonByText(modal(), 'Eliminar'));
-  await click(buttonByText([...document.querySelectorAll('.modal')].pop(), 'Eliminar')); // confirmación
-  assert.equal(asignaciones().length, n0 - 1);
+  assert.equal(asignaciones().length, n0 - 1, 'se elimina al instante (sin confirmación)');
+  assert.equal(modal(), null);
+  const deshacer = [...document.querySelectorAll('#toasts .toast-action')].find((b) => b.textContent === 'Deshacer');
+  assert.ok(deshacer, 'avisa con «Deshacer»');
+  await click(deshacer);
+  assert.equal(asignaciones().length, n0, 'deshacer la recupera');
 });
 
 test('duplicar abre un formulario nuevo con los mismos datos', async () => {
@@ -132,7 +147,7 @@ test('cambiar el nº de calles recorta las asignaciones y avisa de las que queda
   const antes = asignaciones().length;
   c.store.upsert('AsignacionesCalle', { id: 'parcial', piscinaId: 'p1', dia: 2, fecha: '', horaInicio: '10:00', horaFin: '11:00', calleDesde: 3, calleHasta: 6, grupoId: 'g1', entrenadorId: 'Marta Valdés', notas: '' });
   await renderView('planificacion', c.container, ['piscina'], c);
-  await click(buttonByText(c.container, 'Configurar piscina'));
+  await abrirMenu('Configurar piscina');
   assert.match(modal().textContent, /Configuración de la piscina/);
   setValue(fieldByLabel(modal(), 'Número de calles'), '4');
   await click(buttonByText(modal(), 'Guardar'));
@@ -150,10 +165,17 @@ test('cambiar el nº de calles recorta las asignaciones y avisa de las que queda
 
 test('configuración inválida no se guarda', async () => {
   await renderView('planificacion', c.container, ['piscina'], c);
-  await click(buttonByText(c.container, 'Configurar piscina'));
+  await abrirMenu('Configurar piscina');
   setValue(fieldByLabel(modal(), 'Nombre'), '');
   await click(buttonByText(modal(), 'Guardar'));
-  assert.match(modal().textContent, /Escribe un nombre/);
+  assert.match(modal().textContent, /obligatorio/, 'error en línea junto al campo');
+  assert.equal(fieldByLabel(modal(), 'Nombre').getAttribute('aria-invalid'), 'true');
+  setValue(fieldByLabel(modal(), 'Nombre'), 'X');
+  setValue(fieldByLabel(modal(), 'Número de calles'), '99');
+  await click(buttonByText(modal(), 'Guardar'));
+  assert.ok(modal(), 'un número de calles fuera de rango no se guarda');
+  assert.equal(fieldByLabel(modal(), 'Número de calles').getAttribute('aria-invalid'), 'true');
+  assert.equal(c.store.get('Piscinas', 'p1').numCalles, 6);
   assert.equal(c.store.get('Piscinas', 'p1').nombre, 'Piscina Lugones');
 });
 
@@ -177,7 +199,9 @@ test('un solo usuario: la planificación siempre es editable (sin modo de sólo 
   await renderView('planificacion', c.container, ['piscina'], c);
   await lunes();
   assert.ok(buttonByText(c.container, 'Sugerir distribución'));
-  assert.ok(buttonByText(c.container, 'Configurar piscina'));
+  assert.ok(buttonByText(c.container, 'Nueva asignación'));
+  await click(c.container.querySelector('.page-head-actions .enp-mn-btn'));
+  assert.ok([...document.querySelectorAll('[role=menuitem]')].some((b) => b.textContent.trim() === 'Configurar piscina'));
   assert.doesNotMatch(c.container.textContent, /solo lectura/);
   assert.ok(c.container.querySelectorAll('.pl-gridwrap .pl-block').length > 0);
 });
@@ -226,5 +250,10 @@ test('la vista incluye la copia imprimible de la semana', async () => {
   const imp = c.container.querySelector('.pl-print');
   assert.ok(imp);
   assert.equal(imp.querySelectorAll('.pl-day').length, 7);
-  assert.ok(document.getElementById('pl-style').textContent.includes('@media print'));
+  assert.ok(!document.getElementById('pl-style'), 'sin <style> inyectado: la hoja de estilos es css/views/planificacion.css');
+  assert.ok(imp.closest('.pl-root'));
+  const css = (await import('node:fs')).readFileSync(new URL('../../css/views/planificacion.css', import.meta.url), 'utf8');
+  assert.match(css, /@media print/);
+  assert.match(css, /@page/);
+  assert.ok(!c.container.querySelector('.pl-print button'), 'la copia imprimible no tiene controles');
 });

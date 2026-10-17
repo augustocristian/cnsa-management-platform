@@ -25,6 +25,35 @@ Característica: Plan de entreno detallado y PDF de entreno
     Y el total del plan coincide con la suma de los sets
     Y la fila 1 del set 1 tiene "Calentamiento" en "Objetivo"
 
+  @smoke @movil
+  Escenario: Las filas del plan son compactas, no se abre el teclado y la barra inferior siempre está a la vista
+    Dado que uso un móvil de 375 px de ancho
+    Cuando abro el plan de la próxima sesión del grupo "Alevín"
+    Entonces al abrir el plan no hay ningún campo con el foco
+    Y ninguna fila del plan ocupa más de 240 px de alto
+    Y la barra inferior del plan muestra el total, el botón principal "Guardar" y el menú de más acciones
+    Y la barra inferior del plan está dentro de la pantalla
+    Y el plan indica "Todo guardado"
+
+  Escenario: El indicador de cambios sin guardar y el aviso de guardado no tapan la barra inferior
+    Cuando abro el plan de la próxima sesión del grupo "Alevín"
+    Y pongo "40" en "Series" de la fila 1 del set 1
+    Entonces el plan indica "Cambios sin guardar"
+    Cuando guardo el plan
+    Entonces el plan indica "Todo guardado"
+    Y el aviso no tapa la barra inferior del plan
+
+  Escenario: Volver atrás del navegador con cambios sin guardar pide confirmación
+    Cuando abro el plan de la próxima sesión del grupo "Alevín"
+    Y pongo "Cambio temporal" en "Tipo de sesión" del plan
+    Y pulso volver atrás del navegador
+    Entonces veo el diálogo de confirmación "cambios sin guardar"
+    Cuando cancelo el diálogo
+    Entonces el plan sigue abierto
+    Cuando pulso volver atrás del navegador
+    Y acepto el diálogo
+    Entonces el plan está cerrado
+
   Escenario: Los totales se actualizan en vivo al editar series y distancias
     Cuando abro el plan de la próxima sesión del grupo "Alevín"
     Y anoto el total actual del plan
@@ -119,6 +148,7 @@ Característica: Plan de entreno detallado y PDF de entreno
     Entonces se descarga el PDF "Alevin-semana-{lunes}.pdf"
     Y el PDF tiene tantas páginas como sesiones se ven en la semana
 
+  @escritorio
   Escenario: Vista previa del PDF antes de descargarlo
     Cuando abro el plan de la próxima sesión del grupo "Alevín"
     Y abro la vista previa del PDF
@@ -126,10 +156,38 @@ Característica: Plan de entreno detallado y PDF de entreno
     Cuando cierro la vista previa
     Entonces no veo la vista previa del PDF
 
+  @movil
+  Escenario: En el móvil la vista previa abre el PDF en otra pestaña
+    Dado que uso un dispositivo táctil
+    Cuando abro el plan de la próxima sesión del grupo "Alevín"
+    Y abro la vista previa del PDF en el móvil
+    Entonces el PDF se abre en otra pestaña y no en un marco de la página
+
+  @escritorio
   Escenario: Imprimir el PDF del plan
     Cuando abro el plan de la próxima sesión del grupo "Alevín"
     Y pulso imprimir en el plan
     Entonces se prepara la impresión del PDF
+
+  @movil
+  Escenario: En el móvil un único botón comparte el PDF con el menú de compartir del dispositivo
+    Dado que uso un dispositivo táctil
+    Cuando abro el plan de la próxima sesión del grupo "Alevín"
+    Y mi dispositivo permite compartir archivos
+    Entonces el menú ofrece "Compartir PDF" y no "Descargar PDF"
+    Cuando comparto el PDF del plan abierto
+    Entonces se comparte un archivo PDF cuyo nombre empieza por "Alevin-AAAA-MM-DD"
+
+  Escenario: Un plan vacío avisa antes de generar el PDF
+    Cuando creo la sesión de entrenamiento con los datos:
+      | Título | Sesión sin plan |
+      | Grupo  | Alevín          |
+    Y abro el plan de la sesión "Sesión sin plan"
+    Y intento generar el PDF del plan abierto y cancelo el aviso
+    Entonces no se descarga ningún PDF
+    Cuando genero el PDF del plan abierto confirmando el aviso
+    Entonces el PDF es válido y tiene 1 página
+    Y el PDF contiene "Esta sesión todavía no tiene plan detallado."
 
   Escenario: Guardar el PDF en la carpeta cnl/entrenos de Drive
     Cuando abro el plan de la próxima sesión del grupo "Alevín"
@@ -142,6 +200,7 @@ Característica: Plan de entreno detallado y PDF de entreno
 
   Escenario: Los textos del PDF salen en el idioma activo
     Cuando cambio el idioma a "English"
+    Y cierro el menú de la cuenta
     Y genero el PDF de la próxima sesión del grupo "Alevín"
     Entonces el PDF contiene "TOTALS"
     Y el PDF contiene "SESSION TYPE"

@@ -25,8 +25,18 @@ Característica: Gestión de nadadores
 
   Escenario: No se puede dar de alta a un nadador sin apellidos
     Cuando intento dar de alta a un nadador sin apellidos
-    Entonces veo el aviso "Nombre y apellidos son obligatorios"
+    Entonces el formulario muestra el error "Escribe los apellidos" en el campo "Apellidos"
     Y el formulario sigue abierto
+
+  Escenario: Guardar y añadir otro nadador deja el formulario abierto para el siguiente
+    Cuando abro el formulario de nuevo nadador
+    Y relleno el formulario de nadador con los datos:
+      | Nombre    | Primero |
+      | Apellidos | Seguido |
+    Y guardo y añado otro nadador
+    Entonces el formulario sigue abierto con el nombre vacío
+    Cuando cierro el formulario
+    Entonces el listado de nadadores incluye a "Primero Seguido"
 
   Escenario: Consultar a un nadador buscándolo por nombre
     Cuando busco nadadores por "Lucía"
@@ -62,9 +72,24 @@ Característica: Gestión de nadadores
 
   Escenario: Eliminar a un nadador
     Cuando abro la ficha de "Pelayo García"
-    Y elimino al nadador y lo confirmo
+    Y elimino al nadador
     Entonces veo el aviso "Nadador eliminado"
     Y el listado de nadadores no incluye a "Pelayo García"
+
+  Escenario: Deshacer la eliminación de un nadador lo devuelve con sus datos
+    Cuando abro la ficha de "Pelayo García"
+    Y elimino al nadador
+    Y deshago la eliminación
+    Entonces el listado de nadadores incluye a "Pelayo García"
+
+  Escenario: Un nadador inactivo no aparece en el listado salvo que se pidan los inactivos
+    Cuando abro la ficha de "Pelayo García"
+    Y edito al nadador con los datos:
+      | Estado | Inactivo |
+    Y abro el módulo "Nadadores"
+    Entonces el listado de nadadores no incluye a "Pelayo García"
+    Cuando marco mostrar nadadores inactivos
+    Entonces el listado de nadadores incluye a "Pelayo García"
 
   @smoke
   Escenario: La ficha individual reúne los datos personales y el perfil deportivo
@@ -262,6 +287,18 @@ Característica: Gestión de nadadores
 
   Escenario: Eliminar un grupo deja a sus nadadores sin grupo
     Cuando abro el módulo "Grupos"
-    Y elimino el grupo "Absoluto-Master" y lo confirmo
+    Y elimino el grupo "Absoluto-Master"
     Entonces no veo el grupo "Absoluto-Master"
     Y "Javier Álvarez" figura entre los nadadores sin grupo
+
+  Escenario: Deshacer la eliminación de un grupo devuelve a sus nadadores
+    Cuando abro el módulo "Grupos"
+    Y elimino el grupo "Absoluto-Master"
+    Y deshago la eliminación
+    Entonces veo el grupo "Absoluto-Master"
+    Y el grupo "Absoluto-Master" incluye a "Javier Álvarez"
+
+  Escenario: La página de grupos no muestra textos sobrantes
+    Cuando abro el módulo "Grupos"
+    Entonces la página de grupos no muestra "null"
+    Y la página de grupos no muestra "Alevín Alevín"

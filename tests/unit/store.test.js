@@ -5,7 +5,7 @@ import { setupEnv, importApp } from '../helpers/env.js';
 setupEnv({ loadXlsx: true });
 const { store } = await importApp('js/store.js');
 const { SHEETS, ENTITY_SHEETS, CATEGORIAS } = await importApp('js/schema.js');
-const { auth } = await importApp('js/auth.js');
+const { driveConnection: auth } = await importApp('js/infrastructure/driveConnection.js');
 const { drive } = await importApp('js/drive.js');
 const { instalarFakeGoogle } = await importApp('js/infrastructure/fakeGoogle.js');
 
@@ -18,7 +18,7 @@ let ref;
 beforeEach(async () => {
   localStorage.clear();
   if (fake) fake.desinstalar();
-  fake = instalarFakeGoogle({ auth, drive, opciones: { sesion: true } });
+  fake = instalarFakeGoogle({ auth, drive, opciones: { conectado: true } });
   await auth.init();
   ref = await drive.createClub('Club Test');
   await store.init(ref);
