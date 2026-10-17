@@ -1,19 +1,19 @@
-# language: es
-@diseno
-Característica: Diseño móvil primero
-  Como entrenador que trabaja desde la piscina quiero una aplicación sencilla,
-  coherente y adaptada a móvil, tableta y escritorio
+# language: en
+@design
+Feature: Mobile-first design
+  As a coach who works from the pool I want a simple,
+  consistent app adapted to mobile, tablet and desktop
 
-  Antecedentes:
-    Dado un club con datos de demostración
+  Background:
+    Given a club with demo data
 
-  @smoke @navegacion
-  Esquema del escenario: Todos los módulos son accesibles desde el menú sin errores
-    Cuando pulso "<modulo>" en el menú
-    Entonces la pantalla "<modulo>" se muestra completa y sin errores
+  @smoke @navigation
+  Scenario Outline: All the modules are reachable from the menu without errors
+    When I press "<module>" in the menu
+    Then the "<module>" screen is shown complete and without errors
 
-    Ejemplos:
-      | modulo         |
+    Examples:
+      | module         |
       | Inicio         |
       | Nadadores      |
       | Grupos         |
@@ -24,13 +24,13 @@ Característica: Diseño móvil primero
       | Avisos y notas |
       | Configuración  |
 
-  @movil
-  Esquema del escenario: Ninguna pantalla se desborda horizontalmente en un móvil
-    Dado que uso un móvil de 375 px de ancho
-    Entonces la pantalla "<modulo>" no tiene desplazamiento horizontal
+  @mobile
+  Scenario Outline: No screen overflows horizontally on a phone
+    Given I use a phone 375 px wide
+    Then the "<module>" screen has no horizontal scroll
 
-    Ejemplos:
-      | modulo         |
+    Examples:
+      | module         |
       | Inicio         |
       | Nadadores      |
       | Grupos         |
@@ -40,12 +40,12 @@ Característica: Diseño móvil primero
       | Marcas         |
       | Avisos y notas |
 
-  Esquema del escenario: La aplicación se adapta a móvil, tableta y escritorio
-    Dado que uso un dispositivo de <ancho> px de ancho
-    Entonces la pantalla "<modulo>" no tiene desplazamiento horizontal
+  Scenario Outline: The app adapts to mobile, tablet and desktop
+    Given I use a device <width> px wide
+    Then the "<module>" screen has no horizontal scroll
 
-    Ejemplos:
-      | ancho | modulo         |
+    Examples:
+      | width | module         |
       | 375   | Inicio         |
       | 375   | Marcas         |
       | 768   | Inicio         |
@@ -55,54 +55,54 @@ Característica: Diseño móvil primero
       | 1280  | Entrenamientos |
       | 1280  | Marcas         |
 
-  Esquema del escenario: El menú se coloca según el tamaño de pantalla
-    Dado que uso un dispositivo de <ancho> px de ancho
-    Entonces el menú de navegación está <posicion>
+  Scenario Outline: The menu is placed according to the screen size
+    Given I use a device <width> px wide
+    Then the navigation menu is at the <position>
 
-    Ejemplos:
-      | ancho | posicion |
-      | 375   | abajo    |
-      | 768   | abajo    |
+    Examples:
+      | width | position |
+      | 375   | bottom   |
+      | 768   | bottom   |
 
-  @escritorio
-  Escenario: En escritorio el menú es lateral
-    Dado que uso un dispositivo de 1280 px de ancho
-    Entonces el menú de navegación está lateral
+  @desktop
+  Scenario: On desktop the menu is on the side
+    Given I use a device 1280 px wide
+    Then the navigation menu is at the side
 
-  @movil
-  Escenario: Las opciones del menú se pueden pulsar con el pulgar
-    Dado que uso un móvil de 375 px de ancho
-    Entonces las opciones del menú miden al menos 44 px de alto
+  @mobile
+  Scenario: The menu options can be pressed with the thumb
+    Given I use a phone 375 px wide
+    Then the menu options are at least 44 px tall
 
-  @movil
-  Escenario: Pasar lista desde el móvil con un solo toque por nadador
-    Dado que uso un móvil de 375 px de ancho
-    Y que he creado la sesión "Lista móvil" para el grupo "Promoción"
-    Cuando abro el módulo "Asistencia"
-    Y selecciono la sesión "Lista móvil" para pasar lista
-    Y marco como presente a "Martina Suárez"
-    Entonces el recuento de asistencia muestra "Presentes: 1"
+  @mobile
+  Scenario: Take attendance from the phone with a single tap per swimmer
+    Given I use a phone 375 px wide
+    And I have created the session "Lista móvil" for the group "Promoción"
+    When I open the "Asistencia" module
+    And I select the session "Lista móvil" to take attendance
+    And I mark the status present for "Martina Suárez"
+    Then the attendance count shows "Presentes: 1"
 
-  Escenario: Los formularios son fáciles de rellenar porque todos sus campos tienen etiqueta
-    Dado que estoy en el módulo "Nadadores"
-    Cuando pulso "Nuevo nadador"
-    Entonces todos los campos del formulario abierto tienen etiqueta
+  Scenario: Forms are easy to fill in because all their fields have a label
+    Given I have the "Nadadores" module open
+    When I press "Nuevo nadador"
+    Then all the fields of the open form have a label
 
-  Esquema del escenario: Los formularios de registro rápido tienen todos sus campos etiquetados
-    Dado que estoy en el módulo "<modulo>"
-    Entonces todos los campos de registro de la pantalla tienen etiqueta
+  Scenario Outline: The quick log forms have all their fields labelled
+    Given I have the "<module>" module open
+    Then all the log fields of the screen have a label
 
-    Ejemplos:
-      | modulo         |
+    Examples:
+      | module         |
       | Cargas         |
       | Marcas         |
       | Avisos y notas |
 
-  Esquema del escenario: Cada pantalla tiene un título claro y coherente
-    Entonces la pantalla "<modulo>" tiene un título
+  Scenario Outline: Every screen has a clear and consistent title
+    Then the "<module>" screen has a title
 
-    Ejemplos:
-      | modulo         |
+    Examples:
+      | module         |
       | Nadadores      |
       | Grupos         |
       | Entrenamientos |
@@ -111,64 +111,64 @@ Característica: Diseño móvil primero
       | Marcas         |
       | Avisos y notas |
 
-  Escenario: La aplicación declara una vista adaptable a móviles
-    Entonces la aplicación declara una vista adaptable a móviles
+  Scenario: The app declares a mobile-friendly viewport
+    Then the app declares a mobile-friendly viewport
 
   @i18n
-  Esquema del escenario: El idioma se puede cambiar desde el menú de ajustes de la cabecera
-    Cuando cambio el idioma a "<idioma>"
-    Entonces el menú muestra "<texto>" para el módulo "Nadadores"
-    Y el idioma del documento es "<codigo>"
+  Scenario Outline: The language can be changed from the settings menu in the header
+    When I change the language to "<language>"
+    Then the menu shows "<text>" for the module "Nadadores"
+    And the document language is "<code>"
 
-    Ejemplos:
-      | idioma  | texto     | codigo |
+    Examples:
+      | language| text      | code   |
       | English | Swimmers  | en     |
       | Italiano| Nuotatori | it     |
       | Español | Nadadores | es     |
 
-  @movil @navegacion
-  Escenario: En móvil la barra inferior ofrece cuatro accesos y el botón Más
-    Dado que uso un móvil de 375 px de ancho
-    Entonces la barra inferior muestra los accesos "Inicio, Entrenos, Asistencia, Calendario, Más"
+  @mobile @navigation
+  Scenario: On mobile the bottom bar offers four shortcuts and the More button
+    Given I use a phone 375 px wide
+    Then the bottom bar shows the shortcuts "Inicio, Entrenos, Asistencia, Calendario, Más"
 
-  @movil @navegacion
-  Escenario: El botón Más abre una hoja con los módulos agrupados
-    Dado que uso un móvil de 375 px de ancho
-    Cuando abro la hoja "Más" del menú
-    Entonces la hoja del menú tiene el grupo "Personas" con "Nadadores, Grupos"
-    Y la hoja del menú tiene el grupo "Entrenamiento" con "Planificación, Cargas, Marcas"
-    Y la hoja del menú tiene el grupo "Club" con "Avisos y notas, Configuración, Tutorial"
-    Y la hoja del menú no ofrece "Bañador"
+  @mobile @navigation
+  Scenario: The More button opens a sheet with the grouped modules
+    Given I use a phone 375 px wide
+    When I open the "Más" sheet of the menu
+    Then the menu sheet has the group "Personas" with "Nadadores, Grupos"
+    And the menu sheet has the group "Entrenamiento" with "Planificación, Cargas, Marcas"
+    And the menu sheet has the group "Club" with "Avisos y notas, Configuración, Tutorial"
+    And the menu sheet does not offer "Bañador"
 
-  @movil @navegacion
-  Escenario: Un módulo elegido en la hoja Más queda marcado en el botón Más
-    Dado que uso un móvil de 375 px de ancho
-    Cuando pulso "Grupos" en el menú
-    Entonces estoy en el módulo "Grupos"
-    Y el botón Más está marcado como activo
+  @mobile @navigation
+  Scenario: A module chosen in the More sheet is marked in the More button
+    Given I use a phone 375 px wide
+    When I press "Grupos" in the menu
+    Then I am in the "Grupos" module
+    And the More button is marked as active
 
-  @escritorio @navegacion
-  Escenario: En escritorio el menú lateral agrupa los módulos con encabezados
-    Dado que uso un dispositivo de 1280 px de ancho
-    Entonces el menú lateral tiene los encabezados "Personas, Entrenamiento, Club"
+  @desktop @navigation
+  Scenario: On desktop the side menu groups the modules with headings
+    Given I use a device 1280 px wide
+    Then the side menu has the headings "Personas, Entrenamiento, Club"
 
-  @navegacion @accesibilidad
-  Escenario: Al cambiar de pantalla se actualiza el título, el foco y el elemento actual del menú
-    Cuando pulso "Nadadores" en el menú
-    Entonces el título del documento empieza por "Nadadores"
-    Y el foco está en el encabezado de la pantalla
-    Y el elemento actual del menú es "Nadadores"
+  @navigation @accessibility
+  Scenario: When changing screen the title, the focus and the current menu item are updated
+    When I press "Nadadores" in the menu
+    Then the document title starts with "Nadadores"
+    And the focus is on the heading of the screen
+    And the current menu item is "Nadadores"
 
-  @navegacion
-  Escenario: El pie de página solo aparece en Configuración
-    Entonces no hay pie de página
-    Cuando abro el módulo "Configuración"
-    Entonces hay pie de página
-    Cuando abro el módulo "Nadadores"
-    Entonces no hay pie de página
+  @navigation
+  Scenario: The footer only appears in Settings
+    Then there is no footer
+    When I open the "Configuración" module
+    Then there is a footer
+    When I open the "Nadadores" module
+    Then there is no footer
 
-  @navegacion
-  Escenario: El menú de ajustes reúne idioma, tema, estado de Drive y desconexión
-    Cuando abro el menú de ajustes y conexión
-    Entonces el menú de ajustes ofrece el idioma, el tema, el estado de Drive y el botón "Desconectar Drive"
-    Y el menú de ajustes no muestra ninguna identidad de usuario
+  @navigation
+  Scenario: The settings menu gathers language, theme, Drive status and disconnection
+    When I open the settings and connection menu
+    Then the settings menu offers the language, the theme, the Drive status and the button "Desconectar Drive"
+    And the settings menu shows no user identity

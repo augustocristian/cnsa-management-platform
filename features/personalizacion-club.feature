@@ -1,55 +1,55 @@
-# language: es
+# language: en
 @club
-Característica: Personalización por club
-  Como entrenador quiero que la aplicación muestre el nombre, el logotipo
-  y los colores de mi club
+Feature: Club customisation
+  As a coach I want the app to show the name, the logo
+  and the colours of my club
 
-  Antecedentes:
-    Dado un club con datos de demostración
-    Y que estoy en el módulo "Configuración"
+  Background:
+    Given a club with demo data
+    And I have the "Configuración" module open
 
   @smoke
-  Escenario: Cambiar el nombre y el lema del club
-    Cuando personalizo la identidad del club con:
+  Scenario: Change the name and the motto of the club
+    When I customise the club identity with:
       | Nombre | Club Natación Prueba |
       | Lema   | Siempre adelante     |
-    Y guardo la identidad del club
-    Entonces la cabecera muestra el nombre "Club Natación Prueba"
-    Y la cabecera muestra el lema "Siempre adelante"
-    Y el pie de página menciona "Club Natación Prueba"
+    And I save the club identity
+    Then the header shows the name "Club Natación Prueba"
+    And the header shows the motto "Siempre adelante"
+    And the footer mentions "Club Natación Prueba"
 
-  Escenario: Cambiar el color principal y el secundario
-    Cuando personalizo la identidad del club con:
+  Scenario: Change the primary and the secondary colour
+    When I customise the club identity with:
       | Color primario   | #e91e63 |
       | Color secundario | #00796b |
-    Y guardo la identidad del club
-    Entonces el color principal de la aplicación es "#e91e63"
-    Y el color secundario de la aplicación es "#00796b"
+    And I save the club identity
+    Then the primary colour of the app is "#e91e63"
+    And the secondary colour of the app is "#00796b"
 
-  Escenario: Subir y quitar el logotipo
-    Cuando subo el logotipo del club
-    Y guardo la identidad del club
-    Entonces la cabecera muestra el logotipo subido
-    Cuando quito el logotipo del club
-    Y guardo la identidad del club
-    Entonces la cabecera muestra el logotipo por defecto
+  Scenario: Upload and remove the logo
+    When I upload the club logo
+    And I save the club identity
+    Then the header shows the uploaded logo
+    When I remove the club logo
+    And I save the club identity
+    Then the header shows the default logo
 
-  Escenario: La identidad del club se conserva al recargar
-    Cuando personalizo la identidad del club con:
+  Scenario: The club identity is kept on reload
+    When I customise the club identity with:
       | Nombre         | Club Persistente |
       | Color primario | #6a1b9a          |
-    Y guardo la identidad del club
-    Y recargo la aplicación
-    Entonces la cabecera muestra el nombre "Club Persistente"
-    Y el color principal de la aplicación es "#6a1b9a"
+    And I save the club identity
+    And I reload the app
+    Then the header shows the name "Club Persistente"
+    And the primary colour of the app is "#6a1b9a"
 
-  Escenario: La configuración explica dónde se guardan los datos
-    Entonces la configuración explica que los datos están en la carpeta cnl de Drive
+  Scenario: The settings explain where the data is stored
+    Then the settings explain that the data is in the cnl folder in Drive
 
-  Escenario: La configuración se organiza en tarjetas sin repetir el catálogo de contenidos
-    Entonces la configuración muestra "Contenidos de entrenamiento" una sola vez
-    Y la configuración no menciona cuentas de usuario
+  Scenario: The settings are organised in cards without repeating the contents catalogue
+    Then the settings show "Contenidos de entrenamiento" only once
+    And the settings do not mention user accounts
 
-  Escenario: El logotipo por defecto se ve y el botón para elegir imagen está en español
-    Entonces el logotipo de la configuración se ve
-    Y la configuración ofrece un botón para elegir el logotipo en español
+  Scenario: The default logo is visible and the button to choose an image is in Spanish
+    Then the logo in the settings is visible
+    And the settings offer a button to choose the logo in Spanish

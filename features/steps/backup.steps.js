@@ -4,123 +4,123 @@ import { Given, When, Then } from '@cucumber/cucumber';
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 
-const contar = (page, hoja) => page.evaluate(async (h) => (await import('./js/store.js')).store.list(h).length, hoja);
+const count = (page, sheet) => page.evaluate(async (h) => (await import('./js/store.js')).store.list(h).length, sheet);
 
-async function descargar(mundo, contrasena) {
-  const page = mundo.page;
-  if (contrasena) {
-    await page.locator('#backup-pass').fill(contrasena);
-    await page.locator('#backup-pass2').fill(contrasena);
+async function download(world, password) {
+  const page = world.page;
+  if (password) {
+    await page.locator('#backup-pass').fill(password);
+    await page.locator('#backup-pass2').fill(password);
   }
-  const [descarga] = await Promise.all([page.waitForEvent('download'), page.locator('#backup-descargar').click()]);
-  mundo.copia = { nombre: descarga.suggestedFilename(), texto: await readFile(await descarga.path(), 'utf8') };
+  const [file] = await Promise.all([page.waitForEvent('download'), page.locator('#backup-descargar').click()]);
+  world.backup = { name: file.suggestedFilename(), text: await readFile(await file.path(), 'utf8') };
 }
 
-const elegir = async (mundo, texto, nombre = 'copia.json') => {
-  await mundo.page.locator('#backup-archivo').setInputFiles({ name: nombre, mimeType: 'application/json', buffer: Buffer.from(texto, 'utf8') });
+const choose = async (world, text, name = 'copia.json') => {
+  await world.page.locator('#backup-archivo').setInputFiles({ name, mimeType: 'application/json', buffer: Buffer.from(text, 'utf8') });
 };
 
-Given('que estoy en la sección de copia de seguridad', async function () {
-  await this.irA('club');
-  await this.verVisible(this.page.locator('#backup-panel'), 'No se ve el panel de copia de seguridad');
+Given('I am in the backup section', async function () {
+  await this.goTo('club');
+  await this.expectVisible(this.page.locator('#backup-panel'), 'The backup panel is not visible');
 });
 
-Given('he descargado una copia de seguridad', async function () { await descargar(this); });
-When('descargo la copia de seguridad', async function () { await descargar(this); });
-When('descargo la copia de seguridad con la contraseña {string}', async function (clave) { await descargar(this, clave); });
+Given('I have downloaded a backup', async function () { await download(this); });
+When('I download the backup', async function () { await download(this); });
+When('I download the backup with the password {string}', async function (password) { await download(this, password); });
 
-Then('el fichero descargado es una copia de seguridad válida con {int} nadadores', async function (n) {
-  const doc = JSON.parse(this.copia.texto);
+Then('the downloaded file is a valid backup with {int} swimmers', async function (n) {
+  const doc = JSON.parse(this.backup.text);
   assert.equal(doc.format, 'cnl-backup');
   assert.equal(doc.formatVersion, 1);
   assert.equal(doc.sheets.Nadadores.length, n);
   assert.equal(doc.counts.Nadadores, n);
   assert.match(doc.checksum, /^sha256:[0-9a-f]{64}$/);
   assert.ok(doc.club.name);
-  assert.ok(doc.sheets.Entrenamientos.length > 0 && doc.sheets.Marcas.length > 0, 'La copia debe incluir todas las hojas');
+  assert.ok(doc.sheets.Entrenamientos.length > 0 && doc.sheets.Marcas.length > 0, 'The backup must include all the sheets');
 });
 
-Then('el nombre del fichero descargado empieza por {string}', async function (prefijo) {
-  assert.ok(this.copia.nombre.startsWith(prefijo), this.copia.nombre);
-  assert.match(this.copia.nombre, /\d{4}-\d{2}-\d{2}-\d{4}(-encrypted)?\.json$/);
+Then('the downloaded file name starts with {string}', async function (prefix) {
+  assert.ok(this.backup.name.startsWith(prefix), this.backup.name);
+  assert.match(this.backup.name, /\d{4}-\d{2}-\d{2}-\d{4}(-encrypted)?\.json$/);
 });
 
-Then('el fichero descargado está cifrado y no contiene los nombres de los nadadores', async function () {
-  const doc = JSON.parse(this.copia.texto);
+Then('the downloaded file is encrypted and does not contain the swimmers names', async function () {
+  const doc = JSON.parse(this.backup.text);
   assert.equal(doc.format, 'cnl-backup-encrypted');
   assert.equal(doc.kdf, 'PBKDF2-SHA256');
-  assert.ok(!this.copia.texto.includes('Lucía'));
+  assert.ok(!this.backup.text.includes('Lucía'));
 });
 
-When('elimino todos los nadadores del club', async function () {
+When('I delete all the swimmers of the club', async function () {
   await this.page.evaluate(async () => { const { store } = await import('./js/store.js'); store.removeMany('Nadadores', store.list('Nadadores').map((n) => n.id)); });
-  assert.equal(await contar(this.page, 'Nadadores'), 0);
+  assert.equal(await count(this.page, 'Nadadores'), 0);
 });
 
-When('cambio el lema del club a {string}', async function (lema) {
-  await this.page.evaluate(async (l) => { (await import('./js/store.js')).store.setClub({ lema: l }); }, lema);
+When('I set the club motto to {string}', async function (motto) {
+  await this.page.evaluate(async (l) => { (await import('./js/store.js')).store.setClub({ lema: l }); }, motto);
 });
 
-When('elijo el archivo de la copia descargada para restaurar', async function () { await elegir(this, this.copia.texto, this.copia.nombre); });
-When('elijo para restaurar la copia descargada pero alterada', async function () {
-  const doc = JSON.parse(this.copia.texto);
+When('I choose the downloaded backup file to restore', async function () { await choose(this, this.backup.text, this.backup.name); });
+When('I choose to restore the downloaded backup but tampered with', async function () {
+  const doc = JSON.parse(this.backup.text);
   doc.sheets.Nadadores[0].nombre = 'Nombre manipulado';
-  await elegir(this, JSON.stringify(doc));
+  await choose(this, JSON.stringify(doc));
 });
-When('elijo para restaurar un archivo que no es una copia', async function () { await elegir(this, '{"hola":"mundo"}', 'otro.json'); });
+When('I choose to restore a file that is not a backup', async function () { await choose(this, '{"hola":"mundo"}', 'otro.json'); });
 
-Then('veo la vista previa con {int} nadadores nuevos', async function (n) {
-  const fila = this.page.locator('#backup-tabla tbody tr').filter({ has: this.page.locator('td', { hasText: /^Nadadores$/ }) });
-  await this.verVisible(fila, 'No se ve la fila de Nadadores en la vista previa');
-  await this.eventually(async () => assert.equal((await fila.first().locator('td').nth(3).innerText()).trim(), String(n)));
-});
-
-Then('el modo de restauración por defecto es {string}', async function (modo) {
-  const marcado = this.page.locator('input[name="backup-modo"]:checked');
-  assert.equal(await marcado.evaluate((el) => el.closest('label').querySelector('.backup-mode-name').textContent), modo);
+Then('I see the preview with {int} new swimmers', async function (n) {
+  const row = this.page.locator('#backup-tabla tbody tr').filter({ has: this.page.locator('td', { hasText: /^Nadadores$/ }) });
+  await this.expectVisible(row, 'The Nadadores row is not visible in the preview');
+  await this.eventually(async () => assert.equal((await row.first().locator('td').nth(3).innerText()).trim(), String(n)));
 });
 
-When('confirmo la restauración escribiendo el nombre del club', async function () {
+Then('the default restore mode is {string}', async function (mode) {
+  const checked = this.page.locator('input[name="backup-modo"]:checked');
+  assert.equal(await checked.evaluate((el) => el.closest('label').querySelector('.backup-mode-name').textContent), mode);
+});
+
+When('I confirm the restore by typing the club name', async function () {
   await this.page.locator('#backup-restaurar').click();
-  const nombre = await this.page.evaluate(async () => (await import('./js/store.js')).store.club.nombre);
-  await this.page.locator('#backup-confirmar-texto').fill(nombre);
+  const name = await this.page.evaluate(async () => (await import('./js/store.js')).store.club.nombre);
+  await this.page.locator('#backup-confirmar-texto').fill(name);
   await this.page.locator('.sheet').getByRole('button', { name: 'Restaurar ahora' }).click();
 });
 
-When('intento confirmar la restauración escribiendo {string}', async function (texto) {
+When('I try to confirm the restore by typing {string}', async function (text) {
   await this.page.locator('#backup-restaurar').click();
-  await this.page.locator('#backup-confirmar-texto').fill(texto);
+  await this.page.locator('#backup-confirmar-texto').fill(text);
   await this.page.locator('.sheet').getByRole('button', { name: 'Restaurar ahora' }).click();
 });
 
-Then('el club tiene {int} nadadores', async function (n) {
-  await this.eventually(async () => assert.equal(await contar(this.page, 'Nadadores'), n));
+Then('the club has {int} swimmers', async function (n) {
+  await this.eventually(async () => assert.equal(await count(this.page, 'Nadadores'), n));
 });
 
-Then('el lema del club es {string}', async function (lema) {
-  await this.eventually(async () => assert.equal(await this.page.evaluate(async () => (await import('./js/store.js')).store.club.lema), lema));
+Then('the club motto is {string}', async function (motto) {
+  await this.eventually(async () => assert.equal(await this.page.evaluate(async () => (await import('./js/store.js')).store.club.lema), motto));
 });
 
-Then('veo el resumen de la restauración', async function () { await this.verVisible(this.page.locator('#backup-exito'), 'No se ve el resumen de la restauración'); });
+Then('I see the restore summary', async function () { await this.expectVisible(this.page.locator('#backup-exito'), 'The restore summary is not visible'); });
 
-Then('hay una copia previa automática en la carpeta de copias de Drive', async function () {
+Then('there is an automatic prior backup in the Drive backups folder', async function () {
   await this.eventually(async () => {
     const d = await this.drive();
-    assert.ok(d.archivos.some((a) => /-restore-\d{14}\.json$/.test(a.name)), 'No hay copia previa a la restauración en Drive');
+    assert.ok(d.files.some((a) => /-restore-\d{14}\.json$/.test(a.name)), 'There is no pre-restore backup in Drive');
   });
 });
 
-When('escribo la contraseña {string} para abrir la copia', async function (clave) {
-  await this.page.locator('#backup-pass-abrir').fill(clave);
+When('I type the password {string} to open the backup', async function (password) {
+  await this.page.locator('#backup-pass-abrir').fill(password);
   await this.page.locator('#backup-desbloquear').click();
 });
 
-Then('se me pide la contraseña de la copia', async function () { await this.verVisible(this.page.locator('#backup-pass-abrir'), 'No se pide la contraseña'); });
+Then('I am asked for the backup password', async function () { await this.expectVisible(this.page.locator('#backup-pass-abrir'), 'The password is not requested'); });
 
-Then('no veo el botón de restaurar de la copia', async function () { await this.noVer(this.page.locator('#backup-restaurar'), 'El botón de restaurar no debería verse'); });
-Then('veo el botón de restaurar de la copia', async function () { await this.verVisible(this.page.locator('#backup-restaurar'), 'No se ve el botón de restaurar'); });
+Then('I do not see the restore button of the backup', async function () { await this.expectHidden(this.page.locator('#backup-restaurar'), 'The restore button should not be visible'); });
+Then('I see the restore button of the backup', async function () { await this.expectVisible(this.page.locator('#backup-restaurar'), 'The restore button is not visible'); });
 
-Given('hay una copia diaria del club en la carpeta de copias de Drive', async function () {
+Given('there is a daily backup of the club in the Drive backups folder', async function () {
   await this.page.evaluate(async () => {
     const { store } = await import('./js/store.js');
     const { drive } = await import('./js/drive.js');
@@ -128,21 +128,21 @@ Given('hay una copia diaria del club en la carpeta de copias de Drive', async fu
   });
 });
 
-When('actualizo la lista de copias en Drive', async function () { await this.page.locator('#backup-drive-actualizar').click(); });
+When('I refresh the list of backups in Drive', async function () { await this.page.locator('#backup-drive-actualizar').click(); });
 
-Then('la lista de copias en Drive tiene {int} copia', async function (n) {
+Then('the list of backups in Drive has {int} backup(s)', async function (n) {
   await this.eventually(async () => assert.equal(await this.page.locator('#backup-drive-tabla tbody tr').count(), n));
 });
 
-Then('la copia de Drive indica {string}', async function (texto) {
-  await this.eventually(async () => assert.match(await this.page.locator('#backup-drive-tabla tbody tr').first().innerText(), new RegExp(texto)));
+Then('the Drive backup says {string}', async function (text) {
+  await this.eventually(async () => assert.match(await this.page.locator('#backup-drive-tabla tbody tr').first().innerText(), new RegExp(text)));
 });
 
-When('pulso Restaurar en la primera copia de Drive', async function () {
+When('I press Restore on the first Drive backup', async function () {
   await this.page.locator('#backup-drive-tabla tbody tr').first().getByRole('button', { name: /^Restaurar/ }).click();
 });
 
-Then('las copias en Drive aparecen desactivadas con una explicación', async function () {
-  await this.verVisible(this.page.locator('#backup-drive-demo'), 'No se explica por qué no hay copias en Drive');
+Then('the backups in Drive appear disabled with an explanation', async function () {
+  await this.expectVisible(this.page.locator('#backup-drive-demo'), 'It is not explained why there are no backups in Drive');
   assert.equal(await this.page.locator('#backup-drive-actualizar').isDisabled(), true);
 });

@@ -1,82 +1,82 @@
-# language: es
-@asistencia
-Característica: Asistencia
-  Como entrenador quiero pasar lista desde la piscina, consultar el historial
-  y seguir la participación de cada nadador
+# language: en
+@attendance
+Feature: Attendance
+  As a coach I want to take attendance from the pool, check the history
+  and follow the participation of each swimmer
 
-  Antecedentes:
-    Dado un club con datos de demostración
-    Y que he creado la sesión "Lista E2E" para el grupo "Promoción"
-    Y que estoy en el módulo "Asistencia"
+  Background:
+    Given a club with demo data
+    And I have created the session "Lista E2E" for the group "Promoción"
+    And I have the "Asistencia" module open
 
   @smoke
-  Escenario: Registrar la asistencia de un nadador con un toque
-    Cuando selecciono la sesión "Lista E2E" para pasar lista
-    Entonces el recuento de asistencia muestra "0 presentes"
-    Y el resumen de asistencia indica "0 de 3 marcados"
-    Cuando marco como presente a "Martina Suárez"
-    Entonces "Martina Suárez" figura como "Presente" en la lista
-    Y el recuento de asistencia muestra "1 presentes"
-    Y el resumen de asistencia indica "1 de 3 marcados"
+  Scenario: Record the attendance of a swimmer with one tap
+    When I select the session "Lista E2E" to take attendance
+    Then the attendance count shows "0 presentes"
+    And the attendance summary says "0 de 3 marcados"
+    When I mark the status present for "Martina Suárez"
+    Then "Martina Suárez" appears as "Presente" in the list
+    And the attendance count shows "1 presentes"
+    And the attendance summary says "1 de 3 marcados"
 
-  Escenario: Nadie está marcado al abrir la lista y los botones son grandes
-    Cuando selecciono la sesión "Lista E2E" para pasar lista
-    Entonces "Martina Suárez" figura como "Sin marcar" en la lista
-    Y cada nadador de la lista tiene botones de Presente y Ausente de al menos 44 píxeles
+  Scenario: Nobody is marked when the list opens and the buttons are large
+    When I select the session "Lista E2E" to take attendance
+    Then "Martina Suárez" appears as "Sin marcar" in the list
+    And every swimmer in the list has Present and Absent buttons of at least 44 pixels
 
-  Escenario: Tocar de nuevo el mismo estado lo desmarca
-    Cuando selecciono la sesión "Lista E2E" para pasar lista
-    Y marco como presente a "Martina Suárez"
-    Y toco de nuevo "presente" en "Martina Suárez"
-    Entonces "Martina Suárez" figura como "Sin marcar" en la lista
+  Scenario: Tapping the same status again unmarks it
+    When I select the session "Lista E2E" to take attendance
+    And I mark the status present for "Martina Suárez"
+    And I tap "presente" again for "Martina Suárez"
+    Then "Martina Suárez" appears as "Sin marcar" in the list
 
-  Escenario: Se puede deshacer una marca
-    Cuando selecciono la sesión "Lista E2E" para pasar lista
-    Y marco como ausente a "Martina Suárez"
-    Y deshago la última acción de asistencia
-    Entonces "Martina Suárez" figura como "Sin marcar" en la lista
+  Scenario: A mark can be undone
+    When I select the session "Lista E2E" to take attendance
+    And I mark the status absent for "Martina Suárez"
+    And I undo the last attendance action
+    Then "Martina Suárez" appears as "Sin marcar" in the list
 
-  Esquema del escenario: Presente y ausente con un toque, justificado desde más opciones
-    Cuando selecciono la sesión "Lista E2E" para pasar lista
-    Y marco como <estado> a "Pelayo García"
-    Entonces "Pelayo García" figura como "<etiqueta>" en la lista
+  Scenario Outline: Present and absent with one tap, excused from more options
+    When I select the session "Lista E2E" to take attendance
+    And I mark the status <status> for "Pelayo García"
+    Then "Pelayo García" appears as "<label>" in the list
 
-    Ejemplos:
-      | estado      | etiqueta    |
-      | presente    | Presente    |
-      | ausente     | Ausente     |
-      | justificado | Justificado |
+    Examples:
+      | status      | label       |
+      | present     | Presente    |
+      | absent      | Ausente     |
+      | excused     | Justificado |
 
-  Escenario: Marcar a todo el grupo como presente
-    Cuando selecciono la sesión "Lista E2E" para pasar lista
-    Y marco a todos los nadadores como presentes
-    Entonces el recuento de asistencia muestra "3 presentes"
-    Y el recuento de asistencia muestra "0 sin marcar"
-    Cuando deshago la última acción de asistencia
-    Entonces el recuento de asistencia muestra "0 presentes"
+  Scenario: Mark the whole group as present
+    When I select the session "Lista E2E" to take attendance
+    And I mark all the swimmers as present
+    Then the attendance count shows "3 presentes"
+    And the attendance count shows "0 sin marcar"
+    When I undo the last attendance action
+    Then the attendance count shows "0 presentes"
 
-  Escenario: La lista sólo incluye a los nadadores del grupo de la sesión
-    Cuando selecciono la sesión "Lista E2E" para pasar lista
-    Entonces la lista incluye a 3 nadadores
+  Scenario: The list only includes the swimmers of the session group
+    When I select the session "Lista E2E" to take attendance
+    Then the list includes 3 swimmers
 
-  Escenario: El historial muestra el porcentaje de asistencia de cada nadador
-    Cuando consulto el historial de asistencia
-    Entonces el historial muestra el porcentaje de asistencia de "Carla Menéndez"
+  Scenario: The history shows the attendance percentage of each swimmer
+    When I open the attendance history
+    Then the history shows the attendance percentage of "Carla Menéndez"
 
-  Escenario: El historial se puede acotar a un grupo
-    Cuando consulto el historial de asistencia
-    Y filtro el historial por el grupo "Promoción"
-    Entonces el historial muestra 3 nadadores
+  Scenario: The history can be narrowed to a group
+    When I open the attendance history
+    And I filter the history by the group "Promoción"
+    Then the history shows 3 swimmers
 
-  Escenario: El historial refleja la asistencia recién registrada
-    Cuando selecciono la sesión "Lista E2E" para pasar lista
-    Y marco como justificado a "Lucía Fernández"
-    Y consulto el historial de asistencia
-    Y despliego el detalle de asistencia de "Lucía Fernández"
-    Entonces el detalle indica "Lista E2E"
-    Y el detalle indica "Justificado"
+  Scenario: The history reflects the attendance just recorded
+    When I select the session "Lista E2E" to take attendance
+    And I mark the status excused for "Lucía Fernández"
+    And I open the attendance history
+    And I expand the attendance detail of "Lucía Fernández"
+    Then the detail says "Lista E2E"
+    And the detail says "Justificado"
 
-  Escenario: La participación de un nadador se consulta en su ficha
-    Cuando abro el módulo "Nadadores"
-    Y abro la ficha de "Álvaro Rodríguez"
-    Entonces la ficha muestra su porcentaje de asistencia
+  Scenario: The participation of a swimmer is checked in their profile
+    When I open the "Nadadores" module
+    And I open the profile of "Álvaro Rodríguez"
+    Then the profile shows its attendance percentage

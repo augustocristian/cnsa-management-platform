@@ -1,14 +1,14 @@
-# language: es
-@entreno @entreno-demo
-Característica: El plan de entreno en el modo demo
-  Como persona que prueba la aplicación sin conectar Google Drive quiero poder preparar y descargar el PDF del entreno,
-  y saber por qué guardarlo en Drive no está disponible
+# language: en
+@training @training-demo
+Feature: The training plan in demo mode
+  As a person trying the app without connecting Google Drive I want to be able to prepare and download the training PDF,
+  and know why saving it to Drive is not available
 
-  Escenario: En el modo demo guardar en Drive está desactivado y se puede descargar el PDF
-    Dado que la aplicación está abierta sin Client ID de Google
-    Cuando pulso "Probar la demo"
-    Y abro el módulo "Entrenamientos"
-    Y abro el plan de la próxima sesión del grupo "Alevín"
-    Entonces la opción "Guardar en Drive" del menú está desactivada y explica el motivo
-    Cuando genero el PDF del plan abierto
-    Entonces el PDF es válido y tiene 1 página
+  Scenario: In demo mode saving to Drive is disabled and the PDF can be downloaded
+    Given the app is open without a Google Client ID
+    When I press "Probar la demo"
+    And I open the "Entrenamientos" module
+    And I open the plan of the next session of the group "Alevín"
+    Then the menu option "Guardar en Drive" is disabled and explains why
+    When I generate the PDF of the open plan
+    Then the PDF is valid and has 1 page

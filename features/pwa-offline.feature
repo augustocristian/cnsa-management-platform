@@ -1,63 +1,63 @@
-# language: es
+# language: en
 @pwa
-Característica: PWA, caché local y funcionamiento sin conexión
-  Como entrenador quiero instalar la aplicación y seguir trabajando aunque
-  la piscina no tenga cobertura, sin perder los datos
+Feature: PWA, local cache and offline operation
+  As a coach I want to install the app and keep working even if
+  the pool has no coverage, without losing data
 
-  Antecedentes:
-    Dado un club con datos de demostración
-
-  @smoke
-  Escenario: La aplicación es instalable
-    Entonces el manifiesto de la aplicación es válido
-    Y todos los iconos del manifiesto se pueden descargar
-    Y el service worker está activo
+  Background:
+    Given a club with demo data
 
   @smoke
-  Escenario: El club arranca con datos de demostración
-    Cuando abro el módulo "Nadadores"
-    Entonces los datos de ejemplo del club están cargados
+  Scenario: The app is installable
+    Then the app manifest is valid
+    And all the manifest icons can be downloaded
+    And the service worker is active
 
-  Escenario: Los datos persisten al recargar la aplicación
-    Dado que estoy en el módulo "Nadadores"
-    Cuando doy de alta al nadador con los datos:
+  @smoke
+  Scenario: The club starts with demo data
+    When I open the "Nadadores" module
+    Then the club sample data is loaded
+
+  Scenario: The data persists when reloading the app
+    Given I have the "Nadadores" module open
+    When I register the swimmer with the data:
       | Nombre    | Persistente |
       | Apellidos | Recarga     |
-    Y recargo la aplicación
-    Y abro el módulo "Nadadores"
-    Entonces el listado de nadadores incluye a "Persistente Recarga"
+    And I reload the app
+    And I open the "Nadadores" module
+    Then the swimmers list includes "Persistente Recarga"
 
-  Escenario: Las sesiones y la asistencia se conservan al recargar
-    Dado que he creado la sesión "Sesión persistente" para el grupo "Promoción"
-    Cuando recargo la aplicación
-    Y abro el módulo "Entrenamientos"
-    Entonces la sesión "Sesión persistente" aparece en el calendario semanal
+  Scenario: Sessions and attendance are kept when reloading
+    Given I have created the session "Sesión persistente" for the group "Promoción"
+    When I reload the app
+    And I open the "Entrenamientos" module
+    Then the session "Sesión persistente" appears in the weekly calendar
 
-  Escenario: Sin conexión la aplicación sigue funcionando con sus datos
-    Cuando me quedo sin conexión
-    Entonces la aplicación sigue disponible con sus datos
+  Scenario: Offline the app keeps working with its data
+    When I go offline
+    Then the app is still available with its data
 
-  Escenario: Los datos viven en el fichero del club dentro de la carpeta cnl de Drive
-    Dado que estoy en el módulo "Nadadores"
-    Cuando doy de alta al nadador con los datos:
+  Scenario: The data lives in the club file inside the cnl folder of Drive
+    Given I have the "Nadadores" module open
+    When I register the swimmer with the data:
       | Nombre    | Compartido |
       | Apellidos | En Drive   |
-    Entonces el fichero del club en Drive contiene al nadador "Compartido"
+    Then the club file in Drive contains the swimmer "Compartido"
 
-  Escenario: Los cambios hechos sin conexión se suben a Drive al volver la red
-    Dado que estoy en el módulo "Nadadores"
-    Cuando me quedo sin conexión
-    Y doy de alta al nadador con los datos:
+  Scenario: Changes made offline are uploaded to Drive when the network returns
+    Given I have the "Nadadores" module open
+    When I go offline
+    And I register the swimmer with the data:
       | Nombre    | Sin red   |
       | Apellidos | Pendiente |
-    Entonces el indicador de sincronización muestra "Sin conexión"
-    Y el fichero del club en Drive no contiene al nadador "Sin red"
-    Cuando recupero la conexión
-    Entonces el fichero del club en Drive contiene al nadador "Sin red"
+    Then the sync indicator shows "Sin conexión"
+    And the club file in Drive does not contain the swimmer "Sin red"
+    When I recover the connection
+    Then the club file in Drive contains the swimmer "Sin red"
 
-  @navegacion
-  Escenario: Sin conexión se muestra un aviso bajo la cabecera que desaparece al volver la red
-    Cuando me quedo sin conexión
-    Entonces veo el banner de sin conexión
-    Cuando recupero la conexión
-    Entonces el banner de sin conexión desaparece
+  @navigation
+  Scenario: Offline a notice is shown under the header that disappears when the network returns
+    When I go offline
+    Then I see the offline banner
+    When I recover the connection
+    Then the offline banner disappears

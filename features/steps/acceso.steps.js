@@ -1,119 +1,104 @@
-// Pasos del acceso con Google y el primer arranque. Usan el adaptador de pruebas (fakeGoogle.js): this.drive() lee el
-// "Drive" simulado de la página (window.__CNL_FAKE__).
+// Steps for the Google sign-in and the first start. They use the test adapter (fakeGoogle.js): this.drive() reads the
+// simulated "Drive" of the page (window.__CNL_FAKE__).
 import { Given, When, Then } from '@cucumber/cucumber';
 import assert from 'node:assert/strict';
 
-Given('que he creado el club {string} con el asistente', async function (nombre) {
+Given('I have created the club {string} with the wizard', async function (name) {
   await this.page.getByRole('button', { name: 'Conectar Google Drive' }).click();
-  await this.rellenar(this.page, 'Nombre del club', nombre);
+  await this.fill(this.page, 'Nombre del club', name);
   await this.page.getByRole('button', { name: 'Siguiente' }).click();
   await this.page.getByRole('button', { name: 'Crear mi club' }).click();
-  await this.esperarShell();
+  await this.waitForShell();
 });
 
-Then('Drive contiene el club {string}', async function (nombre) {
+Then('Drive contains the club {string}', async function (name) {
   await this.eventually(async () => {
     const d = await this.drive();
-    assert.ok(d.clubs.some((c) => c.name === nombre), `No hay club "${nombre}" en cnl: ${d.clubs.map((c) => c.name).join(', ')}`);
+    assert.ok(d.clubs.some((c) => c.name === name), `There is no club "${name}" in cnl: ${d.clubs.map((c) => c.name).join(', ')}`);
   });
 });
 
-Then('el listado de nadadores está vacío', async function () {
+Then('the swimmers list is empty', async function () {
   await this.page.locator('#view .loading').waitFor({ state: 'detached', timeout: this.timeout });
-  await this.eventually(async () => assert.equal(await this.vista.locator('tr.nad-row').count(), 0));
+  await this.eventually(async () => assert.equal(await this.view.locator('tr.nad-row').count(), 0));
 });
 
-Then('el panel de inicio ofrece los primeros pasos:', async function (tabla) {
-  const tarjeta = this.vista.locator('#primeros-pasos');
-  await this.verVisible(tarjeta, 'No se ve la tarjeta de primeros pasos');
-  for (const [paso] of tabla.raw()) await this.verVisible(tarjeta.getByRole('link', { name: paso }), `Falta el paso "${paso}"`);
+Then('the home panel offers the first steps:', async function (table) {
+  const card = this.view.locator('#primeros-pasos');
+  await this.expectVisible(card, 'The first steps card is not visible');
+  for (const [step] of table.raw()) await this.expectVisible(card.getByRole('link', { name: step }), `The step "${step}" is missing`);
 });
 
-Then('el campo {string} contiene {string}', async function (etiqueta, valor) {
-  await this.eventually(async () => assert.equal(await this.page.getByLabel(etiqueta).first().inputValue(), valor));
+Then('the field {string} contains {string}', async function (label, value) {
+  await this.eventually(async () => assert.equal(await this.page.getByLabel(label).first().inputValue(), value));
 });
 
-Then('las preferencias de Drive guardan {string} con el valor {string}', async function (clave, valor) {
+Then('the Drive preferences store {string} with the value {string}', async function (key, value) {
   await this.eventually(async () => {
     const d = await this.drive();
-    assert.ok(d.prefs, 'Todavía no existe cnl/preferencias.json');
-    assert.equal(d.prefs.valores[clave], valor);
+    assert.ok(d.prefs, 'cnl/preferencias.json does not exist yet');
+    assert.equal(d.prefs.valores[key], value);
   });
 });
 
-Then('veo el origen de esta página para copiarlo', async function () {
-  const origen = new URL(this.page.url()).origin;
-  await this.verVisible(this.page.locator('[data-codigo] code', { hasText: origen }), `No se muestra el origen ${origen}`);
+Then('I see the origin of this page to copy it', async function () {
+  const origin = new URL(this.page.url()).origin;
+  await this.expectVisible(this.page.locator('[data-codigo] code', { hasText: origin }), `The origin ${origin} is not shown`);
 });
 
-Then('el fichero del club en Drive contiene al nadador {string}', async function (nombre) {
-  await this.eventually(async () => {
-    const d = await this.drive();
-    const filas = d.clubs.flatMap((c) => (c.doc.hojas.Nadadores || []));
-    assert.ok(filas.some((n) => n.nombre === nombre), 'El nadador aún no está en el fichero del club de Drive');
-  });
-});
-
-Then('el fichero del club en Drive no contiene al nadador {string}', async function (nombre) {
-  await this.page.waitForTimeout(2500); // más que el debounce de subida (1,5 s): si fuese a subirse ya lo habría hecho
+Then('the club file in Drive does not contain the swimmer {string}', async function (name) {
+  await this.page.waitForTimeout(2500); // longer than the upload debounce (1.5 s): if it were going to be uploaded it already would have
   const d = await this.drive();
-  assert.ok(!d.clubs.some((c) => (c.doc.hojas.Nadadores || []).some((n) => n.nombre === nombre)), `"${nombre}" no debería estar aún en Drive`);
+  assert.ok(!d.clubs.some((c) => (c.doc.hojas.Nadadores || []).some((n) => n.nombre === name)), `"${name}" should not be in Drive yet`);
 });
 
-Then('el indicador de sincronización muestra {string}', async function (texto) {
-  await this.abrirMenuCuenta();
-  await this.eventually(async () => assert.equal((await this.page.locator('.status-chip .status-text').innerText()).trim(), texto));
+Then('the sync indicator shows {string}', async function (text) {
+  await this.openAccountMenu();
+  await this.eventually(async () => assert.equal((await this.page.locator('.status-chip .status-text').innerText()).trim(), text));
 });
 
-When('recupero la conexión', async function () {
-  await this.contexto.setOffline(false);
-});
-
-// Disconnect Drive from the account menu of the shell (asks for confirmation).
-When('desconecto Drive', async function () {
-  await this.page.locator('.topbar .account-btn').click();
-  await this.page.locator('.account-panel').getByRole('button', { name: 'Desconectar Drive' }).click();
-  await this.page.locator('.sheet').getByRole('button', { name: 'Desconectar Drive' }).click();
+When('I recover the connection', async function () {
+  await this.context.setOffline(false);
 });
 
 // ---- Start screen ----
-When('elijo el idioma {string}', async function (idioma) {
-  await this.page.locator('.acc-foot').getByRole('radio', { name: idioma }).click();
+When('I choose the language {string}', async function (language) {
+  await this.page.locator('.acc-foot').getByRole('radio', { name: language }).click();
 });
 
-Then('la pantalla de inicio no habla de cuentas ni de iniciar sesión', async function () {
+Then('the start screen does not mention accounts or signing in', async function () {
   const txt = (await this.page.locator('main').innerText()).toLowerCase();
-  for (const palabra of ['iniciar sesión', 'inicia sesión', 'cuenta', 'correo', 'bienvenido de nuevo']) assert.ok(!txt.includes(palabra), `La pantalla menciona "${palabra}"`);
+  for (const word of ['iniciar sesión', 'inicia sesión', 'cuenta', 'correo', 'bienvenido de nuevo']) assert.ok(!txt.includes(word), `The screen mentions "${word}"`);
 });
 
-Then('el selector de idioma de la pantalla de inicio está en el pie de la tarjeta', async function () {
-  await this.verVisible(this.page.locator('.acc-foot .lang-switch'));
+Then('the language selector of the start screen is in the card footer', async function () {
+  await this.expectVisible(this.page.locator('.acc-foot .lang-switch'));
   const r = await this.page.evaluate(() => {
     const card = document.querySelector('main.auth-card');
-    const hijos = [...card.children].filter((e) => getComputedStyle(e).display !== 'none');
-    const pie = card.querySelector('.acc-foot');
-    return { primero: hijos[0].matches('.acc-foot, .auth-lang'), ultimo: hijos[hijos.length - 1] === pie };
+    const children = [...card.children].filter((e) => getComputedStyle(e).display !== 'none');
+    const foot = card.querySelector('.acc-foot');
+    return { first: children[0].matches('.acc-foot, .auth-lang'), last: children[children.length - 1] === foot };
   });
-  assert.equal(r.primero, false, 'El idioma es lo primero de la tarjeta');
-  assert.equal(r.ultimo, true, 'El idioma no está al final de la tarjeta');
+  assert.equal(r.first, false, 'The language is the first thing in the card');
+  assert.equal(r.last, true, 'The language is not at the end of the card');
 });
 
-Then('la pantalla de inicio no tiene ningún desplegable de idioma', async function () {
+Then('the start screen has no language dropdown', async function () {
   assert.equal(await this.page.locator('main select:visible').count(), 0);
 });
 
-Then('el origen de esta página y su botón Copiar están alineados', async function () {
-  const caja = this.page.locator('.acc-copy').first();
-  await this.verVisible(caja);
-  const r = await caja.evaluate((el) => {
+Then('the origin of this page and its Copy button are aligned', async function () {
+  const box = this.page.locator('.acc-copy').first();
+  await this.expectVisible(box);
+  const r = await box.evaluate((el) => {
     const a = el.querySelector('code').getBoundingClientRect();
     const b = el.querySelector('button').getBoundingClientRect();
-    return { dy: Math.abs(a.top - b.top), dh: Math.abs(a.height - b.height), mismaFila: a.bottom > b.top && b.bottom > a.top };
+    return { dy: Math.abs(a.top - b.top), dh: Math.abs(a.height - b.height), sameRow: a.bottom > b.top && b.bottom > a.top };
   });
-  assert.ok(r.mismaFila && r.dy <= 1 && r.dh <= 1, `Campo y botón desalineados: ${JSON.stringify(r)}`);
+  assert.ok(r.sameRow && r.dy <= 1 && r.dh <= 1, `Field and button are misaligned: ${JSON.stringify(r)}`);
 });
 
-Then('la vista previa del club usa el color elegido', async function () {
+Then('the club preview uses the chosen colour', async function () {
   await this.page.locator('#as-color1').evaluate((el) => { el.value = '#d81b60'; el.dispatchEvent(new Event('input', { bubbles: true })); });
   await this.eventually(async () => {
     const v = await this.page.locator('.acc-prev').evaluate((el) => el.style.getPropertyValue('--c-action'));

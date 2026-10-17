@@ -1,90 +1,90 @@
-// Pasos del gestor de "Contenidos de entrenamiento" (catálogo de cargas) y de su uso al registrar cargas.
+// Steps of the "Training contents" manager (load catalogue) and of its use when logging loads.
 import { When, Then } from '@cucumber/cucumber';
 import assert from 'node:assert/strict';
-import { regexTexto, todasLasPalabras } from '../support/world.js';
+import { textRegex, allWords } from '../support/world.js';
 
-const exacto = (s) => new RegExp('^' + s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '$');
-const sinSeparadores = (t) => t.replace(/[.\s  ,]/g, '');
-const gestor = (m) => m.vista.locator('#cg-gestor');
-const fila = (m, nombre) => gestor(m).locator('.tc-item').filter({ has: m.page.locator('.tc-nombre', { hasText: exacto(nombre) }) });
+const exact = (s) => new RegExp('^' + s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '$');
+const withoutSeparators = (t) => t.replace(/[.\s,]/g, '');
+const manager = (w) => w.view.locator('#cg-gestor');
+const row = (w, name) => manager(w).locator('.tc-item').filter({ has: w.page.locator('.tc-nombre', { hasText: exact(name) }) });
 
-When('abro el gestor de contenidos de entrenamiento', async function () {
-  const boton = this.vista.locator('.page-head').getByRole('button', { name: /Contenidos de entrenamiento|Ocultar contenidos/ });
-  if ((await boton.getAttribute('aria-expanded')) !== 'true') await boton.click();
-  await this.verVisible(gestor(this), 'No se abre el gestor de contenidos');
+When('I open the training contents manager', async function () {
+  const button = this.view.locator('.page-head').getByRole('button', { name: /Contenidos de entrenamiento|Ocultar contenidos/ });
+  if ((await button.getAttribute('aria-expanded')) !== 'true') await button.click();
+  await this.expectVisible(manager(this), 'The contents manager does not open');
 });
 
-// Rellena el formulario de contenido (alta) y pulsa Guardar; el resultado se comprueba en el paso siguiente.
-When('guardo un contenido de entrenamiento con los datos:', async function (tabla) {
-  await gestor(this).getByRole('button', { name: 'Nuevo contenido' }).click();
-  const dialogo = this.page.locator('.modal');
-  await this.verVisible(dialogo, 'No se abre el formulario de contenido');
-  await this.rellenarTabla(dialogo, tabla);
-  await dialogo.getByRole('button', { name: 'Guardar' }).click();
+// Fills the content form (new) and presses Save; the result is checked in the next step.
+When('I save a training content with the data:', async function (table) {
+  await manager(this).getByRole('button', { name: 'Nuevo contenido' }).click();
+  const dialog = this.page.locator('.modal');
+  await this.expectVisible(dialog, 'The content form does not open');
+  await this.fillTable(dialog, table);
+  await dialog.getByRole('button', { name: 'Guardar' }).click();
 });
 
-When('desactivo el contenido {string}', async function (nombre) {
-  await fila(this, nombre).getByRole('button', { name: 'Desactivar' }).click();
-  await this.verVisible(fila(this, nombre).locator('.tc-off'));
+When('I deactivate the content {string}', async function (name) {
+  await row(this, name).getByRole('button', { name: 'Desactivar' }).click();
+  await this.expectVisible(row(this, name).locator('.tc-off'));
 });
 
-When('activo el contenido {string}', async function (nombre) {
-  await fila(this, nombre).getByRole('button', { name: 'Activar' }).click();
-  await this.noVer(fila(this, nombre).locator('.tc-off'));
+When('I activate the content {string}', async function (name) {
+  await row(this, name).getByRole('button', { name: 'Activar' }).click();
+  await this.expectHidden(row(this, name).locator('.tc-off'));
 });
 
-When('intento eliminar el contenido {string}', async function (nombre) {
-  await fila(this, nombre).getByRole('button', { name: 'Eliminar' }).click();
+When('I try to delete the content {string}', async function (name) {
+  await row(this, name).getByRole('button', { name: 'Eliminar' }).click();
 });
 
-Then('veo los contenidos predefinidos:', async function (tabla) {
-  for (const [nombre] of tabla.raw()) {
-    const f = fila(this, nombre);
-    await this.verVisible(f, `Falta el contenido "${nombre}"`);
-    assert.match(await f.first().innerText(), /Predefinido/, `"${nombre}" no figura como predefinido`);
+Then('I see the predefined contents:', async function (table) {
+  for (const [name] of table.raw()) {
+    const f = row(this, name);
+    await this.expectVisible(f, `The content "${name}" is missing`);
+    assert.match(await f.first().innerText(), /Predefinido/, `"${name}" is not marked as predefined`);
   }
 });
 
-Then('el contenido {string} muestra la descripción {string}', async function (nombre, texto) {
-  await this.eventually(async () => assert.match(await fila(this, nombre).first().innerText(), regexTexto(texto)));
+Then('the content {string} shows the description {string}', async function (name, text) {
+  await this.eventually(async () => assert.match(await row(this, name).first().innerText(), textRegex(text)));
 });
 
-Then('el contenido {string} no se puede eliminar', async function (nombre) {
-  await this.verVisible(fila(this, nombre));
-  assert.equal(await fila(this, nombre).getByRole('button', { name: 'Eliminar' }).count(), 0);
+Then('the content {string} cannot be deleted', async function (name) {
+  await this.expectVisible(row(this, name));
+  assert.equal(await row(this, name).getByRole('button', { name: 'Eliminar' }).count(), 0);
 });
 
-Then('el contenido {string} aparece como personalizado', async function (nombre) {
-  await this.eventually(async () => assert.match(await fila(this, nombre).first().innerText(), /Personalizado/));
+Then('the content {string} appears as custom', async function (name) {
+  await this.eventually(async () => assert.match(await row(this, name).first().innerText(), /Personalizado/));
 });
 
-Then('veo el error {string}', async function (texto) {
-  await this.verVisible(this.page.locator('.field-error, .tc-error', { hasText: texto }), `No aparece el error "${texto}"`);
+Then('I see the error {string}', async function (text) {
+  await this.expectVisible(this.page.locator('.field-error, .tc-error', { hasText: text }), `The error "${text}" does not appear`);
 });
 
 // The content selector lives in the "Log load" sheet: open it, read the options and close it again.
-async function opcionesDeContenido(mundo) {
-  await mundo.vista.getByRole('button', { name: 'Registrar carga', exact: true }).click();
-  const hoja = mundo.page.locator('.sheet');
-  await mundo.verVisible(hoja);
-  const opciones = (await hoja.locator('select[name="tipoId"] option').allInnerTexts()).map((o) => o.trim());
-  await mundo.page.keyboard.press('Escape');
-  await mundo.noVer(hoja);
-  return opciones;
+async function contentOptions(world) {
+  await world.view.getByRole('button', { name: 'Registrar carga', exact: true }).click();
+  const sheet = world.page.locator('.sheet');
+  await world.expectVisible(sheet);
+  const options = (await sheet.locator('select[name="tipoId"] option').allInnerTexts()).map((o) => o.trim());
+  await world.page.keyboard.press('Escape');
+  await world.expectHidden(sheet);
+  return options;
 }
 
-Then('el selector de contenido ofrece {string}', async function (nombre) {
-  assert.ok((await opcionesDeContenido(this)).includes(nombre), `El selector no ofrece "${nombre}"`);
+Then('the content selector offers {string}', async function (name) {
+  assert.ok((await contentOptions(this)).includes(name), `The selector does not offer "${name}"`);
 });
 
-Then('el selector de contenido no ofrece {string}', async function (nombre) {
-  assert.ok(!(await opcionesDeContenido(this)).includes(nombre), `El selector aún ofrece "${nombre}"`);
+Then('the content selector does not offer {string}', async function (name) {
+  assert.ok(!(await contentOptions(this)).includes(name), `The selector still offers "${name}"`);
 });
 
-Then('la carga de {int} metros de {string} aparece vinculada a la sesión {string}', async function (metros, nombre, sesion) {
-  const filas = this.vista.locator('section.card').filter({ has: this.page.getByRole('heading', { name: 'Cargas de la semana', exact: true }) }).locator('tbody tr').filter({ hasText: todasLasPalabras(nombre) });
+Then('the load of {int} metres of {string} appears linked to the session {string}', async function (metres, name, session) {
+  const rows = this.view.locator('section.card').filter({ has: this.page.getByRole('heading', { name: 'Cargas de la semana', exact: true }) }).locator('tbody tr').filter({ hasText: allWords(name) });
   await this.eventually(async () => {
-    const celdas = await filas.evaluateAll((trs) => trs.map((tr) => [...tr.children].map((td) => td.textContent.trim())));
-    assert.ok(celdas.some((c) => sinSeparadores(c[4] || '') === String(metros) && (c[3] || '').includes(sesion)), `Filas de ${nombre}: ${JSON.stringify(celdas)}`);
+    const cells = await rows.evaluateAll((trs) => trs.map((tr) => [...tr.children].map((td) => td.textContent.trim())));
+    assert.ok(cells.some((c) => withoutSeparators(c[4] || '') === String(metres) && (c[3] || '').includes(session)), `Rows of ${name}: ${JSON.stringify(cells)}`);
   });
 });

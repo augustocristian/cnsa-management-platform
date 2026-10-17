@@ -1,89 +1,89 @@
-// Pasos compartidos por Planificación (piscina y temporada), Calendario y el tutorial: menús de acciones, desbordamiento de la página,
-// agenda en «hoy», rejilla del mes con teclado, avisos con «Deshacer» y los controles del tutorial.
+// Steps shared by Planning (pool and season), Calendar and the tutorial: action menus, page overflow,
+// agenda at "today", month grid with keyboard, toasts with "Deshacer" and the tutorial controls.
 import { When, Then } from '@cucumber/cucumber';
 import assert from 'node:assert/strict';
 
-// ---- Páginas y menús ----
-Then('la página no se desborda horizontalmente', async function () {
+// ---- Pages and menus ----
+Then('the page does not overflow horizontally', async function () {
   await this.eventually(async () => {
-    const m = await this.page.evaluate(() => ({ ancho: document.documentElement.scrollWidth, visible: document.documentElement.clientWidth }));
-    assert.ok(m.ancho <= m.visible + 1, `La página se desborda: ${m.ancho} > ${m.visible}`);
+    const m = await this.page.evaluate(() => ({ width: document.documentElement.scrollWidth, visible: document.documentElement.clientWidth }));
+    assert.ok(m.width <= m.visible + 1, `The page overflows: ${m.width} > ${m.visible}`);
   });
 });
 
-When('elijo la opción {string} del menú', async function (nombre) {
-  await this.page.getByRole('menuitem', { name: nombre }).click();
+When('I choose the option {string} of the menu', async function (name) {
+  await this.page.getByRole('menuitem', { name: name }).click();
 });
 
-Then('la opción {string} está en el menú', async function (nombre) {
-  await this.verVisible(this.page.getByRole('menuitem', { name: nombre }), `No hay opción de menú «${nombre}»`);
+Then('the option {string} is in the menu', async function (name) {
+  await this.expectVisible(this.page.getByRole('menuitem', { name: name }), `There is no menu option «${name}»`);
 });
 
-When('pulso {string} en el aviso', async function (texto) {
-  await this.page.locator('#toasts .toast').getByRole('button', { name: texto }).click();
+When('I press {string} in the toast', async function (text) {
+  await this.page.locator('#toasts .toast').getByRole('button', { name: text }).click();
 });
 
-Then('hay un único menú de exportación en la cabecera', async function () {
+Then('there is a single export menu in the header', async function () {
   assert.equal(await this.page.locator('.page-head .enp-mn-btn').count(), 1);
 });
 
-// ---- Calendario ----
-Then('la primera sección de la agenda es la de hoy', async function () {
+// ---- Calendar ----
+Then('the first section of the agenda is today', async function () {
   await this.eventually(async () => {
-    const primera = this.page.locator('.cal-agenda-dia').first();
-    assert.equal(await primera.count(), 1);
-    assert.ok((await primera.getAttribute('class')).includes('cal-hoy'), 'La agenda no empieza en hoy');
+    const first = this.page.locator('.cal-agenda-dia').first();
+    assert.equal(await first.count(), 1);
+    assert.ok((await first.getAttribute('class')).includes('cal-hoy'), 'The agenda does not start today');
   });
 });
 
-When('enfoco el día de hoy de la rejilla del mes', async function () {
-  const hoy = this.page.locator('button.cal-num[aria-current="date"]');
-  await hoy.waitFor({ timeout: this.timeout });
-  await hoy.focus();
+When('I focus today in the month grid', async function () {
+  const today = this.page.locator('button.cal-num[aria-current="date"]');
+  await today.waitFor({ timeout: this.timeout });
+  await today.focus();
 });
 
-When('pulso la tecla {string}', async function (tecla) {
-  await this.page.keyboard.press(tecla);
+When('I press the key {string}', async function (key) {
+  await this.page.keyboard.press(key);
 });
 
-Then('el día seleccionado de la rejilla es el de dentro de {int} día(s)', async function (dias) {
-  const esperado = await this.page.evaluate((n) => {
+Then('the selected day of the grid is the one {int} day(s) from now', async function (days) {
+  const expected = await this.page.evaluate((n) => {
     const d = new Date(); d.setDate(d.getDate() + n);
     return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
-  }, dias);
-  await this.eventually(async () => assert.equal(await this.page.locator('button.cal-num[aria-pressed="true"]').getAttribute('data-fecha'), esperado));
+  }, days);
+  await this.eventually(async () => assert.equal(await this.page.locator('button.cal-num[aria-pressed="true"]').getAttribute('data-fecha'), expected));
 });
 
-Then('la sincronización con Google Calendar está desactivada y se explica', async function () {
+Then('the Google Calendar sync is disabled and explained', async function () {
   await this.eventually(async () => assert.equal(await this.page.locator('#cal-sync').isDisabled(), true));
-  await this.verVisible(this.page.locator('#cal-sync-motivo'), 'No se explica por qué está desactivada la sincronización');
+  await this.expectVisible(this.page.locator('#cal-sync-motivo'), 'It is not explained why the sync is disabled');
 });
 
 // ---- Tutorial ----
-Then('veo {int} pasos numerados de al menos 44 píxeles', async function (n) {
+Then('I see {int} numbered steps of at least 44 pixels', async function (n) {
   const chips = this.page.locator('.tut-chip');
   await chips.first().waitFor({ timeout: this.timeout });
   assert.equal(await chips.count(), n);
   for (let i = 0; i < n; i++) {
-    const caja = await chips.nth(i).boundingBox();
-    assert.ok(caja.width >= 43.5 && caja.height >= 43.5, `El paso ${i + 1} mide ${caja.width}x${caja.height}`);
+    const box = await chips.nth(i).boundingBox();
+    assert.ok(box.width >= 43.5 && box.height >= 43.5, `Step ${i + 1} measures ${box.width}x${box.height}`);
   }
 });
 
-Then('cada botón Copiar dice qué valor copia', async function () {
-  const botones = this.page.locator('.tut-val .btn');
-  await botones.first().waitFor({ timeout: this.timeout });
-  const etiquetas = await botones.evaluateAll((bs) => bs.map((b) => b.getAttribute('aria-label') || ''));
-  assert.ok(etiquetas.length >= 1);
-  etiquetas.forEach((e) => assert.match(e, /^Copiar: .{4,}/));
+Then('each Copy button says which value it copies', async function () {
+  const buttons = this.page.locator('.tut-val .btn');
+  await buttons.first().waitFor({ timeout: this.timeout });
+  const labels = await buttons.evaluateAll((bs) => bs.map((b) => b.getAttribute('aria-label') || ''));
+  assert.ok(labels.length >= 1);
+  labels.forEach((e) => assert.match(e, /^Copiar: .{4,}/));
 });
 
-Then('el tutorial no inyecta estilos en la página', async function () {
+Then('the tutorial does not inject styles into the page', async function () {
   assert.equal(await this.page.locator('style#tut-style').count(), 0);
   assert.ok(await this.page.locator('link[data-view-css="tutorial"]').count() >= 1);
 });
 
-// Un campo (filtro, selector...) de la vista actual identificado por su etiqueta visible
-Then('veo el campo {string}', async function (etiqueta) {
-  await this.verVisible(this.vista.getByLabel(etiqueta), `No se ve el campo «${etiqueta}»`);
+// A field (filter, selector...) of the current view identified by its visible label
+Then('I see the field {string}', async function (label) {
+  await this.expectVisible(this.view.getByLabel(label), `The field is not visible: «${label}»`);
 });

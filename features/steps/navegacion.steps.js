@@ -3,103 +3,103 @@
 import { When, Then } from '@cucumber/cucumber';
 import assert from 'node:assert/strict';
 
-const lista = (txt) => txt.split(',').map((x) => x.trim()).filter(Boolean);
+const list = (txt) => txt.split(',').map((x) => x.trim()).filter(Boolean);
 
 // ---- Bottom bar and "More" sheet (mobile) ----
-Then('la barra inferior muestra los accesos {string}', async function (esperados) {
+Then('the bottom bar shows the shortcuts {string}', async function (expected) {
   await this.eventually(async () => {
-    const textos = await this.page.locator('nav.sidebar .nav-item').evaluateAll((els) => els
+    const texts = await this.page.locator('nav.sidebar .nav-item').evaluateAll((els) => els
       .filter((e) => e.getBoundingClientRect().height > 0)
       // the visible label (the short one when there is one), not the hidden full label
       .map((e) => {
-        const corto = e.querySelector('.nav-label-short');
-        const visible = corto && getComputedStyle(corto).display !== 'none' ? corto : e.querySelector('.nav-label');
+        const short = e.querySelector('.nav-label-short');
+        const visible = short && getComputedStyle(short).display !== 'none' ? short : e.querySelector('.nav-label');
         return visible.textContent.trim();
       }));
-    assert.deepEqual(textos, lista(esperados));
+    assert.deepEqual(texts, list(expected));
   });
 });
 
-When('abro la hoja {string} del menú', async function (nombre) {
+When('I open the {string} sheet of the menu', async function (name) {
   await this.page.locator('nav.sidebar .nav-more').click();
   await this.page.locator('.sheet').waitFor({ timeout: this.timeout });
-  assert.equal(nombre, 'Más', 'Only the "Más" sheet exists');
+  assert.equal(name, 'Más', 'Only the "Más" sheet exists');
 });
 
-Then('la hoja del menú tiene el grupo {string} con {string}', async function (grupo, items) {
-  const hoja = this.page.locator('.sheet');
-  await this.verVisible(hoja.locator('.nav-group-title', { hasText: new RegExp(`^${grupo}$`) }), `The sheet has no group "${grupo}"`);
-  const lista_ = await hoja.locator('.mas-group').filter({ has: this.page.locator('.nav-group-title', { hasText: new RegExp(`^${grupo}$`) }) })
+Then('the menu sheet has the group {string} with {string}', async function (group, items) {
+  const sheet = this.page.locator('.sheet');
+  await this.expectVisible(sheet.locator('.nav-group-title', { hasText: new RegExp(`^${group}$`) }), `The sheet has no group "${group}"`);
+  const listed = await sheet.locator('.mas-group').filter({ has: this.page.locator('.nav-group-title', { hasText: new RegExp(`^${group}$`) }) })
     .locator('.mas-item').allInnerTexts();
-  assert.deepEqual(lista_.map((x) => x.trim()), lista(items));
+  assert.deepEqual(listed.map((x) => x.trim()), list(items));
 });
 
-Then('la hoja del menú no ofrece {string}', async function (nombre) {
-  assert.equal(await this.page.locator('.sheet .mas-item', { hasText: nombre }).count(), 0, `The sheet offers "${nombre}"`);
+Then('the menu sheet does not offer {string}', async function (name) {
+  assert.equal(await this.page.locator('.sheet .mas-item', { hasText: name }).count(), 0, `The sheet offers "${name}"`);
 });
 
-Then('el botón Más está marcado como activo', async function () {
+Then('the More button is marked as active', async function () {
   await this.eventually(async () => assert.match(await this.page.locator('nav.sidebar .nav-more').getAttribute('class'), /\bactive\b/));
 });
 
 // ---- Sidebar (desktop) ----
-Then('el menú lateral tiene los encabezados {string}', async function (esperados) {
-  const textos = await this.page.locator('nav.sidebar .nav-group-title').allInnerTexts();
-  assert.deepEqual(textos.map((x) => x.trim().toLowerCase()), lista(esperados).map((x) => x.toLowerCase()));
+Then('the side menu has the headings {string}', async function (expected) {
+  const texts = await this.page.locator('nav.sidebar .nav-group-title').allInnerTexts();
+  assert.deepEqual(texts.map((x) => x.trim().toLowerCase()), list(expected).map((x) => x.toLowerCase()));
 });
 
 // ---- Route change accessibility ----
-Then('el título del documento empieza por {string}', async function (texto) {
-  await this.eventually(async () => assert.ok((await this.page.title()).startsWith(texto), `Title: ${await this.page.title()}`));
+Then('the document title starts with {string}', async function (text) {
+  await this.eventually(async () => assert.ok((await this.page.title()).startsWith(text), `Title: ${await this.page.title()}`));
 });
 
-Then('el foco está en el encabezado de la pantalla', async function () {
+Then('the focus is on the heading of the screen', async function () {
   await this.eventually(async () => {
-    const f = await this.page.evaluate(() => { const a = document.activeElement; return { tag: a?.tagName, enVista: !!a?.closest('#view'), id: a?.id }; });
-    assert.ok(f.tag === 'H1' && f.enVista, `Focus is on ${JSON.stringify(f)}`);
+    const f = await this.page.evaluate(() => { const a = document.activeElement; return { tag: a?.tagName, inView: !!a?.closest('#view'), id: a?.id }; });
+    assert.ok(f.tag === 'H1' && f.inView, `Focus is on ${JSON.stringify(f)}`);
   });
 });
 
-Then('el elemento actual del menú es {string}', async function (nombre) {
+Then('the current menu item is {string}', async function (name) {
   await this.eventually(async () => {
-    const actual = await this.page.locator('nav.sidebar a.nav-item[aria-current="page"]').evaluateAll((els) => els.map((e) => e.textContent.trim()));
-    assert.equal(actual.length, 1, `aria-current items: ${actual}`);
-    assert.match(actual[0], new RegExp(nombre));
+    const current = await this.page.locator('nav.sidebar a.nav-item[aria-current="page"]').evaluateAll((els) => els.map((e) => e.textContent.trim()));
+    assert.equal(current.length, 1, `aria-current items: ${current}`);
+    assert.match(current[0], new RegExp(name));
   });
 });
 
 // ---- Footer ----
-Then('no hay pie de página', async function () {
+Then('there is no footer', async function () {
   await this.eventually(async () => assert.equal(await this.page.locator('footer.footer').count(), 0));
 });
 
-Then('hay pie de página', async function () {
-  await this.verVisible(this.page.locator('footer.footer'), 'The footer is missing in Settings');
+Then('there is a footer', async function () {
+  await this.expectVisible(this.page.locator('footer.footer'), 'The footer is missing in Settings');
 });
 
 // ---- Offline banner ----
-Then('veo el banner de sin conexión', async function () {
-  await this.verVisible(this.page.locator('#cnl-avisos [data-aviso="sin-conexion"]'), 'No offline banner');
+Then('I see the offline banner', async function () {
+  await this.expectVisible(this.page.locator('#cnl-avisos [data-aviso="sin-conexion"]'), 'No offline banner');
 });
 
-Then('el banner de sin conexión desaparece', async function () {
+Then('the offline banner disappears', async function () {
   await this.eventually(async () => assert.equal(await this.page.locator('#cnl-avisos [data-aviso="sin-conexion"]').count(), 0));
 });
 
 // ---- Settings and connection menu ----
-When('abro el menú de ajustes y conexión', async function () {
-  await this.abrirMenuCuenta();
+When('I open the settings and connection menu', async function () {
+  await this.openAccountMenu();
 });
 
-Then('el menú de ajustes ofrece el idioma, el tema, el estado de Drive y el botón {string}', async function (boton) {
+Then('the settings menu offers the language, the theme, the Drive status and the button {string}', async function (button) {
   const panel = this.page.locator('.account-panel');
-  await this.verVisible(panel.locator('.lang-switch'), 'No language switch in the menu');
-  await this.verVisible(panel.locator('.theme-select'), 'No theme selector in the menu');
-  await this.verVisible(panel.locator('.status-row .status-text'), 'No Drive status in the menu');
-  await this.verVisible(panel.getByRole('button', { name: boton }), `No "${boton}" button`);
+  await this.expectVisible(panel.locator('.lang-switch'), 'No language switch in the menu');
+  await this.expectVisible(panel.locator('.theme-select'), 'No theme selector in the menu');
+  await this.expectVisible(panel.locator('.status-row .status-text'), 'No Drive status in the menu');
+  await this.expectVisible(panel.getByRole('button', { name: button }), `No "${button}" button`);
 });
 
-Then('el menú de ajustes no muestra ninguna identidad de usuario', async function () {
+Then('the settings menu shows no user identity', async function () {
   const panel = this.page.locator('.account-panel');
   const txt = await panel.innerText();
   assert.ok(!/@/.test(txt), 'An e-mail address is shown in the menu');

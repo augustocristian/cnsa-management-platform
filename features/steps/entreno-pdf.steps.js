@@ -2,449 +2,449 @@ import { Given, When, Then } from '@cucumber/cucumber';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { infoPdf } from '../../tests/helpers/pdf.js';
-import { elegirEnMenu, formulario } from './entrenamientos.steps.js';
+import { chooseInMenu, sessionForm } from './entrenamientos.steps.js';
 
-// Fields of a plan row. `chip` is the chip that opens the inline pane holding the input (none = visible in the first line).
-const CAMPOS = {
-  'Tiempo': { campo: 'tiempoMin', chip: 'tiempoMin' }, 'Objetivo': { campo: 'objetivo', chip: 'objetivo' }, 'Bloques': { campo: 'bloque', chip: 'mas' },
-  'Series': { campo: 'series' }, 'Distancia': { campo: 'distancia' }, 'Salida': { campo: 'salida', chip: 'salida' },
-  'Ejercicio': { campo: 'ejercicio' }, 'Material': { campo: 'material', chip: 'material' }, 'Notas': { campo: 'notas', chip: 'mas' },
+// Fields of a plan row (keys are the UI labels). `chip` is the chip that opens the inline pane holding the input (none = visible in the first line).
+const FIELDS = {
+  'Tiempo': { field: 'tiempoMin', chip: 'tiempoMin' }, 'Objetivo': { field: 'objetivo', chip: 'objetivo' }, 'Bloques': { field: 'bloque', chip: 'mas' },
+  'Series': { field: 'series' }, 'Distancia': { field: 'distancia' }, 'Salida': { field: 'salida', chip: 'salida' },
+  'Ejercicio': { field: 'ejercicio' }, 'Material': { field: 'material', chip: 'material' }, 'Notas': { field: 'notas', chip: 'mas' },
 };
-const RESUMEN = /\d+ m · \d+ min/;
-const sinTildes = (s) => s.normalize('NFD').replace(/[̀-ͯ]/g, '');
+const SUMMARY = /\d+ m · \d+ min/;
+const stripAccents = (s) => s.normalize('NFD').replace(/[̀-ͯ]/g, '');
 const pad = (n) => String(n).padStart(2, '0');
 const isoLocal = (d) => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
-const lunesDeHoy = () => { const d = new Date(); d.setDate(d.getDate() - ((d.getDay() + 6) % 7)); return isoLocal(d); };
+const thisMonday = () => { const d = new Date(); d.setDate(d.getDate() - ((d.getDay() + 6) % 7)); return isoLocal(d); };
 const esc = (s) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-const compacto = (s) => String(s).replace(/\s+/g, '');
-const ACCION_PDF = 'pdf';
+const compact = (s) => String(s).replace(/\s+/g, '');
+const PDF_ACTION = 'pdf';
 
 // ---------- Locators ----------
-const editor = (mundo) => mundo.page.locator('.enp-ov');
-const filaPlan = (mundo, set, orden) => editor(mundo).locator(`.enp-row[data-set="${set}"][data-orden="${orden}"]`);
-const campoFila = (mundo, set, orden, etiqueta) => {
-  const def = CAMPOS[etiqueta];
-  assert.ok(def, `Campo desconocido: ${etiqueta}`);
-  return filaPlan(mundo, set, orden).locator(`[data-campo="${def.campo}"]`);
+const editor = (world) => world.page.locator('.enp-ov');
+const planRow = (world, set, order) => editor(world).locator(`.enp-row[data-set="${set}"][data-orden="${order}"]`);
+const rowField = (world, set, order, label) => {
+  const def = FIELDS[label];
+  assert.ok(def, `Unknown field: ${label}`);
+  return planRow(world, set, order).locator(`[data-campo="${def.field}"]`);
 };
 // Same, but makes sure the pane that holds the input is open (on wide screens every pane is already visible)
-async function campoVisible(mundo, set, orden, etiqueta) {
-  const campo = campoFila(mundo, set, orden, etiqueta);
-  const def = CAMPOS[etiqueta];
-  if (def.chip && !(await campo.isVisible())) await filaPlan(mundo, set, orden).locator(`[data-chip="${def.chip}"]`).click();
-  return campo;
+async function visibleField(world, set, order, label) {
+  const field = rowField(world, set, order, label);
+  const def = FIELDS[label];
+  if (def.chip && !(await field.isVisible())) await planRow(world, set, order).locator(`[data-chip="${def.chip}"]`).click();
+  return field;
 }
-async function abrirDetalle(mundo, selector) {
-  await editor(mundo).locator(selector).evaluate((d) => { d.open = true; });
+async function openDetails(world, selector) {
+  await editor(world).locator(selector).evaluate((d) => { d.open = true; });
 }
-async function ultimoSet(mundo) {
-  const sets = await editor(mundo).locator('.enp-set').evaluateAll((els) => els.map((e) => Number(e.dataset.set)));
-  assert.ok(sets.length, 'El plan no tiene sets');
+async function lastSet(world) {
+  const sets = await editor(world).locator('.enp-set').evaluateAll((els) => els.map((e) => Number(e.dataset.set)));
+  assert.ok(sets.length, 'The plan has no sets');
   return Math.max(...sets);
 }
-const metrosTotales = async (mundo) => {
-  const txt = await editor(mundo).locator('.enp-tot').innerText();
+const totalMetres = async (world) => {
+  const txt = await editor(world).locator('.enp-tot').innerText();
   const m = /Total: (\d+) m/.exec(txt);
-  assert.ok(m, 'Total ilegible: ' + txt);
+  assert.ok(m, 'Unreadable total: ' + txt);
   return Number(m[1]);
 };
 // Opens the "more" menu of the bottom bar and clicks an item by id (pdf, previa, imprimir, drive, registrar, copiar)
-const menuEditor = async (mundo, id) => {
-  await editor(mundo).locator('.enp-barra-mas').click();
-  await mundo.page.locator(`.enp-mn [data-accion="${id}"]`).click();
+const editorMenu = async (world, id) => {
+  await editor(world).locator('.enp-barra-mas').click();
+  await world.page.locator(`.enp-mn [data-accion="${id}"]`).click();
 };
 
 // First session of the group with a plan (today or later) in the visible week or the next ones.
-async function localizarSesion(mundo, grupo) {
-  for (let intento = 0; intento < 3; intento++) {
-    const filas = mundo.vista.locator('.ent-day .ent-sess')
-      .filter({ has: mundo.page.locator('.ent-meta .badge:first-child', { hasText: new RegExp(`^${esc(grupo)}$`) }) })
-      .filter({ hasText: RESUMEN });
-    if (await filas.count()) {
-      const fila = filas.first();
-      const dia = (await fila.locator('xpath=ancestor::section[contains(@class,"ent-day")]//h2').innerText()).trim();
-      const titulo = (await fila.locator('.ent-title').innerText()).trim();
-      mundo.ref = { grupo, titulo, diaTexto: dia, dia: sinTildes(dia.split(/\s+/)[0]).toLowerCase() };
-      return fila;
+async function findSession(world, group) {
+  for (let attempt = 0; attempt < 3; attempt++) {
+    const rows = world.view.locator('.ent-day .ent-sess')
+      .filter({ has: world.page.locator('.ent-meta .badge:first-child', { hasText: new RegExp(`^${esc(group)}$`) }) })
+      .filter({ hasText: SUMMARY });
+    if (await rows.count()) {
+      const row = rows.first();
+      const dayText = (await row.locator('xpath=ancestor::section[contains(@class,"ent-day")]//h2').innerText()).trim();
+      const title = (await row.locator('.ent-title').innerText()).trim();
+      world.ref = { group, title, dayText, day: stripAccents(dayText.split(/\s+/)[0]).toLowerCase() };
+      return row;
     }
-    await mundo.vista.locator('[data-accion="semana-siguiente"]').click();
-    await mundo.page.waitForTimeout(150);
+    await world.view.locator('[data-accion="semana-siguiente"]').click();
+    await world.page.waitForTimeout(150);
   }
-  throw new Error(`No hay ninguna sesión del grupo ${grupo} con plan en las próximas semanas`);
+  throw new Error(`There is no session of the group ${group} with a plan in the coming weeks`);
 }
-async function filaDeReferencia(mundo) {
-  assert.ok(mundo.ref, 'No hay sesión de referencia');
-  return mundo.vista.locator('.ent-day').filter({ has: mundo.page.locator('h2', { hasText: mundo.ref.diaTexto }) })
-    .locator('.ent-sess').filter({ hasText: mundo.ref.titulo }).first();
+async function referenceRow(world) {
+  assert.ok(world.ref, 'There is no reference session');
+  return world.view.locator('.ent-day').filter({ has: world.page.locator('h2', { hasText: world.ref.dayText }) })
+    .locator('.ent-sess').filter({ hasText: world.ref.title }).first();
 }
-async function abrirPlan(mundo, fila) {
-  await fila.locator('[data-accion="abrir-plan"]').click();
-  await editor(mundo).locator('.enp-panel').waitFor({ timeout: mundo.timeout });
+async function openPlan(world, row) {
+  await row.locator('[data-accion="abrir-plan"]').click();
+  await editor(world).locator('.enp-panel').waitFor({ timeout: world.timeout });
 }
 
 // Runs an action and captures the resulting download
-async function capturar(mundo, accion) {
-  const [dl] = await Promise.all([mundo.page.waitForEvent('download', { timeout: 20_000 }), accion()]);
+async function capture(world, action) {
+  const [dl] = await Promise.all([world.page.waitForEvent('download', { timeout: 20_000 }), action()]);
   const bytes = readFileSync(await dl.path());
-  mundo.descarga = { nombre: dl.suggestedFilename(), bytes, info: infoPdf(bytes) };
+  world.download = { name: dl.suggestedFilename(), bytes, info: infoPdf(bytes) };
 }
 
 // ---------- Open the plan and generate PDFs from the list ----------
-When('abro el plan de la próxima sesión del grupo {string}', async function (grupo) {
-  await abrirPlan(this, await localizarSesion(this, grupo));
+When('I open the plan of the next session of the group {string}', async function (group) {
+  await openPlan(this, await findSession(this, group));
 });
-When('abro el plan de la sesión de referencia', async function () {
-  await abrirPlan(this, await filaDeReferencia(this));
+When('I open the plan of the reference session', async function () {
+  await openPlan(this, await referenceRow(this));
 });
-When('abro el plan de la sesión {string}', async function (titulo) {
-  const fila = this.vista.locator('.ent-sess').filter({ has: this.page.locator('.ent-title', { hasText: titulo }) }).first();
-  await abrirPlan(this, fila);
+When('I open the plan of the session {string}', async function (title) {
+  const row = this.view.locator('.ent-sess').filter({ has: this.page.locator('.ent-title', { hasText: title }) }).first();
+  await openPlan(this, row);
 });
-When('genero el PDF de la próxima sesión del grupo {string}', async function (grupo) {
-  const fila = await localizarSesion(this, grupo);
-  await capturar(this, () => elegirEnMenu(this, fila, ACCION_PDF));
+When('I generate the PDF of the next session of the group {string}', async function (group) {
+  const row = await findSession(this, group);
+  await capture(this, () => chooseInMenu(this, row, PDF_ACTION));
 });
 // If every session of the week lacks a plan the app asks before generating: accept it
-When('genero el PDF de la semana', async function () {
-  await capturar(this, async () => {
-    await this.vista.locator('[data-accion="pdf-semana"]').click();
-    const aviso = this.page.locator('.modal').getByRole('button', { name: 'Aceptar' });
-    if (await aviso.waitFor({ state: 'visible', timeout: 1500 }).then(() => true, () => false)) await aviso.click();
+When('I generate the PDF of the week', async function () {
+  await capture(this, async () => {
+    await this.view.locator('[data-accion="pdf-semana"]').click();
+    const warning = this.page.locator('.modal').getByRole('button', { name: 'Aceptar' });
+    if (await warning.waitFor({ state: 'visible', timeout: 1500 }).then(() => true, () => false)) await warning.click();
   });
 });
-When('duplico la próxima sesión del grupo {string}', async function (grupo) {
-  const fila = await localizarSesion(this, grupo);
-  await elegirEnMenu(this, fila, 'duplicar');
-  await formulario(this).getByRole('button', { name: 'Guardar' }).click();
-  await this.verVisible(this.page.locator('#toasts .toast', { hasText: 'Sesión guardada' }));
+When('I duplicate the next session of the group {string}', async function (group) {
+  const row = await findSession(this, group);
+  await chooseInMenu(this, row, 'duplicar');
+  await sessionForm(this).getByRole('button', { name: 'Guardar' }).click();
+  await this.expectVisible(this.page.locator('#toasts .toast', { hasText: 'Sesión guardada' }));
 });
 
 // ---------- Editor ----------
-Then('el plan tiene al menos {int} sets', async function (n) {
-  await this.eventually(async () => assert.ok((await editor(this).locator('.enp-set').count()) >= n, `Sets: menos de ${n}`));
+Then('the plan has at least {int} sets', async function (n) {
+  await this.eventually(async () => assert.ok((await editor(this).locator('.enp-set').count()) >= n, `Sets: fewer than ${n}`));
 });
-Then('el total del plan coincide con la suma de los sets', async function () {
+Then('the plan total matches the sum of the sets', async function () {
   await this.eventually(async () => {
-    const total = await metrosTotales(this);
+    const total = await totalMetres(this);
     const sets = await editor(this).locator('.enp-set-tot').allInnerTexts();
-    const suma = sets.reduce((a, s) => a + Number(/^(\d+) m/.exec(s.trim())[1]), 0);
-    assert.equal(suma, total);
+    const sum = sets.reduce((a, s) => a + Number(/^(\d+) m/.exec(s.trim())[1]), 0);
+    assert.equal(sum, total);
     assert.ok(total > 0);
   });
 });
-When('anoto el total actual del plan', async function () { this.totalPrevio = await metrosTotales(this); });
-Then('el total del plan ha cambiado', async function () {
-  await this.eventually(async () => assert.notEqual(await metrosTotales(this), this.totalPrevio));
+When('I note the current plan total', async function () { this.previousTotal = await totalMetres(this); });
+Then('the plan total has changed', async function () {
+  await this.eventually(async () => assert.notEqual(await totalMetres(this), this.previousTotal));
 });
-When('pongo {string} en {string} de la fila {int} del set {int}', async function (valor, etiqueta, fila, set) {
-  await (await campoVisible(this, set, fila, etiqueta)).fill(valor);
+When('I put {string} in {string} of row {int} of set {int}', async function (value, label, row, set) {
+  await (await visibleField(this, set, row, label)).fill(value);
 });
-When('pongo {string} en {string} de la fila {int} del último set', async function (valor, etiqueta, fila) {
-  await (await campoVisible(this, await ultimoSet(this), fila, etiqueta)).fill(valor);
+When('I put {string} in {string} of row {int} of the last set', async function (value, label, row) {
+  await (await visibleField(this, await lastSet(this), row, label)).fill(value);
 });
-When('pongo {string} en {string} del plan', async function (valor, etiqueta) {
-  await abrirDetalle(this, 'details.enp-datos');
-  await editor(this).locator('.enp-meta').getByLabel(etiqueta).fill(valor);
+When('I put {string} in {string} of the plan', async function (value, label) {
+  await openDetails(this, 'details.enp-datos');
+  await editor(this).locator('.enp-meta').getByLabel(label).fill(value);
 });
-Then('el campo {string} del plan vale {string}', async function (etiqueta, valor) {
-  await abrirDetalle(this, 'details.enp-datos');
-  await this.eventually(async () => assert.equal(await editor(this).locator('.enp-meta').getByLabel(etiqueta).inputValue(), valor));
+Then('the plan field {string} is {string}', async function (label, value) {
+  await openDetails(this, 'details.enp-datos');
+  await this.eventually(async () => assert.equal(await editor(this).locator('.enp-meta').getByLabel(label).inputValue(), value));
 });
-Then('la fila {int} del set {int} tiene {string} en {string}', async function (fila, set, valor, etiqueta) {
-  await this.eventually(async () => assert.equal(await campoFila(this, set, fila, etiqueta).inputValue(), valor));
+Then('row {int} of set {int} has {string} in {string}', async function (row, set, value, label) {
+  await this.eventually(async () => assert.equal(await rowField(this, set, row, label).inputValue(), value));
 });
-Then('la distancia del bloque de la fila {int} del set {int} es {string}', async function (fila, set, valor) {
-  await this.eventually(async () => assert.equal((await filaPlan(this, set, fila).locator('output').innerText()).trim(), valor));
+Then('the block distance of row {int} of set {int} is {string}', async function (row, set, value) {
+  await this.eventually(async () => assert.equal((await planRow(this, set, row).locator('output').innerText()).trim(), value));
 });
-Then('la distancia del bloque de la fila {int} del último set es {string}', async function (fila, valor) {
-  const set = await ultimoSet(this);
-  await this.eventually(async () => assert.equal((await filaPlan(this, set, fila).locator('output').innerText()).trim(), valor));
+Then('the block distance of row {int} of the last set is {string}', async function (row, value) {
+  const set = await lastSet(this);
+  await this.eventually(async () => assert.equal((await planRow(this, set, row).locator('output').innerText()).trim(), value));
 });
-Then('el set {int} suma {string}', async function (set, texto) {
-  await this.eventually(async () => assert.ok((await editor(this).locator(`.enp-set[data-set="${set}"] .enp-set-tot`).innerText()).includes(texto)));
+Then('set {int} adds up to {string}', async function (set, text) {
+  await this.eventually(async () => assert.ok((await editor(this).locator(`.enp-set[data-set="${set}"] .enp-set-tot`).innerText()).includes(text)));
 });
-Then('el último set suma {string}', async function (texto) {
-  const set = await ultimoSet(this);
-  await this.eventually(async () => assert.ok((await editor(this).locator(`.enp-set[data-set="${set}"] .enp-set-tot`).innerText()).includes(texto)));
+Then('the last set adds up to {string}', async function (text) {
+  const set = await lastSet(this);
+  await this.eventually(async () => assert.ok((await editor(this).locator(`.enp-set[data-set="${set}"] .enp-set-tot`).innerText()).includes(text)));
 });
-When('añado un set al plan', async function () {
-  const antes = await editor(this).locator('.enp-set').count();
+When('I add a set to the plan', async function () {
+  const before = await editor(this).locator('.enp-set').count();
   await editor(this).getByRole('button', { name: 'Añadir set', exact: true }).click();
-  await this.eventually(async () => assert.equal(await editor(this).locator('.enp-set').count(), antes + 1));
+  await this.eventually(async () => assert.equal(await editor(this).locator('.enp-set').count(), before + 1));
 });
-When('duplico el set {int} del plan', async function (set) {
+When('I duplicate set {int} of the plan', async function (set) {
   await editor(this).getByRole('button', { name: `Acciones del set ${set}`, exact: true }).click();
   await this.page.getByRole('menuitem', { name: `Duplicar el set ${set}`, exact: true }).click();
 });
-When('quito la fila {int} del set {int}', async function (fila, set) {
-  await filaPlan(this, set, fila).getByRole('button', { name: `Acciones de la fila (Set ${set}, fila ${fila})`, exact: true }).click();
-  await this.page.getByRole('menuitem', { name: `Quitar fila (Set ${set}, fila ${fila})`, exact: true }).click();
+When('I remove row {int} of set {int}', async function (row, set) {
+  await planRow(this, set, row).getByRole('button', { name: `Acciones de la fila (Set ${set}, fila ${row})`, exact: true }).click();
+  await this.page.getByRole('menuitem', { name: `Quitar fila (Set ${set}, fila ${row})`, exact: true }).click();
 });
-When('salgo del campo {string} de la fila {int} del set {int}', async function (etiqueta, fila, set) {
-  await (await campoVisible(this, set, fila, etiqueta)).evaluate((el) => el.blur());
+When('I leave the field {string} of row {int} of set {int}', async function (label, row, set) {
+  await (await visibleField(this, set, row, label)).evaluate((el) => el.blur());
 });
-Then('la fila {int} del set {int} marca error en {string}', async function (fila, set, etiqueta) {
-  await this.eventually(async () => assert.equal(await campoFila(this, set, fila, etiqueta).getAttribute('aria-invalid'), 'true'));
+Then('row {int} of set {int} flags an error in {string}', async function (row, set, label) {
+  await this.eventually(async () => assert.equal(await rowField(this, set, row, label).getAttribute('aria-invalid'), 'true'));
 });
-Then('veo el aviso del plan {string}', async function (texto) {
-  await this.verVisible(editor(this).locator('.enp-avisos li', { hasText: texto }), `No hay aviso del plan "${texto}"`);
+Then('I see the plan notice {string}', async function (text) {
+  await this.expectVisible(editor(this).locator('.enp-avisos li', { hasText: text }), `There is no plan notice "${text}"`);
 });
-When('guardo el plan', async function () {
+When('I save the plan', async function () {
   await editor(this).getByRole('button', { name: 'Guardar', exact: true }).click();
-  await this.verVisible(this.page.locator('#toasts .toast', { hasText: 'Plan guardado' }));
+  await this.expectVisible(this.page.locator('#toasts .toast', { hasText: 'Plan guardado' }));
 });
-When('cierro el plan', async function () {
+When('I close the plan', async function () {
   await editor(this).locator('.enp-head .icon-btn').click();
 });
-When('cierro el plan y descarto los cambios', async function () {
+When('I close the plan and discard the changes', async function () {
   await editor(this).locator('.enp-head .icon-btn').click();
   await this.page.locator('.modal').getByRole('button', { name: 'Aceptar' }).click();
 });
-Then('el plan sigue abierto', async function () { await this.verVisible(editor(this).locator('.enp-panel')); });
-Then('el plan está cerrado', async function () { await this.noVer(editor(this).locator('.enp-panel')); });
-Then('veo el diálogo de confirmación {string}', async function (texto) {
-  await this.verVisible(this.page.locator('.modal', { hasText: texto }), `No hay diálogo con "${texto}"`);
+Then('the plan is still open', async function () { await this.expectVisible(editor(this).locator('.enp-panel')); });
+Then('the plan is closed', async function () { await this.expectHidden(editor(this).locator('.enp-panel')); });
+Then('I see the confirmation dialog {string}', async function (text) {
+  await this.expectVisible(this.page.locator('.modal', { hasText: text }), `There is no dialog with "${text}"`);
 });
-When('cancelo el diálogo', async function () {
+When('I cancel the dialog', async function () {
   await this.page.locator('.modal').getByRole('button', { name: 'Cancelar' }).click();
 });
-When('acepto el diálogo', async function () {
+When('I accept the dialog', async function () {
   await this.page.locator('.modal').getByRole('button', { name: 'Aceptar' }).click();
 });
-When('elijo la plantilla {string}', async function (nombre) {
-  await abrirDetalle(this, 'details.enp-tools-d');
+When('I choose the template {string}', async function (name) {
+  await openDetails(this, 'details.enp-tools-d');
   const sel = editor(this).locator('.enp-tools select').first();
-  const opciones = (await sel.locator('option').allInnerTexts()).map((o) => o.trim());
-  const etiqueta = opciones.find((o) => o.startsWith(nombre));
-  assert.ok(etiqueta, `No hay plantilla ${nombre}: ${opciones}`);
-  await sel.selectOption({ label: etiqueta });
+  const options = (await sel.locator('option').allInnerTexts()).map((o) => o.trim());
+  const label = options.find((o) => o.startsWith(name));
+  assert.ok(label, `There is no template ${name}: ${options}`);
+  await sel.selectOption({ label });
   await editor(this).getByRole('button', { name: 'Usar plantilla', exact: true }).click();
 });
-When('copio el plan de la primera sesión disponible', async function () {
-  await abrirDetalle(this, 'details.enp-tools-d');
+When('I copy the plan of the first available session', async function () {
+  await openDetails(this, 'details.enp-tools-d');
   await editor(this).locator('.enp-tools select').nth(1).selectOption({ index: 0 });
   await editor(this).getByRole('button', { name: 'Copiar plan', exact: true }).click();
 });
-Then('la sesión {string} muestra su resumen de metros y minutos', async function (titulo) {
-  const fila = this.vista.locator('.ent-sess').filter({ has: this.page.locator('.ent-title', { hasText: titulo }) }).first();
-  await this.eventually(async () => assert.match(await fila.innerText(), RESUMEN));
+Then('the session {string} shows its metres and minutes summary', async function (title) {
+  const row = this.view.locator('.ent-sess').filter({ has: this.page.locator('.ent-title', { hasText: title }) }).first();
+  await this.eventually(async () => assert.match(await row.innerText(), SUMMARY));
 });
-Then('hay {int} sesiones iguales a la de referencia con resumen de plan', async function (n) {
+Then('there are {int} sessions equal to the reference one with a plan summary', async function (n) {
   await this.eventually(async () => {
-    const filas = this.vista.locator('.ent-day').filter({ has: this.page.locator('h2', { hasText: this.ref.diaTexto }) })
-      .locator('.ent-sess').filter({ hasText: this.ref.titulo }).filter({ hasText: RESUMEN });
-    assert.equal(await filas.count(), n);
+    const rows = this.view.locator('.ent-day').filter({ has: this.page.locator('h2', { hasText: this.ref.dayText }) })
+      .locator('.ent-sess').filter({ hasText: this.ref.title }).filter({ hasText: SUMMARY });
+    assert.equal(await rows.count(), n);
   });
 });
 
 // ---------- Compact rows, bottom bar, unsaved changes ----------
-Then('ninguna fila del plan ocupa más de {int} px de alto', async function (max) {
-  const altos = await editor(this).locator('.enp-row').evaluateAll((els) => els.map((e) => Math.round(e.getBoundingClientRect().height)));
-  assert.ok(altos.length > 0);
-  assert.ok(altos.every((a) => a <= max), `Alturas de fila: ${altos}`);
+Then('no plan row is taller than {int} px', async function (max) {
+  const heights = await editor(this).locator('.enp-row').evaluateAll((els) => els.map((e) => Math.round(e.getBoundingClientRect().height)));
+  assert.ok(heights.length > 0);
+  assert.ok(heights.every((a) => a <= max), `Row heights: ${heights}`);
 });
-Then('al abrir el plan no hay ningún campo con el foco', async function () {
-  const rol = await this.page.evaluate(() => document.activeElement && document.activeElement.getAttribute('role'));
-  assert.equal(rol, 'dialog');
+Then('when the plan opens no field has the focus', async function () {
+  const role = await this.page.evaluate(() => document.activeElement && document.activeElement.getAttribute('role'));
+  assert.equal(role, 'dialog');
 });
-Then('la barra inferior del plan muestra el total, el botón principal {string} y el menú de más acciones', async function (guardar) {
-  const barra = editor(this).locator('.enp-foot');
-  await this.verVisible(barra.locator('.enp-tot'));
-  await this.verVisible(barra.getByRole('button', { name: guardar, exact: true }));
-  await this.verVisible(barra.getByRole('button', { name: 'Más acciones', exact: true }));
-  assert.equal(await barra.locator('.btn--primary').count(), 1);
+Then('the plan bottom bar shows the total, the main button {string} and the more actions menu', async function (save) {
+  const bar = editor(this).locator('.enp-foot');
+  await this.expectVisible(bar.locator('.enp-tot'));
+  await this.expectVisible(bar.getByRole('button', { name: save, exact: true }));
+  await this.expectVisible(bar.getByRole('button', { name: 'Más acciones', exact: true }));
+  assert.equal(await bar.locator('.btn--primary').count(), 1);
 });
-Then('la barra inferior del plan está dentro de la pantalla', async function () {
-  const caja = await editor(this).locator('.enp-foot').boundingBox();
-  const alto = this.page.viewportSize().height;
-  assert.ok(caja.y + caja.height <= alto + 1 && caja.y >= 0, `Barra fuera de pantalla: ${JSON.stringify(caja)}`);
+Then('the plan bottom bar is inside the screen', async function () {
+  const box = await editor(this).locator('.enp-foot').boundingBox();
+  const height = this.page.viewportSize().height;
+  assert.ok(box.y + box.height <= height + 1 && box.y >= 0, `Bar outside the screen: ${JSON.stringify(box)}`);
 });
-Then('el aviso no tapa la barra inferior del plan', async function () {
+Then('the toast does not cover the plan bottom bar', async function () {
   const toast = this.page.locator('#toasts .toast').first();
-  await this.verVisible(toast);
+  await this.expectVisible(toast);
   const t = await toast.boundingBox();
   const b = await editor(this).locator('.enp-foot').boundingBox();
-  assert.ok(t.y + t.height <= b.y + 1, `El aviso (${JSON.stringify(t)}) tapa la barra (${JSON.stringify(b)})`);
+  assert.ok(t.y + t.height <= b.y + 1, `The toast (${JSON.stringify(t)}) covers the bar (${JSON.stringify(b)})`);
 });
-Then('el plan indica {string}', async function (texto) {
-  await this.verVisible(editor(this).locator('.enp-estado', { hasText: texto }));
+Then('the plan says {string}', async function (text) {
+  await this.expectVisible(editor(this).locator('.enp-estado', { hasText: text }));
 });
-When('pulso volver atrás del navegador', async function () {
+When('I press the browser back button', async function () {
   await this.page.goBack().catch(() => null);
 });
-When('abro el chip {string} de la fila {int} del set {int}', async function (chip, fila, set) {
-  const clave = { Salida: 'salida', Material: 'material', Objetivo: 'objetivo', Contenidos: 'contenidos' }[chip];
-  assert.ok(clave, 'Chip desconocido ' + chip);
-  const boton = filaPlan(this, set, fila).locator(`[data-chip="${clave}"]`);
-  if (await boton.isVisible()) await boton.click();
+When('I open the chip {string} of row {int} of set {int}', async function (chip, row, set) {
+  const key = { Salida: 'salida', Material: 'material', Objetivo: 'objetivo', Contenidos: 'contenidos' }[chip];
+  assert.ok(key, 'Unknown chip ' + chip);
+  const button = planRow(this, set, row).locator(`[data-chip="${key}"]`);
+  if (await button.isVisible()) await button.click();
 });
-Then('el campo {string} de la fila {int} del set {int} es visible', async function (etiqueta, fila, set) {
-  await this.verVisible(campoFila(this, set, fila, etiqueta));
+Then('the field {string} of row {int} of set {int} is visible', async function (label, row, set) {
+  await this.expectVisible(rowField(this, set, row, label));
 });
 
 // ---------- Downloads ----------
-When('genero el PDF del plan abierto', async function () {
-  await capturar(this, () => menuEditor(this, ACCION_PDF));
+When('I generate the PDF of the open plan', async function () {
+  await capture(this, () => editorMenu(this, PDF_ACTION));
 });
-When('intento generar el PDF del plan abierto', async function () {
-  this.hayDescarga = false;
-  this.page.once('download', () => { this.hayDescarga = true; });
-  await menuEditor(this, ACCION_PDF);
+When('I try to generate the PDF of the open plan', async function () {
+  this.hasDownload = false;
+  this.page.once('download', () => { this.hasDownload = true; });
+  await editorMenu(this, PDF_ACTION);
 });
-Then('no se descarga ningún PDF', async function () {
+Then('no PDF is downloaded', async function () {
   await this.page.waitForTimeout(800);
-  assert.equal(this.hayDescarga, false);
+  assert.equal(this.hasDownload, false);
 });
-Then('se descarga el PDF {string}', async function (nombre) {
-  assert.ok(this.descarga, 'No se ha descargado nada');
-  const esperado = nombre.replace('{lunes}', lunesDeHoy()).replace('{hoy}', isoLocal(new Date()));
-  assert.equal(this.descarga.nombre, esperado);
+Then('the PDF {string} is downloaded', async function (name) {
+  assert.ok(this.download, 'Nothing has been downloaded');
+  const expected = name.replace('{monday}', thisMonday()).replace('{today}', isoLocal(new Date()));
+  assert.equal(this.download.name, expected);
 });
-Then('se descarga el PDF de la sesión de referencia con el nombre {string}', async function (patron) {
-  assert.ok(this.descarga, 'No se ha descargado nada');
-  const re = new RegExp('^' + esc(patron).replace('AAAA-MM-DD', '\\d{4}-\\d{2}-\\d{2}').replace('día', esc(this.ref.dia)) + '$');
-  assert.match(this.descarga.nombre, re);
+Then('the PDF of the reference session is downloaded with the name {string}', async function (pattern) {
+  assert.ok(this.download, 'Nothing has been downloaded');
+  const re = new RegExp('^' + esc(pattern).replace('YYYY-MM-DD', '\\d{4}-\\d{2}-\\d{2}').replace('weekday', esc(this.ref.day)) + '$');
+  assert.match(this.download.name, re);
 });
-Then('el PDF es válido y tiene {int} página(s)', async function (n) {
-  assert.match(this.descarga.info.cabecera, /^%PDF-/);
-  assert.equal(this.descarga.info.paginas, n);
+Then('the PDF is valid and has {int} page(s)', async function (n) {
+  assert.match(this.download.info.cabecera, /^%PDF-/);
+  assert.equal(this.download.info.paginas, n);
 });
-Then('el PDF contiene {string}', async function (texto) {
-  assert.ok(compacto(this.descarga.info.texto).includes(compacto(texto)), `El PDF no contiene «${texto}»`);
+Then('the PDF contains {string}', async function (text) {
+  assert.ok(compact(this.download.info.texto).includes(compact(text)), `The PDF does not contain «${text}»`);
 });
-Then('el PDF tiene tantas páginas como sesiones se ven en la semana', async function () {
-  const txt = await this.vista.getByText(/\d+ sesiones esta semana/).first().innerText();
+Then('the PDF has as many pages as sessions shown in the week', async function () {
+  const txt = await this.view.getByText(/\d+ sesiones esta semana/).first().innerText();
   const n = Number(/(\d+) sesiones/.exec(txt)[1]);
   assert.ok(n > 0);
-  assert.equal(this.descarga.info.paginas, n);
+  assert.equal(this.download.info.paginas, n);
 });
 
 // ---------- Empty plan warning ----------
-When('abro el plan de una sesión sin plan', async function () {
-  await this.verVisible(this.vista.locator('.ent-sess').first());
-  const fila = this.vista.locator('.ent-sess').filter({ hasNotText: RESUMEN }).first();
-  this.ref = { titulo: (await fila.locator('.ent-title').innerText()).trim() };
-  await abrirPlan(this, fila);
+When('I open the plan of a session without a plan', async function () {
+  await this.expectVisible(this.view.locator('.ent-sess').first());
+  const row = this.view.locator('.ent-sess').filter({ hasNotText: SUMMARY }).first();
+  this.ref = { title: (await row.locator('.ent-title').innerText()).trim() };
+  await openPlan(this, row);
 });
-When('genero el PDF del plan abierto confirmando el aviso', async function () {
-  await capturar(this, async () => {
-    await menuEditor(this, ACCION_PDF);
+When('I generate the PDF of the open plan confirming the warning', async function () {
+  await capture(this, async () => {
+    await editorMenu(this, PDF_ACTION);
     await this.page.locator('.modal').getByRole('button', { name: 'Aceptar' }).click();
   });
 });
-When('intento generar el PDF del plan abierto y cancelo el aviso', async function () {
-  this.hayDescarga = false;
-  this.page.once('download', () => { this.hayDescarga = true; });
-  await menuEditor(this, ACCION_PDF);
+When('I try to generate the PDF of the open plan and cancel the warning', async function () {
+  this.hasDownload = false;
+  this.page.once('download', () => { this.hasDownload = true; });
+  await editorMenu(this, PDF_ACTION);
   await this.page.locator('.modal').getByRole('button', { name: 'Cancelar' }).click();
 });
 
 // ---------- Share (touch devices), preview, print and Drive ----------
 // The desktop profile has no touch pointer: the page is told it has one (the mobile profile already does).
-Given('que uso un dispositivo táctil', async function () {
+Given('I use a touch device', async function () {
   await this.page.evaluate(() => {
     const original = window.matchMedia.bind(window);
     window.matchMedia = (q) => (/pointer:\s*coarse/.test(q) ? { matches: true, media: q, addEventListener() {}, removeEventListener() {}, addListener() {}, removeListener() {} } : original(q));
   });
 });
-When('mi dispositivo permite compartir archivos', async function () {
+When('my device can share files', async function () {
   await this.page.evaluate(() => {
-    window.__compartido = [];
+    window.__shared = [];
     Object.defineProperty(navigator, 'canShare', { value: (d) => !!(d && d.files && d.files.length), configurable: true });
-    Object.defineProperty(navigator, 'share', { value: async (d) => { window.__compartido.push({ nombre: d.files[0].name, tipo: d.files[0].type, bytes: d.files[0].size }); }, configurable: true });
+    Object.defineProperty(navigator, 'share', { value: async (d) => { window.__shared.push({ name: d.files[0].name, type: d.files[0].type, bytes: d.files[0].size }); }, configurable: true });
   });
 });
-Then('el menú ofrece {string} y no {string}', async function (si, no) {
+Then('the menu offers {string} and not {string}', async function (yes, no) {
   await editor(this).locator('.enp-barra-mas').click();
-  await this.verVisible(this.page.getByRole('menuitem', { name: si, exact: true }));
+  await this.expectVisible(this.page.getByRole('menuitem', { name: yes, exact: true }));
   assert.equal(await this.page.getByRole('menuitem', { name: no, exact: true }).count(), 0);
   await this.page.keyboard.press('Escape');
 });
-When('comparto el PDF del plan abierto', async function () {
-  await menuEditor(this, 'pdf');
+When('I share the PDF of the open plan', async function () {
+  await editorMenu(this, 'pdf');
 });
-Then('se comparte un archivo PDF cuyo nombre empieza por {string}', async function (patron) {
+Then('a PDF file whose name starts with {string} is shared', async function (pattern) {
   await this.eventually(async () => {
-    const c = await this.page.evaluate(() => window.__compartido || []);
+    const c = await this.page.evaluate(() => window.__shared || []);
     assert.equal(c.length, 1);
-    assert.equal(c[0].tipo, 'application/pdf');
+    assert.equal(c[0].type, 'application/pdf');
     assert.ok(c[0].bytes > 1000);
-    assert.match(c[0].nombre, new RegExp('^' + esc(patron).replace('AAAA-MM-DD', '\\d{4}-\\d{2}-\\d{2}') + '-.+\\.pdf$'));
+    assert.match(c[0].name, new RegExp('^' + esc(pattern).replace('YYYY-MM-DD', '\\d{4}-\\d{2}-\\d{2}') + '-.+\\.pdf$'));
   });
 });
-When('abro la vista previa del PDF', async function () {
-  await menuEditor(this, 'previa');
+When('I open the PDF preview', async function () {
+  await editorMenu(this, 'previa');
 });
-Then('veo la vista previa del PDF', async function () {
-  const marco = this.page.locator('.enp-prev iframe.enp-frame');
-  await this.verVisible(marco, 'No se ve la vista previa');
-  assert.match(await marco.getAttribute('src'), /^blob:/);
+Then('I see the PDF preview', async function () {
+  const frame = this.page.locator('.enp-prev iframe.enp-frame');
+  await this.expectVisible(frame, 'The preview is not visible');
+  assert.match(await frame.getAttribute('src'), /^blob:/);
 });
-When('cierro la vista previa', async function () {
+When('I close the preview', async function () {
   await this.page.locator('.enp-prev .btn--primary').click();
 });
-Then('no veo la vista previa del PDF', async function () {
-  await this.noVer(this.page.locator('.enp-prev'));
+Then('I do not see the PDF preview', async function () {
+  await this.expectHidden(this.page.locator('.enp-prev'));
 });
 // Opening a tab is observed through window.open (a PDF in a headless browser tab cannot be inspected)
-When('abro la vista previa del PDF en el móvil', async function () {
-  await this.page.evaluate(() => { window.__abiertas = []; window.open = (u) => { window.__abiertas.push(String(u)); return {}; }; });
-  await menuEditor(this, 'previa');
+When('I open the PDF preview on the phone', async function () {
+  await this.page.evaluate(() => { window.__opened = []; window.open = (u) => { window.__opened.push(String(u)); return {}; }; });
+  await editorMenu(this, 'previa');
 });
-Then('el PDF se abre en otra pestaña y no en un marco de la página', async function () {
+Then('the PDF opens in another tab and not in a frame of the page', async function () {
   await this.eventually(async () => {
-    const abiertas = await this.page.evaluate(() => window.__abiertas || []);
-    assert.equal(abiertas.length, 1);
-    assert.match(abiertas[0], /^blob:/);
+    const opened = await this.page.evaluate(() => window.__opened || []);
+    assert.equal(opened.length, 1);
+    assert.match(opened[0], /^blob:/);
   });
   assert.equal(await this.page.locator('.enp-prev').count(), 0);
 });
-When('pulso imprimir en el plan', async function () {
-  await menuEditor(this, 'imprimir');
+When('I press print in the plan', async function () {
+  await editorMenu(this, 'imprimir');
 });
-Then('se prepara la impresión del PDF', async function () {
+Then('the PDF printing is prepared', async function () {
   await this.page.locator('iframe.enp-print').first().waitFor({ state: 'attached', timeout: this.timeout });
 });
-When('guardo el PDF en Drive', async function () {
-  await menuEditor(this, 'drive');
+When('I save the PDF to Drive', async function () {
+  await editorMenu(this, 'drive');
 });
-async function archivosDrive(mundo) {
-  return mundo.page.evaluate(() => ({ archivos: window.__CNL_FAKE__.archivos(), carpetas: window.__CNL_FAKE__.estado().carpetas }));
+async function driveFiles(world) {
+  return world.page.evaluate(() => ({ files: window.__CNL_FAKE__.archivos(), folders: window.__CNL_FAKE__.estado().carpetas }));
 }
-const nombreRef = (mundo) => new RegExp(`^${esc(sinTildes(mundo.ref.grupo))}-\\d{4}-\\d{2}-\\d{2}-${esc(mundo.ref.dia)}\\.pdf$`);
-Then('Drive contiene el PDF de la sesión de referencia en la carpeta {string}', async function (ruta) {
-  assert.equal(ruta, 'cnl/entrenos');
+const refName = (world) => new RegExp(`^${esc(stripAccents(world.ref.group))}-\\d{4}-\\d{2}-\\d{2}-${esc(world.ref.day)}\\.pdf$`);
+Then('Drive contains the PDF of the reference session in the folder {string}', async function (path) {
+  assert.equal(path, 'cnl/entrenos');
   await this.eventually(async () => {
-    const { archivos, carpetas } = await archivosDrive(this);
-    const cnl = carpetas['root/cnl'];
-    assert.ok(cnl, 'no existe la carpeta cnl');
-    const entrenos = carpetas[`${cnl}/entrenos`];
-    assert.ok(entrenos, 'no existe la carpeta cnl/entrenos');
-    const f = archivos.find((a) => nombreRef(this).test(a.name));
-    assert.ok(f, 'no hay PDF en Drive: ' + archivos.map((a) => a.name));
-    assert.equal(f.parentId, entrenos);
+    const { files, folders } = await driveFiles(this);
+    const cnl = folders['root/cnl'];
+    assert.ok(cnl, 'the cnl folder does not exist');
+    const trainings = folders[`${cnl}/entrenos`];
+    assert.ok(trainings, 'the cnl/entrenos folder does not exist');
+    const f = files.find((a) => refName(this).test(a.name));
+    assert.ok(f, 'there is no PDF in Drive: ' + files.map((a) => a.name));
+    assert.equal(f.parentId, trainings);
     assert.equal(f.mimeType, 'application/pdf');
-    assert.ok(f.contenido.blobSize > 1000, 'PDF vacío');
+    assert.ok(f.contenido.blobSize > 1000, 'empty PDF');
   });
 });
-Then('Drive contiene un solo PDF de la sesión de referencia', async function () {
-  const { archivos } = await archivosDrive(this);
-  assert.equal(archivos.filter((a) => nombreRef(this).test(a.name)).length, 1);
+Then('Drive contains a single PDF of the reference session', async function () {
+  const { files } = await driveFiles(this);
+  assert.equal(files.filter((a) => refName(this).test(a.name)).length, 1);
 });
-Then('la opción {string} del menú está desactivada y explica el motivo', async function (opcion) {
+Then('the menu option {string} is disabled and explains why', async function (_option) {
   await editor(this).locator('.enp-barra-mas').click();
   const item = this.page.locator('.enp-mn [data-accion="drive"]');
-  await this.verVisible(item);
+  await this.expectVisible(item);
   assert.equal(await item.getAttribute('aria-disabled'), 'true');
-  await this.verVisible(this.page.locator('.enp-mn-ayuda'));
+  await this.expectVisible(this.page.locator('.enp-mn-ayuda'));
   await this.page.keyboard.press('Escape');
 });
 
 // On a phone the account menu stays open after choosing a language and would cover the page
-When('cierro el menú de la cuenta', async function () {
+When('I close the account menu', async function () {
   const panel = this.page.locator('#account-panel');
   if (await panel.isVisible()) {
     await this.page.keyboard.press('Escape');
-    await this.noVer(panel);
+    await this.expectHidden(panel);
   }
 });

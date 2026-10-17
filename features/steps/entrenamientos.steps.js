@@ -1,135 +1,135 @@
 import { Before, Given, When, Then } from '@cucumber/cucumber';
 import assert from 'node:assert/strict';
-import { regexTexto } from '../support/world.js';
+import { textRegex } from '../support/world.js';
 
 // Desktop browsers download the PDF; touch devices may open the share sheet. The e2e scenarios of this area that capture the
 // download switch Web Share off so the same steps work in both profiles (a dedicated scenario enables a fake share sheet).
-Before({ tags: '@entreno or @entrenamientos or @entreno-pdf or @entreno-contenidos or @entreno-demo' }, async function () {
-  await this.contexto.addInitScript(() => {
+Before({ tags: '@training or @trainings or @training-pdf or @training-contents or @training-demo' }, async function () {
+  await this.context.addInitScript(() => {
     try { Object.defineProperty(Navigator.prototype, 'canShare', { value: undefined, configurable: true }); } catch (e) { /* ignore */ }
   });
 });
 
-export const sesion = (mundo, titulo) => mundo.vista.locator('.ent-sess').filter({ hasText: regexTexto(titulo) });
+export const sessionCard = (world, title) => world.view.locator('.ent-sess').filter({ hasText: textRegex(title) });
 // The form of a session is a sheet (bottom sheet on mobile)
-export const formulario = (mundo) => mundo.page.locator('.sheet');
+export const sessionForm = (world) => world.page.locator('.sheet');
 
 // Opens the "more actions" menu of a session card and clicks an item by its id (estado, editar, duplicar, pdf, eliminar)
-export async function elegirEnMenu(mundo, fila, id) {
-  await fila.first().locator('button[aria-haspopup="menu"]').click();
-  await mundo.page.locator(`.enp-mn [data-accion="${id}"]`).click();
+export async function chooseInMenu(world, row, id) {
+  await row.first().locator('button[aria-haspopup="menu"]').click();
+  await world.page.locator(`.enp-mn [data-accion="${id}"]`).click();
 }
 
-async function guardarSesion(mundo) {
-  await formulario(mundo).getByRole('button', { name: 'Guardar' }).click();
-  await mundo.verVisible(mundo.page.locator('#toasts .toast', { hasText: 'Sesión guardada' }));
+async function saveSession(world) {
+  await sessionForm(world).getByRole('button', { name: 'Guardar' }).click();
+  await world.expectVisible(world.page.locator('#toasts .toast', { hasText: 'Sesión guardada' }));
 }
 
-When('creo la sesión de entrenamiento con los datos:', async function (tabla) {
-  await this.vista.getByRole('button', { name: 'Nueva sesión' }).first().click();
-  await formulario(this).waitFor({ timeout: this.timeout });
-  await this.rellenarTabla(formulario(this), tabla);
-  await guardarSesion(this);
+When('I create the training session with the data:', async function (table) {
+  await this.view.getByRole('button', { name: 'Nueva sesión' }).first().click();
+  await sessionForm(this).waitFor({ timeout: this.timeout });
+  await this.fillTable(sessionForm(this), table);
+  await saveSession(this);
 });
 
-When('edito la sesión {string} con los datos:', async function (titulo, tabla) {
-  await elegirEnMenu(this, sesion(this, titulo), 'editar');
-  await this.rellenarTabla(formulario(this), tabla);
-  await guardarSesion(this);
+When('I edit the session {string} with the data:', async function (title, table) {
+  await chooseInMenu(this, sessionCard(this, title), 'editar');
+  await this.fillTable(sessionForm(this), table);
+  await saveSession(this);
 });
 
-When('duplico la sesión {string}', async function (titulo) {
-  await elegirEnMenu(this, sesion(this, titulo), 'duplicar');
-  await guardarSesion(this);
+When('I duplicate the session {string}', async function (title) {
+  await chooseInMenu(this, sessionCard(this, title), 'duplicar');
+  await saveSession(this);
 });
 
-When('marco la sesión {string} como realizada', async function (titulo) {
-  await elegirEnMenu(this, sesion(this, titulo), 'estado');
+When('I mark the session {string} as done', async function (title) {
+  await chooseInMenu(this, sessionCard(this, title), 'estado');
 });
 
-When('elimino la sesión {string}', async function (titulo) {
-  await elegirEnMenu(this, sesion(this, titulo), 'eliminar');
+When('I delete the session {string}', async function (title) {
+  await chooseInMenu(this, sessionCard(this, title), 'eliminar');
 });
 
-When('deshago la eliminación', async function () {
+When('I undo the deletion', async function () {
   await this.page.locator('#toasts .toast').getByRole('button', { name: 'Deshacer' }).click();
 });
 
-When('paso a la semana anterior', async function () {
-  await this.vista.locator('[data-accion="semana-anterior"]').click();
+When('I go to the previous week', async function () {
+  await this.view.locator('[data-accion="semana-anterior"]').click();
 });
-When('paso a la semana siguiente', async function () {
-  await this.vista.locator('[data-accion="semana-siguiente"]').click();
+When('I go to the next week', async function () {
+  await this.view.locator('[data-accion="semana-siguiente"]').click();
 });
-When('vuelvo a la semana actual', async function () {
-  await this.vista.locator('[data-accion="hoy"]').click();
-});
-
-When('filtro las sesiones por el grupo {string}', async function (g) {
-  await this.vista.locator('.ent-bar select').selectOption({ label: g });
+When('I go back to the current week', async function () {
+  await this.view.locator('[data-accion="hoy"]').click();
 });
 
-Then('la sesión {string} aparece en el calendario semanal', async function (titulo) {
-  await this.verVisible(sesion(this, titulo), `No aparece la sesión ${titulo}`);
+When('I filter the sessions by the group {string}', async function (g) {
+  await this.view.locator('.ent-bar select').selectOption({ label: g });
 });
 
-Then('la sesión {string} no aparece en el calendario semanal', async function (titulo) {
-  await this.eventually(async () => assert.equal(await sesion(this, titulo).count(), 0));
+Then('the session {string} appears in the weekly calendar', async function (title) {
+  await this.expectVisible(sessionCard(this, title), `The session ${title} does not appear`);
 });
 
-Then('hay {int} sesiones llamadas {string}', async function (n, titulo) {
-  await this.eventually(async () => assert.equal(await sesion(this, titulo).count(), n));
+Then('the session {string} does not appear in the weekly calendar', async function (title) {
+  await this.eventually(async () => assert.equal(await sessionCard(this, title).count(), 0));
 });
 
-Then('la sesión {string} figura como {string}', async function (titulo, estado) {
-  await this.verVisible(sesion(this, titulo).first().locator('.badge', { hasText: new RegExp(`^${estado}$`) }));
+Then('there are {int} sessions named {string}', async function (n, title) {
+  await this.eventually(async () => assert.equal(await sessionCard(this, title).count(), n));
 });
 
-Then('la sesión {string} muestra {string}', async function (titulo, texto) {
-  await this.verVisible(sesion(this, titulo).first().getByText(texto));
+Then('the session {string} appears as {string}', async function (title, status) {
+  await this.expectVisible(sessionCard(this, title).first().locator('.badge', { hasText: new RegExp(`^${status}$`) }));
 });
 
-Then('la sesión {string} tiene una sola acción principal {string}', async function (titulo, accion) {
-  const fila = sesion(this, titulo).first();
-  await this.verVisible(fila.getByRole('button', { name: new RegExp(`^${accion}`) }));
-  assert.equal(await fila.locator('.btn--primary').count(), 1);
-  assert.equal(await fila.getByRole('button').count(), 2, 'Debe haber solo la acción principal y el menú de más acciones');
+Then('the session {string} shows {string}', async function (title, text) {
+  await this.expectVisible(sessionCard(this, title).first().getByText(text));
 });
 
-Then('la semana muestra sesiones {string}', async function (estado) {
-  await this.verVisible(this.vista.locator('.ent-sess .badge', { hasText: new RegExp(`^${estado}$`) }), `Sin sesiones ${estado}`);
+Then('the session {string} has a single main action {string}', async function (title, action) {
+  const row = sessionCard(this, title).first();
+  await this.expectVisible(row.getByRole('button', { name: new RegExp(`^${action}`) }));
+  assert.equal(await row.locator('.btn--primary').count(), 1);
+  assert.equal(await row.getByRole('button').count(), 2, 'There must be only the main action and the more-actions menu');
 });
 
-Then('las sesiones previstas indican su volumen objetivo', async function () {
-  await this.verVisible(this.vista.locator('.ent-sess .ent-meta span', { hasText: 'Vol.' }));
+Then('the week shows {string} sessions', async function (status) {
+  await this.expectVisible(this.view.locator('.ent-sess .badge', { hasText: new RegExp(`^${status}$`) }), `No ${status} sessions`);
 });
 
-Then('todas las sesiones mostradas son del grupo {string}', async function (g) {
+Then('the planned sessions show their target volume', async function () {
+  await this.expectVisible(this.view.locator('.ent-sess .ent-meta span', { hasText: 'Vol.' }));
+});
+
+Then('all the sessions shown are of the group {string}', async function (g) {
   await this.eventually(async () => {
-    const grupos = await this.vista.locator('.ent-sess .ent-meta .badge:first-child').allInnerTexts();
-    assert.ok(grupos.length > 0, 'No hay sesiones');
-    assert.ok(grupos.every((x) => x.trim() === g), `Grupos: ${[...new Set(grupos)]}`);
+    const groups = await this.view.locator('.ent-sess .ent-meta .badge:first-child').allInnerTexts();
+    assert.ok(groups.length > 0, 'There are no sessions');
+    assert.ok(groups.every((x) => x.trim() === g), `Groups: ${[...new Set(groups)]}`);
   });
 });
 
-Then('el título de la semana muestra un intervalo de fechas', async function () {
-  await this.verVisible(this.vista.locator('.ent-week', { hasText: /\d.*–.*\d{4}/ }));
+Then('the week title shows a date range', async function () {
+  await this.expectVisible(this.view.locator('.ent-week', { hasText: /\d.*–.*\d{4}/ }));
 });
 
-Then('veo {int} sesiones esta semana', async function (n) {
-  await this.verVisible(this.vista.getByText(`${n} sesiones esta semana`));
+Then('I see {int} sessions this week', async function (n) {
+  await this.expectVisible(this.view.getByText(`${n} sesiones esta semana`));
 });
 
-Then('veo el error de campo {string}', async function (texto) {
-  await this.verVisible(this.page.locator('.field-error', { hasText: texto }), `No hay error de campo «${texto}»`);
+Then('I see the field error {string}', async function (text) {
+  await this.expectVisible(this.page.locator('.field-error', { hasText: text }), `There is no field error «${text}»`);
 });
 
-Given('que he creado la sesión {string} para el grupo {string}', async function (titulo, grupo) {
-  await this.irA('entrenamientos');
-  await this.vista.getByRole('button', { name: 'Nueva sesión' }).first().click();
-  await formulario(this).waitFor({ timeout: this.timeout });
-  await this.rellenar(formulario(this), 'Título', titulo);
-  await this.rellenar(formulario(this), 'Grupo', grupo);
-  await guardarSesion(this);
-  await this.verVisible(sesion(this, titulo));
+Given('I have created the session {string} for the group {string}', async function (title, group) {
+  await this.goTo('entrenamientos');
+  await this.view.getByRole('button', { name: 'Nueva sesión' }).first().click();
+  await sessionForm(this).waitFor({ timeout: this.timeout });
+  await this.fill(sessionForm(this), 'Título', title);
+  await this.fill(sessionForm(this), 'Grupo', group);
+  await saveSession(this);
+  await this.expectVisible(sessionCard(this, title));
 });

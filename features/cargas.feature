@@ -1,77 +1,77 @@
-# language: es
-@cargas
-Característica: Cargas de entrenamiento
-  Como entrenador quiero registrar las cargas de cada deportista con los contenidos de entrenamiento
-  del club (predefinidos o propios), ver su evolución y compararlas con los objetivos semanales
+# language: en
+@loads
+Feature: Training loads
+  As a coach I want to log the loads of each athlete with the club's training contents
+  (predefined or custom), see their evolution and compare them with the weekly targets
 
-  Antecedentes:
-    Dado un club con datos de demostración
-    Y que estoy en el módulo "Cargas"
+  Background:
+    Given a club with demo data
+    And I have the "Cargas" module open
 
   @smoke
-  Escenario: Registrar una carga de entrenamiento
-    Cuando registro una carga con los datos:
+  Scenario: Log a training load
+    When I log a load with the data:
       | Nadador   | Lucía Fernández Roces |
       | Contenido | Técnica               |
       | Metros    | 3250                  |
       | RPE       | 6                     |
       | Minutos   | 75                    |
-    Entonces la carga de 3250 metros de "Lucía Fernández" aparece en las cargas de la semana
+    Then the load of 3250 metres of "Lucía Fernández" appears in the week loads
 
-  Escenario: Registrar metros que no son múltiplo de 50 y ver la fila resaltada
-    Cuando registro una carga con los datos:
+  Scenario: Log metres that are not a multiple of 50 and see the row highlighted
+    When I log a load with the data:
       | Nadador   | Lucía Fernández Roces |
       | Contenido | Técnica               |
       | Metros    | 1234                  |
-    Entonces la carga de 1234 metros de "Lucía Fernández" aparece en las cargas de la semana
-    Y la carga recién registrada aparece resaltada
+    Then the load of 1234 metres of "Lucía Fernández" appears in the week loads
+    And the newly logged load appears highlighted
 
-  Escenario: No se registra una carga sin metros y el error se explica junto al campo
-    Cuando abro el formulario para registrar una carga
-    Y relleno "Nadador" con "Lucía Fernández Roces"
-    Y pulso "Registrar"
-    Entonces veo el error en el campo "Metros": "Indica los metros"
-    Y no veo el texto "Carga registrada"
+  Scenario: A load without metres is not logged and the error is explained next to the field
+    When I open the form to log a load
+    And I fill "Nadador" with "Lucía Fernández Roces"
+    And I press "Registrar"
+    Then I see the error in the field "Metros": "Indica los metros"
+    And I do not see the text "Carga registrada"
 
-  Escenario: Deshacer el borrado de una carga
-    Dado que he registrado una carga de 2400 metros para "Noa Díaz Llano"
-    Cuando elimino la carga de 2400 metros de "Noa Díaz"
-    Entonces la carga de 2400 metros de "Noa Díaz" no aparece en las cargas de la semana
-    Cuando deshago el último borrado
-    Entonces la carga de 2400 metros de "Noa Díaz" aparece en las cargas de la semana
+  Scenario: Undo the deletion of a load
+    Given I have logged a load of 2400 metres for "Noa Díaz Llano"
+    When I delete the load of 2400 metres of "Noa Díaz"
+    Then the load of 2400 metres of "Noa Díaz" does not appear in the week loads
+    When I undo the last deletion
+    Then the load of 2400 metres of "Noa Díaz" appears in the week loads
 
-  Escenario: Las cargas se relacionan con el deportista que las realizó
-    Dado que he registrado una carga de 2400 metros para "Noa Díaz Llano"
-    Cuando consulto las cargas de "Noa Díaz Llano"
-    Entonces todas las cargas listadas son de "Noa Díaz Llano"
-    Y la carga de 2400 metros de "Noa Díaz" aparece en las cargas de la semana
+  Scenario: Loads are related to the athlete who performed them
+    Given I have logged a load of 2400 metres for "Noa Díaz Llano"
+    When I check the loads of "Noa Díaz Llano"
+    Then all the listed loads are of "Noa Díaz Llano"
+    And the load of 2400 metres of "Noa Díaz" appears in the week loads
 
-  Escenario: Ver la evolución de las cargas
-    Entonces veo la evolución de las cargas por tipo y por día
-    Cuando paso a la semana anterior de cargas
-    Entonces veo la evolución de las cargas por tipo y por día
+  Scenario: See the evolution of the loads
+    Then I see the evolution of the loads by type and by day
+    When I go to the previous loads week
+    Then I see the evolution of the loads by type and by day
 
-  Escenario: Alerta cuando la carga supera el objetivo semanal
-    Dado que he registrado una carga de 3000 metros para "Noa Díaz Llano"
-    Cuando fijo el objetivo semanal de "Aeróbico medio / Umbral anaeróbico" entre 0 y 100 metros
-    Entonces veo la alerta "Aeróbico medio / Umbral anaeróbico: por encima del objetivo"
-    Y veo el aviso "Objetivos guardados"
+  Scenario: Alert when the load exceeds the weekly target
+    Given I have logged a load of 3000 metres for "Noa Díaz Llano"
+    When I set the weekly target of "Aeróbico medio / Umbral anaeróbico" between 0 and 100 metres
+    Then I see the alert "Aeróbico medio / Umbral anaeróbico: por encima del objetivo"
+    And I see the toast "Objetivos guardados"
 
-  Escenario: Sin alertas cuando las cargas están dentro de los objetivos
-    Cuando dejo sin objetivo semanal todos los contenidos de entrenamiento
-    Entonces veo el texto "Sin alertas"
+  Scenario: No alerts when the loads are within the targets
+    When I leave every training content without a weekly target
+    Then I see the text "Sin alertas"
 
-  Escenario: Relacionar una carga con la sesión de entrenamiento en la que se realizó
-    Cuando registro una carga con los datos:
+  Scenario: Link a load to the training session in which it was performed
+    When I log a load with the data:
       | Nadador   | Lucía Fernández Roces     |
       | Contenido | Técnica                   |
       | Sesión    | Promoción - Series mixtas |
       | Metros    | 2000                      |
-    Entonces la carga de 2000 metros de "Lucía Fernández" aparece vinculada a la sesión "Promoción - Series mixtas"
+    Then the load of 2000 metres of "Lucía Fernández" appears linked to the session "Promoción - Series mixtas"
 
-  Escenario: Ver el catálogo predefinido de contenidos de entrenamiento
-    Cuando abro el gestor de contenidos de entrenamiento
-    Entonces veo los contenidos predefinidos:
+  Scenario: See the predefined catalogue of training contents
+    When I open the training contents manager
+    Then I see the predefined contents:
       | Aeróbico ligero                       |
       | Aeróbico medio / Umbral anaeróbico    |
       | Aeróbico intenso / Potencia aeróbica  |
@@ -82,43 +82,43 @@ Característica: Cargas de entrenamiento
       | Técnica                               |
       | Salidas                               |
       | Virajes/volteos                       |
-    Y el contenido "Aeróbico ligero" muestra la descripción "Esfuerzo suave"
-    Y el contenido "Aláctico / Sprint" muestra la descripción "Velocidad máxima en distancias cortas"
-    Y el contenido "Piernas" no se puede eliminar
+    And the content "Aeróbico ligero" shows the description "Esfuerzo suave"
+    And the content "Aláctico / Sprint" shows the description "Velocidad máxima en distancias cortas"
+    And the content "Piernas" cannot be deleted
 
-  Escenario: Añadir un contenido manual y registrar una carga con él
-    Cuando abro el gestor de contenidos de entrenamiento
-    Y guardo un contenido de entrenamiento con los datos:
+  Scenario: Add a custom content and log a load with it
+    When I open the training contents manager
+    And I save a training content with the data:
       | Nombre      | Aguas abiertas                |
       | Descripción | Nado en mar con boyas y oleaje |
-    Entonces veo el aviso "Contenido «Aguas abiertas» creado"
-    Y el contenido "Aguas abiertas" aparece como personalizado
-    Cuando registro una carga con los datos:
+    Then I see the toast "Contenido «Aguas abiertas» creado"
+    And the content "Aguas abiertas" appears as custom
+    When I log a load with the data:
       | Nadador   | Lucía Fernández Roces |
       | Contenido | Aguas abiertas        |
       | Metros    | 1800                  |
-    Entonces la carga de 1800 metros de "Lucía Fernández" aparece en las cargas de la semana
+    Then the load of 1800 metres of "Lucía Fernández" appears in the week loads
 
-  Escenario: No se puede crear un contenido con un nombre que ya existe
-    Cuando abro el gestor de contenidos de entrenamiento
-    Y guardo un contenido de entrenamiento con los datos:
+  Scenario: A content cannot be created with a name that already exists
+    When I open the training contents manager
+    And I save a training content with the data:
       | Nombre | AEROBICO ligero |
-    Entonces veo el error "Ya existe un contenido con ese nombre"
+    Then I see the error "Ya existe un contenido con ese nombre"
 
-  Escenario: Un contenido desactivado deja de ofrecerse al registrar cargas
-    Cuando abro el gestor de contenidos de entrenamiento
-    Y desactivo el contenido "Brazos"
-    Entonces el selector de contenido no ofrece "Brazos"
-    Cuando activo el contenido "Brazos"
-    Entonces el selector de contenido ofrece "Brazos"
+  Scenario: A deactivated content is no longer offered when logging loads
+    When I open the training contents manager
+    And I deactivate the content "Brazos"
+    Then the content selector does not offer "Brazos"
+    When I activate the content "Brazos"
+    Then the content selector offers "Brazos"
 
-  Escenario: No se puede eliminar un contenido que ya tiene cargas registradas
-    Cuando abro el gestor de contenidos de entrenamiento
-    Y guardo un contenido de entrenamiento con los datos:
+  Scenario: A content that already has loads logged cannot be deleted
+    When I open the training contents manager
+    And I save a training content with the data:
       | Nombre | Temporal |
-    Y registro una carga con los datos:
+    And I log a load with the data:
       | Nadador   | Lucía Fernández Roces |
       | Contenido | Temporal              |
       | Metros    | 900                   |
-    Y intento eliminar el contenido "Temporal"
-    Entonces veo el texto "no se puede eliminar"
+    And I try to delete the content "Temporal"
+    Then I see the text "no se puede eliminar"

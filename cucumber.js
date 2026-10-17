@@ -1,17 +1,17 @@
-// Configuración de Cucumber. VIEWPORT=movil ejecuta el perfil móvil (Pixel 5).
-const movil = process.env.VIEWPORT === 'movil';
-const sufijo = movil ? '-movil' : '';
-const excluidos = ['@google', '@pendiente', movil ? '@escritorio' : null].filter(Boolean);
+// Cucumber configuration. VIEWPORT=mobile runs the mobile profile (Pixel 5).
+const mobile = process.env.VIEWPORT === 'mobile';
+const suffix = mobile ? '-mobile' : '';
+const excluded = ['@google', '@pending', mobile ? '@desktop' : null].filter(Boolean);
 
 export default {
   paths: ['features/**/*.feature'],
   import: ['features/support/**/*.js', 'features/steps/**/*.js'],
   format: [
     'progress',
-    `html:reports/cucumber${sufijo}.html`,
-    `junit:reports/cucumber${sufijo}.xml`,
+    `html:reports/cucumber${suffix}.html`,
+    `junit:reports/cucumber${suffix}.xml`,
   ],
-  tags: excluidos.map((t) => `not ${t}`).join(' and '),
+  tags: excluded.map((t) => `not ${t}`).join(' and '),
   retry: process.env.CI ? 2 : 0,
-  worldParameters: { viewport: movil ? 'movil' : 'escritorio' },
+  worldParameters: { viewport: mobile ? 'mobile' : 'desktop' },
 };

@@ -1,229 +1,229 @@
 import { Given, When, Then } from '@cucumber/cucumber';
 import assert from 'node:assert/strict';
-import { regexTexto, todasLasPalabras } from '../support/world.js';
+import { textRegex, allWords } from '../support/world.js';
 
-const exacto = (s) => new RegExp('^' + s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '$');
-const sinSeparadores = (t) => t.replace(/[.\s  ,]/g, '');
-const tarjeta = (mundo, titulo) => mundo.vista.locator('section.card').filter({ has: mundo.page.getByRole('heading', { name: titulo, exact: true }) });
-const hoja = (mundo) => mundo.page.locator('.sheet');
+const exact = (s) => new RegExp('^' + s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '$');
+const withoutSeparators = (t) => t.replace(/[.\s,]/g, '');
+const card = (world, title) => world.view.locator('section.card').filter({ has: world.page.getByRole('heading', { name: title, exact: true }) });
+const sheet = (world) => world.page.locator('.sheet');
 
 // ---- Loads ----
-async function abrirRegistroCarga(mundo) {
-  await mundo.vista.getByRole('button', { name: 'Registrar carga', exact: true }).click();
-  await mundo.verVisible(hoja(mundo), 'No se abre el formulario de registro');
+async function openLoadForm(world) {
+  await world.view.getByRole('button', { name: 'Registrar carga', exact: true }).click();
+  await world.expectVisible(sheet(world), 'The load form does not open');
 }
-async function registrarCarga(mundo, tabla) {
-  await abrirRegistroCarga(mundo);
-  await mundo.rellenarTabla(hoja(mundo), tabla);
-  await hoja(mundo).getByRole('button', { name: 'Registrar', exact: true }).click();
-  await mundo.verVisible(mundo.page.locator('#toasts .toast', { hasText: 'Carga registrada' }));
+async function logLoad(world, table) {
+  await openLoadForm(world);
+  await world.fillTable(sheet(world), table);
+  await sheet(world).getByRole('button', { name: 'Registrar', exact: true }).click();
+  await world.expectVisible(world.page.locator('#toasts .toast', { hasText: 'Carga registrada' }));
 }
 
-When('registro una carga con los datos:', async function (tabla) { await registrarCarga(this, tabla); });
+When('I log a load with the data:', async function (table) { await logLoad(this, table); });
 
-When('abro el formulario para registrar una carga', async function () { await abrirRegistroCarga(this); });
+When('I open the form to log a load', async function () { await openLoadForm(this); });
 
-When('consulto las cargas de {string}', async function (nombre) {
-  await this.vista.locator('#cg-nadador').selectOption({ label: nombre });
+When('I check the loads of {string}', async function (name) {
+  await this.view.locator('#cg-nadador').selectOption({ label: name });
 });
 
-When('paso a la semana anterior de cargas', async function () {
-  await this.vista.getByRole('button', { name: 'Semana anterior' }).click();
+When('I go to the previous loads week', async function () {
+  await this.view.getByRole('button', { name: 'Semana anterior' }).click();
 });
 
-When('fijo el objetivo semanal de {string} entre {int} y {int} metros', async function (tipo, min, max) {
-  const fila = this.vista.locator('.cg-obj tbody tr').filter({ has: this.page.locator('td:first-child', { hasText: exacto(tipo) }) });
-  await fila.locator('input').nth(0).fill(String(min));
-  await fila.locator('input').nth(1).fill(String(max));
-  await this.vista.locator('.cg-obj').getByRole('button', { name: 'Guardar objetivos' }).click();
-  await this.verVisible(this.page.locator('#toasts .toast', { hasText: 'Objetivos guardados' }));
+When('I set the weekly target of {string} between {int} and {int} metres', async function (type, min, max) {
+  const row = this.view.locator('.cg-obj tbody tr').filter({ has: this.page.locator('td:first-child', { hasText: exact(type) }) });
+  await row.locator('input').nth(0).fill(String(min));
+  await row.locator('input').nth(1).fill(String(max));
+  await this.view.locator('.cg-obj').getByRole('button', { name: 'Guardar objetivos' }).click();
+  await this.expectVisible(this.page.locator('#toasts .toast', { hasText: 'Objetivos guardados' }));
 });
 
-When('dejo sin objetivo semanal todos los contenidos de entrenamiento', async function () {
-  const filas = this.vista.locator('.cg-obj tbody tr');
-  assert.ok(await filas.count() >= 10, 'Faltan contenidos en la tabla de objetivos');
-  const inputs = this.vista.locator('.cg-obj tbody input');
+When('I leave every training content without a weekly target', async function () {
+  const rows = this.view.locator('.cg-obj tbody tr');
+  assert.ok(await rows.count() >= 10, 'Contents are missing in the targets table');
+  const inputs = this.view.locator('.cg-obj tbody input');
   for (let i = 0; i < await inputs.count(); i++) await inputs.nth(i).fill('0'); // ONE save for the whole table
-  await this.vista.locator('.cg-obj').getByRole('button', { name: 'Guardar objetivos' }).click();
-  await this.verVisible(this.page.locator('#toasts .toast', { hasText: /Objetivos guardados|No hay cambios/ }));
+  await this.view.locator('.cg-obj').getByRole('button', { name: 'Guardar objetivos' }).click();
+  await this.expectVisible(this.page.locator('#toasts .toast', { hasText: /Objetivos guardados|No hay cambios/ }));
 });
 
-When('deshago el último borrado', async function () {
+When('I undo the last deletion', async function () {
   await this.page.locator('#toasts .toast-action', { hasText: 'Deshacer' }).click();
 });
 
-When('elimino la carga de {int} metros de {string}', async function (metros, nombre) {
-  const fila = tarjeta(this, 'Cargas de la semana').locator('tbody tr').filter({ hasText: todasLasPalabras(nombre) }).filter({ hasText: sinSeparadoresRegex(metros) }).first();
-  await fila.getByRole('button', { name: /^Eliminar la carga/ }).click();
+When('I delete the load of {int} metres of {string}', async function (metres, name) {
+  const row = card(this, 'Cargas de la semana').locator('tbody tr').filter({ hasText: allWords(name) }).filter({ hasText: separatorsRegex(metres) }).first();
+  await row.getByRole('button', { name: /^Eliminar la carga/ }).click();
 });
-const sinSeparadoresRegex = (n) => new RegExp(String(n).replace(/(\d)(?=(\d{3})+$)/g, '$1\\.?'));
+const separatorsRegex = (n) => new RegExp(String(n).replace(/(\d)(?=(\d{3})+$)/g, '$1\\.?'));
 
-Then('la carga de {int} metros de {string} aparece en las cargas de la semana', async function (metros, nombre) {
-  const filas = tarjeta(this, 'Cargas de la semana').locator('tbody tr').filter({ hasText: todasLasPalabras(nombre) });
+Then('the load of {int} metres of {string} appears in the week loads', async function (metres, name) {
+  const rows = card(this, 'Cargas de la semana').locator('tbody tr').filter({ hasText: allWords(name) });
   await this.eventually(async () => {
-    const textos = (await filas.allInnerTexts()).map(sinSeparadores);
-    assert.ok(textos.some((t) => t.includes(String(metros))), `Filas de ${nombre}: ${textos}`);
+    const texts = (await rows.allInnerTexts()).map(withoutSeparators);
+    assert.ok(texts.some((t) => t.includes(String(metres))), `Rows of ${name}: ${texts}`);
   });
 });
 
-Then('la carga de {int} metros de {string} no aparece en las cargas de la semana', async function (metros, nombre) {
-  const filas = tarjeta(this, 'Cargas de la semana').locator('tbody tr').filter({ hasText: todasLasPalabras(nombre) });
+Then('the load of {int} metres of {string} does not appear in the week loads', async function (metres, name) {
+  const rows = card(this, 'Cargas de la semana').locator('tbody tr').filter({ hasText: allWords(name) });
   await this.eventually(async () => {
-    const textos = (await filas.allInnerTexts()).map(sinSeparadores);
-    assert.ok(!textos.some((t) => t.includes(String(metros))), `Sigue la carga: ${textos}`);
+    const texts = (await rows.allInnerTexts()).map(withoutSeparators);
+    assert.ok(!texts.some((t) => t.includes(String(metres))), `The load is still there: ${texts}`);
   });
 });
 
-Then('la carga recién registrada aparece resaltada', async function () {
-  await this.verVisible(tarjeta(this, 'Cargas de la semana').locator('tbody tr.is-new'));
+Then('the newly logged load appears highlighted', async function () {
+  await this.expectVisible(card(this, 'Cargas de la semana').locator('tbody tr.is-new'));
 });
 
-Then('todas las cargas listadas son de {string}', async function (nombre) {
-  const filas = tarjeta(this, 'Cargas de la semana').locator('tbody tr');
+Then('all the listed loads are of {string}', async function (name) {
+  const rows = card(this, 'Cargas de la semana').locator('tbody tr');
   await this.eventually(async () => {
-    const n = await filas.count();
-    assert.ok(n > 0, 'No hay cargas');
-    const ok = await filas.evaluateAll((trs, nom) => trs.every((tr) => tr.children[1].textContent.trim() === nom), nombre);
-    assert.ok(ok, 'Hay cargas de otros deportistas');
+    const n = await rows.count();
+    assert.ok(n > 0, 'There are no loads');
+    const ok = await rows.evaluateAll((trs, nom) => trs.every((tr) => tr.children[1].textContent.trim() === nom), name);
+    assert.ok(ok, 'There are loads of other swimmers');
   });
 });
 
-Then('veo la evolución de las cargas por tipo y por día', async function () {
-  await this.verVisible(this.vista.locator('[aria-label="Metros semanales por tipo"]'));
-  await this.verVisible(this.vista.locator('[aria-label="Metros por día"]'));
+Then('I see the evolution of the loads by type and by day', async function () {
+  await this.expectVisible(this.view.locator('[aria-label="Metros semanales por tipo"]'));
+  await this.expectVisible(this.view.locator('[aria-label="Metros por día"]'));
 });
 
-Then('la semana mostrada es distinta de la actual', async function () {
-  await this.verVisible(this.vista.locator('.cg-week'));
+Then('the week shown is different from the current one', async function () {
+  await this.expectVisible(this.view.locator('.cg-week'));
 });
 
-Then('veo la alerta {string}', async function (texto) {
-  await this.verVisible(this.vista.locator('.alert', { hasText: texto }), `No hay alerta "${texto}"`);
+Then('I see the alert {string}', async function (text) {
+  await this.expectVisible(this.view.locator('.alert', { hasText: text }), `There is no alert "${text}"`);
 });
 
-Then('veo el error en el campo {string}: {string}', async function (campo, texto) {
-  const ambito = (await this.page.locator('.sheet').count()) ? this.page.locator('.sheet') : this.vista;
-  await this.verVisible(ambito.locator('.field-error', { hasText: texto }), `No aparece el error "${texto}"`);
-  assert.equal(await ambito.getByLabel(campo).first().getAttribute('aria-invalid'), 'true', `"${campo}" no está marcado como inválido`);
+Then('I see the error in the field {string}: {string}', async function (field, text) {
+  const scope = (await this.page.locator('.sheet').count()) ? this.page.locator('.sheet') : this.view;
+  await this.expectVisible(scope.locator('.field-error', { hasText: text }), `The error "${text}" does not appear`);
+  assert.equal(await scope.getByLabel(field).first().getAttribute('aria-invalid'), 'true', `"${field}" is not marked as invalid`);
 });
 
-Given('que he registrado una carga de {int} metros para {string}', async function (metros, nombre) {
-  await this.irA('cargas');
-  await registrarCarga(this, { raw: () => [['Nadador', nombre], ['Contenido', 'Aeróbico medio / Umbral anaeróbico'], ['Metros', String(metros)]] });
+Given('I have logged a load of {int} metres for {string}', async function (metres, name) {
+  await this.goTo('cargas');
+  await logLoad(this, { raw: () => [['Nadador', name], ['Contenido', 'Aeróbico medio / Umbral anaeróbico'], ['Metros', String(metres)]] });
 });
 
 // ---- Times ----
-async function abrirRegistroMarca(mundo) {
-  await mundo.vista.getByRole('button', { name: 'Registrar marca', exact: true }).click();
-  await mundo.verVisible(hoja(mundo), 'No se abre el formulario de marca');
+async function openTimeForm(world) {
+  await world.view.getByRole('button', { name: 'Registrar marca', exact: true }).click();
+  await world.expectVisible(sheet(world), 'The time form does not open');
 }
 
-When('registro una marca con los datos:', async function (tabla) {
-  await abrirRegistroMarca(this);
-  await this.rellenarTabla(hoja(this), tabla);
-  await hoja(this).getByRole('button', { name: 'Registrar', exact: true }).click();
+When('I log a time with the data:', async function (table) {
+  await openTimeForm(this);
+  await this.fillTable(sheet(this), table);
+  await sheet(this).getByRole('button', { name: 'Registrar', exact: true }).click();
 });
 
-When('abro el formulario para registrar una marca', async function () { await abrirRegistroMarca(this); });
+When('I open the form to log a time', async function () { await openTimeForm(this); });
 
-When('consulto la evolución de {string} en la prueba {string}', async function (nombre, prueba) {
-  const selects = this.vista.locator('.mc-filters select');
-  await selects.nth(0).selectOption({ label: nombre });
-  await selects.nth(1).selectOption({ label: prueba });
+When('I check the evolution of {string} in the event {string}', async function (name, event) {
+  const selects = this.view.locator('.mc-filters select');
+  await selects.nth(0).selectOption({ label: name });
+  await selects.nth(1).selectOption({ label: event });
 });
 
-When('filtro las marcas por {string} {string}', async function (campo, valor) {
-  await this.rellenar(this.vista.locator('.mc-filters'), campo, valor);
+When('I filter the times by {string} {string}', async function (field, value) {
+  await this.fill(this.view.locator('.mc-filters'), field, value);
 });
 
-When('quito el filtro {string}', async function (texto) {
-  await this.vista.locator('.mc-chips').getByRole('button', { name: new RegExp('Quitar filtro: ' + texto.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')) }).click();
+When('I remove the filter {string}', async function (text) {
+  await this.view.locator('.mc-chips').getByRole('button', { name: new RegExp('Quitar filtro: ' + text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')) }).click();
 });
 
-When('pido ver más marcas del historial', async function () {
-  await this.vista.getByRole('button', { name: /^Ver más/ }).click();
+When('I ask to see more times from the history', async function () {
+  await this.view.getByRole('button', { name: /^Ver más/ }).click();
 });
 
-Then('la marca queda registrada', async function () {
-  await this.verVisible(this.page.locator('#toasts .toast', { hasText: 'Marca registrada' }));
+Then('the time is logged', async function () {
+  await this.expectVisible(this.page.locator('#toasts .toast', { hasText: 'Marca registrada' }));
 });
 
-Then('la marca no se registra por tiempo no válido', async function () {
-  await this.verVisible(hoja(this).locator('.field-error', { hasText: 'Tiempo no válido' }));
+Then('the time is not logged because it is invalid', async function () {
+  await this.expectVisible(sheet(this).locator('.field-error', { hasText: 'Tiempo no válido' }));
 });
 
-Then('el formulario pide indicar el tiempo', async function () {
-  await this.verVisible(hoja(this).locator('.field-error', { hasText: 'Indica el tiempo' }));
+Then('the form asks for the time', async function () {
+  await this.expectVisible(sheet(this).locator('.field-error', { hasText: 'Indica el tiempo' }));
 });
 
-Then('el tiempo escrito {string} se interpreta como {string}', async function (escrito, interpretado) {
-  const campo = hoja(this).getByLabel('Tiempo (mm:ss.cc)').first();
-  await campo.fill(escrito);
-  await this.verVisible(hoja(this).locator('.mc-live', { hasText: interpretado }));
+Then('the typed time {string} is interpreted as {string}', async function (typed, interpreted) {
+  const field = sheet(this).getByLabel('Tiempo (mm:ss.cc)').first();
+  await field.fill(typed);
+  await this.expectVisible(sheet(this).locator('.mc-live', { hasText: interpreted }));
 });
 
-Then('la mejor marca de {string} en {string} es {string}', async function (nombre, prueba, tiempo) {
-  const fila = tarjeta(this, 'Mejores marcas').locator('tbody tr').filter({ hasText: todasLasPalabras(`${prueba} ${nombre}`) });
-  await this.eventually(async () => assert.match(await fila.first().innerText(), regexTexto(tiempo)));
+Then('the best time of {string} in {string} is {string}', async function (name, event, time) {
+  const row = card(this, 'Mejores marcas').locator('tbody tr').filter({ hasText: allWords(`${event} ${name}`) });
+  await this.eventually(async () => assert.match(await row.first().innerText(), textRegex(time)));
 });
 
-Then('la mejor marca mostrada es {string}', async function (tiempo) {
-  await this.eventually(async () => assert.match(await tarjeta(this, 'Mejores marcas').locator('tbody').innerText(), regexTexto(tiempo)));
+Then('the best time shown is {string}', async function (time) {
+  await this.eventually(async () => assert.match(await card(this, 'Mejores marcas').locator('tbody').innerText(), textRegex(time)));
 });
 
-Then('el historial señala {string} como mejor marca', async function (tiempo) {
-  await this.verVisible(tarjeta(this, 'Historial').locator('td', { hasText: regexTexto(tiempo) }).locator('.mc-pb'));
+Then('the history marks {string} as the best time', async function (time) {
+  await this.expectVisible(card(this, 'Historial').locator('td', { hasText: textRegex(time) }).locator('.mc-pb'));
 });
 
-Then('el historial no señala {string} como mejor marca', async function (tiempo) {
-  const t = tarjeta(this, 'Historial');
+Then('the history does not mark {string} as the best time', async function (time) {
+  const t = card(this, 'Historial');
   await this.eventually(async () => {
-    assert.equal(await t.locator('td', { hasText: regexTexto(tiempo) }).locator('.mc-pb').count(), 0);
-    assert.ok(await t.locator('td', { hasText: regexTexto(tiempo) }).count() > 0, 'La marca no está en el historial');
+    assert.equal(await t.locator('td', { hasText: textRegex(time) }).locator('.mc-pb').count(), 0);
+    assert.ok(await t.locator('td', { hasText: textRegex(time) }).count() > 0, 'The time is not in the history');
   });
 });
 
-Then('el historial no incluye la marca {string}', async function (tiempo) {
-  await this.eventually(async () => assert.equal(await tarjeta(this, 'Historial').locator('td', { hasText: regexTexto(tiempo) }).count(), 0));
+Then('the history does not include the time {string}', async function (time) {
+  await this.eventually(async () => assert.equal(await card(this, 'Historial').locator('td', { hasText: textRegex(time) }).count(), 0));
 });
 
-Then('el historial incluye la marca {string}', async function (tiempo) {
-  await this.verVisible(tarjeta(this, 'Historial').locator('td', { hasText: regexTexto(tiempo) }));
+Then('the history includes the time {string}', async function (time) {
+  await this.expectVisible(card(this, 'Historial').locator('td', { hasText: textRegex(time) }));
 });
 
-Then('el historial muestra {int} marcas', async function (n) {
-  await this.eventually(async () => assert.equal(await tarjeta(this, 'Historial').locator('tbody tr').count(), n));
+Then('the history shows {int} times', async function (n) {
+  await this.eventually(async () => assert.equal(await card(this, 'Historial').locator('tbody tr').count(), n));
 });
 
-Then('el historial muestra el bañador {string} en la marca {string}', async function (banador, tiempo) {
-  const fila = tarjeta(this, 'Historial').locator('tbody tr').filter({ hasText: regexTexto(tiempo) }).first();
-  await this.eventually(async () => assert.match(await fila.innerText(), regexTexto(banador)));
+Then('the history shows the swimsuit {string} in the time {string}', async function (swimsuit, time) {
+  const row = card(this, 'Historial').locator('tbody tr').filter({ hasText: textRegex(time) }).first();
+  await this.eventually(async () => assert.match(await row.innerText(), textRegex(swimsuit)));
 });
 
-Then('veo el gráfico de evolución de marcas', async function () {
-  await this.verVisible(this.vista.locator('svg[aria-label="Evolución de marcas"]'));
+Then('I see the time evolution chart', async function () {
+  await this.expectVisible(this.view.locator('svg[aria-label="Evolución de marcas"]'));
 });
 
-Then('el gráfico de evolución de marcas se muestra sin elegir nada', async function () {
-  await this.verVisible(this.vista.locator('svg[aria-label="Evolución de marcas"]'));
+Then('the time evolution chart is shown without choosing anything', async function () {
+  await this.expectVisible(this.view.locator('svg[aria-label="Evolución de marcas"]'));
 });
 
-Then('hay un filtro activo {string}', async function (texto) {
-  await this.verVisible(this.vista.locator('.mc-chips .chip', { hasText: texto }));
+Then('there is an active filter {string}', async function (text) {
+  await this.expectVisible(this.view.locator('.mc-chips .chip', { hasText: text }));
 });
 
-Given('que he registrado las marcas de {string} en {string}:', async function (nombre, prueba, tabla) {
-  await this.irA('marcas');
-  for (const fila of tabla.hashes()) {
-    await abrirRegistroMarca(this);
-    const d = hoja(this);
-    await this.rellenar(d, 'Nadador', nombre);
-    await this.rellenar(d, 'Prueba', prueba);
-    await this.rellenar(d, 'Fecha', fila.fecha);
-    await this.rellenar(d, 'Tiempo (mm:ss.cc)', fila.tiempo);
-    if (fila.bañador) await this.rellenar(d, 'Bañador', fila.bañador);
+Given('I have logged the times of {string} in {string}:', async function (name, event, table) {
+  await this.goTo('marcas');
+  for (const row of table.hashes()) {
+    await openTimeForm(this);
+    const d = sheet(this);
+    await this.fill(d, 'Nadador', name);
+    await this.fill(d, 'Prueba', event);
+    await this.fill(d, 'Fecha', row.date);
+    await this.fill(d, 'Tiempo (mm:ss.cc)', row.time);
+    if (row.swimsuit) await this.fill(d, 'Bañador', row.swimsuit);
     await d.getByRole('button', { name: 'Registrar', exact: true }).click();
-    await this.verVisible(this.page.locator('#toasts .toast', { hasText: 'Marca registrada' }));
-    await this.noVer(d, 'La hoja no se cierra');
+    await this.expectVisible(this.page.locator('#toasts .toast', { hasText: 'Marca registrada' }));
+    await this.expectHidden(d, 'The sheet does not close');
   }
 });

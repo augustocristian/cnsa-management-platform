@@ -1,19 +1,19 @@
-# language: es
-@uso-individual
-Característica: Uso individual de la aplicación
-  Como entrenador uso la aplicación yo solo; la app no tiene inicio de sesión ni identidad: solo conecto mi Google Drive.
-  Mis datos se guardan en mi propio Drive (carpeta cnl) únicamente para que persistan y los tenga en todos mis dispositivos.
-  No hay roles, ni compartir datos, ni otros usuarios: los nadadores y los grupos son registros que yo gestiono.
+# language: en
+@single-user
+Feature: Individual use of the app
+  As a coach I use the app on my own; the app has no sign-in and no identity: I just connect my Google Drive.
+  My data is saved in my own Drive (cnl folder) only so that it persists and I have it on all my devices.
+  There are no roles, no data sharing and no other users: swimmers and groups are records that I manage.
 
-  Antecedentes:
-    Dado un club con datos de demostración
+  Background:
+    Given a club with demo data
 
   @smoke
-  Esquema del escenario: El menú ofrece todos los módulos
-    Entonces el menú muestra el módulo "<modulo>"
+  Scenario Outline: The menu offers all the modules
+    Then the menu shows the module "<module>"
 
-    Ejemplos:
-      | modulo         |
+    Examples:
+      | module         |
       | Inicio         |
       | Nadadores      |
       | Grupos         |
@@ -26,62 +26,62 @@ Característica: Uso individual de la aplicación
       | Avisos y notas |
       | Configuración  |
 
-  Escenario: No hay roles, selector de rol ni espacios por tipo de usuario
-    Entonces no existe el selector para cambiar de rol
-    Y no veo el texto "Mi espacio"
-    Y no se muestra ninguna identidad de usuario
+  Scenario: There are no roles, role selector or spaces per type of user
+    Then there is no role selector
+    And I do not see the text "Mi espacio"
+    And no user identity is shown
 
-  Escenario: Las pantallas de gestión siempre permiten editar
-    Cuando abro el módulo "Nadadores"
-    Entonces veo el botón "Nuevo nadador"
-    Cuando abro el módulo "Avisos y notas"
-    Entonces veo el botón "Guardar aviso"
-    Cuando abro el módulo "Planificación"
-    Y abro el apartado "Piscina"
-    Entonces veo el botón "Sugerir distribución"
+  Scenario: The management screens always allow editing
+    When I open the "Nadadores" module
+    Then I see the button "Nuevo nadador"
+    When I open the "Avisos y notas" module
+    Then I see the button "Guardar aviso"
+    When I open the "Planificación" module
+    And I open the section "Piscina"
+    Then I see the button "Sugerir distribución"
 
-  Escenario: La configuración no ofrece usuarios, roles ni compartir
-    Cuando intento abrir directamente el módulo "Configuración"
-    Entonces estoy en el módulo "Configuración"
-    Y la configuración no ofrece usuarios, roles ni compartir la hoja
+  Scenario: The settings offer no users, roles or sharing
+    When I try to open the "Configuración" module directly
+    Then I am in the "Configuración" module
+    And the settings offer no users, roles or sharing of the sheet
 
-  Escenario: Los datos se guardan en el Drive de la propia persona
-    Cuando abro el módulo "Nadadores"
-    Y doy de alta al nadador con los datos:
+  Scenario: The data is saved in the person's own Drive
+    When I open the "Nadadores" module
+    And I register the swimmer with the data:
       | Nombre    | Itziar   |
       | Apellidos | En Drive |
-    Entonces el fichero del club en Drive contiene al nadador "Itziar"
+    Then the club file in Drive contains the swimmer "Itziar"
 
-  Escenario: Al abrir la aplicación en otro dispositivo se ven los mismos datos
-    Cuando abro el módulo "Nadadores"
-    Y doy de alta al nadador con los datos:
+  Scenario: When opening the app on another device the same data is seen
+    When I open the "Nadadores" module
+    And I register the swimmer with the data:
       | Nombre    | Itziar    |
       | Apellidos | Dos Móvil |
-    Y el fichero del club en Drive contiene al nadador "Itziar"
-    Y abro la aplicación en otro dispositivo con el mismo Drive
-    Y en el otro dispositivo abro el módulo "Nadadores"
-    Entonces en el otro dispositivo veo en pantalla a alguien llamado "Itziar"
-    Y ningún dispositivo muestra ninguna identidad de usuario
+    And the club file in Drive contains the swimmer "Itziar"
+    And I open the app on another device with the same Drive
+    And on the other device I open the "Nadadores" module
+    Then on the other device I see someone named "Itziar" on the screen
+    And no device shows any user identity
 
-  Escenario: Un cambio hecho en un dispositivo llega al otro con el mismo Drive
-    Cuando abro la aplicación en otro dispositivo con el mismo Drive
-    Y en el otro dispositivo abro el módulo "Nadadores"
-    Y en el otro dispositivo doy de alta al nadador "Itziar" "Desde el móvil"
-    Y vuelvo al primer dispositivo y lo abro de nuevo
-    Y abro el módulo "Nadadores"
-    Entonces veo en pantalla a alguien llamado "Itziar"
+  Scenario: A change made on one device reaches the other with the same Drive
+    When I open the app on another device with the same Drive
+    And on the other device I open the "Nadadores" module
+    And on the other device I register the swimmer "Itziar" "Desde el móvil"
+    And I go back to the first device and open it again
+    And I open the "Nadadores" module
+    Then I see someone named "Itziar" on the screen
 
-  Escenario: Cada persona ve únicamente sus propios datos
-    Cuando abro el módulo "Nadadores"
-    Y doy de alta al nadador con los datos:
+  Scenario: Each person sees only their own data
+    When I open the "Nadadores" module
+    And I register the swimmer with the data:
       | Nombre    | Itziar  |
       | Apellidos | Privado |
-    Y el fichero del club en Drive contiene al nadador "Itziar"
-    Y otra persona abre la aplicación con su propio Drive
-    Entonces en el otro dispositivo veo el encabezado "Crea tu club"
-    Y en el otro dispositivo no veo en pantalla a alguien llamado "Itziar"
+    And the club file in Drive contains the swimmer "Itziar"
+    And another person opens the app with their own Drive
+    Then on the other device I see the heading "Crea tu club"
+    And on the other device I do not see someone named "Itziar" on the screen
 
-  Escenario: Desconectar Drive limpia la caché local del dispositivo
-    Cuando desconecto Drive
-    Entonces veo el botón "Conectar Google Drive"
-    Y el navegador no guarda copias locales de datos del club ni de la sesión
+  Scenario: Disconnecting Drive clears the local cache of the device
+    When I disconnect Drive
+    Then I see the button "Conectar Google Drive"
+    And the browser holds no local club or session copies

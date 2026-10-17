@@ -1,17 +1,17 @@
-# language: es
-@inicio
-Característica: Panel de inicio
-  Como entrenador del club
-  quiero una vista rápida de lo más relevante, la actividad reciente y los avisos
-  para empezar la jornada sabiendo qué está pasando
+# language: en
+@home
+Feature: Home panel
+  As the coach of the club
+  I want a quick view of the most relevant things, the recent activity and the notices
+  to start the day knowing what is going on
 
   @smoke
-  Esquema del escenario: El panel resume la información relevante del club
-    Dado un club con datos de demostración
-    Entonces veo el encabezado "<tarjeta>"
+  Scenario Outline: The panel summarises the relevant information of the club
+    Given a club with demo data
+    Then I see the heading "<card>"
 
-    Ejemplos: Hoy, asistencia, alertas, acciones, cargas, avisos y temporada
-      | tarjeta                        |
+    Examples: Today, attendance, alerts, actions, loads, notices and season
+      | card                           |
       | Hoy                            |
       | Asistencia hoy                 |
       | Alertas de cargas              |
@@ -21,70 +21,70 @@ Característica: Panel de inicio
       | Próximo evento de la temporada |
 
   @smoke
-  Escenario: El banner resume el día con el nombre del club
-    Dado un club con datos de demostración
-    Entonces el banner del panel muestra el nombre del club "Club Natación Lugones"
-    Y el banner del panel resume las sesiones de hoy
+  Scenario: The banner summarises the day with the club name
+    Given a club with demo data
+    Then the panel banner shows the club name "Club Natación Lugones"
+    And the panel banner summarises the sessions of today
 
-  Esquema del escenario: Las acciones rápidas llevan directamente a la tarea
-    Dado un club con datos de demostración
-    Cuando pulso la acción rápida "<acción>"
-    Entonces estoy en el módulo "<módulo>"
+  Scenario Outline: The quick actions lead directly to the task
+    Given a club with demo data
+    When I press the quick action "<action>"
+    Then I am in the "<module>" module
 
-    Ejemplos:
-      | acción           | módulo         |
+    Examples:
+      | action           | module         |
       | Pasar lista      | Asistencia     |
       | Registrar carga  | Cargas         |
       | Nueva marca      | Marcas         |
       | Nuevo aviso      | Avisos y notas |
 
-  @escritorio
-  Escenario: En escritorio las tarjetas llenan cada fila sin huecos
-    Dado un club con datos de demostración
-    Entonces las tarjetas del panel llenan cada fila sin huecos
+  @desktop
+  Scenario: On desktop the cards fill each row without gaps
+    Given a club with demo data
+    Then the panel cards fill each row without gaps
 
-  Escenario: El panel no se desborda en horizontal y el gráfico semanal es legible y accesible
-    Dado un club con datos de demostración
-    Entonces el panel no tiene desplazamiento horizontal
-    Y los textos del gráfico semanal miden al menos 11 píxeles
-    Y el gráfico semanal tiene una tabla como alternativa
+  Scenario: The panel does not overflow horizontally and the weekly chart is legible and accessible
+    Given a club with demo data
+    Then the panel has no horizontal scroll
+    And the weekly chart texts are at least 11 pixels
+    And the weekly chart has a table as an alternative
 
-  Escenario: Las alertas de cargas usan el componente de alerta con icono
-    Dado un club con datos de demostración
-    Entonces cada alerta de cargas del panel tiene icono y texto
+  Scenario: The load alerts use the alert component with an icon
+    Given a club with demo data
+    Then every load alert of the panel has an icon and text
 
-  Escenario: Un aviso nuevo aparece entre los avisos recientes del panel
-    Dado un club con datos de demostración
-    Y que estoy en el módulo "Avisos y notas"
-    Cuando guardo un aviso con los datos:
+  Scenario: A new notice appears among the recent notices of the panel
+    Given a club with demo data
+    And I have the "Avisos y notas" module open
+    When I save a notice with the data:
       | Título        | Cambio de horario del sábado    |
       | Grupo         | Todo el club                    |
       | Texto         | El sábado se entrena a las 9:00 |
-    Y abro el módulo "Inicio"
-    Entonces veo el texto "Cambio de horario del sábado"
+    And I open the "Inicio" module
+    Then I see the text "Cambio de horario del sábado"
 
-  Escenario: La campana de avisos lleva a los avisos y notas
-    Dado un club con datos de demostración
-    Cuando pulso la campana de avisos
-    Entonces estoy en el módulo "Avisos y notas"
+  Scenario: The notices bell leads to the notices and notes
+    Given a club with demo data
+    When I press the notices bell
+    Then I am in the "Avisos y notas" module
 
   @smoke
-  Escenario: Un club vacío ofrece una acción en cada tarjeta y los primeros pasos
-    Dado que la aplicación está recién abierta sin sesión
-    Y que he creado el club "Club Vacío" con el asistente
-    Entonces veo el encabezado "Primeros pasos"
-    Y la tarjeta "Hoy" ofrece "Programar una sesión"
-    Y la tarjeta "Asistencia hoy" ofrece "Abrir asistencia"
-    Y la tarjeta "Alertas de cargas" ofrece "Definir objetivos"
-    Y la tarjeta "Carga semanal del club" ofrece "Registrar carga"
-    Y la tarjeta "Avisos recientes" ofrece "Escribir un aviso"
-    Y la tarjeta "Próximo evento de la temporada" ofrece "Planificar la temporada"
+  Scenario: An empty club offers an action in each card and the first steps
+    Given the app has just been opened without a session
+    And I have created the club "Club Vacío" with the wizard
+    Then I see the heading "Primeros pasos"
+    And the card "Hoy" offers "Programar una sesión"
+    And the card "Asistencia hoy" offers "Abrir asistencia"
+    And the card "Alertas de cargas" offers "Definir objetivos"
+    And the card "Carga semanal del club" offers "Registrar carga"
+    And the card "Avisos recientes" offers "Escribir un aviso"
+    And the card "Próximo evento de la temporada" offers "Planificar la temporada"
 
-  Escenario: Los primeros pasos se pueden ocultar y no vuelven a aparecer
-    Dado que la aplicación está recién abierta sin sesión
-    Y que he creado el club "Club Vacío" con el asistente
-    Entonces veo el encabezado "Primeros pasos"
-    Cuando oculto los primeros pasos
-    Entonces no veo el texto "Primeros pasos"
-    Cuando recargo la aplicación
-    Entonces no veo el texto "Primeros pasos"
+  Scenario: The first steps can be hidden and do not appear again
+    Given the app has just been opened without a session
+    And I have created the club "Club Vacío" with the wizard
+    Then I see the heading "Primeros pasos"
+    When I hide the first steps
+    Then I do not see the text "Primeros pasos"
+    When I reload the app
+    Then I do not see the text "Primeros pasos"

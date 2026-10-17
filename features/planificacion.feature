@@ -1,51 +1,51 @@
-# language: es
-@planificacion
-Característica: Planificación de la piscina
-  Como entrenador quiero organizar en qué calles y a qué hora se imparte cada curso,
-  detectar conflictos y sugerir una distribución
+# language: en
+@planning
+Feature: Pool planning
+  As a coach I want to organise in which lanes and at what time each course is taught,
+  detect conflicts and suggest a distribution
 
-  Antecedentes:
-    Dado un club con datos de demostración
-
-  @smoke
-  Escenario: La planificación muestra la piscina con sus calles y el panel de conflictos
-    Cuando abro el módulo "Planificación"
-    Y abro el apartado "Piscina"
-    Entonces veo el encabezado "Planificación de la piscina"
-    Y veo el texto "Calle 6"
-    Y veo el texto "Panel de conflictos"
-
-  Escenario: Se puede cambiar a la vista de semana completa
-    Dado que estoy en el módulo "Planificación"
-    Y abro el apartado "Piscina"
-    Cuando pulso "Semana completa"
-    Entonces veo el texto "Infantil-Junior"
-
-  Escenario: La planificación siempre es editable para el único usuario
-    Cuando abro el módulo "Planificación"
-    Y abro el apartado "Piscina"
-    Entonces veo el botón "Sugerir distribución"
-    Y veo el botón "Nueva asignación"
-    Y no veo el texto "Vista de solo lectura."
-
-  Escenario: Las acciones poco frecuentes están en un menú y no ocupan la barra
-    Cuando abro el módulo "Planificación"
-    Y abro el apartado "Piscina"
-    Y pulso "Más acciones"
-    Entonces la opción "Configurar piscina" está en el menú
-    Y la opción "Nueva piscina" está en el menú
-    Y la opción "Imprimir" está en el menú
-    Cuando elijo la opción "Configurar piscina" del menú
-    Entonces veo el texto "Configuración de la piscina"
-
-  Escenario: Los conflictos se muestran como alertas con su recuento
-    Cuando abro el módulo "Planificación"
-    Y abro el apartado "Piscina"
-    Entonces veo el texto "Avisos (1)"
+  Background:
+    Given a club with demo data
 
   @smoke
-  Escenario: La rejilla de calles no desborda la página
-    Cuando abro el módulo "Planificación"
-    Y abro el apartado "Piscina"
-    Entonces veo el texto "Calle 6"
-    Y la página no se desborda horizontalmente
+  Scenario: The planning shows the pool with its lanes and the conflicts panel
+    When I open the "Planificación" module
+    And I open the section "Piscina"
+    Then I see the heading "Planificación de la piscina"
+    And I see the text "Calle 6"
+    And I see the text "Panel de conflictos"
+
+  Scenario: It is possible to switch to the full-week view
+    Given I have the "Planificación" module open
+    And I open the section "Piscina"
+    When I press "Semana completa"
+    Then I see the text "Infantil-Junior"
+
+  Scenario: The planning is always editable for the only user
+    When I open the "Planificación" module
+    And I open the section "Piscina"
+    Then I see the button "Sugerir distribución"
+    And I see the button "Nueva asignación"
+    And I do not see the text "Vista de solo lectura."
+
+  Scenario: The infrequent actions are in a menu and do not take up the bar
+    When I open the "Planificación" module
+    And I open the section "Piscina"
+    And I press "Más acciones"
+    Then the option "Configurar piscina" is in the menu
+    And the option "Nueva piscina" is in the menu
+    And the option "Imprimir" is in the menu
+    When I choose the option "Configurar piscina" of the menu
+    Then I see the text "Configuración de la piscina"
+
+  Scenario: Conflicts are shown as alerts with their count
+    When I open the "Planificación" module
+    And I open the section "Piscina"
+    Then I see the text "Avisos (1)"
+
+  @smoke
+  Scenario: The lane grid does not overflow the page
+    When I open the "Planificación" module
+    And I open the section "Piscina"
+    Then I see the text "Calle 6"
+    And the page does not overflow horizontally

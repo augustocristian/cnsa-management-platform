@@ -1,82 +1,82 @@
 import { When, Then } from '@cucumber/cucumber';
 import assert from 'node:assert/strict';
 
-const editor = (mundo) => mundo.page.locator('.enp-ov');
-const filaPlan = (mundo, set, orden) => editor(mundo).locator(`.enp-row[data-set="${set}"][data-orden="${orden}"]`);
-const chip = (mundo, set, orden, nombre) => filaPlan(mundo, set, orden).locator(`.enp-c[data-contenido="${nombre}"]`);
+const editor = (world) => world.page.locator('.enp-ov');
+const planRow = (world, set, order) => editor(world).locator(`.enp-row[data-set="${set}"][data-orden="${order}"]`);
+const chip = (world, set, order, name) => planRow(world, set, order).locator(`.enp-c[data-contenido="${name}"]`);
 // The contents pane of a row opens with its chip (on wide screens it is always visible)
-async function abrir(mundo, set, orden) {
-  const pane = filaPlan(mundo, set, orden).locator('[data-pane="contenidos"]');
-  if (!(await pane.isVisible())) await filaPlan(mundo, set, orden).locator('[data-chip="contenidos"]').click();
+async function open(world, set, order) {
+  const pane = planRow(world, set, order).locator('[data-pane="contenidos"]');
+  if (!(await pane.isVisible())) await planRow(world, set, order).locator('[data-chip="contenidos"]').click();
 }
-const texto = async (loc) => ((await loc.first().textContent()) || '').replace(/\s+/g, ' ').trim();
+const text = async (loc) => ((await loc.first().textContent()) || '').replace(/\s+/g, ' ').trim();
 
-When('añado el contenido {string} a la fila {int} del set {int}', async function (nombre, orden, set) {
-  await abrir(this, set, orden);
-  await filaPlan(this, set, orden).locator('select.enp-c-add').selectOption({ value: nombre });
-  await chip(this, set, orden, nombre).waitFor({ timeout: this.timeout });
+When('I add the content {string} to row {int} of set {int}', async function (name, order, set) {
+  await open(this, set, order);
+  await planRow(this, set, order).locator('select.enp-c-add').selectOption({ value: name });
+  await chip(this, set, order, name).waitFor({ timeout: this.timeout });
 });
-Then('el contenido {string} de la fila {int} del set {int} reparte {string}', async function (nombre, orden, set, parte) {
-  await this.eventually(async () => assert.ok((await texto(chip(this, set, orden, nombre).locator('.enp-c-res'))).includes(parte), `No reparte «${parte}»`));
+Then('the content {string} of row {int} of set {int} distributes {string}', async function (name, order, set, part) {
+  await this.eventually(async () => assert.ok((await text(chip(this, set, order, name).locator('.enp-c-res'))).includes(part), `It does not distribute «${part}»`));
 });
-When('fijo {string} metros por repetición de {string} en la fila {int} del set {int}', async function (valor, nombre, orden, set) {
-  await abrir(this, set, orden);
-  await chip(this, set, orden, nombre).locator('.enp-c-val').fill(valor);
+When('I set {string} metres per repetition of {string} in row {int} of set {int}', async function (value, name, order, set) {
+  await open(this, set, order);
+  await chip(this, set, order, name).locator('.enp-c-val').fill(value);
 });
-Then('el contenido {string} de la fila {int} del set {int} está en modo {string}', async function (nombre, orden, set, modo) {
-  await this.eventually(async () => assert.equal(await texto(chip(this, set, orden, nombre).locator('.enp-c-modo')), modo));
+Then('the content {string} of row {int} of set {int} is in mode {string}', async function (name, order, set, mode) {
+  await this.eventually(async () => assert.equal(await text(chip(this, set, order, name).locator('.enp-c-modo')), mode));
 });
-When('autocompleto desde el texto la fila {int} del set {int}', async function (orden, set) {
-  await abrir(this, set, orden);
-  await filaPlan(this, set, orden).getByRole('button', { name: /Autocompletar desde el texto/ }).click();
+When('I autocomplete row {int} of set {int} from the text', async function (order, set) {
+  await open(this, set, order);
+  await planRow(this, set, order).getByRole('button', { name: /Autocompletar desde el texto/ }).click();
 });
-Then('veo el resto sin asignar {string} en la fila {int} del set {int}', async function (parte, orden, set) {
-  await abrir(this, set, orden);
-  const resto = filaPlan(this, set, orden).locator('.enp-c-resto');
+Then('I see the unassigned remainder {string} in row {int} of set {int}', async function (part, order, set) {
+  await open(this, set, order);
+  const remainder = planRow(this, set, order).locator('.enp-c-resto');
   await this.eventually(async () => {
-    assert.ok(await resto.isVisible(), 'El indicador de resto no está visible');
-    assert.ok((await texto(resto)).includes(parte));
+    assert.ok(await remainder.isVisible(), 'The remainder indicator is not visible');
+    assert.ok((await text(remainder)).includes(part));
   });
 });
-Then('no hay resto sin asignar en la fila {int} del set {int}', async function (orden, set) {
-  await this.eventually(async () => assert.equal(await filaPlan(this, set, orden).locator('.enp-c-resto').isVisible(), false));
+Then('there is no unassigned remainder in row {int} of set {int}', async function (order, set) {
+  await this.eventually(async () => assert.equal(await planRow(this, set, order).locator('.enp-c-resto').isVisible(), false));
 });
-When('asigno el resto de la fila {int} del set {int} a {string}', async function (orden, set, nombre) {
-  await abrir(this, set, orden);
-  const resto = filaPlan(this, set, orden).locator('.enp-c-resto');
-  await resto.locator('select').selectOption({ value: nombre });
-  await resto.getByRole('button', { name: 'Asignar resto' }).click();
+When('I assign the remainder of row {int} of set {int} to {string}', async function (order, set, name) {
+  await open(this, set, order);
+  const remainder = planRow(this, set, order).locator('.enp-c-resto');
+  await remainder.locator('select').selectOption({ value: name });
+  await remainder.getByRole('button', { name: 'Asignar resto' }).click();
 });
 
-// El resumen se lee con textContent: en móvil el panel está plegado pero sigue en el DOM.
-Then('el resumen de la sesión dice {string}', async function (parte) {
-  await this.eventually(async () => assert.ok((await texto(editor(this).locator('[data-resumen="texto"]'))).includes(parte), `El resumen no dice «${parte}»`));
+// The summary is read with textContent: on mobile the panel is folded but still in the DOM.
+Then('the session summary says {string}', async function (part) {
+  await this.eventually(async () => assert.ok((await text(editor(this).locator('[data-resumen="texto"]'))).includes(part), `The summary does not say «${part}»`));
 });
-const pesa = async (mundo, panel, clave, m, pct) => {
-  const li = editor(mundo).locator(`.enp-res-${panel} .enp-leg li[data-clave="${clave}"]`);
-  await mundo.eventually(async () => {
-    const t = await texto(li);
-    assert.ok(t.includes(m) && t.includes(pct), `«${clave}»: ${t}`);
+const weighs = async (world, panel, key, m, pct) => {
+  const li = editor(world).locator(`.enp-res-${panel} .enp-leg li[data-clave="${key}"]`);
+  await world.eventually(async () => {
+    const t = await text(li);
+    assert.ok(t.includes(m) && t.includes(pct), `«${key}»: ${t}`);
   });
 };
-Then('el contenido {string} pesa {string} y {string} en el resumen', async function (nombre, m, pct) { await pesa(this, 'cont', nombre, m, pct); });
-Then('el estilo {string} suma {string} y {string} en el resumen', async function (nombre, m, pct) { await pesa(this, 'est', nombre, m, pct); });
+Then('the content {string} weighs {string} and {string} in the summary', async function (name, m, pct) { await weighs(this, 'cont', name, m, pct); });
+Then('the stroke {string} adds up to {string} and {string} in the summary', async function (name, m, pct) { await weighs(this, 'est', name, m, pct); });
 
-When('copio el resumen de la sesión', async function () {
+When('I copy the session summary', async function () {
   await this.page.evaluate(() => {
-    window.__copiado = [];
-    Object.defineProperty(navigator, 'clipboard', { value: { writeText: async (t) => { window.__copiado.push(t); } }, configurable: true });
+    window.__copied = [];
+    Object.defineProperty(navigator, 'clipboard', { value: { writeText: async (t) => { window.__copied.push(t); } }, configurable: true });
   });
   await editor(this).locator('.enp-res button', { hasText: 'Copiar resumen' }).evaluate((b) => b.click());
 });
-Then('el portapapeles contiene {string}', async function (parte) {
+Then('the clipboard contains {string}', async function (part) {
   await this.eventually(async () => {
-    const t = (await this.page.evaluate(() => (window.__copiado || []).join('\n'))) || '';
-    assert.ok(t.includes(parte), `Portapapeles: ${t}`);
+    const t = (await this.page.evaluate(() => (window.__copied || []).join('\n'))) || '';
+    assert.ok(t.includes(part), `Clipboard: ${t}`);
   });
 });
 
-When('registro las cargas desde el plan', async function () {
+When('I log the loads from the plan', async function () {
   await editor(this).locator('.enp-res button', { hasText: 'Registrar cargas desde el plan' }).evaluate((b) => b.click());
   await this.page.locator('.modal').getByRole('button', { name: 'Aceptar' }).evaluate((b) => b.click());
 });

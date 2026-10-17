@@ -1,67 +1,67 @@
-# language: es
+# language: en
 @backup
-Característica: Copia de seguridad completa
-  Como entrenador quiero descargar una copia de todo mi club y poder restaurarla
-  para no perder datos y poder volver atrás si me equivoco.
+Feature: Full backup
+  As a coach I want to download a backup of my whole club and be able to restore it
+  so as not to lose data and to be able to go back if I make a mistake.
 
-  Antecedentes:
-    Dado un club con datos de demostración
-    Y que estoy en la sección de copia de seguridad
+  Background:
+    Given a club with demo data
+    And I am in the backup section
 
   @smoke
-  Escenario: Descargar una copia completa y comprobar su contenido
-    Cuando descargo la copia de seguridad
-    Entonces el fichero descargado es una copia de seguridad válida con 12 nadadores
-    Y el nombre del fichero descargado empieza por "cnl-backup-"
-    Y veo el texto "Copia descargada"
+  Scenario: Download a full backup and check its content
+    When I download the backup
+    Then the downloaded file is a valid backup with 12 swimmers
+    And the downloaded file name starts with "cnl-backup-"
+    And I see the text "Copia descargada"
 
-  Escenario: Modificar los datos, restaurar el archivo y recuperar todo
-    Dado he descargado una copia de seguridad
-    Cuando elimino todos los nadadores del club
-    Y cambio el lema del club a "Lema temporal"
-    Y elijo el archivo de la copia descargada para restaurar
-    Entonces veo la vista previa con 12 nadadores nuevos
-    Y el modo de restauración por defecto es "Reemplazar"
-    Cuando intento confirmar la restauración escribiendo "no es el nombre"
-    Entonces veo el texto "No coincide"
-    Y el club tiene 0 nadadores
-    Cuando pulso "Cancelar"
-    Y confirmo la restauración escribiendo el nombre del club
-    Entonces veo el resumen de la restauración
-    Y el club tiene 12 nadadores
-    Y el lema del club es "Pequeño gran club"
-    Y hay una copia previa automática en la carpeta de copias de Drive
+  Scenario: Modify the data, restore the file and recover everything
+    Given I have downloaded a backup
+    When I delete all the swimmers of the club
+    And I set the club motto to "Lema temporal"
+    And I choose the downloaded backup file to restore
+    Then I see the preview with 12 new swimmers
+    And the default restore mode is "Reemplazar"
+    When I try to confirm the restore by typing "no es el nombre"
+    Then I see the text "No coincide"
+    And the club has 0 swimmers
+    When I press "Cancelar"
+    And I confirm the restore by typing the club name
+    Then I see the restore summary
+    And the club has 12 swimmers
+    And the club motto is "Pequeño gran club"
+    And there is an automatic prior backup in the Drive backups folder
 
-  Escenario: Un archivo alterado se rechaza y no cambia nada
-    Dado he descargado una copia de seguridad
-    Cuando elimino todos los nadadores del club
-    Y elijo para restaurar la copia descargada pero alterada
-    Entonces veo el texto "dañado o fue modificado"
-    Y no veo el botón de restaurar de la copia
-    Y el club tiene 0 nadadores
+  Scenario: A tampered file is rejected and nothing changes
+    Given I have downloaded a backup
+    When I delete all the swimmers of the club
+    And I choose to restore the downloaded backup but tampered with
+    Then I see the text "dañado o fue modificado"
+    And I do not see the restore button of the backup
+    And the club has 0 swimmers
 
-  Escenario: Un archivo que no es una copia se rechaza
-    Cuando elijo para restaurar un archivo que no es una copia
-    Entonces veo el texto "no es una copia de seguridad"
-    Y no veo el botón de restaurar de la copia
+  Scenario: A file that is not a backup is rejected
+    When I choose to restore a file that is not a backup
+    Then I see the text "no es una copia de seguridad"
+    And I do not see the restore button of the backup
 
-  Escenario: Una copia cifrada necesita su contraseña
-    Cuando descargo la copia de seguridad con la contraseña "una-clave-larga-1"
-    Entonces el fichero descargado está cifrado y no contiene los nombres de los nadadores
-    Cuando elijo el archivo de la copia descargada para restaurar
-    Entonces se me pide la contraseña de la copia
-    Y no veo el botón de restaurar de la copia
-    Cuando escribo la contraseña "equivocada-123" para abrir la copia
-    Entonces veo el texto "Contraseña incorrecta o archivo dañado"
-    Cuando escribo la contraseña "una-clave-larga-1" para abrir la copia
-    Entonces veo el botón de restaurar de la copia
+  Scenario: An encrypted backup needs its password
+    When I download the backup with the password "una-clave-larga-1"
+    Then the downloaded file is encrypted and does not contain the swimmers names
+    When I choose the downloaded backup file to restore
+    Then I am asked for the backup password
+    And I do not see the restore button of the backup
+    When I type the password "equivocada-123" to open the backup
+    Then I see the text "Contraseña incorrecta o archivo dañado"
+    When I type the password "una-clave-larga-1" to open the backup
+    Then I see the restore button of the backup
 
-  Escenario: Las copias de Drive se listan y se pueden restaurar
-    Dado hay una copia diaria del club en la carpeta de copias de Drive
-    Cuando actualizo la lista de copias en Drive
-    Entonces la lista de copias en Drive tiene 1 copia
-    Y la copia de Drive indica "12 nadadores"
-    Cuando elimino todos los nadadores del club
-    Y pulso Restaurar en la primera copia de Drive
-    Entonces veo la vista previa con 12 nadadores nuevos
-    Y veo el botón de restaurar de la copia
+  Scenario: Drive backups are listed and can be restored
+    Given there is a daily backup of the club in the Drive backups folder
+    When I refresh the list of backups in Drive
+    Then the list of backups in Drive has 1 backup
+    And the Drive backup says "12 nadadores"
+    When I delete all the swimmers of the club
+    And I press Restore on the first Drive backup
+    Then I see the preview with 12 new swimmers
+    And I see the restore button of the backup

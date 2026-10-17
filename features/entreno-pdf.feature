@@ -1,217 +1,217 @@
-# language: es
-@entreno-pdf
-Característica: Plan de entreno detallado y PDF de entreno
-  Como entrenador quiero detallar cada sesión por sets (calentamiento, piernas, aeróbico, relevos, vuelta a la calma)
-  y generar un PDF de una página para llevarlo a la piscina, de una sesión o de toda la semana
+# language: en
+@training-pdf
+Feature: Detailed training plan and training PDF
+  As a coach I want to detail each session by sets (warm-up, legs, aerobic, relays, cool-down)
+  and generate a one-page PDF to take to the pool, for a session or for the whole week
 
-  Antecedentes:
-    Dado un club de demostración con la sesión de Google iniciada
-    Y que estoy en el módulo "Entrenamientos"
+  Background:
+    Given a demo club with the Google session started
+    And I have the "Entrenamientos" module open
 
   @smoke
-  Escenario: Descargar el PDF de una sesión desde la lista semanal
-    Cuando genero el PDF de la próxima sesión del grupo "Alevín"
-    Entonces se descarga el PDF de la sesión de referencia con el nombre "Alevin-AAAA-MM-DD-día.pdf"
-    Y el PDF es válido y tiene 1 página
-    Y el PDF contiene "TOTALES"
-    Y el PDF contiene "Calentamiento"
-    Y el PDF contiene "Vuelta a la calma"
-    Y el PDF contiene "Club Natación Lugones"
-    Y el PDF contiene "Página 1 de 1"
+  Scenario: Download the PDF of a session from the weekly list
+    When I generate the PDF of the next session of the group "Alevín"
+    Then the PDF of the reference session is downloaded with the name "Alevin-YYYY-MM-DD-weekday.pdf"
+    And the PDF is valid and has 1 page
+    And the PDF contains "TOTALES"
+    And the PDF contains "Calentamiento"
+    And the PDF contains "Vuelta a la calma"
+    And the PDF contains "Club Natación Lugones"
+    And the PDF contains "Página 1 de 1"
 
-  Escenario: La próxima sesión trae un plan detallado agrupado por sets con totales
-    Cuando abro el plan de la próxima sesión del grupo "Alevín"
-    Entonces el plan tiene al menos 4 sets
-    Y el total del plan coincide con la suma de los sets
-    Y la fila 1 del set 1 tiene "Calentamiento" en "Objetivo"
+  Scenario: The next session comes with a detailed plan grouped by sets with totals
+    When I open the plan of the next session of the group "Alevín"
+    Then the plan has at least 4 sets
+    And the plan total matches the sum of the sets
+    And row 1 of set 1 has "Calentamiento" in "Objetivo"
 
-  @smoke @movil
-  Escenario: Las filas del plan son compactas, no se abre el teclado y la barra inferior siempre está a la vista
-    Dado que uso un móvil de 375 px de ancho
-    Cuando abro el plan de la próxima sesión del grupo "Alevín"
-    Entonces al abrir el plan no hay ningún campo con el foco
-    Y ninguna fila del plan ocupa más de 300 px de alto
-    Y la barra inferior del plan muestra el total, el botón principal "Guardar" y el menú de más acciones
-    Y la barra inferior del plan está dentro de la pantalla
-    Y el plan indica "Todo guardado"
+  @smoke @mobile
+  Scenario: The plan rows are compact, the keyboard does not open and the bottom bar is always in view
+    Given I use a phone 375 px wide
+    When I open the plan of the next session of the group "Alevín"
+    Then when the plan opens no field has the focus
+    And no plan row is taller than 300 px
+    And the plan bottom bar shows the total, the main button "Guardar" and the more actions menu
+    And the plan bottom bar is inside the screen
+    And the plan says "Todo guardado"
 
-  Escenario: El indicador de cambios sin guardar y el aviso de guardado no tapan la barra inferior
-    Cuando abro el plan de la próxima sesión del grupo "Alevín"
-    Y pongo "40" en "Series" de la fila 1 del set 1
-    Entonces el plan indica "Cambios sin guardar"
-    Cuando guardo el plan
-    Entonces el plan indica "Todo guardado"
-    Y el aviso no tapa la barra inferior del plan
+  Scenario: The unsaved changes indicator and the saved toast do not cover the bottom bar
+    When I open the plan of the next session of the group "Alevín"
+    And I put "40" in "Series" of row 1 of set 1
+    Then the plan says "Cambios sin guardar"
+    When I save the plan
+    Then the plan says "Todo guardado"
+    And the toast does not cover the plan bottom bar
 
-  Escenario: Volver atrás del navegador con cambios sin guardar pide confirmación
-    Cuando abro el plan de la próxima sesión del grupo "Alevín"
-    Y pongo "Cambio temporal" en "Tipo de sesión" del plan
-    Y pulso volver atrás del navegador
-    Entonces veo el diálogo de confirmación "cambios sin guardar"
-    Cuando cancelo el diálogo
-    Entonces el plan sigue abierto
-    Cuando pulso volver atrás del navegador
-    Y acepto el diálogo
-    Entonces el plan está cerrado
+  Scenario: Browser back with unsaved changes asks for confirmation
+    When I open the plan of the next session of the group "Alevín"
+    And I put "Cambio temporal" in "Tipo de sesión" of the plan
+    And I press the browser back button
+    Then I see the confirmation dialog "cambios sin guardar"
+    When I cancel the dialog
+    Then the plan is still open
+    When I press the browser back button
+    And I accept the dialog
+    Then the plan is closed
 
-  Escenario: Los totales se actualizan en vivo al editar series y distancias
-    Cuando abro el plan de la próxima sesión del grupo "Alevín"
-    Y anoto el total actual del plan
-    Y pongo "40" en "Series" de la fila 1 del set 1
-    Y pongo "100" en "Distancia" de la fila 1 del set 1
-    Entonces la distancia del bloque de la fila 1 del set 1 es "4000"
-    Y el total del plan ha cambiado
-    Y el total del plan coincide con la suma de los sets
+  Scenario: The totals update live when editing series and distances
+    When I open the plan of the next session of the group "Alevín"
+    And I note the current plan total
+    And I put "40" in "Series" of row 1 of set 1
+    And I put "100" in "Distancia" of row 1 of set 1
+    Then the block distance of row 1 of set 1 is "4000"
+    And the plan total has changed
+    And the plan total matches the sum of the sets
 
-  Escenario: Guardar el plan y recuperarlo al volver a abrirlo
-    Cuando abro el plan de la próxima sesión del grupo "Alevín"
-    Y pongo "Técnica E2E" en "Tipo de sesión" del plan
-    Y pongo "Cuerda" en "Material" de la fila 1 del set 1
-    Y guardo el plan
-    Y cierro el plan
-    Y abro el plan de la sesión de referencia
-    Entonces el campo "Tipo de sesión" del plan vale "Técnica E2E"
-    Y la fila 1 del set 1 tiene "Cuerda" en "Material"
+  Scenario: Save the plan and recover it when reopening it
+    When I open the plan of the next session of the group "Alevín"
+    And I put "Técnica E2E" in "Tipo de sesión" of the plan
+    And I put "Cuerda" in "Material" of row 1 of set 1
+    And I save the plan
+    And I close the plan
+    And I open the plan of the reference session
+    Then the plan field "Tipo de sesión" is "Técnica E2E"
+    And row 1 of set 1 has "Cuerda" in "Material"
 
-  Escenario: Añadir un set con sus filas y verlo reflejado en el PDF
-    Cuando abro el plan de la próxima sesión del grupo "Alevín"
-    Y añado un set al plan
-    Y pongo "Relevos E2E" en "Ejercicio" de la fila 1 del último set
-    Y pongo "4" en "Series" de la fila 1 del último set
-    Y pongo "25" en "Distancia" de la fila 1 del último set
-    Y pongo "d/30\"" en "Salida" de la fila 1 del último set
-    Entonces la distancia del bloque de la fila 1 del último set es "100"
-    Y el último set suma "100 m"
-    Cuando genero el PDF del plan abierto
-    Entonces se descarga el PDF de la sesión de referencia con el nombre "Alevin-AAAA-MM-DD-día.pdf"
-    Y el PDF contiene "Relevos E2E"
-    Y el PDF contiene "d/30"
+  Scenario: Add a set with its rows and see it reflected in the PDF
+    When I open the plan of the next session of the group "Alevín"
+    And I add a set to the plan
+    And I put "Relevos E2E" in "Ejercicio" of row 1 of the last set
+    And I put "4" in "Series" of row 1 of the last set
+    And I put "25" in "Distancia" of row 1 of the last set
+    And I put "d/30\"" in "Salida" of row 1 of the last set
+    Then the block distance of row 1 of the last set is "100"
+    And the last set adds up to "100 m"
+    When I generate the PDF of the open plan
+    Then the PDF of the reference session is downloaded with the name "Alevin-YYYY-MM-DD-weekday.pdf"
+    And the PDF contains "Relevos E2E"
+    And the PDF contains "d/30"
 
-  Escenario: Duplicar un set y quitar una fila
-    Cuando abro el plan de la próxima sesión del grupo "Alevín"
-    Y anoto el total actual del plan
-    Y duplico el set 1 del plan
-    Entonces el plan tiene al menos 5 sets
-    Y el total del plan ha cambiado
-    Cuando anoto el total actual del plan
-    Y quito la fila 1 del set 2
-    Entonces el total del plan ha cambiado
+  Scenario: Duplicate a set and remove a row
+    When I open the plan of the next session of the group "Alevín"
+    And I note the current plan total
+    And I duplicate set 1 of the plan
+    Then the plan has at least 5 sets
+    And the plan total has changed
+    When I note the current plan total
+    And I remove row 1 of set 2
+    Then the plan total has changed
 
-  Escenario: Un valor no numérico se marca y no permite generar el PDF
-    Cuando abro el plan de la próxima sesión del grupo "Alevín"
-    Y pongo "cuatro" en "Series" de la fila 1 del set 1
-    Entonces la fila 1 del set 1 marca error en "Series"
-    Y veo el aviso del plan "deben ser un número entero"
-    Cuando intento generar el PDF del plan abierto
-    Entonces no se descarga ningún PDF
-    Y veo el aviso "Corrige los valores marcados antes de generar el PDF"
+  Scenario: A non-numeric value is flagged and does not allow generating the PDF
+    When I open the plan of the next session of the group "Alevín"
+    And I put "cuatro" in "Series" of row 1 of set 1
+    Then row 1 of set 1 flags an error in "Series"
+    And I see the plan notice "deben ser un número entero"
+    When I try to generate the PDF of the open plan
+    Then no PDF is downloaded
+    And I see the toast "Corrige los valores marcados antes de generar el PDF"
 
-  Escenario: La salida se normaliza al formato C/1'10"
-    Cuando abro el plan de la próxima sesión del grupo "Alevín"
-    Y pongo "1:10" en "Salida" de la fila 1 del set 1
-    Y salgo del campo "Salida" de la fila 1 del set 1
-    Entonces la fila 1 del set 1 tiene "C/1'10\"" en "Salida"
+  Scenario: The departure is normalised to the format C/1'10"
+    When I open the plan of the next session of the group "Alevín"
+    And I put "1:10" in "Salida" of row 1 of set 1
+    And I leave the field "Salida" of row 1 of set 1
+    Then row 1 of set 1 has "C/1'10\"" in "Salida"
 
-  Escenario: Usar una plantilla de entreno en una sesión nueva
-    Cuando creo la sesión de entrenamiento con los datos:
+  Scenario: Use a training template in a new session
+    When I create the training session with the data:
       | Título | Sesión con plantilla |
       | Grupo  | Alevín               |
-    Y abro el plan de la sesión "Sesión con plantilla"
-    Y elijo la plantilla "Velocidad"
-    Entonces el plan tiene al menos 4 sets
-    Cuando guardo el plan
-    Y cierro el plan
-    Entonces la sesión "Sesión con plantilla" muestra su resumen de metros y minutos
+    And I open the plan of the session "Sesión con plantilla"
+    And I choose the template "Velocidad"
+    Then the plan has at least 4 sets
+    When I save the plan
+    And I close the plan
+    Then the session "Sesión con plantilla" shows its metres and minutes summary
 
-  Escenario: Copiar el plan de otra sesión
-    Cuando creo la sesión de entrenamiento con los datos:
+  Scenario: Copy the plan of another session
+    When I create the training session with the data:
       | Título | Sesión copia |
       | Grupo  | Alevín       |
-    Y abro el plan de la sesión "Sesión copia"
-    Y copio el plan de la primera sesión disponible
-    Entonces el plan tiene al menos 4 sets
+    And I open the plan of the session "Sesión copia"
+    And I copy the plan of the first available session
+    Then the plan has at least 4 sets
 
-  Escenario: Duplicar una sesión copia también su plan
-    Cuando duplico la próxima sesión del grupo "Alevín"
-    Entonces hay 2 sesiones iguales a la de referencia con resumen de plan
+  Scenario: Duplicating a session also copies its plan
+    When I duplicate the next session of the group "Alevín"
+    Then there are 2 sessions equal to the reference one with a plan summary
 
-  Escenario: PDF de la semana con una página por sesión
-    Cuando genero el PDF de la semana
-    Entonces se descarga el PDF "Club-semana-{lunes}.pdf"
-    Y el PDF tiene tantas páginas como sesiones se ven en la semana
-    Y el PDF contiene "TOTALES"
-    Y el PDF contiene "Página 1 de"
+  Scenario: Weekly PDF with one page per session
+    When I generate the PDF of the week
+    Then the PDF "Club-semana-{monday}.pdf" is downloaded
+    And the PDF has as many pages as sessions shown in the week
+    And the PDF contains "TOTALES"
+    And the PDF contains "Página 1 de"
 
-  Escenario: PDF de la semana filtrado por grupo
-    Cuando filtro las sesiones por el grupo "Alevín"
-    Y genero el PDF de la semana
-    Entonces se descarga el PDF "Alevin-semana-{lunes}.pdf"
-    Y el PDF tiene tantas páginas como sesiones se ven en la semana
+  Scenario: Weekly PDF filtered by group
+    When I filter the sessions by the group "Alevín"
+    And I generate the PDF of the week
+    Then the PDF "Alevin-semana-{monday}.pdf" is downloaded
+    And the PDF has as many pages as sessions shown in the week
 
-  @escritorio
-  Escenario: Vista previa del PDF antes de descargarlo
-    Cuando abro el plan de la próxima sesión del grupo "Alevín"
-    Y abro la vista previa del PDF
-    Entonces veo la vista previa del PDF
-    Cuando cierro la vista previa
-    Entonces no veo la vista previa del PDF
+  @desktop
+  Scenario: PDF preview before downloading it
+    When I open the plan of the next session of the group "Alevín"
+    And I open the PDF preview
+    Then I see the PDF preview
+    When I close the preview
+    Then I do not see the PDF preview
 
-  @movil
-  Escenario: En el móvil la vista previa abre el PDF en otra pestaña
-    Dado que uso un dispositivo táctil
-    Cuando abro el plan de la próxima sesión del grupo "Alevín"
-    Y abro la vista previa del PDF en el móvil
-    Entonces el PDF se abre en otra pestaña y no en un marco de la página
+  @mobile
+  Scenario: On the phone the preview opens the PDF in another tab
+    Given I use a touch device
+    When I open the plan of the next session of the group "Alevín"
+    And I open the PDF preview on the phone
+    Then the PDF opens in another tab and not in a frame of the page
 
-  @escritorio
-  Escenario: Imprimir el PDF del plan
-    Cuando abro el plan de la próxima sesión del grupo "Alevín"
-    Y pulso imprimir en el plan
-    Entonces se prepara la impresión del PDF
+  @desktop
+  Scenario: Print the plan PDF
+    When I open the plan of the next session of the group "Alevín"
+    And I press print in the plan
+    Then the PDF printing is prepared
 
-  @movil
-  Escenario: En el móvil un único botón comparte el PDF con el menú de compartir del dispositivo
-    Dado que uso un dispositivo táctil
-    Cuando abro el plan de la próxima sesión del grupo "Alevín"
-    Y mi dispositivo permite compartir archivos
-    Entonces el menú ofrece "Compartir PDF" y no "Descargar PDF"
-    Cuando comparto el PDF del plan abierto
-    Entonces se comparte un archivo PDF cuyo nombre empieza por "Alevin-AAAA-MM-DD"
+  @mobile
+  Scenario: On the phone a single button shares the PDF with the device share menu
+    Given I use a touch device
+    When I open the plan of the next session of the group "Alevín"
+    And my device can share files
+    Then the menu offers "Compartir PDF" and not "Descargar PDF"
+    When I share the PDF of the open plan
+    Then a PDF file whose name starts with "Alevin-YYYY-MM-DD" is shared
 
-  Escenario: Un plan vacío avisa antes de generar el PDF
-    Cuando creo la sesión de entrenamiento con los datos:
+  Scenario: An empty plan warns before generating the PDF
+    When I create the training session with the data:
       | Título | Sesión sin plan |
       | Grupo  | Alevín          |
-    Y abro el plan de la sesión "Sesión sin plan"
-    Y intento generar el PDF del plan abierto y cancelo el aviso
-    Entonces no se descarga ningún PDF
-    Cuando genero el PDF del plan abierto confirmando el aviso
-    Entonces el PDF es válido y tiene 1 página
-    Y el PDF contiene "Esta sesión todavía no tiene plan detallado."
+    And I open the plan of the session "Sesión sin plan"
+    And I try to generate the PDF of the open plan and cancel the warning
+    Then no PDF is downloaded
+    When I generate the PDF of the open plan confirming the warning
+    Then the PDF is valid and has 1 page
+    And the PDF contains "Esta sesión todavía no tiene plan detallado."
 
-  Escenario: Guardar el PDF en la carpeta cnl/entrenos de Drive
-    Cuando abro el plan de la próxima sesión del grupo "Alevín"
-    Y guardo el PDF en Drive
-    Entonces veo el aviso "PDF guardado en Drive (cnl/entrenos)"
-    Y Drive contiene el PDF de la sesión de referencia en la carpeta "cnl/entrenos"
-    Cuando guardo el PDF en Drive
-    Entonces veo el aviso "PDF actualizado en Drive"
-    Y Drive contiene un solo PDF de la sesión de referencia
+  Scenario: Save the PDF in the cnl/entrenos folder of Drive
+    When I open the plan of the next session of the group "Alevín"
+    And I save the PDF to Drive
+    Then I see the toast "PDF guardado en Drive (cnl/entrenos)"
+    And Drive contains the PDF of the reference session in the folder "cnl/entrenos"
+    When I save the PDF to Drive
+    Then I see the toast "PDF actualizado en Drive"
+    And Drive contains a single PDF of the reference session
 
-  Escenario: Los textos del PDF salen en el idioma activo
-    Cuando cambio el idioma a "English"
-    Y cierro el menú de la cuenta
-    Y genero el PDF de la próxima sesión del grupo "Alevín"
-    Entonces el PDF contiene "TOTALS"
-    Y el PDF contiene "SESSION TYPE"
-    Y el PDF contiene "Page 1 of 1"
+  Scenario: The PDF texts come out in the active language
+    When I change the language to "English"
+    And I close the account menu
+    And I generate the PDF of the next session of the group "Alevín"
+    Then the PDF contains "TOTALS"
+    And the PDF contains "SESSION TYPE"
+    And the PDF contains "Page 1 of 1"
 
-  Escenario: Cerrar el plan con cambios sin guardar pide confirmación
-    Cuando abro el plan de la próxima sesión del grupo "Alevín"
-    Y pongo "Cambio temporal" en "Tipo de sesión" del plan
-    Y cierro el plan
-    Entonces veo el diálogo de confirmación "cambios sin guardar"
-    Cuando cancelo el diálogo
-    Entonces el plan sigue abierto
-    Cuando cierro el plan y descarto los cambios
-    Entonces el plan está cerrado
+  Scenario: Closing the plan with unsaved changes asks for confirmation
+    When I open the plan of the next session of the group "Alevín"
+    And I put "Cambio temporal" in "Tipo de sesión" of the plan
+    And I close the plan
+    Then I see the confirmation dialog "cambios sin guardar"
+    When I cancel the dialog
+    Then the plan is still open
+    When I close the plan and discard the changes
+    Then the plan is closed

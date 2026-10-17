@@ -1,11 +1,11 @@
-# language: es
-@calendario
-Característica: Calendario en modo demo
-  La demo no se conecta con Google: la sincronización se explica en lugar de quedar en gris sin motivo
+# language: en
+@calendar
+Feature: Calendar in demo mode
+  The demo does not connect to Google: the sync is explained instead of being greyed out for no reason
 
-  Escenario: En modo demo la sincronización con Google Calendar está desactivada y se explica
-    Dado que la aplicación está abierta sin Client ID de Google
-    Cuando pulso "Probar la demo"
-    Y abro el módulo "Calendario"
-    Entonces la sincronización con Google Calendar está desactivada y se explica
-    Y veo el texto "El modo demo guarda los datos solo en este navegador"
+  Scenario: In demo mode the Google Calendar sync is disabled and explained
+    Given the app is open without a Google Client ID
+    When I press "Probar la demo"
+    And I open the "Calendario" module
+    Then the Google Calendar sync is disabled and explained
+    And I see the text "El modo demo guarda los datos solo en este navegador"

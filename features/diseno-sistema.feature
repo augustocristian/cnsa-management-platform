@@ -1,109 +1,109 @@
-# language: es
-@diseno
-Característica: Sistema de diseño
-  Como entrenador quiero una aplicación accesible, con modo oscuro y avisos que me dejen deshacer
-  para trabajar con seguridad desde el móvil, en la piscina o en el despacho
+# language: en
+@design
+Feature: Design system
+  As a coach I want an accessible app, with dark mode and toasts that let me undo
+  to work safely from the phone, at the pool or in the office
 
-  Antecedentes:
-    Dado un club con datos de demostración
+  Background:
+    Given a club with demo data
 
-  @smoke @accesibilidad
-  Escenario: El enlace de salto lleva al contenido sin cambiar de ruta
-    Cuando pulso Tab una vez desde el principio de la página
-    Entonces el foco está en el enlace "Saltar al contenido"
-    Y el enlace de salto es visible
-    Cuando activo el enlace de salto con Intro
-    Entonces el foco está en el contenido principal
-    Y la ruta sigue siendo "#/inicio"
+  @smoke @accessibility
+  Scenario: The skip link leads to the content without changing the route
+    When I press Tab once from the start of the page
+    Then the focus is on the link "Saltar al contenido"
+    And the skip link is visible
+    When I activate the skip link with Enter
+    Then the focus is on the main content
+    And the route is still "#/inicio"
 
-  @accesibilidad
-  Escenario: El foco de teclado siempre se ve
-    Cuando recorro con Tab los primeros 8 elementos interactivos
-    Entonces cada elemento enfocado muestra un contorno visible de al menos 2 px
+  @accessibility
+  Scenario: The keyboard focus is always visible
+    When I Tab through the first 8 interactive elements
+    Then every focused element shows a visible outline of at least 2 px
 
-  @tema @smoke
-  Escenario: El modo oscuro se aplica, se guarda y sobrevive a una recarga
-    Cuando elijo el tema "Oscuro"
-    Entonces la aplicación usa el modo oscuro
-    Y las preferencias locales guardan el tema "dark"
-    Y las preferencias del Drive acaban guardando el tema "dark"
-    Cuando recargo la aplicación
-    Entonces la aplicación usa el modo oscuro
-    Y el selector de tema muestra "Oscuro"
+  @theme @smoke
+  Scenario: Dark mode is applied, saved and survives a reload
+    When I choose the theme "Oscuro"
+    Then the app uses dark mode
+    And the local preferences store the theme "dark"
+    And the Drive preferences end up storing the theme "dark"
+    When I reload the app
+    Then the app uses dark mode
+    And the theme selector shows "Oscuro"
 
-  @tema
-  Escenario: El modo oscuro se aplica antes del primer pintado
-    Cuando elijo el tema "Oscuro"
-    Y recargo la aplicación observando el orden de pintado
-    Entonces el tema oscuro se aplicó antes de pintar la aplicación
+  @theme
+  Scenario: Dark mode is applied before the first paint
+    When I choose the theme "Oscuro"
+    And I reload the app watching the paint order
+    Then the dark theme was applied before painting the app
 
-  @tema
-  Escenario: El tema automático sigue al sistema y el forzado lo ignora
-    Dado que el sistema operativo prefiere el modo oscuro
-    Cuando elijo el tema "Automático"
-    Entonces la aplicación usa el modo oscuro
-    Cuando elijo el tema "Claro"
-    Entonces la aplicación usa el modo claro
-    Cuando elijo el tema "Automático"
-    Entonces la aplicación usa el modo oscuro
+  @theme
+  Scenario: The automatic theme follows the system and the forced one ignores it
+    Given the operating system prefers dark mode
+    When I choose the theme "Automático"
+    Then the app uses dark mode
+    When I choose the theme "Claro"
+    Then the app uses light mode
+    When I choose the theme "Automático"
+    Then the app uses dark mode
 
-  @tema
-  Escenario: El título de la pantalla, el nombre del club y el menú se leen en oscuro y en claro
-    Cuando elijo el tema "Oscuro"
-    Y abro el módulo "Nadadores"
-    Entonces el título, el nombre del club y el menú tienen un contraste de al menos 4.5
-    Cuando elijo el tema "Claro"
-    Entonces el título, el nombre del club y el menú tienen un contraste de al menos 4.5
+  @theme
+  Scenario: The screen title, the club name and the menu are readable in dark and in light
+    When I choose the theme "Oscuro"
+    And I open the "Nadadores" module
+    Then the title, the club name and the menu have a contrast of at least 4.5
+    When I choose the theme "Claro"
+    Then the title, the club name and the menu have a contrast of at least 4.5
 
-  @tema @escritorio
-  Escenario: Un color de club muy claro sigue dejando el menú legible
-    Dado que estoy en el módulo "Configuración"
-    Cuando personalizo la identidad del club con:
+  @theme @desktop
+  Scenario: A very light club colour still leaves the menu readable
+    Given I have the "Configuración" module open
+    When I customise the club identity with:
       | Color primario | #ffd600 |
-    Y guardo la identidad del club
-    Y abro el módulo "Inicio"
-    Entonces el color principal de la aplicación es "#ffd600"
-    Y el texto sobre el color del club es "#111111"
-    Y la opción activa del menú tiene un contraste de al menos 4.5
+    And I save the club identity
+    And I open the "Inicio" module
+    Then the primary colour of the app is "#ffd600"
+    And the text on the club colour is "#111111"
+    And the active menu option has a contrast of at least 4.5
 
-  @avisos
-  Escenario: Un aviso con Deshacer permite revertir la acción
-    Cuando se muestra el aviso "Nadador eliminado" con la acción Deshacer
-    Entonces el aviso "Nadador eliminado" es accesible con role "status"
-    Y el aviso tiene el botón "Deshacer"
-    Cuando pulso el botón "Deshacer" del aviso
-    Entonces la acción de deshacer se ejecutó una vez
-    Y el aviso "Nadador eliminado" desaparece
+  @toasts
+  Scenario: A toast with Undo allows reverting the action
+    When the toast "Nadador eliminado" is shown with the Undo action
+    Then the toast "Nadador eliminado" is accessible with role "status"
+    And the toast has the button "Deshacer"
+    When I press the button "Deshacer" of the toast
+    Then the undo action ran once
+    And the toast "Nadador eliminado" disappears
 
-  @avisos
-  Escenario: Los avisos de error se anuncian como alerta y no desaparecen con el ratón encima
-    Cuando se muestra un aviso de error "No se pudo guardar"
-    Entonces el aviso "No se pudo guardar" es accesible con role "alert"
-    Cuando paso el ratón sobre el aviso "No se pudo guardar"
-    Y pasan 7 segundos
-    Entonces el aviso "No se pudo guardar" sigue visible
+  @toasts
+  Scenario: Error toasts are announced as an alert and do not disappear with the mouse over them
+    When an error toast "No se pudo guardar" is shown
+    Then the toast "No se pudo guardar" is accessible with role "alert"
+    When I hover over the toast "No se pudo guardar"
+    And 7 seconds pass
+    Then the toast "No se pudo guardar" is still visible
 
-  @hoja
-  Escenario: Una hoja atrapa el foco, bloquea la página de fondo y devuelve el foco al cerrar
-    Cuando abro una hoja de prueba desde el botón "Nuevo nadador"
-    Entonces el foco está dentro de la hoja
-    Y la página de fondo está inerte y sin scroll
-    Cuando pulso Tab 12 veces
-    Entonces el foco sigue dentro de la hoja
-    Cuando pulso Escape
-    Entonces la hoja se cierra
-    Y el foco vuelve al botón "Nuevo nadador"
-    Y la página de fondo vuelve a estar activa
+  @sheet
+  Scenario: A sheet traps the focus, blocks the background page and returns the focus when closing
+    When I open a test sheet from the button "Nuevo nadador"
+    Then the focus is inside the sheet
+    And the background page is inert and does not scroll
+    When I press Tab 12 times
+    Then the focus stays inside the sheet
+    When I press Escape
+    Then the sheet closes
+    And the focus returns to the button "Nuevo nadador"
+    And the background page is active again
 
-  @hoja @movil
-  Escenario: En el móvil la hoja sube desde abajo
-    Dado que uso un móvil de 375 px de ancho
-    Cuando abro una hoja de prueba desde el botón "Nuevo nadador"
-    Entonces la hoja está anclada al borde inferior de la pantalla
+  @sheet @mobile
+  Scenario: On the phone the sheet rises from the bottom
+    Given I use a phone 375 px wide
+    When I open a test sheet from the button "Nuevo nadador"
+    Then the sheet is anchored to the bottom edge of the screen
 
-  @hoja
-  Escenario: Eliminar pide confirmación con el foco en Cancelar
-    Cuando abro un diálogo de confirmación destructivo
-    Entonces el foco está en el botón "Cancelar"
-    Y el botón destructivo se llama "Eliminar"
+  @sheet
+  Scenario: Deleting asks for confirmation with the focus on Cancel
+    When I open a destructive confirmation dialog
+    Then the focus is on the button "Cancelar"
+    And the destructive button is called "Eliminar"
 

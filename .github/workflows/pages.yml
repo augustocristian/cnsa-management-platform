@@ -1,4 +1,4 @@
-name: CI y despliegue en GitHub Pages
+name: CI and deployment to GitHub Pages
 on:
   push: { branches: [main] }
   pull_request:
@@ -11,7 +11,7 @@ concurrency:
 
 jobs:
   validate:
-    name: Validación estática
+    name: Static validation
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
@@ -19,13 +19,13 @@ jobs:
         with: { node-version: 22, cache: npm }
       - run: npm ci
       - run: npm run check
-      - name: Auditoría de dependencias
+      - name: Dependency audit
         run: npm audit --omit=dev --audit-level=high
-      - name: vendor/ sincronizado con npm
+      - name: vendor/ in sync with npm
         run: git diff --exit-code -- vendor/
 
   unit:
-    name: Tests unitarios
+    name: Unit tests
     needs: validate
     runs-on: ubuntu-latest
     steps:
@@ -36,7 +36,7 @@ jobs:
       - run: npm run test:unit
 
   integration:
-    name: Tests de integración
+    name: Integration tests
     needs: validate
     runs-on: ubuntu-latest
     steps:
@@ -47,7 +47,7 @@ jobs:
       - run: npm run test:integration
 
   e2e:
-    name: Tests end-to-end
+    name: End-to-end tests
     needs: [unit, integration]
     runs-on: ubuntu-latest
     steps:
@@ -58,18 +58,18 @@ jobs:
       - run: npx playwright install --with-deps chromium
       - run: npm run test:e2e
         env: { CI: 'true' }
-      - name: Resumen en el panel del job
+      - name: Summary in the job panel
         if: always()
         run: node scripts/resumen-e2e.mjs >> "$GITHUB_STEP_SUMMARY"
       - uses: actions/upload-artifact@v7
         if: always()
         with:
-          name: informes-e2e
+          name: e2e-reports
           path: reports/
           retention-days: 14
 
   build:
-    name: Construir sitio
+    name: Build site
     needs: e2e
     runs-on: ubuntu-latest
     steps:
@@ -77,7 +77,7 @@ jobs:
       - uses: actions/setup-node@v7
         with: { node-version: 22, cache: npm }
       - run: npm ci
-      - name: Preparar sitio
+      - name: Prepare site
         run: |
           mkdir _site
           cp -r index.html manifest.webmanifest sw.js css js icons vendor _site/
@@ -85,7 +85,7 @@ jobs:
         with: { path: _site }
 
   deploy:
-    name: Desplegar en GitHub Pages
+    name: Deploy to GitHub Pages
     if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
     needs: build
     runs-on: ubuntu-latest
@@ -98,11 +98,11 @@ jobs:
         uses: actions/deploy-pages@v5
 
   smoke:
-    name: Verificación post-despliegue
+    name: Post-deployment check
     needs: deploy
     runs-on: ubuntu-latest
     steps:
-      - name: La app responde
+      - name: App responds
         run: |
           for i in 1 2 3 4 5; do
             code=$(curl -s -o /dev/null -w '%{http_code}' https://augustocristian.github.io/cnsa-management-platform/)

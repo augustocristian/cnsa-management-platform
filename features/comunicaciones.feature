@@ -1,59 +1,59 @@
-# language: es
-@comunicaciones
-Característica: Avisos y notas
-  Como entrenador quiero un espacio propio para guardar avisos y notas de todo el club o de un grupo,
-  sin que la aplicación envíe nada a nadie (puedo copiar el texto para pasarlo por mi canal habitual)
+# language: en
+@communications
+Feature: Notices and notes
+  As a coach I want a space of my own to save notices and notes for the whole club or for a group,
+  without the app sending anything to anyone (I can copy the text to pass it on through my usual channel)
 
-  Antecedentes:
-    Dado un club con datos de demostración
-    Y que estoy en el módulo "Avisos y notas"
+  Background:
+    Given a club with demo data
+    And I have the "Avisos y notas" module open
 
   @smoke
-  Escenario: Guardar un aviso para todo el club
-    Cuando guardo un aviso con los datos:
+  Scenario: Save a notice for the whole club
+    When I save a notice with the data:
       | Título        | Fiesta de fin de temporada      |
       | Grupo         | Todo el club                    |
       | Texto         | Os esperamos el viernes a las 18h |
-    Entonces veo el aviso guardado "Fiesta de fin de temporada"
-    Y el aviso "Fiesta de fin de temporada" va dirigido a "Todos"
+    Then I see the saved notice "Fiesta de fin de temporada"
+    And the notice "Fiesta de fin de temporada" is addressed to "Todos"
 
-  Escenario: Guardar un aviso de un grupo
-    Cuando guardo un aviso con los datos:
+  Scenario: Save a notice for a group
+    When I save a notice with the data:
       | Título        | Entrenamiento extra       |
       | Grupo         | Promoción                 |
       | Texto         | Traed gorro y gafas extra |
-    Entonces el aviso "Entrenamiento extra" va dirigido a "Promoción"
+    Then the notice "Entrenamiento extra" is addressed to "Promoción"
 
-  Escenario: Filtrar los avisos de un grupo
-    Dado que he guardado el aviso "Solo alevines" para "Alevín"
-    Y que he guardado el aviso "Para todos" para "Todo el club"
-    Cuando filtro los avisos por "Alevín"
-    Entonces veo el aviso guardado "Solo alevines"
-    Y no veo el aviso guardado "Para todos"
+  Scenario: Filter the notices of a group
+    Given I have saved the notice "Solo alevines" for "Alevín"
+    And I have saved the notice "Para todos" for "Todo el club"
+    When I filter the notices by "Alevín"
+    Then I see the saved notice "Solo alevines"
+    And I do not see the saved notice "Para todos"
 
-  Escenario: Filtrar sólo los avisos generales
-    Dado que he guardado el aviso "Solo alevines" para "Alevín"
-    Y que he guardado el aviso "Para todos" para "Todo el club"
-    Cuando filtro los avisos por "Sólo generales"
-    Entonces veo el aviso guardado "Para todos"
-    Y no veo el aviso guardado "Solo alevines"
+  Scenario: Filter only the general notices
+    Given I have saved the notice "Solo alevines" for "Alevín"
+    And I have saved the notice "Para todos" for "Todo el club"
+    When I filter the notices by "Sólo generales"
+    Then I see the saved notice "Para todos"
+    And I do not see the saved notice "Solo alevines"
 
-  Escenario: Eliminar un aviso
-    Dado que he guardado el aviso "Aviso erróneo" para "Todo el club"
-    Cuando elimino el aviso "Aviso erróneo"
-    Entonces no veo el aviso guardado "Aviso erróneo"
+  Scenario: Delete a notice
+    Given I have saved the notice "Aviso erróneo" for "Todo el club"
+    When I delete the notice "Aviso erróneo"
+    Then I do not see the saved notice "Aviso erróneo"
 
-  Escenario: Deshacer la eliminación de un aviso lo devuelve
-    Dado que he guardado el aviso "Aviso dudoso" para "Todo el club"
-    Cuando elimino el aviso "Aviso dudoso"
-    Y deshago la eliminación
-    Entonces veo el aviso guardado "Aviso dudoso"
+  Scenario: Undoing the deletion of a notice brings it back
+    Given I have saved the notice "Aviso dudoso" for "Todo el club"
+    When I delete the notice "Aviso dudoso"
+    And I undo the deletion
+    Then I see the saved notice "Aviso dudoso"
 
-  Escenario: Un aviso recién guardado muestra su fecha de forma relativa
-    Dado que he guardado el aviso "Aviso de hoy" para "Todo el club"
-    Entonces el aviso "Aviso de hoy" muestra la fecha "hoy"
+  Scenario: A newly saved notice shows its date in relative form
+    Given I have saved the notice "Aviso de hoy" for "Todo el club"
+    Then the notice "Aviso de hoy" shows the date "hoy"
 
-  Escenario: No se guarda un aviso sin texto
-    Cuando relleno "Título" con "Aviso vacío"
-    Y pulso "Guardar aviso"
-    Entonces el formulario de avisos muestra el error "Escribe el texto del aviso"
+  Scenario: A notice without text is not saved
+    When I fill "Título" with "Aviso vacío"
+    And I press "Guardar aviso"
+    Then the notices form shows the error "Escribe el texto del aviso"

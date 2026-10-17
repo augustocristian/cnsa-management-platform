@@ -4,33 +4,33 @@
 // that mirror ('cnl:test:drive') between contexts.
 import { When, Then, After } from '@cucumber/cucumber';
 import assert from 'node:assert/strict';
-import { ruta } from '../support/world.js';
+import { route } from '../support/world.js';
 
-const CLAVE_DRIVE = 'cnl:test:drive';
+const DRIVE_KEY = 'cnl:test:drive';
 
 // Runs `fn` with the world pointing at the other device's page (the world helpers use this.page).
-async function enOtroDispositivo(mundo, fn) {
-  assert.ok(mundo.otraPagina, 'Primero hay que abrir la aplicación en otro dispositivo');
-  const propia = mundo.page;
-  mundo.page = mundo.otraPagina;
-  try { return await fn(); } finally { mundo.page = propia; }
+async function onOtherDevice(world, fn) {
+  assert.ok(world.otherPage, 'The app must be opened on another device first');
+  const own = world.page;
+  world.page = world.otherPage;
+  try { return await fn(); } finally { world.page = own; }
 }
 
-// opciones: { copiarDrive: boolean }. There is no identity: "the same person" means the same (simulated) Drive.
-async function abrirOtroDispositivo(mundo, { copiarDrive }) {
-  const origen = new URL(mundo.page.url()).origin;
+// options: { copyDrive: boolean }. There is no identity: "the same person" means the same (simulated) Drive.
+async function openOtherDevice(world, { copyDrive }) {
+  const origin = new URL(world.page.url()).origin;
   let drive = null;
-  if (copiarDrive) {
-    drive = await mundo.page.evaluate((k) => localStorage.getItem(k), CLAVE_DRIVE);
-    assert.ok(drive, 'El primer dispositivo no tiene Drive simulado');
+  if (copyDrive) {
+    drive = await world.page.evaluate((k) => localStorage.getItem(k), DRIVE_KEY);
+    assert.ok(drive, 'The first device has no simulated Drive');
   }
-  mundo.contextoOtro = await mundo.contexto.browser().newContext({
-    viewport: mundo.page.viewportSize(), baseURL: origen, locale: 'es-ES', acceptDownloads: true,
+  world.otherContext = await world.context.browser().newContext({
+    viewport: world.page.viewportSize(), baseURL: origin, locale: 'es-ES', acceptDownloads: true,
   });
-  const pagina = await mundo.contextoOtro.newPage();
-  pagina.setDefaultTimeout(8000);
-  pagina.on('pageerror', (e) => mundo.errores.push(`pageerror (otro dispositivo): ${e}`));
-  await pagina.addInitScript(([d, k]) => {
+  const otherPage = await world.otherContext.newPage();
+  otherPage.setDefaultTimeout(8000);
+  otherPage.on('pageerror', (e) => world.errors.push(`pageerror (other device): ${e}`));
+  await otherPage.addInitScript(([d, k]) => {
     try {
       if (sessionStorage.getItem('e2e-init')) return;
       localStorage.setItem('cnl:test', '1');
@@ -42,83 +42,83 @@ async function abrirOtroDispositivo(mundo, { copiarDrive }) {
       }
       sessionStorage.setItem('e2e-init', '1');
     } catch (e) { /* ignore */ }
-  }, [drive, CLAVE_DRIVE]);
-  await pagina.goto('/');
-  mundo.otraPagina = pagina;
+  }, [drive, DRIVE_KEY]);
+  await otherPage.goto('/');
+  world.otherPage = otherPage;
 }
 
 After(async function () {
-  await this.contextoOtro?.close();
+  await this.otherContext?.close();
 });
 
-When('abro la aplicación en otro dispositivo con el mismo Drive', async function () {
-  await abrirOtroDispositivo(this, { copiarDrive: true });
-  await enOtroDispositivo(this, () => this.esperarShell());
+When('I open the app on another device with the same Drive', async function () {
+  await openOtherDevice(this, { copyDrive: true });
+  await onOtherDevice(this, () => this.waitForShell());
 });
 
-When('otra persona abre la aplicación con su propio Drive', async function () {
-  await abrirOtroDispositivo(this, { copiarDrive: false });
+When('another person opens the app with their own Drive', async function () {
+  await openOtherDevice(this, { copyDrive: false });
 });
 
-When('en el otro dispositivo abro el módulo {string}', async function (modulo) {
-  await enOtroDispositivo(this, () => this.irA(ruta(modulo)));
+When('on the other device I open the {string} module', async function (module) {
+  await onOtherDevice(this, () => this.goTo(route(module)));
 });
 
-When('en el otro dispositivo doy de alta al nadador {string} {string}', async function (nombre, apellidos) {
-  await enOtroDispositivo(this, async () => {
-    await this.vista.getByRole('button', { name: 'Nuevo nadador' }).click();
+When('on the other device I register the swimmer {string} {string}', async function (name, surnames) {
+  await onOtherDevice(this, async () => {
+    await this.view.getByRole('button', { name: 'Nuevo nadador' }).click();
     const modal = this.page.locator('.nad-modal');
     await modal.waitFor({ timeout: this.timeout });
-    await modal.getByLabel('Nombre *').first().fill(nombre);
-    await modal.getByLabel('Apellidos *').first().fill(apellidos);
+    await modal.getByLabel('Nombre *').first().fill(name);
+    await modal.getByLabel('Apellidos *').first().fill(surnames);
     await modal.getByRole('button', { name: 'Guardar', exact: true }).click();
-    await this.verVisible(this.page.locator('#toasts .toast', { hasText: 'Nadador guardado' }));
+    await this.expectVisible(this.page.locator('#toasts .toast', { hasText: 'Nadador guardado' }));
   });
 });
 
-Then('en el otro dispositivo veo en pantalla a alguien llamado {string}', async function (nombre) {
-  await enOtroDispositivo(this, () => this.verVisible(this.vista.locator('tr.nad-row').filter({ hasText: nombre }), `No se ve a "${nombre}" en el otro dispositivo`));
+Then('on the other device I see someone named {string} on the screen', async function (name) {
+  await onOtherDevice(this, () => this.expectVisible(this.view.locator('tr.nad-row').filter({ hasText: name }), `"${name}" is not visible on the other device`));
 });
 
-Then('en el otro dispositivo no veo en pantalla a alguien llamado {string}', async function (nombre) {
-  await enOtroDispositivo(this, async () => {
+Then('on the other device I do not see someone named {string} on the screen', async function (name) {
+  await onOtherDevice(this, async () => {
     await this.page.waitForTimeout(500);
-    assert.equal(await this.page.locator('tr.nad-row').filter({ hasText: nombre }).count(), 0);
+    assert.equal(await this.page.locator('tr.nad-row').filter({ hasText: name }).count(), 0);
   });
 });
 
-Then('en el otro dispositivo veo el encabezado {string}', async function (texto) {
-  await enOtroDispositivo(this, () => this.verVisible(this.page.getByRole('heading', { name: texto }), `No se ve el encabezado "${texto}"`));
+Then('on the other device I see the heading {string}', async function (text) {
+  await onOtherDevice(this, () => this.expectVisible(this.page.getByRole('heading', { name: text }), `The heading "${text}" is not visible`));
 });
 
-Then('ningún dispositivo muestra ninguna identidad de usuario', async function () {
-  const sinIdentidad = async () => {
-    await this.abrirMenuCuenta();
+Then('no device shows any user identity', async function () {
+  const noIdentity = async () => {
+    await this.openAccountMenu();
     const txt = await this.page.locator('.topbar, .account-panel').evaluateAll((els) => els.map((e) => e.innerText).join('\n'));
-    assert.ok(!/@/.test(txt), 'Se muestra un correo: ' + txt);
+    assert.ok(!/@/.test(txt), 'An e-mail address is shown: ' + txt);
     assert.equal(await this.page.locator('#user-box, .topbar .avatar, .account-panel .avatar, .account-btn .avatar').count(), 0);
     assert.equal(await this.page.evaluate(() => localStorage.getItem('cnl:user')), null);
   };
-  await sinIdentidad();
-  await enOtroDispositivo(this, sinIdentidad);
+  await noIdentity();
+  await onOtherDevice(this, noIdentity);
 });
 
-Then('no se muestra ninguna identidad de usuario', async function () {
-  await this.abrirMenuCuenta();
+Then('no user identity is shown', async function () {
+  await this.openAccountMenu();
   const txt = await this.page.locator('.topbar, .account-panel').evaluateAll((els) => els.map((e) => e.innerText).join('\n'));
-  assert.ok(!/@/.test(txt), 'Se muestra un correo: ' + txt);
+  assert.ok(!/@/.test(txt), 'An e-mail address is shown: ' + txt);
   assert.equal(await this.page.locator('#user-box, .topbar .avatar, .account-panel .avatar, .account-btn .avatar').count(), 0);
   assert.equal(await this.page.evaluate(() => localStorage.getItem('cnl:user')), null);
 });
 
 // The first device opens the app again after the other one saved: it receives the Drive as the other device left it.
-When('vuelvo al primer dispositivo y lo abro de nuevo', async function () {
-  const subido = (d) => Object.values(JSON.parse(d).clubs || {}).some((c) => ((c.doc.hojas || {}).Nadadores || []).some((n) => n.nombre === 'Itziar'));
+When('I go back to the first device and open it again', async function () {
+  const uploaded = (d) => Object.values(JSON.parse(d).clubs || {}).some((c) => ((c.doc.hojas || {}).Nadadores || []).some((n) => n.nombre === 'Itziar'));
   await this.eventually(async () => {
-    const d = await this.otraPagina.evaluate((k) => localStorage.getItem(k), CLAVE_DRIVE);
-    assert.ok(d && subido(d), 'El otro dispositivo aún no ha subido el cambio a Drive');
+    const d = await this.otherPage.evaluate((k) => localStorage.getItem(k), DRIVE_KEY);
+    assert.ok(d && uploaded(d), 'The other device has not uploaded the change to Drive yet');
   });
-  const drive = await this.otraPagina.evaluate((k) => localStorage.getItem(k), CLAVE_DRIVE);
+  const drive = await this.otherPage.evaluate((k) => localStorage.getItem(k), DRIVE_KEY);
   // Written by an init script (after the old page has unloaded), so the old page cannot overwrite it while closing.
   const nonce = String(Date.now());
   await this.page.addInitScript(([k, v, n]) => {
@@ -127,7 +127,7 @@ When('vuelvo al primer dispositivo y lo abro de nuevo', async function () {
       localStorage.setItem(k, v);
       sessionStorage.setItem('e2e-drive-sync', n);
     } catch (e) { /* ignore */ }
-  }, [CLAVE_DRIVE, drive, nonce]);
+  }, [DRIVE_KEY, drive, nonce]);
   await this.page.reload();
-  await this.esperarShell();
+  await this.waitForShell();
 });

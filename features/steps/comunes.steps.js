@@ -1,135 +1,136 @@
-// Pasos reutilizables por todas las áreas.
+// Steps reusable by all areas.
 import { Given, When, Then } from '@cucumber/cucumber';
 import assert from 'node:assert/strict';
-import { ruta, regexTexto, todasLasPalabras } from '../support/world.js';
+import { route, textRegex, allWords } from '../support/world.js';
 
-// ---- Acceso: sesión de Google, club y primer arranque (adaptador de pruebas, sin Google real) ----
-Given('un club con datos de demostración', async function () {
-  await this.entrarConClub({ demo: true });
+// ---- Access: Google session, club and first start (test adapter, no real Google) ----
+Given('a club with demo data', async function () {
+  await this.enterClub({ demo: true });
 });
 
-// Misma cosa, dicho desde la perspectiva de Drive (la sesión de Google es simulada).
-Given('un club de demostración con la sesión de Google iniciada', async function () {
-  await this.entrarConClub({ demo: true });
+// Same thing, said from the point of view of Drive (the Google session is simulated).
+Given('a demo club with the Google session started', async function () {
+  await this.enterClub({ demo: true });
 });
 
-Given('un club vacío con la sesión de Google iniciada', async function () {
-  await this.entrarConClub({ demo: false });
+Given('an empty club with the Google session started', async function () {
+  await this.enterClub({ demo: false });
 });
 
-Given('que la aplicación está recién abierta sin sesión', async function () {
-  await this.abrirApp({ sesion: false });
+Given('the app has just been opened without a session', async function () {
+  await this.openApp({ session: false });
 });
 
-Given('que la aplicación está abierta sin Client ID de Google', async function () {
-  await this.abrirApp({ sinClientId: true });
+Given('the app is open without a Google Client ID', async function () {
+  await this.openApp({ noClientId: true });
 });
 
-Given('que la aplicación está abierta y Google rechaza el inicio de sesión con {string}', async function (codigo) {
-  await this.abrirApp({ sesion: false, errorLogin: codigo });
+Given('the app is open and Google rejects the login with {string}', async function (code) {
+  await this.openApp({ session: false, loginError: code });
 });
 
-Then('veo el botón {string}', async function (nombre) {
-  await this.verVisible(this.page.getByRole('button', { name: nombre }), `No se ve el botón "${nombre}"`);
+Then('I see the button {string}', async function (name) {
+  await this.expectVisible(this.page.getByRole('button', { name }), `The button "${name}" is not visible`);
 });
 
-Then('no veo el botón {string}', async function (nombre) {
-  assert.equal(await this.page.getByRole('button', { name: nombre }).count(), 0, `Se ve el botón "${nombre}"`);
+Then('I do not see the button {string}', async function (name) {
+  assert.equal(await this.page.getByRole('button', { name }).count(), 0, `The button "${name}" is visible`);
 });
 
-Then('no veo ningún texto sobre el modo local', async function () {
+Then('I see no text about local mode', async function () {
   const txt = (await this.page.locator('body').innerText()).toLowerCase();
-  assert.ok(!txt.includes('modo local') && !txt.includes('probar en modo'), 'Aparece texto sobre el modo local');
+  assert.ok(!txt.includes('modo local') && !txt.includes('probar en modo'), 'Text about local mode appears');
 });
 
-Then('el menú de la aplicación no se muestra', async function () {
+Then('the app menu is not shown', async function () {
   assert.equal(await this.page.locator('nav.sidebar').count(), 0);
 });
 
-Then('mi sesión es la de {string}', async function (email) {
+Then('my session is {string}', async function (email) {
   await this.eventually(async () => assert.equal((await this.page.locator('#user-box strong').innerText()).trim(), email));
 });
 
-// ---- Navegación ----
-Given('que estoy en el módulo {string}', async function (m) { await this.irA(ruta(m)); });
-When('abro el módulo {string}', async function (m) { await this.irA(ruta(m)); });
+// ---- Navigation ----
+Given('I have the {string} module open', async function (m) { await this.goTo(route(m)); });
+When('I open the {string} module', async function (m) { await this.goTo(route(m)); });
 
-When('pulso {string} en el menú', async function (m) {
-  await this.pulsarEnMenu(ruta(m));
+When('I press {string} in the menu', async function (m) {
+  await this.clickInMenu(route(m));
 });
 
-When('intento abrir directamente el módulo {string}', async function (m) {
-  await this.page.evaluate((r) => { location.hash = '#/' + r; }, ruta(m));
+When('I try to open the {string} module directly', async function (m) {
+  await this.page.evaluate((r) => { location.hash = '#/' + r; }, route(m));
   await this.page.waitForTimeout(300);
 });
 
-Then('estoy en el módulo {string}', async function (m) {
-  await this.esperarRutaActiva(ruta(m));
+Then('I am in the {string} module', async function (m) {
+  await this.waitForActiveRoute(route(m));
 });
 
-Then('la pantalla {string} se muestra completa y sin errores', async function (m) {
-  await this.esperarRutaActiva(ruta(m));
+Then('the {string} screen is shown complete and without errors', async function (m) {
+  await this.waitForActiveRoute(route(m));
   await this.page.locator('#view .loading').waitFor({ state: 'detached', timeout: this.timeout });
-  await this.noVer(this.page.getByText('Error al mostrar la vista'));
-  await this.noVer(this.page.getByText('Próximamente'));
-  assert.ok((await this.vista.innerText()).trim().length > 0, 'La pantalla está vacía');
+  await this.expectHidden(this.page.getByText('Error al mostrar la vista'));
+  await this.expectHidden(this.page.getByText('Próximamente'));
+  assert.ok((await this.view.innerText()).trim().length > 0, 'The screen is empty');
 });
 
-Then('el menú {word} el módulo {string}', async function (accion, m) {
-  const item = this.page.locator(`.nav-item[data-route="${ruta(m)}"]`);
-  if (accion === 'muestra') await item.first().waitFor({ state: 'attached', timeout: this.timeout });
-  else { assert.equal(accion, 'oculta', 'Usa "muestra" u "oculta"'); await this.eventually(async () => assert.equal(await item.count(), 0)); }
+Then('the menu {word} the module {string}', async function (action, m) {
+  const item = this.page.locator(`.nav-item[data-route="${route(m)}"]`);
+  if (action === 'shows') await item.first().waitFor({ state: 'attached', timeout: this.timeout });
+  else { assert.equal(action, 'hides', 'Use "shows" or "hides"'); await this.eventually(async () => assert.equal(await item.count(), 0)); }
 });
 
-// ---- Acciones genéricas ----
-When('pulso {string}', async function (texto) {
-  const ambito = await this.ambito();
-  const boton = ambito.getByRole('button', { name: texto }).or(ambito.getByRole('link', { name: texto })).first();
-  await boton.click();
+// ---- Generic actions ----
+// Buttons and links: inside an open dialog if there is one, otherwise on the view or the page (recovery screens have no #view).
+When('I press {string}', async function (text) {
+  const scope = await this.scope();
+  const button = scope.getByRole('button', { name: text }).or(scope.getByRole('link', { name: text })).first();
+  await button.click();
 });
 
-When('acepto la confirmación', async function () {
+When('I accept the confirmation', async function () {
   await this.page.locator('.modal').getByRole('button', { name: 'Aceptar' }).click();
 });
 
-When('relleno {string} con {string}', async function (campo, valor) {
-  await this.rellenar(await this.ambito(), campo, valor);
+When('I fill {string} with {string}', async function (field, value) {
+  await this.fill(await this.scope(), field, value);
 });
 
-When('elijo {string} en {string}', async function (valor, campo) {
-  await this.rellenar(await this.ambito(), campo, valor);
+When('I choose {string} in {string}', async function (value, field) {
+  await this.fill(await this.scope(), field, value);
 });
 
-// ---- Comprobaciones genéricas ----
-Then('veo el texto {string}', async function (t) {
-  await this.verVisible(this.page.locator('body').getByText(t), `No se ve el texto "${t}"`);
+// ---- Generic checks ----
+Then('I see the text {string}', async function (t) {
+  await this.expectVisible(this.page.locator('body').getByText(t), `The text "${t}" is not visible`);
 });
 
-Then('no veo el texto {string}', async function (t) {
-  await this.noVer(this.vista.getByText(t), `Se ve el texto "${t}"`);
+Then('I do not see the text {string}', async function (t) {
+  await this.expectHidden(this.view.getByText(t), `The text "${t}" is visible`);
 });
 
-Then('veo el encabezado {string}', async function (t) {
-  await this.verVisible(this.page.getByRole('heading', { name: t }), `No se ve el encabezado "${t}"`);
+Then('I see the heading {string}', async function (t) {
+  await this.expectVisible(this.page.getByRole('heading', { name: t }), `The heading "${t}" is not visible`);
 });
 
-Then('veo el aviso {string}', async function (t) {
-  await this.verVisible(this.page.locator('#toasts .toast').filter({ hasText: t }), `No aparece el aviso "${t}"`);
+Then('I see the toast {string}', async function (t) {
+  await this.expectVisible(this.page.locator('#toasts .toast').filter({ hasText: t }), `The toast "${t}" does not appear`);
 });
 
-Then('veo los encabezados:', async function (tabla) {
-  for (const [t] of tabla.raw()) await this.verVisible(this.page.getByRole('heading', { name: t }), `Falta el encabezado "${t}"`);
+Then('I see the headings:', async function (table) {
+  for (const [t] of table.raw()) await this.expectVisible(this.page.getByRole('heading', { name: t }), `The heading "${t}" is missing`);
 });
 
-Then('veo en pantalla a alguien llamado {string}', async function (nombre) {
-  await this.verVisible(this.vista.locator('tr, li, .card, button').filter({ hasText: todasLasPalabras(nombre) }));
+Then('I see someone named {string} on the screen', async function (name) {
+  await this.expectVisible(this.view.locator('tr, li, .card, button').filter({ hasText: allWords(name) }));
 });
 
-Then('la fila que contiene {string} muestra {string}', async function (clave, texto) {
-  const fila = this.vista.locator('tr').filter({ hasText: regexTexto(clave) });
-  await this.eventually(async () => assert.match(await fila.first().innerText(), regexTexto(texto)));
+Then('the row containing {string} shows {string}', async function (key, text) {
+  const row = this.view.locator('tr').filter({ hasText: textRegex(key) });
+  await this.eventually(async () => assert.match(await row.first().innerText(), textRegex(text)));
 });
 
-Then('no existe el selector para cambiar de rol', async function () {
+Then('there is no role selector', async function () {
   assert.equal(await this.page.locator('#role-select').count(), 0);
 });

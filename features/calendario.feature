@@ -1,54 +1,54 @@
-# language: es
-@calendario
-Característica: Calendario
-  Como entrenador quiero ver mis entrenamientos en un calendario por mes, semana o agenda,
-  llevármelo a mi calendario personal y, si uso Google, mantenerlo sincronizado
+# language: en
+@calendar
+Feature: Calendar
+  As a coach I want to see my trainings in a calendar by month, week or agenda,
+  take it to my personal calendar and, if I use Google, keep it synchronised
 
-  Antecedentes:
-    Dado un club con datos de demostración
-    Y que estoy en el módulo "Calendario"
+  Background:
+    Given a club with demo data
+    And I have the "Calendario" module open
 
   @smoke
-  Escenario: Consultar el calendario en sus tres vistas
-    Entonces veo el encabezado "Calendario"
-    Cuando pulso "Semana"
-    Entonces veo el texto "Semana del"
-    Cuando pulso "Agenda"
-    Y pulso "Mes"
-    Entonces veo el texto "Eventos del"
+  Scenario: Check the calendar in its three views
+    Then I see the heading "Calendario"
+    When I press "Semana"
+    Then I see the text "Semana del"
+    When I press "Agenda"
+    And I press "Mes"
+    Then I see the text "Eventos del"
 
-  Escenario: La agenda empieza en hoy y no el día 1 del mes
-    Cuando pulso "Agenda"
-    Entonces la primera sección de la agenda es la de hoy
+  Scenario: The agenda starts today and not on the 1st of the month
+    When I press "Agenda"
+    Then the first section of the agenda is today
 
-  Escenario: Exportar el calendario a un archivo .ics desde un único menú
-    Entonces hay un único menú de exportación en la cabecera
-    Cuando pulso "Exportar"
-    Entonces la opción "Descargar calendario (.ics)" está en el menú
-    Y la opción "Añadir a mi calendario" está en el menú
-    Cuando elijo la opción "Opciones de exportación" del menú
-    Entonces veo el texto "instantánea"
+  Scenario: Export the calendar to an .ics file from a single menu
+    Then there is a single export menu in the header
+    When I press "Exportar"
+    Then the option "Descargar calendario (.ics)" is in the menu
+    And the option "Añadir a mi calendario" is in the menu
+    When I choose the option "Opciones de exportación" of the menu
+    Then I see the text "instantánea"
 
-  Escenario: Con la conexión a Drive se puede sincronizar con Google Calendar
-    Entonces veo el texto "Sincronizar con Google Calendar"
-    Y veo el botón "Sincronizar con Google Calendar"
-    Y no veo el texto "no está disponible"
+  Scenario: With the Drive connection it can be synchronised with Google Calendar
+    Then I see the text "Sincronizar con Google Calendar"
+    And I see the button "Sincronizar con Google Calendar"
+    And I do not see the text "no está disponible"
 
-  Escenario: El entrenador filtra el calendario por grupo y por piscina
-    Entonces veo el campo "Grupo"
-    Y veo el campo "Piscina"
-    Y no veo el texto "Previsualizar como nadador"
+  Scenario: The coach filters the calendar by group and by pool
+    Then I see the field "Grupo"
+    And I see the field "Piscina"
+    And I do not see the text "Previsualizar como nadador"
 
-  @escritorio
-  Escenario: La rejilla del mes se recorre con el teclado
-    Cuando pulso "Mes"
-    Y enfoco el día de hoy de la rejilla del mes
-    Y pulso la tecla "ArrowRight"
-    Entonces el día seleccionado de la rejilla es el de dentro de 1 día
-    Cuando pulso la tecla "ArrowDown"
-    Entonces el día seleccionado de la rejilla es el de dentro de 8 días
+  @desktop
+  Scenario: The month grid is navigated with the keyboard
+    When I press "Mes"
+    And I focus today in the month grid
+    And I press the key "ArrowRight"
+    Then the selected day of the grid is the one 1 day from now
+    When I press the key "ArrowDown"
+    Then the selected day of the grid is the one 8 days from now
 
-  Escenario: La página del calendario no se desborda horizontalmente
-    Entonces la página no se desborda horizontalmente
-    Cuando pulso "Mes"
-    Entonces la página no se desborda horizontalmente
+  Scenario: The calendar page does not overflow horizontally
+    Then the page does not overflow horizontally
+    When I press "Mes"
+    Then the page does not overflow horizontally

@@ -1,88 +1,88 @@
-# language: es
-@temporada
-Característica: Planificación de temporada
-  Como entrenador quiero planificar la temporada en fases y semanas, con volumen previsto,
-  competiciones y su seguimiento frente a lo realmente entrenado
+# language: en
+@season
+Feature: Season planning
+  As a coach I want to plan the season in phases and weeks, with planned volume,
+  competitions and their follow-up against what was actually trained
 
-  Antecedentes:
-    Dado un club con datos de demostración
+  Background:
+    Given a club with demo data
 
   @smoke
-  Escenario: Ver la temporada con sus fases y semanas
-    Cuando abro el módulo "Planificación"
-    Entonces estoy en el apartado "Temporada"
-    Y veo el encabezado "Fases"
-    Y veo 5 fases en la temporada
-    Y veo el texto "Preparación general"
-    Y veo el texto "Tapering"
-    Y el resumen semanal lista 38 semanas
-    Y veo el encabezado "Evolución de cargas y competiciones"
-    Y el gráfico de la temporada es accesible
+  Scenario: See the season with its phases and weeks
+    When I open the "Planificación" module
+    Then I am in the section "Temporada"
+    And I see the heading "Fases"
+    And I see 5 phases in the season
+    And I see the text "Preparación general"
+    And I see the text "Tapering"
+    And the weekly summary lists 38 weeks
+    And I see the heading "Evolución de cargas y competiciones"
+    And the season chart is accessible
 
-  Escenario: La planificación de la piscina sigue disponible en su apartado
-    Cuando abro el módulo "Planificación"
-    Y abro el apartado "Piscina"
-    Entonces estoy en el apartado "Piscina"
-    Y veo el encabezado "Planificación de la piscina"
-    Y veo el texto "Calle 6"
+  Scenario: The pool planning is still available in its section
+    When I open the "Planificación" module
+    And I open the section "Piscina"
+    Then I am in the section "Piscina"
+    And I see the heading "Planificación de la piscina"
+    And I see the text "Calle 6"
 
-  Escenario: Añadir una fase a la temporada
-    Cuando abro el módulo "Planificación"
-    Y pulso "Añadir fase"
-    Y relleno "Nombre" con "Puesta a punto"
-    Y elijo "Tapering" en "Tipo de fase"
-    Y relleno "Fecha de inicio" con la fecha de dentro de 0 días
-    Y relleno "Fecha de fin" con la fecha de dentro de 13 días
-    Y pulso "Guardar"
-    Entonces veo el texto "se solapan con otras fases"
-    Cuando pulso "Guardar de todos modos"
-    Entonces veo el aviso "Fase guardada"
-    Y veo 6 fases en la temporada
-    Y veo el texto "Puesta a punto"
+  Scenario: Add a phase to the season
+    When I open the "Planificación" module
+    And I press "Añadir fase"
+    And I fill "Nombre" with "Puesta a punto"
+    And I choose "Tapering" in "Tipo de fase"
+    And I fill "Fecha de inicio" with the date 0 days from now
+    And I fill "Fecha de fin" with the date 13 days from now
+    And I press "Guardar"
+    Then I see the text "se solapan con otras fases"
+    When I press "Guardar de todos modos"
+    Then I see the toast "Fase guardada"
+    And I see 6 phases in the season
+    And I see the text "Puesta a punto"
 
-  Escenario: Añadir una competición en una semana y verla en el calendario
-    Cuando abro el módulo "Planificación"
-    Y añado una competición "Final de prueba" de prioridad "A" para hoy
-    Entonces la semana actual marca la competición "Final de prueba"
-    Cuando abro el módulo "Calendario"
-    Y pulso "Agenda"
-    Entonces veo el texto "Final de prueba (A)"
+  Scenario: Add a competition in a week and see it in the calendar
+    When I open the "Planificación" module
+    And I add a competition "Final de prueba" with priority "A" for today
+    Then the current week marks the competition "Final de prueba"
+    When I open the "Calendario" module
+    And I press "Agenda"
+    Then I see the text "Final de prueba (A)"
 
-  Escenario: Ajustar el volumen previsto de una semana
-    Cuando abro el módulo "Planificación"
-    Y abro la semana 2 de la temporada
-    Y pulso "Editar semana"
-    Y relleno "Volumen previsto" con "12000"
-    Y pulso "Guardar"
-    Entonces veo el aviso "Semana guardada"
-    Y la semana 2 muestra un volumen previsto de "12.000 m"
+  Scenario: Adjust the planned volume of a week
+    When I open the "Planificación" module
+    And I open week 2 of the season
+    And I press "Editar semana"
+    And I fill "Volumen previsto" with "12000"
+    And I press "Guardar"
+    Then I see the toast "Semana guardada"
+    And week 2 shows a planned volume of "12.000 m"
 
-  Escenario: Comprobar el previsto frente al real de la semana anterior
-    Cuando abro el módulo "Planificación"
-    Y abro la semana anterior a la actual de la temporada
-    Entonces el detalle de la semana muestra "Real en cargas"
-    Y el detalle de la semana muestra "Previsto y real por contenido"
+  Scenario: Check the planned against the actual of the previous week
+    When I open the "Planificación" module
+    And I open the week before the current one of the season
+    Then the week detail shows "Real en cargas"
+    And the week detail shows "Previsto y real por contenido"
 
-  Escenario: Las sugerencias explican por qué y permiten aplicarlas
-    Cuando abro el módulo "Planificación"
-    Entonces veo el encabezado "Sugerencias"
-    Y veo el botón "Aplicar"
+  Scenario: The suggestions explain why and allow applying them
+    When I open the "Planificación" module
+    Then I see the heading "Sugerencias"
+    And I see the button "Aplicar"
 
-  Escenario: Eliminar una fase se puede deshacer
-    Cuando abro el módulo "Planificación"
-    Y pulso "Editar fase: Tapering"
-    Y pulso "Eliminar"
-    Entonces veo 4 fases en la temporada
-    Cuando pulso "Deshacer" en el aviso
-    Entonces veo 5 fases en la temporada
+  Scenario: Deleting a phase can be undone
+    When I open the "Planificación" module
+    And I press "Editar fase: Tapering"
+    And I press "Eliminar"
+    Then I see 4 phases in the season
+    When I press "Deshacer" in the toast
+    Then I see 5 phases in the season
 
-  Escenario: Los diálogos validan en línea y no cierran con datos incorrectos
-    Cuando abro el módulo "Planificación"
-    Y pulso "Añadir fase"
-    Y pulso "Guardar"
-    Entonces veo el texto "Este campo es obligatorio"
+  Scenario: The dialogs validate inline and do not close with incorrect data
+    When I open the "Planificación" module
+    And I press "Añadir fase"
+    And I press "Guardar"
+    Then I see the text "Este campo es obligatorio"
 
-  Escenario: La temporada no desborda horizontalmente la página
-    Cuando abro el módulo "Planificación"
-    Entonces veo el encabezado "Fases"
-    Y la página no se desborda horizontalmente
+  Scenario: The season does not overflow the page horizontally
+    When I open the "Planificación" module
+    Then I see the heading "Fases"
+    And the page does not overflow horizontally

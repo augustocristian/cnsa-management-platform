@@ -1,25 +1,25 @@
-# language: es
+# language: en
 @tutorial
-Característica: Tutorial de configuración de Google
-  Como quien publica la aplicación quiero una guía de 6 pasos para configurar Google una sola vez;
-  el resto de personas solo conecta su Google Drive
+Feature: Google setup tutorial
+  As the person who publishes the app I want a 6-step guide to set up Google only once;
+  everybody else just connects their Google Drive
 
-  Antecedentes:
-    Dado que la aplicación está abierta sin Client ID de Google
-    Y pulso "Abrir el tutorial (5 minutos)"
+  Background:
+    Given the app is open without a Google Client ID
+    And I press "Abrir el tutorial (5 minutos)"
 
   @smoke
-  Escenario: El tutorial tiene 6 pasos con controles táctiles
-    Entonces veo el encabezado "Configurar Google en 5 minutos"
-    Y veo 6 pasos numerados de al menos 44 píxeles
-    Y el tutorial no inyecta estilos en la página
+  Scenario: The tutorial has 6 steps with touch controls
+    Then I see the heading "Configurar Google en 5 minutos"
+    And I see 6 numbered steps of at least 44 pixels
+    And the tutorial does not inject styles into the page
 
-  Escenario: Los valores a copiar tienen botones accesibles
-    Cuando pulso "Paso 4 de 6"
-    Entonces cada botón Copiar dice qué valor copia
+  Scenario: The values to copy have accessible buttons
+    When I press "Paso 4 de 6"
+    Then each Copy button says which value it copies
 
-  Escenario: El último paso explica el uso individual y la demo
-    Cuando pulso "Paso 6 de 6"
-    Entonces veo el texto "Probar la demo"
-    Y veo el texto "uso individual"
-    Y la página no se desborda horizontalmente
+  Scenario: The last step explains the individual use and the demo
+    When I press "Paso 6 de 6"
+    Then I see the text "Probar la demo"
+    And I see the text "uso individual"
+    And the page does not overflow horizontally

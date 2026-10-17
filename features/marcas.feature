@@ -1,102 +1,102 @@
-# language: es
-@marcas
-Característica: Marcas
-  Como entrenador quiero registrar los resultados de los nadadores,
-  ver su evolución individual y su rendimiento en la temporada,
-  y consultarlos según el bañador con el que se lograron
+# language: en
+@times
+Feature: Times
+  As a coach I want to log the results of the swimmers,
+  see their individual evolution and their performance in the season,
+  and check them according to the swimsuit with which they were achieved
 
-  Antecedentes:
-    Dado un club con datos de demostración
-    Y que estoy en el módulo "Marcas"
+  Background:
+    Given a club with demo data
+    And I have the "Marcas" module open
 
   @smoke
-  Escenario: Registrar el resultado de una prueba
-    Cuando registro una marca con los datos:
+  Scenario: Log the result of an event
+    When I log a time with the data:
       | Nadador                | Lucía Fernández Roces |
       | Prueba                 | 100 Libre             |
       | Piscina                | 25 m                  |
       | Tiempo (mm:ss.cc)      | 01:02.45              |
       | Competición            | Trofeo de prueba      |
-    Entonces la marca queda registrada
-    Y la mejor marca de "Lucía Fernández" en "100 Libre" es "01:02.45"
+    Then the time is logged
+    And the best time of "Lucía Fernández" in "100 Libre" is "01:02.45"
 
-  Escenario: Se rechaza un tiempo con formato incorrecto
-    Cuando registro una marca con los datos:
+  Scenario: A time with an incorrect format is rejected
+    When I log a time with the data:
       | Nadador           | Lucía Fernández Roces |
       | Tiempo (mm:ss.cc) | 17550                 |
-    Entonces la marca no se registra por tiempo no válido
+    Then the time is not logged because it is invalid
 
-  Escenario: El tiempo es obligatorio y se explica junto al campo
-    Cuando registro una marca con los datos:
+  Scenario: The time is required and is explained next to the field
+    When I log a time with the data:
       | Nadador | Lucía Fernández Roces |
-    Entonces el formulario pide indicar el tiempo
+    Then the form asks for the time
 
-  Escenario: El tiempo se escribe sólo con cifras y se interpreta en vivo
-    Cuando abro el formulario para registrar una marca
-    Entonces el tiempo escrito "10245" se interpreta como "01:02.45"
+  Scenario: The time is typed with digits only and interpreted live
+    When I open the form to log a time
+    Then the typed time "10245" is interpreted as "01:02.45"
 
-  Escenario: La evolución individual muestra la mejora entre competiciones
-    Dado que he registrado las marcas de "Noa Díaz Llano" en "200 Libre":
-      | fecha      | tiempo   |
+  Scenario: The individual evolution shows the improvement between competitions
+    Given I have logged the times of "Noa Díaz Llano" in "200 Libre":
+      | date       | time     |
       | 2026-01-10 | 02:40.00 |
       | 2026-03-14 | 02:35.50 |
       | 2026-06-20 | 02:31.10 |
-    Cuando consulto la evolución de "Noa Díaz Llano" en la prueba "200 Libre"
-    Entonces veo el gráfico de evolución de marcas
-    Y la mejor marca de "Noa Díaz" en "200 Libre" es "02:31.10"
-    Y el historial señala "02:31.10" como mejor marca
-    Y el historial no señala "02:40.00" como mejor marca
+    When I check the evolution of "Noa Díaz Llano" in the event "200 Libre"
+    Then I see the time evolution chart
+    And the best time of "Noa Díaz" in "200 Libre" is "02:31.10"
+    And the history marks "02:31.10" as the best time
+    And the history does not mark "02:40.00" as the best time
 
-  Escenario: El gráfico de evolución se muestra sin elegir nada
-    Entonces el gráfico de evolución de marcas se muestra sin elegir nada
+  Scenario: The evolution chart is shown without choosing anything
+    Then the time evolution chart is shown without choosing anything
 
-  Escenario: El rendimiento de la temporada se ve en la ficha del nadador
-    Dado que he registrado las marcas de "Iker Pérez Naves" en "50 Espalda":
-      | fecha      | tiempo   |
+  Scenario: The performance of the season is seen in the swimmer profile
+    Given I have logged the times of "Iker Pérez Naves" in "50 Espalda":
+      | date       | time     |
       | 2026-02-01 | 00:41.20 |
       | 2026-05-30 | 00:39.80 |
-    Cuando abro el módulo "Nadadores"
-    Y abro la ficha de "Iker Pérez"
-    Entonces la ficha muestra la mejor marca "00:39.80" en "50 Espalda"
+    When I open the "Nadadores" module
+    And I open the profile of "Iker Pérez"
+    Then the profile shows the best time "00:39.80" in "50 Espalda"
 
-  Escenario: Cada prueba aparece una sola vez en el filtro y al elegirla se ven sus marcas
-    Dado que he registrado las marcas de "Noa Díaz Llano" en "200 Libre":
-      | fecha      | tiempo   |
+  Scenario: Each event appears only once in the filter and choosing it shows its times
+    Given I have logged the times of "Noa Díaz Llano" in "200 Libre":
+      | date       | time     |
       | 2026-01-10 | 02:40.00 |
-    Cuando consulto la evolución de "Noa Díaz Llano" en la prueba "200 Libre"
-    Entonces el historial incluye la marca "02:40.00"
+    When I check the evolution of "Noa Díaz Llano" in the event "200 Libre"
+    Then the history includes the time "02:40.00"
 
-  Escenario: El historial se pagina de 50 en 50
-    Cuando pido ver más marcas del historial
-    Entonces veo el texto "Mostrando"
+  Scenario: The history is paginated 50 by 50
+    When I ask to see more times from the history
+    Then I see the text "Mostrando"
 
-  Escenario: Filtrar las marcas por bañador de competición cambia la mejor marca
-    Dado que he registrado las marcas de "Noa Díaz Llano" en "200 Libre":
-      | fecha      | tiempo   | bañador                        |
+  Scenario: Filtering the times by competition swimsuit changes the best time
+    Given I have logged the times of "Noa Díaz Llano" in "200 Libre":
+      | date       | time     | swimsuit                       |
       | 2026-01-10 | 02:40.00 | Speedo Endurance+              |
       | 2026-03-14 | 02:35.50 | Arena Powerskin Carbon Core FX |
       | 2026-06-20 | 02:38.00 | Speedo Endurance+              |
-    Cuando consulto la evolución de "Noa Díaz Llano" en la prueba "200 Libre"
-    Entonces el historial señala "02:35.50" como mejor marca
-    Y el historial muestra el bañador "Arena Powerskin Carbon Core FX" en la marca "02:35.50"
-    Cuando filtro las marcas por "Tipo de bañador" "Bañador de entrenamiento"
-    Entonces hay un filtro activo "Bañador de entrenamiento"
-    Y el historial no incluye la marca "02:35.50"
-    Y el historial señala "02:38.00" como mejor marca
-    Y el historial no señala "02:40.00" como mejor marca
-    Cuando quito el filtro "Bañador de entrenamiento"
-    Y filtro las marcas por "Tipo de bañador" "Bañador técnico"
-    Entonces el historial muestra 1 marcas
-    Y el historial señala "02:35.50" como mejor marca
+    When I check the evolution of "Noa Díaz Llano" in the event "200 Libre"
+    Then the history marks "02:35.50" as the best time
+    And the history shows the swimsuit "Arena Powerskin Carbon Core FX" in the time "02:35.50"
+    When I filter the times by "Tipo de bañador" "Bañador de entrenamiento"
+    Then there is an active filter "Bañador de entrenamiento"
+    And the history does not include the time "02:35.50"
+    And the history marks "02:38.00" as the best time
+    And the history does not mark "02:40.00" as the best time
+    When I remove the filter "Bañador de entrenamiento"
+    And I filter the times by "Tipo de bañador" "Bañador técnico"
+    Then the history shows 1 times
+    And the history marks "02:35.50" as the best time
 
-  Escenario: Filtrar las marcas por marca y modelo de bañador
-    Dado que he registrado las marcas de "Noa Díaz Llano" en "200 Libre":
-      | fecha      | tiempo   | bañador                        |
+  Scenario: Filter the times by swimsuit brand and model
+    Given I have logged the times of "Noa Díaz Llano" in "200 Libre":
+      | date       | time     | swimsuit                       |
       | 2026-03-14 | 02:35.50 | Arena Powerskin Carbon Core FX |
       | 2026-04-14 | 02:33.00 | Mizuno GX Sonic V              |
-    Cuando consulto la evolución de "Noa Díaz Llano" en la prueba "200 Libre"
-    Y filtro las marcas por "Marca del bañador" "Arena"
-    Entonces el historial muestra 1 marcas
-    Y el historial incluye la marca "02:35.50"
-    Cuando filtro las marcas por "Modelo" "Powerskin"
-    Entonces el historial muestra 1 marcas
+    When I check the evolution of "Noa Díaz Llano" in the event "200 Libre"
+    And I filter the times by "Marca del bañador" "Arena"
+    Then the history shows 1 times
+    And the history includes the time "02:35.50"
+    When I filter the times by "Modelo" "Powerskin"
+    Then the history shows 1 times

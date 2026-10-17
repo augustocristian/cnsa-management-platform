@@ -2,7 +2,7 @@
   "name": "cnl-plataforma",
   "version": "0.1.0",
   "private": true,
-  "description": "CNL Plataforma - gestión de clubes de natación (PWA estática)",
+  "description": "CNL Plataforma - swimming club management (static PWA)",
   "type": "module",
   "scripts": {
     "vendor": "node scripts/vendor.mjs",
@@ -14,7 +14,7 @@
     "test:e2e": "node scripts/e2e.mjs",
     "test": "npm run test:unit && npm run test:integration && npm run test:e2e",
     "serve": "node scripts/serve.mjs",
-    "test:e2e:escritorio": "cucumber-js",
+    "test:e2e:desktop": "cucumber-js",
     "e2e:resumen": "node scripts/resumen-e2e.mjs",
     "capturas": "node scripts/capturas.mjs"
   },

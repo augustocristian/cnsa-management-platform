@@ -1,89 +1,89 @@
-# language: es
-@entreno @entreno-contenidos
-Característica: Varios contenidos por ejercicio, reparto de metros, totales y porcentajes
-  Como entrenador quiero poner más de un contenido en el mismo ejercicio (por ejemplo 75 m de aeróbico ligero y 25 m de sprint),
-  repartir los metros a mano o automáticamente y ver cuántos metros y qué porcentaje de la sesión es de cada contenido y estilo
+# language: en
+@training @training-contents
+Feature: Several contents per exercise, distribution of metres, totals and percentages
+  As a coach I want to put more than one content in the same exercise (for example 75 m of light aerobic and 25 m of sprint),
+  distribute the metres by hand or automatically and see how many metres and what percentage of the session belongs to each content and stroke
 
-  Antecedentes:
-    Dado un club de demostración con la sesión de Google iniciada
-    Y que estoy en el módulo "Entrenamientos"
-    Cuando creo la sesión de entrenamiento con los datos:
+  Background:
+    Given a demo club with the Google session started
+    And I have the "Entrenamientos" module open
+    When I create the training session with the data:
       | Título | Sesión contenidos |
       | Grupo  | Alevín            |
-    Y abro el plan de la sesión "Sesión contenidos"
+    And I open the plan of the session "Sesión contenidos"
 
   @smoke
-  Escenario: Añadir dos contenidos al mismo ejercicio y repartir los metros
-    Cuando pongo "4" en "Series" de la fila 1 del set 1
-    Y pongo "100" en "Distancia" de la fila 1 del set 1
-    Y añado el contenido "Aeróbico ligero" a la fila 1 del set 1
-    Y añado el contenido "Aláctico / Sprint" a la fila 1 del set 1
-    Entonces el contenido "Aeróbico ligero" de la fila 1 del set 1 reparte "50 m/rep"
-    Y el contenido "Aláctico / Sprint" de la fila 1 del set 1 reparte "50 m/rep"
-    Cuando fijo "75" metros por repetición de "Aeróbico ligero" en la fila 1 del set 1
-    Entonces el contenido "Aeróbico ligero" de la fila 1 del set 1 está en modo "Manual"
-    Y el contenido "Aláctico / Sprint" de la fila 1 del set 1 está en modo "Auto"
-    Y el contenido "Aláctico / Sprint" de la fila 1 del set 1 reparte "25 m/rep"
-    Y el resumen de la sesión dice "Volumen total: 400 m (AeL 300 m · Sprint 100 m)"
-    Y el contenido "Aeróbico ligero" pesa "300 m" y "75 %" en el resumen
-    Y el contenido "Aláctico / Sprint" pesa "100 m" y "25 %" en el resumen
+  Scenario: Add two contents to the same exercise and distribute the metres
+    When I put "4" in "Series" of row 1 of set 1
+    And I put "100" in "Distancia" of row 1 of set 1
+    And I add the content "Aeróbico ligero" to row 1 of set 1
+    And I add the content "Aláctico / Sprint" to row 1 of set 1
+    Then the content "Aeróbico ligero" of row 1 of set 1 distributes "50 m/rep"
+    And the content "Aláctico / Sprint" of row 1 of set 1 distributes "50 m/rep"
+    When I set "75" metres per repetition of "Aeróbico ligero" in row 1 of set 1
+    Then the content "Aeróbico ligero" of row 1 of set 1 is in mode "Manual"
+    And the content "Aláctico / Sprint" of row 1 of set 1 is in mode "Auto"
+    And the content "Aláctico / Sprint" of row 1 of set 1 distributes "25 m/rep"
+    And the session summary says "Volumen total: 400 m (AeL 300 m · Sprint 100 m)"
+    And the content "Aeróbico ligero" weighs "300 m" and "75 %" in the summary
+    And the content "Aláctico / Sprint" weighs "100 m" and "25 %" in the summary
 
-  Escenario: Autocompletar el reparto desde el texto del ejercicio
-    Cuando pongo "4x100 Crol. 75 AeL-25 Tope" en "Ejercicio" de la fila 1 del set 1
-    Y autocompleto desde el texto la fila 1 del set 1
-    Entonces la fila 1 del set 1 tiene "4" en "Series"
-    Y la fila 1 del set 1 tiene "100" en "Distancia"
-    Y la distancia del bloque de la fila 1 del set 1 es "400"
-    Y el contenido "Aeróbico ligero" de la fila 1 del set 1 reparte "75 m/rep"
-    Y el contenido "Aláctico / Sprint" de la fila 1 del set 1 reparte "25 m/rep"
-    Y el resumen de la sesión dice "Volumen total: 400 m (AeL 300 m · Sprint 100 m) · Por estilo: Crol 400 m"
-    Y el estilo "Crol" suma "400 m" y "100 %" en el resumen
+  Scenario: Autocomplete the distribution from the exercise text
+    When I put "4x100 Crol. 75 AeL-25 Tope" in "Ejercicio" of row 1 of set 1
+    And I autocomplete row 1 of set 1 from the text
+    Then row 1 of set 1 has "4" in "Series"
+    And row 1 of set 1 has "100" in "Distancia"
+    And the block distance of row 1 of set 1 is "400"
+    And the content "Aeróbico ligero" of row 1 of set 1 distributes "75 m/rep"
+    And the content "Aláctico / Sprint" of row 1 of set 1 distributes "25 m/rep"
+    And the session summary says "Volumen total: 400 m (AeL 300 m · Sprint 100 m) · Por estilo: Crol 400 m"
+    And the stroke "Crol" adds up to "400 m" and "100 %" in the summary
 
-  Escenario: Avisar del resto sin asignar y asignarlo a un contenido
-    Cuando pongo "2" en "Series" de la fila 1 del set 1
-    Y pongo "100" en "Distancia" de la fila 1 del set 1
-    Y añado el contenido "Piernas" a la fila 1 del set 1
-    Y fijo "60" metros por repetición de "Piernas" en la fila 1 del set 1
-    Entonces veo el resto sin asignar "Sin asignar: 40 m por repetición" en la fila 1 del set 1
-    Y veo el aviso del plan "Reparto de contenidos incompleto"
-    Cuando asigno el resto de la fila 1 del set 1 a "Técnica"
-    Entonces el contenido "Técnica" de la fila 1 del set 1 reparte "40 m/rep"
-    Y no hay resto sin asignar en la fila 1 del set 1
-    Y el contenido "Piernas" pesa "120 m" y "60 %" en el resumen
-    Y el contenido "Técnica" pesa "80 m" y "40 %" en el resumen
+  Scenario: Warn about the unassigned remainder and assign it to a content
+    When I put "2" in "Series" of row 1 of set 1
+    And I put "100" in "Distancia" of row 1 of set 1
+    And I add the content "Piernas" to row 1 of set 1
+    And I set "60" metres per repetition of "Piernas" in row 1 of set 1
+    Then I see the unassigned remainder "Sin asignar: 40 m por repetición" in row 1 of set 1
+    And I see the plan notice "Reparto de contenidos incompleto"
+    When I assign the remainder of row 1 of set 1 to "Técnica"
+    Then the content "Técnica" of row 1 of set 1 distributes "40 m/rep"
+    And there is no unassigned remainder in row 1 of set 1
+    And the content "Piernas" weighs "120 m" and "60 %" in the summary
+    And the content "Técnica" weighs "80 m" and "40 %" in the summary
 
-  Escenario: El reparto se guarda y se recupera al volver a abrir el plan
-    Cuando pongo "4x100 Crol. 75 AeL-25 Tope" en "Ejercicio" de la fila 1 del set 1
-    Y autocompleto desde el texto la fila 1 del set 1
-    Y guardo el plan
-    Y cierro el plan
-    Y abro el plan de la sesión "Sesión contenidos"
-    Entonces el contenido "Aeróbico ligero" de la fila 1 del set 1 reparte "75 m/rep"
-    Y el resumen de la sesión dice "Volumen total: 400 m"
+  Scenario: The distribution is saved and recovered when the plan is reopened
+    When I put "4x100 Crol. 75 AeL-25 Tope" in "Ejercicio" of row 1 of set 1
+    And I autocomplete row 1 of set 1 from the text
+    And I save the plan
+    And I close the plan
+    And I open the plan of the session "Sesión contenidos"
+    Then the content "Aeróbico ligero" of row 1 of set 1 distributes "75 m/rep"
+    And the session summary says "Volumen total: 400 m"
 
-  Escenario: Copiar el resumen en texto
-    Cuando pongo "4x100 Crol. 75 AeL-25 Tope" en "Ejercicio" de la fila 1 del set 1
-    Y autocompleto desde el texto la fila 1 del set 1
-    Y copio el resumen de la sesión
-    Entonces el portapapeles contiene "Volumen total: 400 m (AeL 300 m · Sprint 100 m) · Por estilo: Crol 400 m"
-    Y el portapapeles contiene "% por contenido: AeL 75 % · Sprint 25 %"
+  Scenario: Copy the summary as text
+    When I put "4x100 Crol. 75 AeL-25 Tope" in "Ejercicio" of row 1 of set 1
+    And I autocomplete row 1 of set 1 from the text
+    And I copy the session summary
+    Then the clipboard contains "Volumen total: 400 m (AeL 300 m · Sprint 100 m) · Por estilo: Crol 400 m"
+    And the clipboard contains "% por contenido: AeL 75 % · Sprint 25 %"
 
-  Escenario: El resumen con contenidos aparece en el PDF descargado
-    Cuando pongo "4x100 Crol. 75 AeL-25 Tope" en "Ejercicio" de la fila 1 del set 1
-    Y autocompleto desde el texto la fila 1 del set 1
-    Y genero el PDF del plan abierto
-    Entonces el PDF es válido y tiene 1 página
-    Y el PDF contiene "75 AeL + 25 Sprint"
-    Y el PDF contiene "RESUMEN DE LA SESIÓN"
-    Y el PDF contiene "Volumen total: 400 m"
-    Y el PDF contiene "Aeróbico ligero"
-    Y el PDF contiene "300 m"
-    Y el PDF contiene "75 %"
-    Y el PDF contiene "POR ESTILO"
+  Scenario: The summary with contents appears in the downloaded PDF
+    When I put "4x100 Crol. 75 AeL-25 Tope" in "Ejercicio" of row 1 of set 1
+    And I autocomplete row 1 of set 1 from the text
+    And I generate the PDF of the open plan
+    Then the PDF is valid and has 1 page
+    And the PDF contains "75 AeL + 25 Sprint"
+    And the PDF contains "RESUMEN DE LA SESIÓN"
+    And the PDF contains "Volumen total: 400 m"
+    And the PDF contains "Aeróbico ligero"
+    And the PDF contains "300 m"
+    And the PDF contains "75 %"
+    And the PDF contains "POR ESTILO"
 
-  Escenario: Registrar las cargas desde el plan sin duplicarlas
-    Cuando elijo la plantilla "Aeróbico"
-    Y registro las cargas desde el plan
-    Entonces veo el aviso "Cargas registradas"
-    Cuando registro las cargas desde el plan
-    Entonces veo el aviso "ya estaban registradas"
+  Scenario: Log the loads from the plan without duplicating them
+    When I choose the template "Aeróbico"
+    And I log the loads from the plan
+    Then I see the toast "Cargas registradas"
+    When I log the loads from the plan
+    Then I see the toast "ya estaban registradas"

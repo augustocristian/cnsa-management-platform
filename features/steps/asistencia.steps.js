@@ -1,89 +1,94 @@
 import { When, Then } from '@cucumber/cucumber';
 import assert from 'node:assert/strict';
-import { regexTexto, todasLasPalabras } from '../support/world.js';
+import { textRegex, allWords } from '../support/world.js';
 
-const tarjeta = (mundo, nombre) => mundo.vista.locator('.asi-card').filter({ hasText: todasLasPalabras(nombre) }).first();
-const ETIQUETA = { presente: 'Presente', ausente: 'Ausente', justificado: 'Justificado' };
+const card = (world, name) => world.view.locator('.asi-card').filter({ hasText: allWords(name) }).first();
+// Status word used in the steps -> value of data-estado (stored value, Spanish) and button label (UI, Spanish).
+const STATES = {
+  present: { attr: 'presente', label: 'Presente' },
+  absent: { attr: 'ausente', label: 'Ausente' },
+  excused: { attr: 'justificado', label: 'Justificado' },
+};
 
-When('selecciono la sesión {string} para pasar lista', async function (titulo) {
-  const sel = this.vista.locator('#asi-sesion');
-  const valor = await sel.locator('option', { hasText: regexTexto(titulo) }).first().getAttribute('value');
-  await sel.selectOption(valor);
+When('I select the session {string} to take attendance', async function (title) {
+  const sel = this.view.locator('#asi-sesion');
+  const value = await sel.locator('option', { hasText: textRegex(title) }).first().getAttribute('value');
+  await sel.selectOption(value);
 });
 
 // Present and absent are one tap; excused is chosen in the "more options" sheet.
-When('marco como {word} a {string}', async function (estado, nombre) {
-  assert.ok(ETIQUETA[estado], 'Estado no válido: usa presente, ausente o justificado');
-  const t = tarjeta(this, nombre);
-  if (estado === 'justificado') {
-    await t.locator('.asi-more').click();
-    const dialogo = this.page.locator('.sheet');
-    await dialogo.getByRole('button', { name: ETIQUETA[estado], exact: true }).click();
-    await dialogo.getByRole('button', { name: 'Guardar' }).click();
+When('I mark the status {word} for {string}', async function (status, name) {
+  assert.ok(STATES[status], 'Invalid status: use present, absent or excused');
+  const c = card(this, name);
+  if (status === 'excused') {
+    await c.locator('.asi-more').click();
+    const dialog = this.page.locator('.sheet');
+    await dialog.getByRole('button', { name: STATES[status].label, exact: true }).click();
+    await dialog.getByRole('button', { name: 'Guardar' }).click();
     return;
   }
-  await t.locator(`.asi-btn[data-estado="${estado}"]`).click();
+  await c.locator(`.asi-btn[data-estado="${STATES[status].attr}"]`).click();
 });
 
-When('toco de nuevo {string} en {string}', async function (estado, nombre) {
-  await tarjeta(this, nombre).locator(`.asi-btn[data-estado="${estado}"]`).click();
+When('I tap {string} again for {string}', async function (status, name) {
+  await card(this, name).locator(`.asi-btn[data-estado="${STATES[status]?.attr ?? status}"]`).click();
 });
 
-When('marco a todos los nadadores como presentes', async function () {
-  await this.vista.getByRole('button', { name: 'Marcar todos presentes' }).click();
+When('I mark all the swimmers as present', async function () {
+  await this.view.getByRole('button', { name: 'Marcar todos presentes' }).click();
 });
 
-When('deshago la última acción de asistencia', async function () {
+When('I undo the last attendance action', async function () {
   await this.page.locator('#toasts .toast-action', { hasText: 'Deshacer' }).click();
 });
 
-When('consulto el historial de asistencia', async function () {
-  await this.vista.getByRole('tab', { name: 'Historial' }).click();
+When('I open the attendance history', async function () {
+  await this.view.getByRole('tab', { name: 'Historial' }).click();
 });
 
-When('filtro el historial por el grupo {string}', async function (g) {
-  await this.vista.locator('#asi-grupo').selectOption({ label: g });
+When('I filter the history by the group {string}', async function (g) {
+  await this.view.locator('#asi-grupo').selectOption({ label: g });
 });
 
-When('despliego el detalle de asistencia de {string}', async function (nombre) {
-  await this.vista.locator('tbody tr.asi-fila').filter({ hasText: todasLasPalabras(nombre) }).first().locator('.asi-name-btn').click();
+When('I expand the attendance detail of {string}', async function (name) {
+  await this.view.locator('tbody tr.asi-fila').filter({ hasText: allWords(name) }).first().locator('.asi-name-btn').click();
 });
 
-Then('{string} figura como {string} en la lista', async function (nombre, estado) {
-  await this.eventually(async () => assert.equal((await tarjeta(this, nombre).locator('.asi-state').innerText()).trim(), estado));
+Then('{string} appears as {string} in the list', async function (name, status) {
+  await this.eventually(async () => assert.equal((await card(this, name).locator('.asi-state').innerText()).trim(), status));
 });
 
 // Counts live in the sticky summary chips (label and number may be in either order and separator).
-Then('el recuento de asistencia muestra {string}', async function (texto) {
-  const numero = (texto.match(/\d+/) || [''])[0];
-  const etiqueta = texto.replace(/[\d:]/g, '').trim();
-  const re = new RegExp(String.raw`${etiqueta}\D{0,6}${numero}\b|\b${numero}\D{0,6}${etiqueta}`, 'i');
-  await this.eventually(async () => assert.match((await this.vista.locator('.asi-sticky').innerText()).replace(/\s+/g, ' '), re, `Counter ${texto} not found`));
+Then('the attendance count shows {string}', async function (text) {
+  const number = (text.match(/\d+/) || [''])[0];
+  const label = text.replace(/[\d:]/g, '').trim();
+  const re = new RegExp(String.raw`${label}\D{0,6}${number}\b|\b${number}\D{0,6}${label}`, 'i');
+  await this.eventually(async () => assert.match((await this.view.locator('.asi-sticky').innerText()).replace(/\s+/g, ' '), re, `Counter ${text} not found`));
 });
 
-Then('el resumen de asistencia indica {string}', async function (texto) {
-  await this.verVisible(this.vista.locator('.asi-sticky', { hasText: texto }));
+Then('the attendance summary says {string}', async function (text) {
+  await this.expectVisible(this.view.locator('.asi-sticky', { hasText: text }));
 });
 
-Then('la lista incluye a {int} nadadores', async function (n) {
-  await this.eventually(async () => assert.equal(await this.vista.locator('.asi-card').count(), n));
+Then('the list includes {int} swimmers', async function (n) {
+  await this.eventually(async () => assert.equal(await this.view.locator('.asi-card').count(), n));
 });
 
-Then('cada nadador de la lista tiene botones de Presente y Ausente de al menos 44 píxeles', async function () {
-  const alturas = await this.vista.locator('.asi-card .asi-btn, .asi-card .asi-more').evaluateAll((els) => els.map((e) => e.getBoundingClientRect().height));
-  assert.ok(alturas.length > 0, 'No hay botones');
-  assert.ok(alturas.every((a) => a >= 44), `Botones demasiado bajos: ${alturas}`);
+Then('every swimmer in the list has Present and Absent buttons of at least 44 pixels', async function () {
+  const heights = await this.view.locator('.asi-card .asi-btn, .asi-card .asi-more').evaluateAll((els) => els.map((e) => e.getBoundingClientRect().height));
+  assert.ok(heights.length > 0, 'There are no buttons');
+  assert.ok(heights.every((a) => a >= 44), `Buttons too short: ${heights}`);
 });
 
-Then('el historial muestra el porcentaje de asistencia de {string}', async function (nombre) {
-  const fila = this.vista.locator('tbody tr.asi-fila').filter({ hasText: todasLasPalabras(nombre) }).first();
-  await this.verVisible(fila.locator('.asi-pct'), `Sin porcentaje para ${nombre}`);
+Then('the history shows the attendance percentage of {string}', async function (name) {
+  const row = this.view.locator('tbody tr.asi-fila').filter({ hasText: allWords(name) }).first();
+  await this.expectVisible(row.locator('.asi-pct'), `No percentage for ${name}`);
 });
 
-Then('el historial muestra {int} nadadores', async function (n) {
-  await this.eventually(async () => assert.equal(await this.vista.locator('tbody tr.asi-fila').count(), n));
+Then('the history shows {int} swimmers', async function (n) {
+  await this.eventually(async () => assert.equal(await this.view.locator('tbody tr.asi-fila').count(), n));
 });
 
-Then('el detalle indica {string}', async function (texto) {
-  await this.verVisible(this.vista.locator('.asi-det').getByText(texto));
+Then('the detail says {string}', async function (text) {
+  await this.expectVisible(this.view.locator('.asi-det').getByText(text));
 });

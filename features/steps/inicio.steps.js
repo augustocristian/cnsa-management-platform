@@ -1,80 +1,80 @@
-// Pasos del panel de inicio (features/inicio.feature).
+// Steps of the home panel (features/inicio.feature).
 import { When, Then } from '@cucumber/cucumber';
 import assert from 'node:assert/strict';
 
-const tarjeta = (mundo, titulo) => mundo.vista.locator('section.card').filter({ has: mundo.page.getByRole('heading', { name: titulo, level: 2 }) });
+const card = (world, title) => world.view.locator('section.card').filter({ has: world.page.getByRole('heading', { name: title, level: 2 }) });
 
-Then('el banner del panel muestra el nombre del club {string}', async function (nombre) {
-  await this.verVisible(this.vista.locator('.ini-banner').getByRole('heading', { level: 1, name: nombre }), `El banner no muestra "${nombre}"`);
+Then('the panel banner shows the club name {string}', async function (name) {
+  await this.expectVisible(this.view.locator('.ini-banner').getByRole('heading', { level: 1, name }), `The banner does not show "${name}"`);
 });
 
-Then('el banner del panel resume las sesiones de hoy', async function () {
+Then('the panel banner summarises the sessions of today', async function () {
   await this.eventually(async () => {
-    const txt = (await this.vista.locator('.ini-headline').innerText()).trim();
+    const txt = (await this.view.locator('.ini-headline').innerText()).trim();
     assert.match(txt, /^(Hoy: \d+ (sesión|sesiones) · \d+ (nadador|nadadores) (esperado|esperados)|Hoy no hay sesiones)/);
   });
 });
 
-When('pulso la acción rápida {string}', async function (nombre) {
-  await this.vista.locator('#ini-acciones').getByRole('link', { name: nombre }).click();
+When('I press the quick action {string}', async function (name) {
+  await this.view.locator('#ini-acciones').getByRole('link', { name }).click();
 });
 
-Then('la tarjeta {string} ofrece {string}', async function (titulo, accion) {
-  const t = tarjeta(this, titulo);
-  await this.verVisible(t.getByRole('link', { name: accion }), `La tarjeta "${titulo}" no ofrece "${accion}"`);
+Then('the card {string} offers {string}', async function (title, action) {
+  const t = card(this, title);
+  await this.expectVisible(t.getByRole('link', { name: action }), `The card "${title}" does not offer "${action}"`);
 });
 
-When('oculto los primeros pasos', async function () {
-  await this.vista.getByRole('button', { name: 'Ocultar primeros pasos' }).click();
+When('I hide the first steps', async function () {
+  await this.view.getByRole('button', { name: 'Ocultar primeros pasos' }).click();
 });
 
 // Desktop: the cards form complete rows (no empty cell at the end of a row).
-Then('las tarjetas del panel llenan cada fila sin huecos', async function () {
-  await this.verVisible(this.vista.locator('.ini-grid > .ini-card').first());
+Then('the panel cards fill each row without gaps', async function () {
+  await this.expectVisible(this.view.locator('.ini-grid > .ini-card').first());
   await this.eventually(async () => {
     const r = await this.page.evaluate(() => {
       const grid = document.querySelector('.ini-grid').getBoundingClientRect();
-      const filas = new Map();
+      const rows = new Map();
       for (const c of document.querySelectorAll('.ini-grid > .ini-card')) {
         const b = c.getBoundingClientRect();
-        const clave = Math.round(b.top);
-        filas.set(clave, (filas.get(clave) || 0) + b.width);
+        const key = Math.round(b.top);
+        rows.set(key, (rows.get(key) || 0) + b.width);
       }
-      return { ancho: grid.width, filas: [...filas.values()] };
+      return { width: grid.width, rows: [...rows.values()] };
     });
-    assert.ok(r.filas.length >= 2 && r.filas.length <= 4, `filas: ${r.filas.length}`);
-    for (const w of r.filas) assert.ok(w >= r.ancho * 0.85, `fila incompleta: ${Math.round(w)} de ${Math.round(r.ancho)}`);
+    assert.ok(r.rows.length >= 2 && r.rows.length <= 4, `rows: ${r.rows.length}`);
+    for (const w of r.rows) assert.ok(w >= r.width * 0.85, `incomplete row: ${Math.round(w)} of ${Math.round(r.width)}`);
   });
 });
 
-Then('el panel no tiene desplazamiento horizontal', async function () {
-  await this.verVisible(this.vista.locator('.ini-grid').first());
-  const r = await this.page.evaluate(() => ({ scroll: document.documentElement.scrollWidth, ancho: window.innerWidth }));
-  assert.ok(r.scroll <= r.ancho + 1, `La página se desborda: ${r.scroll} > ${r.ancho}`);
+Then('the panel has no horizontal scroll', async function () {
+  await this.expectVisible(this.view.locator('.ini-grid').first());
+  const r = await this.page.evaluate(() => ({ scroll: document.documentElement.scrollWidth, width: window.innerWidth }));
+  assert.ok(r.scroll <= r.width + 1, `The page overflows: ${r.scroll} > ${r.width}`);
 });
 
-Then('los textos del gráfico semanal miden al menos {int} píxeles', async function (minimo) {
-  await this.verVisible(this.vista.locator('#ini-grafico svg.ini-svg'));
+Then('the weekly chart texts are at least {int} pixels', async function (min) {
+  await this.expectVisible(this.view.locator('#ini-grafico svg.ini-svg'));
   const r = await this.page.evaluate(() => {
     const svg = document.querySelector('#ini-grafico svg.ini-svg');
-    const escala = svg.getBoundingClientRect().width / svg.viewBox.baseVal.width;
-    return [...svg.querySelectorAll('text')].map((t) => parseFloat(getComputedStyle(t).fontSize) * escala);
+    const scale = svg.getBoundingClientRect().width / svg.viewBox.baseVal.width;
+    return [...svg.querySelectorAll('text')].map((t) => parseFloat(getComputedStyle(t).fontSize) * scale);
   });
   assert.ok(r.length > 0);
-  for (const px of r) assert.ok(px >= minimo - 0.01, `Texto de ${px.toFixed(1)} px en el gráfico`);
+  for (const px of r) assert.ok(px >= min - 0.01, `Text of ${px.toFixed(1)} px in the chart`);
 });
 
-Then('el gráfico semanal tiene una tabla como alternativa', async function () {
-  const svg = this.vista.locator('#ini-grafico svg.ini-svg');
+Then('the weekly chart has a table as an alternative', async function () {
+  const svg = this.view.locator('#ini-grafico svg.ini-svg');
   assert.equal(await svg.getAttribute('role'), 'img');
-  assert.equal(await this.vista.locator('#ini-grafico table tbody tr').count(), 7);
+  assert.equal(await this.view.locator('#ini-grafico table tbody tr').count(), 7);
 });
 
-Then('cada alerta de cargas del panel tiene icono y texto', async function () {
-  await this.verVisible(this.vista.locator('#ini-alertas .alert').first());
-  const n = await this.vista.locator('#ini-alertas .alert').count();
+Then('every load alert of the panel has an icon and text', async function () {
+  await this.expectVisible(this.view.locator('#ini-alertas .alert').first());
+  const n = await this.view.locator('#ini-alertas .alert').count();
   for (let i = 0; i < n; i++) {
-    const a = this.vista.locator('#ini-alertas .alert').nth(i);
+    const a = this.view.locator('#ini-alertas .alert').nth(i);
     assert.equal(await a.locator('svg.icon').count(), 1);
     assert.match((await a.innerText()).trim(), /(Faltan|Exceso de) [\d.]+ m|Todas las cargas|Aún no hay cargas/);
   }
