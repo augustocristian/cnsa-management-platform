@@ -8,6 +8,7 @@
     "vendor": "node scripts/vendor.mjs",
     "postinstall": "node scripts/vendor.mjs",
     "check": "node scripts/check.mjs",
+    "check:arch": "node scripts/check-arch.mjs",
     "build:sw": "node scripts/generate-sw.mjs",
     "test:unit": "node --test tests/unit",
     "test:integration": "node --test tests/integration",

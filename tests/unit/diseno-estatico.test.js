@@ -173,6 +173,6 @@ test('SRI: vendor/integrity.json matches the vendor/ files and the lazy loaders 
 
 test('sw.js includes the new design system files in the shell', () => {
   const sw = leer('sw.js');
-  for (const f of ['./css/tokens.css', './css/components.css', './js/theme.js', './js/theme-boot.js', './js/domain/tema.js', './vendor/integrity.json',
-    './icons/apple-touch-icon.png', './icons/icon-maskable-512.png', './js/locales/diseno.es.js']) assert.ok(sw.includes(`'${f}'`), f);
+  for (const f of ['./css/tokens.css', './css/components.css', './js/presentation/theme.js', './js/presentation/theme-boot.js', './js/domain/tema.js', './vendor/integrity.json',
+    './icons/apple-touch-icon.png', './icons/icon-maskable-512.png', './js/presentation/i18n/locales/diseno.es.js']) assert.ok(sw.includes(`'${f}'`), f);
 });

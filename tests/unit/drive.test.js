@@ -1,4 +1,4 @@
-// Tests of js/drive.js (Drive API v3, drive.file scope only) and js/sheetdata.js with a simulated fetch (no network).
+// Tests of js/infrastructure/drive.js (Drive API v3, drive.file scope only) and js/domain/sheetdata.js with a simulated fetch (no network).
 import { test, describe, beforeEach, after } from 'node:test';
 import assert from 'node:assert/strict';
 
@@ -12,11 +12,11 @@ const memStorage = {
 // Other tests in the same run may define their own localStorage/fetch: mine is installed per test and restored.
 const prev = { localStorage: globalThis.localStorage, fetch: globalThis.fetch };
 
-const { drive } = await import('../../js/drive.js');
+const { drive } = await import('../../js/infrastructure/drive.js');
 const { driveConnection: auth } = await import('../../js/infrastructure/driveConnection.js');
-const { SHEETS, ENTITY_SHEETS } = await import('../../js/schema.js');
-const { dataToDoc, docToData, hashData, mergeData, isEmptyData } = await import('../../js/sheetdata.js');
-const { SCOPES } = await import('../../js/config.js');
+const { SHEETS, ENTITY_SHEETS } = await import('../../js/domain/schema.js');
+const { dataToDoc, docToData, hashData, mergeData, isEmptyData } = await import('../../js/domain/sheetdata.js');
+const { SCOPES } = await import('../../js/infrastructure/config.js');
 
 let calls;
 let handler;

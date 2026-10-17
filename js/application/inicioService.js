@@ -9,7 +9,7 @@ import { crearCargasService } from './cargasService.js';
 const CLAVE_PASOS_OCULTOS = 'inicio.pasosOcultos.';
 
 // opciones: {ahora: () => Date, cargas?: loads service, prefs?: {get(clave, def), set(clave, valor)}, clubId?: () => string}
-export function crearInicioService(repo, { ahora = () => new Date(), cargas = crearCargasService(repo), prefs = null, clubId = () => repo.clubRef?.id || '' } = {}) {
+export function crearInicioService(repo, { ahora, cargas = crearCargasService(repo), prefs = null, clubId = () => repo.clubRef?.id || '' } = {}) {
   const claveOculto = () => CLAVE_PASOS_OCULTOS + clubId();
   const listar = (hoja) => repo.list(hoja) || [];
 

@@ -8,8 +8,8 @@ const test = (name, fn) => base(name, async (t) => { c = await fresh(); return f
 
 // Renders the Home view with an injected clock (default: the real one, which is what the demo data is relative to).
 async function pintar(ahora) {
-  const mod = await importApp('js/views/inicio.js');
-  await mod.render(c.container, [], { store: c.store, auth: c.auth, ui: c.ui, ahora });
+  const mod = await importApp('js/presentation/views/inicio.js');
+  await mod.render(c.container, [], { ...c.servicios, store: c.store, auth: c.auth, ui: c.ui, ahora });
   await tick();
   return c.container;
 }
@@ -141,7 +141,7 @@ test('getting started: steps tick themselves when completed and can be hidden (p
 });
 
 test('home is translated to English and Italian with no stray keys', async () => {
-  const { setLang } = await importApp('js/i18n.js');
+  const { setLang } = await importApp('js/presentation/i18n/i18n.js');
   try {
     for (const l of ['en', 'it']) {
       setLang(l, { persist: false });

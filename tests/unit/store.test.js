@@ -3,10 +3,10 @@ import assert from 'node:assert/strict';
 import { setupEnv, importApp } from '../helpers/env.js';
 
 setupEnv({ loadXlsx: true });
-const { store } = await importApp('js/store.js');
-const { SHEETS, ENTITY_SHEETS, CATEGORIAS } = await importApp('js/schema.js');
+const { store } = await importApp('js/composicion/store.js');
+const { SHEETS, ENTITY_SHEETS, CATEGORIAS } = await importApp('js/domain/schema.js');
 const { driveConnection: auth } = await importApp('js/infrastructure/driveConnection.js');
-const { drive } = await importApp('js/drive.js');
+const { drive } = await importApp('js/infrastructure/drive.js');
 const { instalarFakeGoogle } = await importApp('js/infrastructure/fakeGoogle.js');
 
 // Own suite: the hooks must not apply to the tests of other files in the same process.

@@ -8,7 +8,7 @@
 // Which mode the app starts in is decided by sesionService.resolveStartMode() (a Drive authorization wins over the demo flag; a
 // demo left open is closed when a Client ID appears).
 //
-// Everything concrete is injected (no localStorage, document or clock in here; js/modo.js composes the real adapters):
+// Everything concrete is injected (no localStorage, document or clock in here; js/composicion/modo.js composes the real adapters):
 //   store     club store: initDemo({ demo, hoy }), cerrar(), mode
 //   demo      demo storage adapter: existe(), borrar()                                  (infrastructure/demoStorage.js)
 //   conexion  Drive connection: isConnected(), connect({ interactive, clientId })      (infrastructure/driveConnection.js)
@@ -17,14 +17,14 @@
 export const MODO_DEMO = 'demo';
 
 // THE rule for the demo (the only place it is written): the demo exists to show and try the app BEFORE Google Drive is set up, so it
-// is available only while there is NO Google Client ID (neither saved in this browser nor in js/config.js) and Drive is not authorised.
+// is available only while there is NO Google Client ID (neither saved in this browser nor in js/infrastructure/config.js) and Drive is not authorised.
 //   clientId  boolean-ish  a Client ID is configured (driveConnection.enabled)
 //   driveAuth boolean-ish  the person already authorised Drive (driveConnection.isConnected())
 export function demoDisponible({ clientId = false, driveAuth = false } = {}) {
   return !clientId && !driveAuth;
 }
 
-export function crearModoService({ store, demo, conexion, bandera, ahora = () => new Date() } = {}) {
+export function crearModoService({ store, demo, conexion, bandera, ahora } = {}) {
   const sinBandera = { leer: () => null, escribir: () => {}, borrar: () => {} };
   const flag = bandera || sinBandera;
 

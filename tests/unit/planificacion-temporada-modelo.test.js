@@ -148,7 +148,7 @@ test('bandasDeFase and filaLibre', () => {
 test('locale files of planning, season, calendar and tutorial have the same keys and variables in es/en/it', async () => {
   const vars = (s) => [...String(s).matchAll(/\{(\w+)\}/g)].map((m) => m[1]).sort().join(',');
   for (const area of ['planificacion', 'temporada', 'calendario', 'tutorial']) {
-    const [es, en, it] = await Promise.all(['es', 'en', 'it'].map(async (l) => (await import(`../../js/locales/${area}.${l}.js`)).default));
+    const [es, en, it] = await Promise.all(['es', 'en', 'it'].map(async (l) => (await import(`../../js/presentation/i18n/locales/${area}.${l}.js`)).default));
     for (const [nombre, d] of [['en', en], ['it', it]]) {
       assert.deepEqual(Object.keys(d).sort(), Object.keys(es).sort(), `${area}.${nombre} keys`);
       Object.keys(es).forEach((k) => {

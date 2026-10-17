@@ -1,9 +1,9 @@
 // Navigation: the sidebar (desktop) / bottom bar (mobile) and the "More" bottom sheet.
 // ONE <nav> serves both layouts: CSS hides what does not fit (see css/app.css). Every route keeps `.nav-item[data-route]`.
-import { h, sheet } from '../../ui.js';
-import { icon } from '../../icons.js';
-import { t, tNav } from '../../i18n.js';
-import * as router from '../../router.js';
+import { h, sheet } from '../ui.js';
+import { icon } from '../icons.js';
+import { t, tNav } from '../i18n/i18n.js';
+import * as router from '../router.js';
 import { GRUPOS, BARRA_MOVIL, ETIQUETA_CORTA, INICIO, gruposMas, iconoDe, enMas } from './navModel.js';
 
 function etiqueta(ruta) {

@@ -3,7 +3,7 @@
 Feature: Demo mode (only while there is no Google client ID) and connection with Google Drive
   As a person opening the app before Google is configured I want to be able to try it with sample data without connecting
   any Drive, and connect Google Drive when there is a client ID and I want to save my data. The demo is only offered while
-  there is no Google client ID (neither in the browser nor in js/config.js). The app has no sign-in: it only asks for
+  there is no Google client ID (neither in the browser nor in js/infrastructure/config.js). The app has no sign-in: it only asks for
   permission over the files it creates itself in my Drive and never shows or stores who I am.
 
   # Demo mode stores everything only in this browser (cnl:demo:* space) and never touches Google Drive.

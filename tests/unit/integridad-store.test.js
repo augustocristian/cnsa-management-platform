@@ -6,13 +6,13 @@ import { readFileSync } from 'node:fs';
 import { setupEnv, importApp, ROOT } from '../helpers/env.js';
 
 setupEnv({ loadXlsx: true });
-const { store } = await importApp('js/store.js');
+const { store } = await importApp('js/composicion/store.js');
 const { driveConnection: auth } = await importApp('js/infrastructure/driveConnection.js');
-const { drive, nombreBackup } = await importApp('js/drive.js');
+const { drive, nombreBackup } = await importApp('js/infrastructure/drive.js');
 const { instalarFakeGoogle } = await importApp('js/infrastructure/fakeGoogle.js');
-const { newId } = await importApp('js/schema.js');
-const { cache, limpiarDatosLocales } = await importApp('js/cache.js');
-const { loadXLSX } = await importApp('js/lazy.js');
+const { newId } = await importApp('js/infrastructure/ids.js');
+const { cache, limpiarDatosLocales } = await importApp('js/infrastructure/cache.js');
+const { loadXLSX } = await importApp('js/infrastructure/lazy.js');
 const { pruebasPermitidas } = await importApp('js/infrastructure/entornoPruebas.js');
 
 const esperar = (ms) => new Promise((r) => setTimeout(r, ms));

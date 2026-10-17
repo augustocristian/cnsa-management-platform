@@ -2,7 +2,8 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { importApp } from '../helpers/env.js';
 
-const S = await importApp('js/schema.js');
+const S = await importApp('js/domain/schema.js');
+const { newId } = await importApp('js/infrastructure/ids.js');
 
 test('SHEETS contains all the contract sheets with an id', () => {
   const esperadas = ['Club', 'Nadadores', 'Grupos', 'Entrenamientos', 'Asistencia', 'Cargas', 'Marcas', 'Comunicaciones', 'ObjetivosCarga', 'Banadores', 'Piscinas', 'AsignacionesCalle', 'EntrenoLineas', 'TiposCarga', 'Temporadas', 'Fases', 'SemanasPlan', 'EventosTemporada'];
@@ -35,7 +36,7 @@ test('CATEGORIAS in order; there are no roles or users sheet any more', () => {
 
 test('newId returns unique strings', () => {
   const ids = new Set();
-  for (let i = 0; i < 5000; i++) ids.add(S.newId());
+  for (let i = 0; i < 5000; i++) ids.add(newId());
   assert.equal(ids.size, 5000);
-  assert.equal(typeof S.newId(), 'string');
+  assert.equal(typeof newId(), 'string');
 });

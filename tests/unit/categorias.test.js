@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import * as C from '../../js/domain/categorias.js';
-import { CATEGORIAS } from '../../js/schema.js';
+import { CATEGORIAS } from '../../js/domain/schema.js';
 
 const nad = (fecha, sexo = 'F', extra = {}) => ({ fechaNacimiento: fecha, sexo, ...extra });
 const cat = (fecha, temporada, sexo = 'F', extra = {}, config) => C.categoriaDe(nad(fecha, sexo, extra), temporada, config).categoria;
@@ -280,11 +280,11 @@ test('cambiosDeTemporada: who changes category between two seasons', () => {
 });
 
 // ---------- i18n ----------
-import es from '../../js/locales/categorias.es.js';
-import en from '../../js/locales/categorias.en.js';
-import it from '../../js/locales/categorias.it.js';
+import es from '../../js/presentation/i18n/locales/categorias.es.js';
+import en from '../../js/presentation/i18n/locales/categorias.en.js';
+import it from '../../js/presentation/i18n/locales/categorias.it.js';
 import { readFileSync } from 'node:fs';
-import { t, setLang } from '../../js/i18n.js';
+import { t, setLang } from '../../js/presentation/i18n/i18n.js';
 
 const vars = (s) => [...s.matchAll(/\{(\w+)\}/g)].map((m) => m[1]).sort().join(',');
 for (const [nombre, d] of [['en', en], ['it', it]]) {
@@ -296,7 +296,7 @@ for (const [nombre, d] of [['en', en], ['it', it]]) {
 }
 
 test('categories: all categorias.* keys used in the code exist and are merged into i18n', () => {
-  const codigo = ['js/views/categorias-panel.js', 'js/views/nadadores.js'].map((f) => readFileSync(f, 'utf8')).join('\n');
+  const codigo = ['js/presentation/views/categorias-panel.js', 'js/presentation/views/nadadores.js'].map((f) => readFileSync(f, 'utf8')).join('\n');
   const usadas = new Set([...codigo.matchAll(/'(categorias\.[\w.-]+)'/g)].map((m) => m[1]));
   const dinamicas = ['categorias.reglas.err.']; // categorias.reglas.err.<codigo>
   for (const k of usadas) assert.ok(k in es, 'missing ' + k);

@@ -6,8 +6,8 @@
 //   conectarDesdeDemo()      "Connect Google Drive" in the demo banner / menu (must run from a click); the demo data is dropped
 //   salirDeDemo()            "Exit demo": asks, erases the demo data and returns to the start screen
 // The use cases live in application/modoService.js (rt.modo); this file only adds the browser parts (dialogs, reload).
-import { toast, confirmDialog } from '../../ui.js';
-import { t } from '../../i18n.js';
+import { toast, confirmDialog } from '../ui.js';
+import { t } from '../i18n/i18n.js';
 
 const volverAlInicio = () => { location.hash = ''; location.reload(); };
 

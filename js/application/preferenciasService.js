@@ -8,21 +8,18 @@ import * as P from '../domain/preferencias.js';
 
 const CLAVE_CACHE = 'cnl:prefs';
 
-function almacenamientoPorDefecto() {
-  try { return globalThis.localStorage || null; } catch (e) { return null; }
-}
+const SILENCIO = { warn() {}, error() {} }; // default log: the composition root injects the real console
+const SIN_TEMPORIZADOR = { set: () => null, clear: () => {} }; // default timer: nothing is scheduled (the composition root injects the real one)
 
-// opciones: {almacen?, claveCache?, ahora?, debounceMs?, reintentoMs?, temporizador?: {set, clear}, enLinea?, legado?}
+// opciones: {almacen? (Storage-like; none = no local cache), claveCache?, ahora (() => ms), debounceMs?, reintentoMs?,
+//   temporizador?: {set, clear}, enLinea? (() => boolean), legado?, log? ({warn, error})}
 //  - legado: () => ({clave: valor}) reads the old localStorage keys to migrate them the first time.
 export function crearPreferencias({
-  almacen, claveCache = CLAVE_CACHE, ahora = () => Date.now(), debounceMs = 2000, reintentoMs = 30000,
-  temporizador, enLinea = () => (typeof navigator === 'undefined' ? true : navigator.onLine !== false), legado = () => ({}),
+  almacen = null, claveCache = CLAVE_CACHE, ahora, debounceMs = 2000, reintentoMs = 30000,
+  temporizador = SIN_TEMPORIZADOR, enLinea = () => true, legado = () => ({}), log = SILENCIO,
 } = {}) {
-  const ls = almacen === undefined ? almacenamientoPorDefecto() : almacen;
-  const tmp = temporizador || {
-    set: (fn, ms) => { const id = setTimeout(fn, ms); if (id && id.unref) id.unref(); return id; },
-    clear: (id) => clearTimeout(id),
-  };
+  const ls = almacen;
+  const tmp = temporizador;
 
   let p = P.vacias();
   let pend = new Set();
@@ -33,7 +30,7 @@ export function crearPreferencias({
   let ultimoError = null;
   const oyentes = new Set();
 
-  const emit = (evt) => oyentes.forEach((fn) => { try { fn(evt); } catch (e) { console.error(e); } });
+  const emit = (evt) => oyentes.forEach((fn) => { try { fn(evt); } catch (e) { log.error(e); } });
   function setEstado(s) { if (estado !== s) { estado = s; emit({ tipo: 'estado', estado: s }); } }
 
   function guardarCache() {
@@ -129,7 +126,7 @@ export function crearPreferencias({
           const limpio = P.sanear(k, viejo[k]);
           if (limpio !== undefined && limpio !== null) p = { version: p.version, valores: { ...p.valores, [k]: limpio }, marcas: { ...p.marcas, [k]: 0 } };
         });
-      } catch (err) { console.warn('Migration of old preferences', err); }
+      } catch (err) { log.warn('Migration of old preferences', err); }
       guardarCache();
       setEstado(pend.size ? 'pendiente' : 'sincronizado');
       return sincronizar();

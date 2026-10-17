@@ -1,13 +1,13 @@
 // Demo mode storage: the adapter the store uses INSTEAD of Google Drive when the person tries the app without connecting a Drive.
 //
-// It satisfies the same "club file" port as js/drive.js (meta / read / write / renameClub / backups...), but everything lives in this
+// It satisfies the same "club file" port as js/infrastructure/drive.js (meta / read / write / renameClub / backups...), but everything lives in this
 // browser: one JSON document in localStorage under the namespace 'cnl:demo:*' (with a memory fallback when storage is blocked).
 // It NEVER calls Drive and its keys never collide with the real club mirrors ('cnl:club:*'), so demo data cannot leak into a
 // real club. The store keeps its own local mirror of the demo club under 'cnl:demo:club:' (see DEMO_CACHE_PREFIX).
 //
 // Disabled in demo on purpose: daily backups and import backups (listarBackups is always empty), the Excel copy in Drive, PDFs
 // saved to Drive, Google Calendar sync. Those calls throw an Error with code 'demo-sin-drive' or are no-ops.
-import { cache } from '../cache.js';
+import { cache } from './cache.js';
 
 export const DEMO_PREFIX = 'cnl:demo:';
 export const DEMO_CACHE_PREFIX = DEMO_PREFIX + 'club:'; // the store's mirror of the demo club
@@ -74,7 +74,7 @@ export function crearDemoStorage({ almacen, ahora = () => new Date() } = {}) {
       await cache.eliminar(DEMO_CACHE_PREFIX + (f ? f.id : DEMO_ID));
     },
 
-    // ---- "Club file" port (same shape as js/drive.js) ----
+    // ---- "Club file" port (same shape as js/infrastructure/drive.js) ----
     fileUrl: () => '',
     folderUrl: () => '',
     async meta(id) { return metaDe(archivo(id)); },
@@ -116,6 +116,6 @@ export function crearDemoStorage({ almacen, ahora = () => new Date() } = {}) {
   return demo;
 }
 
-// The instance used by the app (composition: js/modo.js).
+// The instance used by the app (composition: js/composicion/modo.js).
 export const demoStorage = crearDemoStorage();
 export default demoStorage;

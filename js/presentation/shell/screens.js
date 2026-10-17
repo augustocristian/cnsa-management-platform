@@ -1,11 +1,11 @@
 // Screens shown before (or instead of) the shell: start/connect, "configuration needed", club picker, first-run wizard,
 // error and recovery screens. They only present; decisions live in application/sesionService.js and application/asistenteClub.js.
-import { h, toast, sheet, confirmDialog } from '../../ui.js';
-import * as ui from '../../ui.js';
-import { t } from '../../i18n.js';
-import { langSwitch } from '../../lang-switch.js';
-import * as router from '../../router.js';
-import * as acceso from '../../views/acceso.js';
+import { h, toast, sheet, confirmDialog } from '../ui.js';
+import * as ui from '../ui.js';
+import { t } from '../i18n/i18n.js';
+import { langSwitch } from '../lang-switch.js';
+import * as router from '../router.js';
+import * as acceso from '../views/acceso.js';
 import { ponerTitulo } from './a11y.js';
 
 let langEl = null;
@@ -30,8 +30,8 @@ export async function tutorialScreen(rt) {
   const holder = h('div');
   box.appendChild(holder);
   try {
-    const mod = await import('../../views/tutorial.js');
-    await mod.render(holder, router.current().params, { store: rt.store, auth: rt.auth, ui });
+    const mod = await import('../views/tutorial.js');
+    await mod.render(holder, router.current().params, { store: rt.store, auth: rt.auth, ui, ...rt.ctxVista });
   } catch (e) { holder.replaceChildren(h('p', { class: 'form-error', role: 'alert' }, e?.message || String(e))); }
 }
 

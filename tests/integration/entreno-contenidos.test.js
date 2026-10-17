@@ -33,9 +33,9 @@ const PLAN = [
 
 async function montar({ plan = PLAN, extra = {} } = {}) {
   setupEnv();
-  const i18n = await importApp('js/i18n.js');
+  const i18n = await importApp('js/presentation/i18n/i18n.js');
   i18n.setLang('es', { persist: false });
-  const ui = await importApp('js/ui.js');
+  const ui = await importApp('js/presentation/ui.js');
   const { sembrarCatalogo, filaTipo } = await importApp('js/domain/cargas.js');
   const store = fakeStore({
     Grupos: [{ id: 'g2', nombre: 'Alevín' }],
@@ -47,7 +47,7 @@ async function montar({ plan = PLAN, extra = {} } = {}) {
   });
   const auth = { user: null, ensureToken: async () => 'tok', on: () => () => {} };
   const ctx = { store, auth, ui };
-  const { abrirEditor } = await importApp('js/views/entreno-editor.js');
+  const { abrirEditor } = await importApp('js/presentation/views/entreno-editor.js');
   const ed = abrirEditor({ ctx, sesionId: 's1' });
   await tick();
   return { store, ctx, ed, i18n, ui };
@@ -254,7 +254,7 @@ test('saving persists components and style in the sheet; on reopening the chips 
   assert.deepEqual(JSON.parse(intacta.componentes).map((x) => x.metrosPorRep), [75, 25]);
   assert.equal(intacta.estilo, 'Crol');
   c.ed.cerrar();
-  const { abrirEditor } = await importApp('js/views/entreno-editor.js');
+  const { abrirEditor } = await importApp('js/presentation/views/entreno-editor.js');
   abrirEditor({ ctx: c.ctx, sesionId: 's1' });
   assert.deepEqual(chips(1, 1).map((x) => x.dataset.contenido), ['Piernas', 'Técnica']);
   assert.equal(chip(1, 1, 'Piernas').querySelector('.enp-c-modo').textContent, 'Manual');
@@ -321,7 +321,7 @@ test('templates with contents and old plan without components: the summary appea
   const c = await montar({ plan: [L(1, 1, { objetivo: 'Piernas', series: 8, distancia: 50 }), L(1, 2, { series: 4, distancia: 25, ejercicio: 'tec' })] });
   assert.deepEqual(leyenda('cont'), { Piernas: ['500 m', '100 %'] });
   c.ed.cerrar();
-  const { abrirEditor } = await importApp('js/views/entreno-editor.js');
+  const { abrirEditor } = await importApp('js/presentation/views/entreno-editor.js');
   abrirEditor({ ctx: c.ctx, sesionId: 's1' });
   const sel = editor().querySelectorAll('.enp-tools select')[0];
   elegir(sel, 'aerobico');
@@ -339,7 +339,7 @@ test('in English: labels, styles and summary translated', async () => {
   const c = await montar();
   c.ed.cerrar();
   c.i18n.setLang('en', { persist: false });
-  const { abrirEditor } = await importApp('js/views/entreno-editor.js');
+  const { abrirEditor } = await importApp('js/presentation/views/entreno-editor.js');
   abrirEditor({ ctx: c.ctx, sesionId: 's1' });
   assert.ok(fila(1, 1).querySelector('.enp-c-add').options[0].textContent === 'Add content');
   assert.equal(editor().querySelector('.enp-res-bar').getAttribute('aria-label'), 'Session summary: 700 m · 27 min');

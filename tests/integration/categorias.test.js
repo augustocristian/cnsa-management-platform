@@ -33,7 +33,7 @@ test('demo data: the 12 swimmers fall into the expected categories and no recalc
   const pelayo = demo.store.list('Nadadores').find((n) => n.nombre === 'Pelayo');
   assert.equal(pelayo.fechaNacimiento.slice(0, 4), String(hoy - 9));
   const { crearCategoriasService } = await import('../../js/application/categoriasService.js');
-  assert.deepEqual(crearCategoriasService(demo.store).recalcular().cambios, []);
+  assert.deepEqual(crearCategoriasService(demo.store, { ahora: () => new Date() }).recalcular().cambios, []);
 });
 
 test('new swimmer: the category is computed live from birth date and sex, read-only', async () => {
@@ -114,7 +114,7 @@ test('manual category: the switch shows the selector, overrides the calculation 
   assert.match(dd.textContent, /manual/);
   // it is left untouched when the season changes
   const { crearCategoriasService } = await import('../../js/application/categoriasService.js');
-  crearCategoriasService(c.store).cambiarTemporada(2030);
+  crearCategoriasService(c.store, { ahora: () => new Date() }).cambiarTemporada(2030);
   assert.equal(porNombre('Mano').categoria, 'Junior');
 });
 
@@ -247,7 +247,7 @@ test('rules by sex: validation, saving and recalculation', async () => {
 });
 
 test('schema: Nadadores includes licenciaMaster and categoriaManual and an old club without them reads fine', async () => {
-  const { SHEETS } = await import('../../js/schema.js');
+  const { SHEETS } = await import('../../js/domain/schema.js');
   assert.ok(SHEETS.Nadadores.includes('licenciaMaster') && SHEETS.Nadadores.includes('categoriaManual'));
   const antiguo = { id: 'old1', nombre: 'Vieja', apellidos: 'Fila', fechaNacimiento: '2013-02-02', sexo: 'F', categoria: 'Alevín', grupoId: '' };
   const guardada = c.store.upsert('Nadadores', antiguo);
@@ -256,6 +256,6 @@ test('schema: Nadadores includes licenciaMaster and categoriaManual and an old c
   await renderView('nadadores', c.container, ['old1'], c);
   assert.match(c.container.textContent, /Vieja Fila/);
   const { crearCategoriasService } = await import('../../js/application/categoriasService.js');
-  crearCategoriasService(c.store).recalcular();
+  crearCategoriasService(c.store, { ahora: () => new Date() }).recalcular();
   assert.equal(c.store.get('Nadadores', 'old1').categoria, 'Infantil');
 });

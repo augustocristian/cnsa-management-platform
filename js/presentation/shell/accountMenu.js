@@ -1,11 +1,11 @@
 // "Settings and connection" menu in the header: language, theme, Drive connection status and disconnect / demo actions.
 // A disclosure (button + panel right after it in the DOM): Tab walks into the panel, Escape and outside clicks close it.
 // There is no user identity here: the app has no accounts, only a Drive connection (or the demo).
-import { h, confirmDialog, toast } from '../../ui.js';
-import { icon } from '../../icons.js';
-import { t } from '../../i18n.js';
-import { langSwitch } from '../../lang-switch.js';
-import { themeSelect } from '../../theme.js';
+import { h, confirmDialog, toast } from '../ui.js';
+import { icon } from '../icons.js';
+import { t } from '../i18n/i18n.js';
+import { langSwitch } from '../lang-switch.js';
+import { themeSelect } from '../theme.js';
 import { accionDriveEnDemo } from './conexion.js';
 
 // Visible state of the connection: 'demo' or the store status ('sincronizado' | 'pendiente' | 'error' | 'offline').

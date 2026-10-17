@@ -11,9 +11,9 @@ const row = (w, name) => catalogue(w).locator('.bn-item').filter({ has: w.page.l
 When('I open the swimsuit catalogue', async function () {
   await this.page.evaluate(async () => {
     const [{ store }, ui, view] = await Promise.all([
-      import(new URL('./js/store.js', location.href).href),
-      import(new URL('./js/ui.js', location.href).href),
-      import(new URL('./js/views/banadores-catalogo.js', location.href).href),
+      import(new URL('./js/composicion/store.js', location.href).href),
+      import(new URL('./js/presentation/ui.js', location.href).href),
+      import(new URL('./js/presentation/views/banadores-catalogo.js', location.href).href),
     ]);
     view.abrirCatalogoBanadores({ store, ui });
   });

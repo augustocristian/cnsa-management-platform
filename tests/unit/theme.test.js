@@ -1,4 +1,4 @@
-// js/theme.js: auto | light | dark, persistence and pre-paint (js/theme-boot.js).
+// js/presentation/theme.js: auto | light | dark, persistence and pre-paint (js/presentation/theme-boot.js).
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
@@ -20,7 +20,7 @@ function prep() {
   sistemaOscuro = false;
 }
 prep();
-const theme = await importApp('js/theme.js');
+const theme = await importApp('js/presentation/theme.js');
 const html = { getAttribute: (k) => document.documentElement.getAttribute(k), hasAttribute: (k) => document.documentElement.hasAttribute(k) };
 
 test('setTheme sets data-theme, mirrors it in localStorage and auto removes it', () => {
@@ -117,7 +117,7 @@ test('themeSelect: labelled, 3 options and changes the theme', () => {
 
 test('theme-boot.js applies the stored theme before first paint', () => {
   prep();
-  const src = readFileSync(path.join(ROOT, 'js', 'theme-boot.js'), 'utf8');
+  const src = readFileSync(path.join(ROOT, 'js', 'presentation', 'theme-boot.js'), 'utf8');
   const correr = (valor) => {
     const attrs = {};
     const store = valor === undefined ? {} : { 'cnl:tema': valor };

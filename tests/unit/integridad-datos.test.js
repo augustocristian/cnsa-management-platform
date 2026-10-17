@@ -2,11 +2,11 @@
 // per-field merge with logical stamps and tombstones, orphan cleanup and row validation.
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { SHEETS, ENTITY_SHEETS } from '../../js/schema.js';
+import { SHEETS, ENTITY_SHEETS } from '../../js/domain/schema.js';
 import {
   dataToDoc, docToData, mergeData, isEmptyData, pareceDocumentoClub, normalizarValor, normalizarClub, fechaDeSerieExcel,
   metaVacia, purgarLapidas, cmpSello, DOC_VERSION,
-} from '../../js/sheetdata.js';
+} from '../../js/domain/sheetdata.js';
 import { validarFila, esFechaReal, edadEnAnios, idsDuplicados } from '../../js/domain/validacion.js';
 
 const vacio = () => { const d = docToData({}); d.meta = metaVacia(); return d; };

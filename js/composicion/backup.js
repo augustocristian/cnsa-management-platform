@@ -5,9 +5,9 @@ import { crearBackupService } from '../application/backupService.js';
 import { crearCategoriasService } from '../application/categoriasService.js';
 import { crearBackupCrypto } from '../infrastructure/backupCrypto.js';
 import { crearBackupsDrive } from '../infrastructure/backupDrive.js';
-import { drive, nombreBackup } from '../drive.js';
-import { preferencias } from '../preferencias.js';
-import { APP_VERSION } from '../config.js';
+import { drive, nombreBackup } from '../infrastructure/drive.js';
+import { preferencias } from './preferencias.js';
+import { APP_VERSION } from '../infrastructure/config.js';
 
 // Saves a Blob through a temporary link (the same mechanism the store uses for its downloads).
 export function descargaNavegador(blob, nombre) {
@@ -28,9 +28,9 @@ export function crearServicioBackupApp({ store, ahora = () => new Date(), descar
     repo: store,
     preferencias: { get: (k, def) => preferencias.get(k, def), set: (k, v) => preferencias.set(k, v) },
     hash: c.sha256Hex,
-    crypto: c.disponible ? c : null,
+    cripto: c.disponible ? c : null,
     ahora,
-    archivos: { descargar },
+    archivos: { descargar, crearBlob: (texto, tipo) => new Blob([texto], { type: tipo }), leer: (file) => file.text() },
     driveBackups: crearBackupsDrive({ drive, nombreBackup }),
     categorias: crearCategoriasService(store, { ahora }),
     appVersion: APP_VERSION,

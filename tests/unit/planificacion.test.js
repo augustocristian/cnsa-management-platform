@@ -4,9 +4,9 @@ import { importApp } from '../helpers/env.js';
 
 const D = await importApp('js/domain/planificacion.js');
 const { crearPlanificacionService } = await importApp('js/application/planificacionService.js');
-const es = (await importApp('js/locales/planificacion.es.js')).default;
-const en = (await importApp('js/locales/planificacion.en.js')).default;
-const it = (await importApp('js/locales/planificacion.it.js')).default;
+const es = (await importApp('js/presentation/i18n/locales/planificacion.es.js')).default;
+const en = (await importApp('js/presentation/i18n/locales/planificacion.en.js')).default;
+const it = (await importApp('js/presentation/i18n/locales/planificacion.it.js')).default;
 
 const piscina = (o = {}) => ({ id: 'p1', nombre: 'Lugones', longitudM: 25, numCalles: 6, intervaloMin: 30, maxPorCalle: 8, horario: D.horarioPorDefecto(), ...o });
 const grupos = [

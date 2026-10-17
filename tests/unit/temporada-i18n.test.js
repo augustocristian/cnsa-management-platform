@@ -1,10 +1,10 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
-import es from '../../js/locales/temporada.es.js';
-import en from '../../js/locales/temporada.en.js';
-import it from '../../js/locales/temporada.it.js';
-import { t, setLang } from '../../js/i18n.js';
+import es from '../../js/presentation/i18n/locales/temporada.es.js';
+import en from '../../js/presentation/i18n/locales/temporada.en.js';
+import it from '../../js/presentation/i18n/locales/temporada.it.js';
+import { t, setLang } from '../../js/presentation/i18n/i18n.js';
 import * as D from '../../js/domain/temporada.js';
 
 const vars = (s) => [...s.matchAll(/\{(\w+)\}/g)].map((m) => m[1]).sort().join(',');
@@ -32,7 +32,7 @@ test('terminology: Fase and Semana in es; Phase/Week in en; Fase/Settimana in it
 
 test('all keys used by the views (literals and dynamic families) exist', () => {
   const claves = new Set();
-  for (const f of ['js/views/temporada.js', 'js/views/temporada-grafico.js', 'js/views/planificacion.js', 'js/views/calendario.js']) {
+  for (const f of ['js/presentation/views/temporada.js', 'js/presentation/views/temporada-grafico.js', 'js/presentation/views/planificacion.js', 'js/presentation/views/calendario.js']) {
     const src = readFileSync(new URL('../../' + f, import.meta.url), 'utf8');
     for (const m of src.matchAll(/\bt\('((?:tp|plan\.apartado)[\w.-]*)'/g)) claves.add(m[1]);
   }

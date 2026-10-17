@@ -1,4 +1,4 @@
-// Visual theme domain: PURE colour logic (no DOM). Used by js/theme.js / js/app.js and the contrast tests.
+// Visual theme domain: PURE colour logic (no DOM). Used by js/presentation/theme.js / js/main.js and the contrast tests.
 // Goal: whatever colour the user picks for the club must never make text unreadable (WCAG AA, 4.5:1).
 
 export const BLANCO = [255, 255, 255];

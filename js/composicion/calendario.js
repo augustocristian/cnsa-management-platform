@@ -3,8 +3,8 @@
 // with fakes and never load this module.
 import { crearCalendarioService } from '../application/calendarioService.js';
 import { crearClienteGoogleCalendar } from '../infrastructure/googleCalendar.js';
-import { CALENDAR_SCOPE } from '../config.js';
-import { preferencias, CLAVES } from '../preferencias.js';
+import { CALENDAR_SCOPE } from '../infrastructure/config.js';
+import { preferencias, CLAVES } from './preferencias.js';
 
 // opciones: {store, auth, etq, ahora}  -> calendar service
 export function crearServicioCalendarioApp({ store, auth, etq, ahora = () => new Date() } = {}) {

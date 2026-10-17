@@ -5,10 +5,10 @@ import { setupEnv, importApp, appUrl } from '../helpers/env.js';
 
 setupEnv();
 const { driveConnection: conexion } = await importApp('js/infrastructure/driveConnection.js');
-const { drive } = await importApp('js/drive.js');
-const config = await importApp('js/config.js');
+const { drive } = await importApp('js/infrastructure/drive.js');
+const config = await importApp('js/infrastructure/config.js');
 const { instalarFakeGoogle, leerOpciones } = await importApp('js/infrastructure/fakeGoogle.js');
-const { limpiarDatosLocales } = await importApp('js/cache.js');
+const { limpiarDatosLocales } = await importApp('js/infrastructure/cache.js');
 const { crearSesionService } = await importApp('js/application/sesionService.js');
 // Isolated copy of the REAL module (the shared instance may be replaced by the simulator in other tests of the same process)
 const { driveConnection: real } = await import(appUrl('js/infrastructure/driveConnection.js') + '?conexion');

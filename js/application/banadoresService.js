@@ -5,11 +5,7 @@ import * as D from '../domain/banadores.js';
 
 export const HOJA_BANADORES = 'Banadores';
 export const HOJA_MARCAS = 'Marcas';
-const PREFIJO_ID = 'bn-';
-
-const idPorDefecto = () => PREFIJO_ID + Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
-
-export function crearBanadoresService(repo, { generarId = idPorDefecto } = {}) {
+export function crearBanadoresService(repo, { generarId } = {}) {
   const err = (campo, codigo) => ({ ok: false, errores: [{ campo, codigo }] });
   const banadores = () => D.ordenarBanadores(repo.list(HOJA_BANADORES).map(D.normalizarBanador));
   const marcasDe = (id) => D.marcasDeBanador(repo.list(HOJA_MARCAS), id);

@@ -19,5 +19,8 @@ walk('js'); try { execFileSync(process.execPath, ['--check', 'sw.js'], { stdio: 
 // The precache list of sw.js is generated from the disk: a stale list (or a missing/unprecached import) fails the check.
 try { console.log(execFileSync(process.execPath, ['scripts/generate-sw.mjs', '--check'], { stdio: 'pipe' }).toString().trim()); }
 catch (e) { bad++; console.error(String(e.stderr || e.stdout || e)); }
-console.log(bad ? `${bad} con errores` : `OK (${n} ficheros)`);
+// Layer rules (scripts/check-arch.mjs): imports per layer, cycles, forbidden globals, file size... with a shrinking baseline.
+try { console.log(execFileSync(process.execPath, ['scripts/check-arch.mjs'], { stdio: 'pipe' }).toString().trim()); }
+catch (e) { bad++; console.error(String(e.stderr || e.stdout || e)); }
+console.log(bad ?`${bad} con errores` : `OK (${n} ficheros)`);
 process.exit(bad ? 1 : 0);

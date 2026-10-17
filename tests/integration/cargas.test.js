@@ -364,7 +364,7 @@ test('home: alerts with "Exceso de" and "Faltan" translated', async () => {
   const t = c.container.textContent;
   assert.match(t, /Exceso de [\d.]+ m/);
   assert.match(t, /Faltan 2\.300 m/);
-  const { setLang } = await import('../../js/i18n.js');
+  const { setLang } = await import('../../js/presentation/i18n/i18n.js');
   setLang('en', { persist: false });
   await renderView('inicio', c.container, [], c);
   assert.match(c.container.textContent, /Excess of [\d,]+ m/);

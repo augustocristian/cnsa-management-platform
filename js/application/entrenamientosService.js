@@ -12,7 +12,7 @@ import { nombreFichero, nombreFicheroSemana, planVacio } from '../domain/entreno
 const HOJA = 'Entrenamientos';
 const isoLocal = (d) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 
-export function crearEntrenamientosService(repo, { entreno, ahora = () => new Date(), pdf = null, drive = null, nombreDia = () => '' } = {}) {
+export function crearEntrenamientosService(repo, { entreno, ahora, pdf = null, drive = null, nombreDia = () => '' } = {}) {
   if (!entreno) throw new Error('entreno service required');
   const hoy = () => isoLocal(ahora());
   const todas = () => repo.list(HOJA);

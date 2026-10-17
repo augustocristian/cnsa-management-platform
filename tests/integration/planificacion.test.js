@@ -232,7 +232,7 @@ test('the conflicts panel lists errors from the second demo set and opens editin
 });
 
 test('languages: the view and the conflicts are translated', async () => {
-  const i18n = await importApp('js/i18n.js');
+  const i18n = await importApp('js/presentation/i18n/i18n.js');
   i18n.setLang('en', { persist: false });
   c.store.seedPlanificacionConflictos();
   await renderView('planificacion', c.container, ['piscina'], c);

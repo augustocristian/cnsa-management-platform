@@ -4,7 +4,7 @@ import { fresh, tick, fieldByLabel, buttonByText, setValue } from '../helpers/ap
 
 let c;
 let vista;
-const test = (name, fn) => base(name, async (t) => { c = await fresh(); vista = await import('../../js/views/banadores-catalogo.js'); return fn(t); });
+const test = (name, fn) => base(name, async (t) => { c = await fresh(); vista = await import('../../js/presentation/views/banadores-catalogo.js'); return fn(t); });
 
 const abrir = async (opts) => { const h = vista.abrirCatalogoBanadores({ store: c.store, ui: c.ui }, opts); await tick(); return h; };
 // The catalogue dialog is the first sheet; a form/delete dialog opened on top of it is the last one.
@@ -167,7 +167,7 @@ test('empty catalogue: empty state with a call to action that opens the form', a
 });
 
 test('display helpers: translated label and type names follow the language', async () => {
-  const { setLang } = await import('../../js/i18n.js');
+  const { setLang } = await import('../../js/presentation/i18n/i18n.js');
   const b = c.store.list('Banadores').find((x) => x.tipo === 'competicion');
   const D = await import('../../js/domain/banadores.js');
   const nb = D.normalizarBanador(b);

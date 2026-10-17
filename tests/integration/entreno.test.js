@@ -42,9 +42,9 @@ const PLAN = [
 
 async function montar({ modo = 'drive', conPlan = true, extraDatos = {} } = {}) {
   setupEnv();
-  const i18n = await importApp('js/i18n.js');
+  const i18n = await importApp('js/presentation/i18n/i18n.js');
   i18n.setLang('es', { persist: false });
-  const ui = await importApp('js/ui.js');
+  const ui = await importApp('js/presentation/ui.js');
   const P = await importApp('js/infrastructure/pdfEntreno.js');
   P.usarLibreria(libNode());
   const store = fakeStore({
@@ -69,8 +69,12 @@ async function montar({ modo = 'drive', conPlan = true, extraDatos = {} } = {}) 
   }, true);
   const container = document.createElement('main');
   document.body.appendChild(container);
-  const ctx = { store, auth: { user: null, on: () => () => {} }, ui, ahora: AHORA };
-  const vista = await importApp('js/views/entrenamientos.js');
+  const ctx = {
+    store, auth: { user: null, on: () => () => {} }, ui, ahora: AHORA,
+    pdf: { generar: (fichas, etiquetas) => P.generar(fichas, etiquetas) },
+    guardarPdfEnDrive: async ({ blob, nombre, drive }) => (await importApp('js/infrastructure/driveEntrenos.js')).guardarPdfEnDrive({ drive, blob, nombre }),
+  };
+  const vista = await importApp('js/presentation/views/entrenamientos.js');
   await vista.render(container, [], ctx);
   await tick();
   return { store, ui, ctx, container, blobs, descargas, vista, P };
@@ -636,7 +640,7 @@ test('Save to Drive: needs the Drive connection (disabled with an explanation in
 
 test('in English the interface and the PDF are in English', async () => {
   const c = await montar();
-  const i18n = await importApp('js/i18n.js');
+  const i18n = await importApp('js/presentation/i18n/i18n.js');
   i18n.setLang('en', { persist: false });
   await c.vista.render(c.container, [], c.ctx);
   botonTexto(c.container, 'Generate PDF for the week', false);

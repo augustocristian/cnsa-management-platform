@@ -11,7 +11,7 @@ import { fechaDeDate } from '../domain/calendario.js';
 
 export const HOJA_NADADORES = 'Nadadores';
 
-export function crearCategoriasService(repo, { ahora = () => new Date() } = {}) {
+export function crearCategoriasService(repo, { ahora } = {}) {
   const club = () => (repo.club && typeof repo.club === 'object' ? repo.club : {});
   const guardarClub = (cambios) => { repo.setClub({ ...club(), ...cambios }); };
   const nombre = (n) => `${n.nombre || ''} ${n.apellidos || ''}`.trim();

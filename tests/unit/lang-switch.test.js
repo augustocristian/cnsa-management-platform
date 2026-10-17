@@ -3,8 +3,8 @@ import assert from 'node:assert/strict';
 import { setupEnv, importApp } from '../helpers/env.js';
 
 setupEnv();
-const { langSwitch, flagIcon } = await importApp('js/lang-switch.js');
-const { LANGS, getLang, setLang } = await importApp('js/i18n.js');
+const { langSwitch, flagIcon } = await importApp('js/presentation/lang-switch.js');
+const { LANGS, getLang, setLang } = await importApp('js/presentation/i18n/i18n.js');
 
 test('langSwitch renders one radio button per language with flag SVGs, no select and no emoji', () => {
   setLang('es', { persist: false });

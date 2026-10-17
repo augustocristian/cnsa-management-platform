@@ -1,9 +1,9 @@
 // Banners under the header (#cnl-avisos): demo mode, new version, offline and data-integrity notices.
 // They use the shared `.alert` component (css/components.css) and are only repainted when their content changes, so a
 // store event never makes a screen reader repeat the same alert.
-import { h } from '../../ui.js';
-import { icon } from '../../icons.js';
-import { t } from '../../i18n.js';
+import { h } from '../ui.js';
+import { icon } from '../icons.js';
+import { t } from '../i18n/i18n.js';
 import { estaOffline } from './offline.js';
 import { accionDriveEnDemo } from './conexion.js';
 

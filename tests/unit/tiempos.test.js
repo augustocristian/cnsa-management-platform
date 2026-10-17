@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { fmtTiempo, maskTiempo, parseTiempo, interpretarTiempo } from '../../js/domain/tiempos.js';
 import { claveBusqueda, coincideBusqueda, nombreCompleto, nombreApellidosPrimero, ordenarPorApellidos } from '../../js/domain/nombres.js';
-import * as ui from '../../js/ui.js';
+import * as ui from '../../js/presentation/ui.js';
 
 test('fmtTiempo formats milliseconds as mm:ss.cc and rejects invalid values', () => {
   assert.equal(fmtTiempo(62450), '01:02.45');

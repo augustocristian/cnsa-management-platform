@@ -1,6 +1,6 @@
 // Club identity helpers for the shell (name, motto, logo). Values may arrive with any type from a hand-edited file:
 // they are always treated as text.
-import { h } from '../../ui.js';
+import { h } from '../ui.js';
 
 export const NOMBRE_POR_DEFECTO = 'CNL Plataforma';
 export const texto = (x) => String(x ?? '').trim();

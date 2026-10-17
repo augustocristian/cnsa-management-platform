@@ -1,5 +1,5 @@
 // Saves a training PDF to Drive in the cnl/entrenos folder (drive.file scope: only files created by the app).
-// Receives the Drive client (js/drive.js or the test adapter) so it can be tested without a network.
+// Receives the Drive client (js/infrastructure/drive.js or the test adapter) so it can be tested without a network.
 export const SUBCARPETA_ENTRENOS = 'entrenos';
 
 // -> { id, name, actualizado, url } (actualizado = a PDF with that name already existed and was replaced, not duplicated)

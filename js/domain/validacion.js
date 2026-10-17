@@ -45,19 +45,16 @@ export function edadEnAnios(nacimiento, hoy) {
   return e;
 }
 
-const hoyISO = () => {
-  const d = new Date();
-  return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
-};
-
+// `hoy` ('YYYY-MM-DD', injected: the domain never reads the clock) enables the checks that depend on today (birth date in the future,
+// minimum / maximum age); without it only the date format is checked.
 // -> [{campo, codigo}] (empty = valid). Codes: fecha-invalida, hora-invalida, numero-invalido, fuera-de-rango, fecha-futura, edad-minima, edad-maxima.
-export function validarFila(sheet, row, { hoy = hoyISO() } = {}) {
+export function validarFila(sheet, row, { hoy = '' } = {}) {
   const errores = [];
   const r = row || {};
   (COLS_FECHA[sheet] || []).forEach((c) => {
     if (vacio(r[c])) return;
     if (!esFechaReal(r[c])) { errores.push({ campo: c, codigo: 'fecha-invalida' }); return; }
-    if (sheet === 'Nadadores' && c === 'fechaNacimiento') {
+    if (hoy && sheet === 'Nadadores' && c === 'fechaNacimiento') {
       if (String(r[c]) > hoy) errores.push({ campo: c, codigo: 'fecha-futura' });
       else if (edadEnAnios(r[c], hoy) < EDAD_MINIMA_ANIOS) errores.push({ campo: c, codigo: 'edad-minima' });
       else if (edadEnAnios(r[c], hoy) > EDAD_MAXIMA_ANIOS) errores.push({ campo: c, codigo: 'edad-maxima' });

@@ -1,5 +1,5 @@
 // Design system steps: accessibility (skip link, focus), light/dark theme, toasts with Undo and sheets.
-// Components (sheet, toast, confirmation) are exercised in the real browser by importing js/ui.js, the same instance the app uses.
+// Components (sheet, toast, confirmation) are exercised in the real browser by importing js/presentation/ui.js, the same instance the app uses.
 import { Given, When, Then } from '@cucumber/cucumber';
 import assert from 'node:assert/strict';
 
@@ -189,14 +189,14 @@ Then('the active menu option has a contrast of at least {float}', async function
 // ---------- Toasts ----------
 When('the toast {string} is shown with the Undo action', async function (msg) {
   await this.page.evaluate(async (m) => {
-    const ui = await import('/js/ui.js');
+    const ui = await import('/js/presentation/ui.js');
     window.__undone = 0;
     ui.toast.undo(m, () => { window.__undone++; });
   }, msg);
 });
 
 When('an error toast {string} is shown', async function (msg) {
-  await this.page.evaluate(async (m) => { (await import('/js/ui.js')).toast.error(m); }, msg);
+  await this.page.evaluate(async (m) => { (await import('/js/presentation/ui.js')).toast.error(m); }, msg);
 });
 
 const toast = (world, msg) => world.page.locator('#toasts .toast').filter({ hasText: msg });
@@ -237,7 +237,7 @@ Then('the toast {string} is still visible', async function (msg) {
 // ---------- Sheets and confirmations ----------
 When('I open a test sheet from the button {string}', async function (text) {
   await this.page.evaluate(async (t) => {
-    const ui = await import('/js/ui.js');
+    const ui = await import('/js/presentation/ui.js');
     // outside #view/#app: views repaint on their own and would take the button away
     const b = ui.h('button', { type: 'button', id: 'e2e-open', class: 'btn', style: { position: 'fixed', top: '4px', left: '4px', zIndex: '50' } }, t);
     b.addEventListener('click', () => {
@@ -300,7 +300,7 @@ Then('the sheet is anchored to the bottom edge of the screen', async function ()
 
 When('I open a destructive confirmation dialog', async function () {
   await this.page.evaluate(async () => {
-    const ui = await import('/js/ui.js');
+    const ui = await import('/js/presentation/ui.js');
     window.__confirm = ui.confirmDialog('¿Eliminar a Lucía Fernández?', { danger: true });
   });
   await this.expectVisible(this.page.locator('.sheet'));

@@ -13,7 +13,7 @@ test('exportXlsx produces a workbook with one sheet per entity and exact headers
   const blob = await c.store.exportXlsx();
   assert.ok(blob.size > 1000);
   const wb = XLSX.read(await blob.arrayBuffer(), { type: 'array' });
-  const { SHEETS } = await import('../../js/schema.js');
+  const { SHEETS } = await import('../../js/domain/schema.js');
   assert.deepEqual([...wb.SheetNames].sort(), Object.keys(SHEETS).sort());
   for (const [name, cols] of Object.entries(SHEETS)) {
     const header = XLSX.utils.sheet_to_json(wb.Sheets[name], { header: 1 })[0];

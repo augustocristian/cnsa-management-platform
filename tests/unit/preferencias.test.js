@@ -105,7 +105,7 @@ test('service: the local cache is a mirror that survives a new instance (fast st
   const a = nuevo();
   a.svc.set('idioma', 'it');
   a.svc.set('tutorial', { done: [1, 2], current: 3 });
-  const b = crearPreferencias({ almacen: a.almacen, temporizador: a.rj.temporizador });
+  const b = crearPreferencias({ almacen: a.almacen, temporizador: a.rj.temporizador, ahora: () => Date.now() });
   assert.equal(b.get('idioma'), 'it');
   assert.deepEqual(b.get('tutorial'), { done: [1, 2], current: 3 });
   assert.deepEqual(b.pendientes.sort(), ['idioma', 'tutorial'], 'the pending queue is also kept');
@@ -114,10 +114,10 @@ test('service: the local cache is a mirror that survives a new instance (fast st
 test('service: a corrupt cache is ignored without breaking', () => {
   const almacen = memoria();
   almacen.setItem('cnl:prefs', '{no json');
-  const s = crearPreferencias({ almacen });
+  const s = crearPreferencias({ almacen, ahora: () => Date.now() });
   assert.equal(s.get('idioma', 'es'), 'es');
   almacen.setItem('cnl:prefs', JSON.stringify({ prefs: { valores: { idioma: 'xx' } }, pendientes: 'mal' }));
-  assert.equal(crearPreferencias({ almacen }).get('idioma', 'es'), 'es');
+  assert.equal(crearPreferencias({ almacen, ahora: () => Date.now() }).get('idioma', 'es'), 'es');
 });
 
 // ---------- service: debounce ----------

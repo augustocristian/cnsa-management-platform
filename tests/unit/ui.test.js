@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { setupEnv, importApp } from '../helpers/env.js';
 
 setupEnv();
-const ui = await importApp('js/ui.js');
+const ui = await importApp('js/presentation/ui.js');
 
 test('parseTime / fmtTime round trip', () => {
   for (const ms of [0, 50, 28500, 62340, 125500, 3599990]) {

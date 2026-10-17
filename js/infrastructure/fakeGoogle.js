@@ -1,7 +1,7 @@
 // TEST TOOL. It is not part of the product and the user never sees it.
 //
 // In-memory adapter that replaces Google (Drive connection + Drive) so the app can be tested without a real account:
-// it implements the same interfaces as js/infrastructure/driveConnection.js and js/drive.js (simulated connection, cnl folder,
+// it implements the same interfaces as js/infrastructure/driveConnection.js and js/infrastructure/drive.js (simulated connection, cnl folder,
 // club files, preferencias.json, file upload) with a "Drive" that lives in memory and is mirrored in localStorage
 // ('cnl:test:drive') only to survive a page reload within the same test.
 // There is no user or identity: the connection is just an authorisation (flag 'cnl:drive-auth', like the real one).
@@ -14,7 +14,7 @@
 //   demo           true  -> the simulated Drive already holds a club with demo data (store.seedDemo). It is NOT the product's demo
 //                           mode (js/infrastructure/demoStorage.js): it is a test Drive with a sample club.
 //   club           name of that demo club (default "Club Natación Lugones")
-//   sinClientId    true  -> simulates that js/config.js has no Client ID ("Configuración necesaria" screen)
+//   sinClientId    true  -> simulates that js/infrastructure/config.js has no Client ID ("Configuración necesaria" screen)
 //   fallos         { listarClubs: 'offline'|'api', escribir: ... }  forced errors for resilience tests
 // The old option `usuario` no longer exists (there is no identity) and is ignored.
 //
@@ -111,7 +111,7 @@ export function instalarFakeGoogle({ auth: authParam, conexion, drive, config, o
     return c;
   };
 
-  // ---- Simulated Drive: same interface as js/drive.js ----
+  // ---- Simulated Drive: same interface as js/infrastructure/drive.js ----
   const driveFalso = {
     fileUrl: (id) => 'https://drive.google.com/file/d/' + id + '/view',
     folderUrl: (id) => 'https://drive.google.com/drive/folders/' + id,

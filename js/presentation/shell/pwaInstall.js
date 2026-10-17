@@ -1,7 +1,7 @@
 // "Install the app" prompt (beforeinstallprompt) and service worker registration with a user-driven update flow.
-import { h } from '../../ui.js';
-import { icon } from '../../icons.js';
-import { t } from '../../i18n.js';
+import { h } from '../ui.js';
+import { icon } from '../icons.js';
+import { t } from '../i18n/i18n.js';
 
 const lsGet = (k) => { try { return localStorage.getItem(k); } catch (e) { return null; } };
 const lsSet = (k, v) => { try { localStorage.setItem(k, v); } catch (e) { /* ignore */ } };

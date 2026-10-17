@@ -13,8 +13,8 @@
 //   connecting    a connect() is in flight
 //   connected     authorized (the token is renewed on demand)
 //   expired       Drive answered 401 after a renewal: the person must click "Reconnect" (connect({interactive: true}))
-import * as cfg from '../config.js';
-import { SCOPES } from '../config.js';
+import * as cfg from './config.js';
+import { SCOPES } from './config.js';
 import { clasificarErrorConexion } from '../domain/erroresGoogle.js';
 
 export const AUTH_FLAG_KEY = 'cnl:drive-auth'; // flag only: no identity

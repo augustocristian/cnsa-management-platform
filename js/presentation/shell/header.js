@@ -1,9 +1,9 @@
 // Header (.topbar): logo + club name (+ motto on desktop), notices bell and the settings/connection menu.
 // One 56 px row on mobile. `actualizarHeader` patches the pieces in place so a store event never steals focus.
-import { h } from '../../ui.js';
-import { icon } from '../../icons.js';
-import { t } from '../../i18n.js';
-import * as router from '../../router.js';
+import { h } from '../ui.js';
+import { icon } from '../icons.js';
+import { t } from '../i18n/i18n.js';
+import * as router from '../router.js';
 import { crearMenuCuenta } from './accountMenu.js';
 import { logoEl, nombreClub, lemaClub } from './marca.js';
 

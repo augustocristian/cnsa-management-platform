@@ -2,7 +2,7 @@
 //   - Desktop sidebar: Home, then the three groups with headers.
 //   - Mobile bottom bar: BARRA_MOVIL (4 items) + "More".
 //   - "More" sheet: the same three groups, minus the items that already sit in the bottom bar.
-// Route names are the stored/neutral ones (js/views/<name>.js); labels come from i18n (`nav.<name>`).
+// Route names are the stored/neutral ones (js/presentation/views/<name>.js); labels come from i18n (`nav.<name>`).
 
 export const INICIO = 'inicio';
 

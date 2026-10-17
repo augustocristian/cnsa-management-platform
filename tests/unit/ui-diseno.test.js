@@ -1,11 +1,11 @@
-// Design system helpers (js/ui.js) with jsdom: sheet, confirmDialog, toast, fieldError, field, empty, time mask.
+// Design system helpers (js/presentation/ui.js) with jsdom: sheet, confirmDialog, toast, fieldError, field, empty, time mask.
 import test, { mock } from 'node:test';
 import assert from 'node:assert/strict';
 import { setupEnv, importApp } from '../helpers/env.js';
 
 setupEnv();
-const ui = await importApp('js/ui.js');
-const { setLang } = await importApp('js/i18n.js');
+const ui = await importApp('js/presentation/ui.js');
+const { setLang } = await importApp('js/presentation/i18n/i18n.js');
 setLang('es', { persist: false });
 
 const key = (el, k, extra = {}) => {

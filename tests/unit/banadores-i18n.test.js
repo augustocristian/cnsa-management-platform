@@ -1,10 +1,10 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
-import es from '../../js/locales/banadores.es.js';
-import en from '../../js/locales/banadores.en.js';
-import it from '../../js/locales/banadores.it.js';
-import { t, setLang } from '../../js/i18n.js';
+import es from '../../js/presentation/i18n/locales/banadores.es.js';
+import en from '../../js/presentation/i18n/locales/banadores.en.js';
+import it from '../../js/presentation/i18n/locales/banadores.it.js';
+import { t, setLang } from '../../js/presentation/i18n/i18n.js';
 import { TIPOS_BANADOR } from '../../js/domain/banadores.js';
 import { validarBanador } from '../../js/domain/banadores.js';
 
@@ -35,8 +35,8 @@ test('every type and every validation code has a translation; the merged diction
   assert.equal(t('bn.tipo.competicion'), 'Bañador técnico (competición)');
 });
 
-test('the view only uses keys that exist (static scan of js/views/banadores-catalogo.js)', () => {
-  const src = readFileSync(new URL('../../js/views/banadores-catalogo.js', import.meta.url), 'utf8');
+test('the view only uses keys that exist (static scan of js/presentation/views/banadores-catalogo.js)', () => {
+  const src = readFileSync(new URL('../../js/presentation/views/banadores-catalogo.js', import.meta.url), 'utf8');
   const literales = [...src.matchAll(/'(bn\.[\w.-]+)'/g)].map((m) => m[1]).filter((k) => !k.endsWith('.'));
   assert.ok(literales.length > 20);
   for (const k of literales) assert.ok(k in es, k);

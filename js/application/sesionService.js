@@ -5,7 +5,7 @@
 // Ports:
 //   auth      Drive connection { connect({interactive}), disconnect() }   (js/infrastructure/driveConnection.js or the fake)
 //   drive     { listClubs(), preferencias, reset?() }
-//   prefs     { conectar, get, set, flush, desconectar }                  (js/preferencias.js)
+//   prefs     { conectar, get, set, flush, desconectar }                  (js/composicion/preferencias.js)
 //   CLAVES    preference keys ({ clubes, ultimoClub, ... })
 //   store     club store (mode, clubRef, soloLectura, pendiente, sync, cerrar)
 //   banderas  { selectorForzado(), limpiarSelectorForzado(),              "Switch club" flag (sessionStorage in the browser)
@@ -18,9 +18,10 @@ import { demoDisponible } from './modoService.js';
 const SALIDA_ESPERA_MS = 10000;
 const PREFS_ESPERA_MS = 1500;
 
-const esperaPorDefecto = (ms) => new Promise((r) => { setTimeout(r, ms); });
+const SILENCIO = { warn() {} }; // default log: the composition root injects the real console
+const SIN_ESPERA = () => new Promise(() => {}); // default wait: never elapses (the composition root injects a real timer)
 
-export function crearSesionService({ auth, drive, prefs, CLAVES, store, banderas, limpiarDatosLocales, espera = esperaPorDefecto, log = console } = {}) {
+export function crearSesionService({ auth, drive, prefs, CLAVES, store, banderas, limpiarDatosLocales, espera = SIN_ESPERA, log = SILENCIO } = {}) {
   const sinBanderas = { selectorForzado: () => false, limpiarSelectorForzado: () => {}, demoGuardada: () => false };
   const flags = banderas || sinBanderas;
 

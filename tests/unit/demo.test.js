@@ -4,13 +4,13 @@ import assert from 'node:assert/strict';
 import { setupEnv, importApp } from '../helpers/env.js';
 
 setupEnv();
-const { store } = await importApp('js/store.js');
-const { drive } = await importApp('js/drive.js');
+const { store } = await importApp('js/composicion/store.js');
+const { drive } = await importApp('js/infrastructure/drive.js');
 const { driveConnection } = await importApp('js/infrastructure/driveConnection.js');
 const { crearDemoStorage, DEMO_PREFIX } = await importApp('js/infrastructure/demoStorage.js');
 const { crearModoService, demoDisponible } = await importApp('js/application/modoService.js');
 const { crearSesionService } = await importApp('js/application/sesionService.js');
-const { limpiarDatosLocales } = await importApp('js/cache.js');
+const { limpiarDatosLocales } = await importApp('js/infrastructure/cache.js');
 const { instalarFakeGoogle } = await importApp('js/infrastructure/fakeGoogle.js');
 
 const CLIENT_ID = '123456-abc.apps.googleusercontent.com';

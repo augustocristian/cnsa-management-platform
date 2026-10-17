@@ -4,6 +4,7 @@ import assert from 'node:assert/strict';
 import { fresh, renderView } from '../helpers/app.js';
 import { importApp } from '../helpers/env.js';
 import { infoPdf, libNode } from '../helpers/pdf.js';
+const { newId } = await importApp('js/infrastructure/ids.js');
 
 let c;
 const test = (name, fn) => base(name, async (t) => { c = await fresh(); return fn(t); });
@@ -41,11 +42,11 @@ test('today there is a session with a complete plan and its PDF is generated wit
   const hoy = hoyIso();
   const delDia = c.store.list('Entrenamientos').filter((s) => String(s.fecha) === hoy);
   assert.ok(delDia.length >= 1, 'there are sessions today in the demo');
-  const svc = crearEntrenoService(c.store, { club: () => c.store.club });
+  const svc = crearEntrenoService(c.store, { genId: newId, club: () => c.store.club });
   const ficha = svc.ficha(delDia[0].id);
   assert.ok(ficha.sets.length >= 4);
   const { crearEtiquetasPdf } = await importApp('js/application/etiquetasPdf.js');
-  const { t, locale } = await importApp('js/i18n.js');
+  const { t, locale } = await importApp('js/presentation/i18n/i18n.js');
   const r = await P.generar([ficha], crearEtiquetasPdf({ t, locale: locale(), ahora: new Date(2026, 9, 15, 18, 0) }), { lib: libNode() });
   const info = infoPdf(r.bytes);
   assert.equal(info.paginas, 1);
@@ -63,8 +64,8 @@ test('the Entrenamientos view shows the plan summary of the demo sessions', asyn
 });
 
 test('persistence: the plan travels in the club document and old data (without the new columns) is read', async () => {
-  const { dataToDoc, docToData, hashData } = await importApp('js/sheetdata.js');
-  const { SHEETS } = await importApp('js/schema.js');
+  const { dataToDoc, docToData, hashData } = await importApp('js/domain/sheetdata.js');
+  const { SHEETS } = await importApp('js/domain/schema.js');
   assert.deepEqual(SHEETS.EntrenoLineas, ['id', 'entrenamientoId', 'set', 'orden', 'tiempoMin', 'objetivo', 'bloque', 'series', 'distancia', 'salida', 'ejercicio', 'material', 'notas', 'componentes', 'estilo']);
   for (const col of ['tipoSesion', 'materialDia', 'notasGenerales']) assert.ok(SHEETS.Entrenamientos.includes(col), col);
   const data = { db: Object.fromEntries(Object.keys(SHEETS).filter((s) => s !== 'Club').map((s) => [s, c.store.list(s)])), club: { ...c.store.club } };
@@ -82,7 +83,7 @@ test('persistence: the plan travels in the club document and old data (without t
   assert.deepEqual(d.db.EntrenoLineas, []);
   const { crearEntrenoService } = await importApp('js/application/entrenoService.js');
   const repo = { list: (h) => d.db[h] || [], get: (h, id) => (d.db[h] || []).find((r) => r.id === id) || null, upsert: (h, r) => r, remove: () => {} };
-  const svc = crearEntrenoService(repo, { club: () => d.club });
+  const svc = crearEntrenoService(repo, { genId: newId, club: () => d.club });
   assert.equal(svc.tienePlan('e1'), false);
   assert.deepEqual(svc.ficha('e1').sets, []);
 });

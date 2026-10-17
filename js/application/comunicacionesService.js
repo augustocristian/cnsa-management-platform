@@ -4,7 +4,7 @@ import { fechaDeDate } from '../domain/calendario.js';
 
 export const HOJA = 'Comunicaciones';
 
-export function crearComunicacionesService(repo, { ahora = () => new Date() } = {}) {
+export function crearComunicacionesService(repo, { ahora } = {}) {
   const hoy = () => fechaDeDate(ahora());
   return {
     hoy,

@@ -12,7 +12,7 @@ before(async () => {
   [shell, nav, banners, menu, header, model, router, ui, a11y, i18n, avisosSvc] = await Promise.all([
     importApp('js/presentation/shell/shell.js'), importApp('js/presentation/shell/nav.js'), importApp('js/presentation/shell/banners.js'),
     importApp('js/presentation/shell/accountMenu.js'), importApp('js/presentation/shell/header.js'), importApp('js/presentation/shell/navModel.js'),
-    importApp('js/router.js'), importApp('js/ui.js'), importApp('js/presentation/shell/a11y.js'), importApp('js/i18n.js'),
+    importApp('js/presentation/router.js'), importApp('js/presentation/ui.js'), importApp('js/presentation/shell/a11y.js'), importApp('js/presentation/i18n/i18n.js'),
     importApp('js/application/avisosService.js'),
   ]);
   for (const name of model.RUTAS) {
@@ -139,7 +139,7 @@ test('navigation: Home plus three groups; no swimsuits entry; 4 bar items plus M
   assert.ok(document.querySelector('nav.sidebar .nav-more'));
   assert.equal(document.querySelectorAll('nav.sidebar h1, nav.sidebar h2, nav.sidebar h3').length, 0, 'group titles are not headings');
   // distinct Tutorial icon: not the Home fallback
-  const icons = await importApp('js/icons.js');
+  const icons = await importApp('js/presentation/icons.js');
   assert.notEqual(model.iconoDe('tutorial'), 'inicio');
   assert.ok(icons.ICONS[model.iconoDe('tutorial')]);
 });

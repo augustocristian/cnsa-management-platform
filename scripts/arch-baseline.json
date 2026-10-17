@@ -1,0 +1,4 @@
+{
+  "comment": "Known architecture violations tolerated by scripts/check-arch.mjs (ratchet). It may only shrink; the goal is an empty list. Each remaining entry is explained in docs/ARCHITECTURE.md.",
+  "violations": []
+}

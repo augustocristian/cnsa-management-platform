@@ -142,7 +142,7 @@ test('add a competition from the week detail: it appears marked, in the Calendar
   assert.ok([...c.container.querySelectorAll('svg.tp-svg .tp-evento')].some((g) => /Open de Asturias/.test(g.getAttribute('aria-label'))));
   // Calendar: same source as the .ics
   const { crearCalendarioService } = await importApp('js/application/calendarioService.js');
-  const { etiquetas } = await importApp('js/views/calendario.js');
+  const { etiquetas } = await importApp('js/presentation/views/calendario.js');
   const svc = crearCalendarioService({ store: c.store, auth: c.auth, etq: etiquetas, storage: null, ahora: () => new Date() });
   const evs = svc.eventos({ desde: lunesN(3), hasta: addD(lunesN(3), 9) });
   const delOpen = evs.filter((e) => e.origen === 'temporada' && /Open de Asturias/.test(e.titulo));
@@ -283,7 +283,7 @@ test('several seasons: switch between them and only one is active', async () => 
 });
 
 test('languages: Phase/Week in English and Fase/Settimana in Italian', async () => {
-  const { setLang } = await importApp('js/i18n.js');
+  const { setLang } = await importApp('js/presentation/i18n/i18n.js');
   setLang('en', { persist: false });
   await abrir();
   assert.match(c.container.textContent, /Phases/);

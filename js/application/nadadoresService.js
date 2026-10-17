@@ -9,7 +9,7 @@ export const HOJA = 'Nadadores';
 // Sheets whose rows hang from a swimmer (column nadadorId); they are deleted with the swimmer.
 export const HOJAS_DEPENDIENTES = ['Asistencia', 'Cargas', 'Marcas'];
 
-export function crearNadadoresService(repo, { ahora = () => new Date(), categorias } = {}) {
+export function crearNadadoresService(repo, { ahora, categorias } = {}) {
   const cat = categorias || crearCategoriasService(repo, { ahora });
   const hoy = () => fechaDeDate(ahora());
   const dependientes = (id, hoja) => repo.list(hoja).filter((r) => r.nadadorId === id);

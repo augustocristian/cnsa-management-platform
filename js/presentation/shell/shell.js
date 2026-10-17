@@ -1,7 +1,7 @@
 // Shell: header + navigation + banners + view container + (in Settings only) the footer, and route -> view loading.
-import { h } from '../../ui.js';
-import { t, tNav } from '../../i18n.js';
-import * as router from '../../router.js';
+import { h } from '../ui.js';
+import { t, tNav } from '../i18n/i18n.js';
+import * as router from '../router.js';
 import { construirHeader, actualizarHeader } from './header.js';
 import { construirNav, marcarActivo } from './nav.js';
 import { pintarBanners } from './banners.js';
@@ -73,11 +73,11 @@ export async function mostrarVista(rt, ruta, { primera = false } = {}) {
   main.replaceChildren(h('p', { class: 'muted loading' }, t('shell.cargando')));
   let mod;
   try {
-    mod = await (router.getRoute(name)?.() ?? import(`../../views/${name}.js`));
+    mod = await (router.getRoute(name)?.() ?? import(`../views/${name}.js`));
   } catch (e) {
     if (token !== tokenVista) return;
     let missing = false;
-    try { missing = !(await fetch(`./js/views/${name}.js`, { method: 'HEAD' })).ok; } catch (e2) { missing = false; }
+    try { missing = !(await fetch(`./js/presentation/views/${name}.js`, { method: 'HEAD' })).ok; } catch (e2) { missing = false; }
     main.replaceChildren(missing ? proximamente(name) : tarjetaError(e));
     finalizarRuta(rt, main, name, { cambio, primera });
     return;

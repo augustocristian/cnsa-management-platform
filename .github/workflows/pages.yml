@@ -19,6 +19,8 @@ jobs:
         with: { node-version: 22, cache: npm }
       - run: npm ci
       - run: npm run check
+      - name: Architecture rules (layers, cycles, forbidden globals)
+        run: npm run check:arch
       - name: Dependency audit
         run: npm audit --omit=dev --audit-level=high
       - name: vendor/ in sync with npm

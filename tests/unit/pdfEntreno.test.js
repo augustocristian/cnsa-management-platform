@@ -7,7 +7,7 @@ import { infoPdf, libNode } from '../helpers/pdf.js';
 
 const P = await importApp('js/infrastructure/pdfEntreno.js');
 const D = await importApp('js/domain/entreno.js');
-const I18N = await importApp('js/i18n.js');
+const I18N = await importApp('js/presentation/i18n/i18n.js');
 const { guardarPdfEnDrive } = await importApp('js/infrastructure/driveEntrenos.js');
 const { crearEtiquetasPdf } = await importApp('js/application/etiquetasPdf.js');
 
@@ -192,7 +192,7 @@ test('guardarPdfEnDrive: if the file already exists it updates it without duplic
 
 // ---------- i18n and dependencies ----------
 test('entreno texts: es/en/it with the same keys and variables, no empty values', async () => {
-  const [es, en, it] = await Promise.all(['es', 'en', 'it'].map(async (c) => (await importApp(`js/locales/entreno.${c}.js`)).default));
+  const [es, en, it] = await Promise.all(['es', 'en', 'it'].map(async (c) => (await importApp(`js/presentation/i18n/locales/entreno.${c}.js`)).default));
   const vars = (s) => [...s.matchAll(/\{(\w+)\}/g)].map((m) => m[1]).sort().join(',');
   for (const [n, d] of [['en', en], ['it', it]]) {
     assert.deepEqual(Object.keys(es).filter((k) => !(k in d)), [], 'missing in ' + n);
@@ -203,8 +203,8 @@ test('entreno texts: es/en/it with the same keys and variables, no empty values'
 });
 
 test('every entreno.* key used in the code exists in the dictionary', async () => {
-  const es = (await importApp('js/locales/entreno.es.js')).default;
-  const ficheros = [...readdirSync(path.join(ROOT, 'js/views')).filter((f) => /^entren/.test(f)).map((f) => 'js/views/' + f), 'js/application/etiquetasPdf.js', 'js/application/entrenamientosService.js', 'js/domain/entrenamientos.js'];
+  const es = (await importApp('js/presentation/i18n/locales/entreno.es.js')).default;
+  const ficheros = [...readdirSync(path.join(ROOT, 'js/presentation/views')).filter((f) => /^entren/.test(f)).map((f) => 'js/presentation/views/' + f), 'js/application/etiquetasPdf.js', 'js/application/entrenamientosService.js', 'js/domain/entrenamientos.js'];
   const dinamicas = { 'entreno.av.': D_CODIGOS(), 'entreno.col.': ['tiempo', 'objetivo', 'bloque', 'series', 'distancia', 'salida', 'ejercicio', 'contenidos', 'dist-bloque', 'material', 'notas'], 'entreno.estilo.': ['crol', 'espalda', 'braza', 'mariposa', 'estilos'], 'entreno.pl.': D.PLANTILLAS.map((p) => p.id),
     'entreno.pdf.': ['dia', 'fecha', 'hora', 'grupo', 'tipo-sesion', 'piscina', 'material-dia', 'notas-generales', 'tiempo', 'objetivo', 'bloques', 'series', 'distancia', 'salida', 'ejercicio', 'dist-bloque', 'dist-set', 'material', 'notas', 'totales', 'sin-plan'] };
   const usadas = new Set();
@@ -233,7 +233,7 @@ test('jsPDF and jspdf-autotable are production dependencies and are copied to ve
 
 test('service worker: precaches the training plan modules and the PDF libraries', () => {
   const sw = readFileSync(path.join(ROOT, 'sw.js'), 'utf8');
-  for (const f of ['js/domain/entreno.js', 'js/domain/desglose.js', 'js/application/entrenoService.js', 'js/infrastructure/pdfEntreno.js', 'js/infrastructure/driveEntrenos.js', 'js/views/entreno-editor.js', 'js/views/entreno-acciones.js', 'js/views/entrenamientos.js', 'js/locales/entreno.es.js', 'js/locales/entreno.en.js', 'js/locales/entreno.it.js', 'vendor/jspdf.umd.min.js', 'vendor/jspdf.plugin.autotable.min.js']) {
+  for (const f of ['js/domain/entreno.js', 'js/domain/desglose.js', 'js/application/entrenoService.js', 'js/infrastructure/pdfEntreno.js', 'js/infrastructure/driveEntrenos.js', 'js/presentation/views/entreno-editor.js', 'js/presentation/views/entreno-acciones.js', 'js/presentation/views/entrenamientos.js', 'js/presentation/i18n/locales/entreno.es.js', 'js/presentation/i18n/locales/entreno.en.js', 'js/presentation/i18n/locales/entreno.it.js', 'vendor/jspdf.umd.min.js', 'vendor/jspdf.plugin.autotable.min.js']) {
     assert.ok(sw.includes('./' + f), 'sw.js lacks ' + f);
   }
 });

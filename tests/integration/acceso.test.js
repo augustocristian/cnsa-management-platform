@@ -10,7 +10,7 @@ const montar = (nodos) => { c.container.replaceChildren(...nodos.flat().filter(B
 const botonPorTexto = (root, texto) => [...root.querySelectorAll('button, a')].find((b) => b.textContent.trim() === texto);
 
 test('start screen (Client ID set): value proposition, privacy and ONLY Connect Google Drive; no demo, no account wording', async () => {
-  const acceso = await importApp('js/views/acceso.js');
+  const acceso = await importApp('js/presentation/views/acceso.js');
   const root = montar(acceso.login({ auth: { connect: async () => {} }, onConectar: () => {} }));
   assert.equal(root.querySelector('h1').textContent, 'CNL Plataforma');
   const primario = root.querySelector('#btn-google');
@@ -28,7 +28,7 @@ test('start screen (Client ID set): value proposition, privacy and ONLY Connect 
 });
 
 test('start screen: the one-off notice that the demo was closed is announced politely', async () => {
-  const acceso = await importApp('js/views/acceso.js');
+  const acceso = await importApp('js/presentation/views/acceso.js');
   const aviso = 'A Google Client ID is now configured: the demo was closed. Connect Google Drive to continue.';
   const root = montar(acceso.login({ auth: { connect: async () => {} }, onConectar: () => {}, aviso }));
   const caja = root.querySelector('#acc-aviso.alert.alert--info[role="status"]');
@@ -39,7 +39,7 @@ test('start screen: the one-off notice that the demo was closed is announced pol
 });
 
 test('start: the language selector is not the first thing in the card and is a button group, not a select', async () => {
-  const acceso = await importApp('js/views/acceso.js');
+  const acceso = await importApp('js/presentation/views/acceso.js');
   const root = montar(acceso.login({ auth: { connect: async () => {} }, onConectar: () => {} }));
   assert.equal(root.querySelector('select'), null);
   const grupo = root.querySelector('[role="radiogroup"].lang-switch');
@@ -51,7 +51,7 @@ test('start: the language selector is not the first thing in the card and is a b
 });
 
 test('connect: success calls onConectar; a Google error is explained with an accessible .alert and the button is released', async () => {
-  const acceso = await importApp('js/views/acceso.js');
+  const acceso = await importApp('js/presentation/views/acceso.js');
   let ok = 0;
   let fallo = true;
   const auth = { connect: async () => { if (fallo) { const e = new Error('x'); e.code = 'popup-bloqueado'; throw e; } } };
@@ -74,7 +74,7 @@ test('connect: success calls onConectar; a Google error is explained with an acc
 });
 
 test('errorGoogle: the current origin appears next to its Copy button in a single aligned row', async () => {
-  const acceso = await importApp('js/views/acceso.js');
+  const acceso = await importApp('js/presentation/views/acceso.js');
   const e = new Error('origin'); e.code = 'origen-no-autorizado'; e.origin = 'http://localhost:4500';
   const box = acceso.errorGoogle(e);
   const fila = box.querySelector('.acc-copy');
@@ -84,7 +84,7 @@ test('errorGoogle: the current origin appears next to its Copy button in a singl
 });
 
 test('configuration needed: connection wording (not session), labelled field and accessible error', async () => {
-  const acceso = await importApp('js/views/acceso.js');
+  const acceso = await importApp('js/presentation/views/acceso.js');
   let listo = 0;
   const root = montar(acceso.configNecesaria({ auth: { connect: async () => {} }, onListo: () => { listo++; } }));
   assert.equal(root.querySelector('h1').textContent, 'Configuración necesaria');
@@ -104,7 +104,7 @@ test('configuration needed: connection wording (not session), labelled field and
 });
 
 test('configuration needed (no Client ID): Try the demo is the first action, the owner setup comes below', async () => {
-  const acceso = await importApp('js/views/acceso.js');
+  const acceso = await importApp('js/presentation/views/acceso.js');
   let demo = 0;
   const root = montar(acceso.configNecesaria({ auth: { connect: async () => {} }, onListo: () => {}, onDemo: () => { demo++; } }));
   const botones = [...root.querySelectorAll('button, a.btn')];
@@ -123,7 +123,7 @@ test('configuration needed (no Client ID): Try the demo is the first action, the
 });
 
 test('configuration needed reached from the demo: Back to the demo instead of Try the demo, and a note that connecting closes it', async () => {
-  const acceso = await importApp('js/views/acceso.js');
+  const acceso = await importApp('js/presentation/views/acceso.js');
   let volver = 0;
   const root = montar(acceso.configNecesaria({ auth: { connect: async () => {} }, onListo: () => {}, onVolverDemo: () => { volver++; } }));
   assert.equal(root.querySelector('#btn-demo'), null);
@@ -136,7 +136,7 @@ test('configuration needed reached from the demo: Back to the demo instead of Tr
 });
 
 test('wizard: accessible inline errors, live colour preview and no jumps when advancing', async () => {
-  const acceso = await importApp('js/views/acceso.js');
+  const acceso = await importApp('js/presentation/views/acceso.js');
   let creado = null;
   let redibujo = null;
   const p = acceso.asistente({ mount: (n) => montar(n), crear: async (d) => { creado = d; }, redibujar: (fn) => { redibujo = fn; } });
@@ -173,7 +173,7 @@ test('wizard: accessible inline errors, live colour preview and no jumps when ad
 });
 
 test('wizard: if Drive fails when creating the club the Google error is shown as an alert and can be retried', async () => {
-  const acceso = await importApp('js/views/acceso.js');
+  const acceso = await importApp('js/presentation/views/acceso.js');
   let intentos = 0;
   acceso.asistente({
     mount: (n) => montar(n),
@@ -192,7 +192,7 @@ test('wizard: if Drive fails when creating the club the Google error is shown as
 });
 
 test('club selector: uses "Desconectar Drive", no email or account', async () => {
-  const acceso = await importApp('js/views/acceso.js');
+  const acceso = await importApp('js/presentation/views/acceso.js');
   let elegido = null;
   const root = montar(acceso.selector({ clubes: [{ id: 'a', name: 'Club A' }, { id: 'b', name: 'Club B' }], onElegir: (x) => { elegido = x; }, onCrear: () => {}, onSalir: () => {} }));
   assert.ok(botonPorTexto(root, 'Desconectar Drive'));

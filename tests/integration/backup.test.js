@@ -12,7 +12,7 @@ const AHORA = new Date(2026, 9, 16, 15, 30, 12);
 // Real store + fake Drive + the real service built by the composition root, with the download captured.
 async function montar({ modoDemo = false } = {}) {
   const { crearServicioBackupApp } = await importApp('js/composicion/backup.js');
-  const { renderBackupPanel } = await importApp('js/views/backup-panel.js');
+  const { renderBackupPanel } = await importApp('js/presentation/views/backup-panel.js');
   const descargas = [];
   const svc = crearServicioBackupApp({ store: c.store, ahora: () => AHORA, descargar: (blob, nombre) => { descargas.push({ blob, nombre }); }, cripto: crearBackupCrypto({ iteraciones: 1000 }) });
   const pintar = () => {
@@ -191,7 +191,7 @@ test('backups in Drive: lists those in cnl/backups and allows restoring one', as
   c.store.removeMany('Nadadores', c.store.list('Nadadores').map((n) => n.id));
   const panel = c.container;
   panel.replaceChildren();
-  const { renderBackupPanel } = await importApp('js/views/backup-panel.js');
+  const { renderBackupPanel } = await importApp('js/presentation/views/backup-panel.js');
   panel.append(renderBackupPanel({ store: c.store, ui: c.ui, backup: svc }));
   for (let i = 0; i < 60 && !panel.querySelector('#backup-drive-tabla tbody tr'); i++) await tick(10);
   const filas = panel.querySelectorAll('#backup-drive-tabla tbody tr');

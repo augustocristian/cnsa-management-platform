@@ -15,11 +15,11 @@ export function boot({ xlsx = false } = {}) {
 
 async function doBoot(xlsx) {
   setupEnv({ loadXlsx: true });
-  const [{ store }, { driveConnection: auth }, { drive }, config, ui, { instalarFakeGoogle }, { preferencias }] = await Promise.all([
-    importApp('js/store.js'), importApp('js/infrastructure/driveConnection.js'), importApp('js/drive.js'), importApp('js/config.js'), importApp('js/ui.js'),
-    importApp('js/infrastructure/fakeGoogle.js'), importApp('js/preferencias.js'),
+  const [{ store }, { driveConnection: auth }, { drive }, config, ui, { instalarFakeGoogle }, { preferencias }, { serviciosDeVista }] = await Promise.all([
+    importApp('js/composicion/store.js'), importApp('js/infrastructure/driveConnection.js'), importApp('js/infrastructure/drive.js'), importApp('js/infrastructure/config.js'), importApp('js/presentation/ui.js'),
+    importApp('js/infrastructure/fakeGoogle.js'), importApp('js/composicion/preferencias.js'), importApp('js/composicion/contexto.js'),
   ]);
-  ctxCache = { store, auth, conexion: auth, drive, ui, config, instalarFakeGoogle, preferencias };
+  ctxCache = { store, auth, conexion: auth, drive, ui, config, instalarFakeGoogle, preferencias, serviciosDeVista };
   return ctxCache;
 }
 
@@ -31,7 +31,7 @@ export async function fresh({ demo = true, xlsx = false, club = 'Club Test' } = 
   document.head.replaceChildren();
   localStorage.clear();
   localStorage.setItem('cnl:lang', 'es');
-  (await importApp('js/i18n.js')).setLang('es');
+  (await importApp('js/presentation/i18n/i18n.js')).setLang('es');
   location.hash = '';
   ctx.preferencias.desconectar();
   const fake = ctx.instalarFakeGoogle({ auth: ctx.auth, drive: ctx.drive, config: ctx.config, opciones: { conectado: true } });
@@ -41,12 +41,13 @@ export async function fresh({ demo = true, xlsx = false, club = 'Club Test' } = 
   if (demo) ctx.store.seedDemo(); else ctx.store.clear();
   const container = document.createElement('main');
   document.body.appendChild(container);
-  return { ...ctx, fake, ref, container };
+  // servicios = what the composition root adds to every view context (preferences, PDF / Drive adapters, backup and calendar factories)
+  return { ...ctx, fake, ref, container, servicios: ctx.serviciosDeVista({ store: ctx.store, auth: ctx.auth }) };
 }
 
 export async function renderView(name, container, params, ctx) {
-  const mod = await importApp(`js/views/${name}.js`);
-  await mod.render(container, params, { store: ctx.store, auth: ctx.auth, ui: ctx.ui });
+  const mod = await importApp(`js/presentation/views/${name}.js`);
+  await mod.render(container, params, { ...ctx.servicios, store: ctx.store, auth: ctx.auth, ui: ctx.ui });
   await tick();
   return mod;
 }

@@ -24,9 +24,9 @@ function sembrar() {
 async function montar(extra = {}, vistaGuardada = 'agenda') {
   sembrar();
   c.preferencias.set('calendario.vista', vistaGuardada);
-  const mod = await importApp('js/views/calendario.js');
+  const mod = await importApp('js/presentation/views/calendario.js');
   const cal = { ...extra };
-  await mod.render(c.container, [], { store: c.store, auth: c.auth, ui: c.ui, cal });
+  await mod.render(c.container, [], { ...c.servicios, store: c.store, auth: c.auth, ui: c.ui, cal });
   await tick();
   return cal;
 }
@@ -74,8 +74,8 @@ test('the Agenda opens on TODAY (rolling window starting today), not on the 1st 
   store.upsert('Entrenamientos', { id: 'p', fecha: ayer, hora: '10:00', duracionMin: 60, grupoId: '', titulo: 'Ayer', estado: 'realizado' });
   store.upsert('Entrenamientos', { id: 'h', fecha: hoyLocal, hora: '10:00', duracionMin: 60, grupoId: '', titulo: 'Hoy mismo' });
   c.preferencias.set('calendario.vista', 'agenda');
-  const mod = await importApp('js/views/calendario.js');
-  await mod.render(c.container, [], { store, auth: c.auth, ui, cal: {} });
+  const mod = await importApp('js/presentation/views/calendario.js');
+  await mod.render(c.container, [], { ...c.servicios, store, auth: c.auth, ui, cal: {} });
   await tick();
   const dias = [...c.container.querySelectorAll('.cal-agenda-dia')];
   assert.ok(dias.length >= 1);
@@ -86,8 +86,8 @@ test('the Agenda opens on TODAY (rolling window starting today), not on the 1st 
 
 test('the Agenda shows today even if there are no events that day', async () => {
   c.preferencias.set('calendario.vista', 'agenda');
-  const mod = await importApp('js/views/calendario.js');
-  await mod.render(c.container, [], { store: c.store, auth: c.auth, ui: c.ui, cal: {} });
+  const mod = await importApp('js/presentation/views/calendario.js');
+  await mod.render(c.container, [], { ...c.servicios, store: c.store, auth: c.auth, ui: c.ui, cal: {} });
   await tick();
   assert.ok(c.container.querySelector('.cal-agenda-dia.cal-hoy'));
   assert.match(c.container.querySelector('.cal-agenda-dia.cal-hoy').textContent, /No hay eventos este día/);
@@ -100,8 +100,8 @@ test('on mobile the default view is the Agenda (a saved "Mes" is ignored there)'
     assert.equal(c.container.querySelector('.segmented [aria-pressed="true"]').dataset.vista, 'agenda');
     c.container.replaceChildren();
     c.preferencias.set('calendario.vista', 'semana');
-    const mod = await importApp('js/views/calendario.js');
-    await mod.render(c.container, [], { store: c.store, auth: c.auth, ui: c.ui, cal: {} });
+    const mod = await importApp('js/presentation/views/calendario.js');
+    await mod.render(c.container, [], { ...c.servicios, store: c.store, auth: c.auth, ui: c.ui, cal: {} });
     assert.equal(c.container.querySelector('.segmented [aria-pressed="true"]').dataset.vista, 'semana', 'an explicit week choice is respected');
   } finally { delete window.matchMedia; }
 });
@@ -119,8 +119,8 @@ test('the chosen view, window and reminder are saved in the user preferences (Dr
   assert.equal(enDrive.valores['calendario.vista'], 'semana');
   assert.equal(enDrive.valores['calendario.ventanaDias'], 180);
   // a new view recovers what was chosen
-  const mod = await importApp('js/views/calendario.js');
-  await mod.render(c.container, [], { store: c.store, auth: c.auth, ui: c.ui, cal: {} });
+  const mod = await importApp('js/presentation/views/calendario.js');
+  await mod.render(c.container, [], { ...c.servicios, store: c.store, auth: c.auth, ui: c.ui, cal: {} });
   await tick();
   assert.equal(c.container.querySelector('#cal-ventana').value, '180');
   assert.equal(c.container.querySelector('.segmented [aria-pressed="true"]').dataset.vista, 'semana');
@@ -227,8 +227,8 @@ test('with the Drive connection, Calendar sync is available', async () => {
 test('in demo mode sync is disabled and the reason is explained', async () => {
   sembrar();
   const store = Object.create(c.store, { mode: { value: 'demo' } });
-  const mod = await importApp('js/views/calendario.js');
-  await mod.render(c.container, [], { store, auth: c.auth, ui: c.ui, cal: {} });
+  const mod = await importApp('js/presentation/views/calendario.js');
+  await mod.render(c.container, [], { ...c.servicios, store, auth: c.auth, ui: c.ui, cal: {} });
   await tick();
   assert.equal(c.container.querySelector('#cal-sync').disabled, true);
   assert.equal(c.container.querySelector('#cal-sync-parar').disabled, true);
@@ -238,8 +238,8 @@ test('in demo mode sync is disabled and the reason is explained', async () => {
 test('without a Drive connection sync is explained and exporting still works', async () => {
   sembrar();
   const auth = { isConnected: () => false, tokenForScope: async () => null };
-  const mod = await importApp('js/views/calendario.js');
-  await mod.render(c.container, [], { store: c.store, auth, ui: c.ui, cal: {} });
+  const mod = await importApp('js/presentation/views/calendario.js');
+  await mod.render(c.container, [], { ...c.servicios, store: c.store, auth, ui: c.ui, cal: {} });
   await tick();
   assert.equal(c.container.querySelector('#cal-sync').disabled, true);
   assert.match(c.container.querySelector('#cal-sync-motivo').textContent, /Conecta Google Drive/);
@@ -247,7 +247,7 @@ test('without a Drive connection sync is explained and exporting still works', a
 });
 
 test('languages: the menu and the sync section are translated', async () => {
-  const { setLang } = await importApp('js/i18n.js');
+  const { setLang } = await importApp('js/presentation/i18n/i18n.js');
   setLang('en', { persist: false });
   try {
     await montar();

@@ -1,13 +1,13 @@
-// Resilience of js/drive.js and js/infrastructure/driveConnection.js: deadlines, retries with exponential backoff / Retry-After, Drive quota,
+// Resilience of js/infrastructure/drive.js and js/infrastructure/driveConnection.js: deadlines, retries with exponential backoff / Retry-After, Drive quota,
 // Drive version, revisions, non-duplicated cnl folder, pagination and memory-only token. Simulated fetch, no network.
 import { test, describe, beforeEach, after } from 'node:test';
 import assert from 'node:assert/strict';
 import { setupEnv, importApp, appUrl } from '../helpers/env.js';
 
 setupEnv();
-const { drive, nombreBackup, esperaReintento } = await importApp('js/drive.js');
+const { drive, nombreBackup, esperaReintento } = await importApp('js/infrastructure/drive.js');
 const { driveConnection: auth } = await importApp('js/infrastructure/driveConnection.js');
-const config = await importApp('js/config.js');
+const config = await importApp('js/infrastructure/config.js');
 // Isolated copy of driveConnection.js (other files in the same process may have replaced the shared instance's methods with the simulator)
 const { driveConnection: authReal } = await import(appUrl('js/infrastructure/driveConnection.js') + '?aislado');
 

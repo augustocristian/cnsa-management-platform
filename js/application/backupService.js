@@ -12,8 +12,8 @@
 // Repository port (the store): documento(), list(sheet), upsertMany(sheet, rows), removeMany(sheet, ids), club, setClub(obj),
 // clubRef, soloLectura, mode, and optionally migrar(), aplicarExtras(extra, {reemplazar}), sync(), pendiente.
 import * as D from '../domain/backup.js';
-import { docToData, mergeData, metaVacia, RELACIONES, DOC_VERSION } from '../sheetdata.js';
-import { SHEETS, HOJAS_RETIRADAS } from '../schema.js';
+import { docToData, mergeData, metaVacia, RELACIONES, DOC_VERSION } from '../domain/sheetdata.js';
+import { SHEETS, HOJAS_RETIRADAS } from '../domain/schema.js';
 
 const MENSAJES = {
   'no-es-backup': 'This file is not a CNL backup.',
@@ -41,9 +41,9 @@ export const falla = (code, extra = {}, errores) => Object.assign(new Error(MENS
 const iso = (f) => `${f.getFullYear()}-${String(f.getMonth() + 1).padStart(2, '0')}-${String(f.getDate()).padStart(2, '0')}`;
 const ENTIDADES = Object.keys(SHEETS).filter((s) => s !== 'Club');
 
-// deps: {repo, preferencias, hash, crypto?, ahora?, archivos?, driveBackups?, categorias?, appVersion?}
+// deps: {repo, preferencias, hash, cripto?, ahora, archivos: {descargar, crearBlob, leer?}, driveBackups?, categorias?, appVersion?}
 export function crearBackupService({
-  repo, preferencias, hash, crypto = null, ahora = () => new Date(), archivos = {}, driveBackups = null, categorias = null, appVersion = '',
+  repo, preferencias, hash, cripto = null, ahora, archivos = {}, driveBackups = null, categorias = null, appVersion = '',
 } = {}) {
   let ultimaSeguridad = null; // {doc, nombre, destino:'drive'|'sesion', creada, id?}
   const resumenesDrive = new Map();
@@ -74,12 +74,12 @@ export function crearBackupService({
     const cifrada = !!passphrase;
     if (cifrada) {
       if (!D.passphraseValida(passphrase)) throw falla('passphrase-corta');
-      if (!crypto) throw falla('sin-cifrado');
+      if (!cripto) throw falla('sin-cifrado');
     }
     const doc = await construirDocumento();
     let texto = JSON.stringify(doc);
-    if (cifrada) texto = JSON.stringify(await crypto.cifrar(texto, passphrase));
-    const blob = new Blob([texto], { type: 'application/json' });
+    if (cifrada) texto = JSON.stringify(await cripto.cifrar(texto, passphrase));
+    const blob = archivos.crearBlob(texto, 'application/json');
     const avisos = [];
     if (blob.size > D.LIMITE_BYTES || D.totalFilas(doc.counts) > D.LIMITE_FILAS) avisos.push({ codigo: 'supera-limite' });
     return { blob, nombre: D.nombreFichero(doc.club.name, ahora(), { cifrada }), doc, resumen: D.resumenBackup(doc, { esquema: SHEETS }), cifrada, bytes: blob.size, avisos };
@@ -127,8 +127,8 @@ export function crearBackupService({
       const v = D.validarSobre(o);
       if (!v.ok) throw falla(v.errores[0].codigo, v.errores[0], v.errores);
       if (!passphrase) throw falla('requiere-passphrase');
-      if (!crypto) throw falla('sin-cifrado');
-      const texto = await crypto.descifrar(o, passphrase);
+      if (!cripto) throw falla('sin-cifrado');
+      const texto = await cripto.descifrar(o, passphrase);
       try { o = JSON.parse(texto); } catch (e) { throw falla('danado', { motivo: 'cifrado' }); }
       cifrada = true;
     }
@@ -147,12 +147,7 @@ export function crearBackupService({
   async function leerTexto(file) {
     if (archivos.leer) return archivos.leer(file);
     if (file && typeof file.text === 'function') return file.text();
-    return new Promise((resolve, reject) => {
-      const fr = new FileReader();
-      fr.onerror = () => reject(fr.error);
-      fr.onload = () => resolve(String(fr.result));
-      fr.readAsText(file);
-    });
+    throw falla('ilegible'); // neither archivos.leer nor Blob.text(): the file cannot be read
   }
 
   async function leerBackup(file, { passphrase = '' } = {}) {
@@ -288,7 +283,7 @@ export function crearBackupService({
   const seguridadActual = () => (ultimaSeguridad ? { nombre: ultimaSeguridad.nombre, destino: ultimaSeguridad.destino, creada: ultimaSeguridad.creada } : null);
   async function descargarSeguridad() {
     if (!ultimaSeguridad) throw falla('sin-seguridad');
-    const blob = new Blob([JSON.stringify(ultimaSeguridad.doc)], { type: 'application/json' });
+    const blob = archivos.crearBlob(JSON.stringify(ultimaSeguridad.doc), 'application/json');
     await archivos.descargar(blob, ultimaSeguridad.nombre + (ultimaSeguridad.nombre.endsWith('.json') ? '' : '.json'));
     return { nombre: ultimaSeguridad.nombre };
   }
@@ -339,7 +334,7 @@ export function crearBackupService({
   }
 
   return {
-    modo, soloLectura: () => !!repo.soloLectura, nombreClub, criptoDisponible: () => !!crypto,
+    modo, soloLectura: () => !!repo.soloLectura, nombreClub, criptoDisponible: () => !!cripto,
     crearBackup, descargarBackup, ultimaCopia,
     leerBackup, prepararDocumento, restaurar, revertirUltimaRestauracion, haySeguridad, seguridadActual, descargarSeguridad,
     driveDisponible, listarBackupsDrive, resumenBackupDrive, leerBackupDrive, restaurarDesdeDrive, eliminarBackupDrive,

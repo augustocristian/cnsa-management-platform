@@ -7,7 +7,7 @@ import { clasificarErrorConexion, clasificarErrorLogin, clasificarErrorApi, CODI
 
 setupEnv();
 const { driveConnection: auth } = await importApp('js/infrastructure/driveConnection.js');
-const { drive } = await importApp('js/drive.js');
+const { drive } = await importApp('js/infrastructure/drive.js');
 const { instalarFakeGoogle } = await importApp('js/infrastructure/fakeGoogle.js');
 let fake = null;
 describe('wizard, Google errors and simulated Drive', () => {
@@ -104,7 +104,7 @@ test('API errors: API not enabled with activation link, permissions, limit', () 
 });
 
 test('all error codes have text in es, en and it', async () => {
-  const { t, setLang } = await importApp('js/i18n.js');
+  const { t, setLang } = await importApp('js/presentation/i18n/i18n.js');
   for (const l of ['es', 'en', 'it']) {
     setLang(l);
     for (const c of CODIGOS) assert.notEqual(t('gerr.' + c), 'gerr.' + c, `${l} gerr.${c}`);
@@ -149,7 +149,7 @@ test('Simulated Drive: cannot be used without connecting Drive; data survives a 
 });
 
 test('Simulated Drive: demo option prepares a club and seeds the demo data only once', async () => {
-  const { store } = await importApp('js/store.js');
+  const { store } = await importApp('js/composicion/store.js');
   fake = instalarFakeGoogle({ auth, drive, opciones: { conectado: true, demo: true, club: 'Club Demo' } });
   await auth.init();
   const [club] = await drive.listClubs();

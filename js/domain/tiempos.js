@@ -1,5 +1,5 @@
 // Swim times: the ONE implementation of parsing, masking and formatting (pure, no DOM).
-// js/ui.js re-exports these as fmtTime / maskTime / parseTime; do not duplicate them elsewhere.
+// js/presentation/ui.js re-exports these as fmtTime / maskTime / parseTime; do not duplicate them elsewhere.
 // A time is stored as integer milliseconds (Marcas.tiempoMs); precision is hundredths of a second.
 
 // ms -> "mm:ss.cc" ('' when the value is not a valid duration)

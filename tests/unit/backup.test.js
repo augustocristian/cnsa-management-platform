@@ -3,8 +3,8 @@ import assert from 'node:assert/strict';
 import { createHash } from 'node:crypto';
 import * as D from '../../js/domain/backup.js';
 import { crearBackupCrypto, aBase64, deBase64 } from '../../js/infrastructure/backupCrypto.js';
-import { SHEETS } from '../../js/schema.js';
-import { RELACIONES } from '../../js/sheetdata.js';
+import { SHEETS } from '../../js/domain/schema.js';
+import { RELACIONES } from '../../js/domain/sheetdata.js';
 
 const hash = async (texto) => createHash('sha256').update(texto).digest('hex');
 const fecha = new Date(2026, 9, 16, 15, 30, 12); // 16 Oct 2026 15:30 local

@@ -5,8 +5,8 @@ import assert from 'node:assert/strict';
 import { setupEnv, importApp } from '../helpers/env.js';
 
 setupEnv({ loadXlsx: true });
-const { docToData, dataToDoc, mergeData, RELACIONES } = await importApp('js/sheetdata.js');
-const { SHEETS, ENTITY_SHEETS, HOJAS_RETIRADAS } = await importApp('js/schema.js');
+const { docToData, dataToDoc, mergeData, RELACIONES } = await importApp('js/domain/sheetdata.js');
+const { SHEETS, ENTITY_SHEETS, HOJAS_RETIRADAS } = await importApp('js/domain/schema.js');
 const { validarFila } = await importApp('js/domain/validacion.js');
 
 const docAntiguo = () => ({

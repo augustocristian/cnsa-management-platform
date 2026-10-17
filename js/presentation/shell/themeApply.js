@@ -1,7 +1,7 @@
 // Applies the club colour for the current light/dark mode to <html>.
 // The variables (--c-primary, --c-secondary, --c-action, --c-on-primary, --c-accent, --c-heading) come from domain/tema.js,
 // which validates the colour and guarantees a contrast >= 4.5:1. Recomputed when the mode changes.
-import * as theme from '../../theme.js';
+import * as theme from '../theme.js';
 import { variablesTema } from '../../domain/tema.js';
 
 export function aplicarTema(store) {

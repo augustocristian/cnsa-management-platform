@@ -1,5 +1,5 @@
 // Route-change accessibility: document title, polite announcement, focus management and the skip link.
-import { t, onLangChange } from '../../i18n.js';
+import { t, onLangChange } from '../i18n/i18n.js';
 
 export const TITULO_APP = 'CNL Plataforma';
 

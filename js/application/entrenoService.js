@@ -13,7 +13,7 @@ const dia10 = (f) => String(f ?? '').slice(0, 10);
 const COLUMNAS_LINEA = ['id', 'entrenamientoId', 'set', 'orden', 'tiempoMin', 'objetivo', 'bloque', 'series', 'distancia', 'salida', 'ejercicio', 'material', 'notas', 'componentes', 'estilo'];
 
 // opciones: genId() -> unique string; club() -> {nombre, lema, logo, colorPrimario, colorSecundario}
-export function crearEntrenoService(repo, { genId = defaultGenId, club = () => ({}) } = {}) {
+export function crearEntrenoService(repo, { genId, club = () => ({}) } = {}) {
   const lineasDe = (id) => D.renumerar(repo.list(HOJA_LINEAS).filter((l) => String(l.entrenamientoId) === String(id)));
   const grupoNombre = (id) => { const g = id ? repo.get('Grupos', id) : null; return g ? g.nombre : ''; };
   const tipos = () => repo.list('TiposCarga').map(normalizarTipo);
@@ -184,10 +184,3 @@ function filaLinea(l) {
   return o;
 }
 
-// Ids for new plan rows. Inject `genId` for deterministic tests; the default needs no clock.
-let contador = 0;
-function defaultGenId() {
-  contador++;
-  const azar = globalThis.crypto && globalThis.crypto.randomUUID ? globalThis.crypto.randomUUID() : Math.random().toString(36).slice(2, 10);
-  return 'l' + contador.toString(36) + azar.replace(/-/g, '').slice(0, 12);
-}

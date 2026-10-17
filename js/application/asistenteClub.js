@@ -1,5 +1,5 @@
 // First-run wizard: DOM-free logic (validation and creation of the club in Drive).
-// The UI is in js/views/asistente.js; everything here is received as a parameter so it can be tested without network.
+// The UI is in js/presentation/views/asistente.js; everything here is received as a parameter so it can be tested without network.
 import { zonaValida, TZ_DEFECTO } from '../domain/calendario.js';
 
 export const PASOS = ['datos', 'aspecto'];

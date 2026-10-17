@@ -4,7 +4,7 @@ import { Given, When, Then } from '@cucumber/cucumber';
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 
-const count = (page, sheet) => page.evaluate(async (h) => (await import('./js/store.js')).store.list(h).length, sheet);
+const count = (page, sheet) => page.evaluate(async (h) => (await import('./js/composicion/store.js')).store.list(h).length, sheet);
 
 async function download(world, password) {
   const page = world.page;
@@ -53,12 +53,12 @@ Then('the downloaded file is encrypted and does not contain the swimmers names',
 });
 
 When('I delete all the swimmers of the club', async function () {
-  await this.page.evaluate(async () => { const { store } = await import('./js/store.js'); store.removeMany('Nadadores', store.list('Nadadores').map((n) => n.id)); });
+  await this.page.evaluate(async () => { const { store } = await import('./js/composicion/store.js'); store.removeMany('Nadadores', store.list('Nadadores').map((n) => n.id)); });
   assert.equal(await count(this.page, 'Nadadores'), 0);
 });
 
 When('I set the club motto to {string}', async function (motto) {
-  await this.page.evaluate(async (l) => { (await import('./js/store.js')).store.setClub({ lema: l }); }, motto);
+  await this.page.evaluate(async (l) => { (await import('./js/composicion/store.js')).store.setClub({ lema: l }); }, motto);
 });
 
 When('I choose the downloaded backup file to restore', async function () { await choose(this, this.backup.text, this.backup.name); });
@@ -82,7 +82,7 @@ Then('the default restore mode is {string}', async function (mode) {
 
 When('I confirm the restore by typing the club name', async function () {
   await this.page.locator('#backup-restaurar').click();
-  const name = await this.page.evaluate(async () => (await import('./js/store.js')).store.club.nombre);
+  const name = await this.page.evaluate(async () => (await import('./js/composicion/store.js')).store.club.nombre);
   await this.page.locator('#backup-confirmar-texto').fill(name);
   await this.page.locator('.sheet').getByRole('button', { name: 'Restaurar ahora' }).click();
 });
@@ -98,7 +98,7 @@ Then('the club has {int} swimmers', async function (n) {
 });
 
 Then('the club motto is {string}', async function (motto) {
-  await this.eventually(async () => assert.equal(await this.page.evaluate(async () => (await import('./js/store.js')).store.club.lema), motto));
+  await this.eventually(async () => assert.equal(await this.page.evaluate(async () => (await import('./js/composicion/store.js')).store.club.lema), motto));
 });
 
 Then('I see the restore summary', async function () { await this.expectVisible(this.page.locator('#backup-exito'), 'The restore summary is not visible'); });
@@ -122,8 +122,8 @@ Then('I see the restore button of the backup', async function () { await this.ex
 
 Given('there is a daily backup of the club in the Drive backups folder', async function () {
   await this.page.evaluate(async () => {
-    const { store } = await import('./js/store.js');
-    const { drive } = await import('./js/drive.js');
+    const { store } = await import('./js/composicion/store.js');
+    const { drive } = await import('./js/infrastructure/drive.js');
     await drive.backupClub(store.clubRef.name, store.documento(), { fecha: new Date(2026, 9, 14, 9, 0, 0) });
   });
 });

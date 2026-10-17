@@ -15,11 +15,11 @@ const PLANTILLA = `// header\n${MARCA_INICIO}\nconst VERSION = 'x';\nconst SHELL
 function app(extra = {}) {
   const raiz = mkdtempSync(join(tmpdir(), 'cnl-sw-'));
   const files = {
-    'index.html': '<!doctype html><link rel="stylesheet" href="./css/app.css"><script type="module" src="./js/app.js"></script>',
+    'index.html': '<!doctype html><link rel="stylesheet" href="./css/app.css"><script type="module" src="./js/main.js"></script>',
     'manifest.webmanifest': '{}',
     'css/app.css': 'body{margin:0}',
     'css/views/grupos.css': '.g{color:red}',
-    'js/app.js': "import { a } from './util/a.js';\nimport('./util/lazy.js');\nuseStyles('grupos');\n",
+    'js/main.js': "import { a } from './util/a.js';\nimport('./util/lazy.js');\nuseStyles('grupos');\n",
     'js/util/a.js': 'export const a = 1;',
     'js/util/lazy.js': 'export const l = 1;',
     'js/infrastructure/fakeGoogle.js': 'export const fake = 1;',
@@ -42,7 +42,7 @@ test('lists every file under index/manifest/css/js/icons/vendor, sorted, without
   try {
     const lista = listarArchivos(raiz);
     assert.deepEqual(lista, [
-      'css/app.css', 'css/views/grupos.css', 'icons/icon.svg', 'index.html', 'js/app.js', 'js/util/a.js', 'js/util/lazy.js', 'manifest.webmanifest', 'vendor/lib.min.js',
+      'css/app.css', 'css/views/grupos.css', 'icons/icon.svg', 'index.html', 'js/main.js', 'js/util/a.js', 'js/util/lazy.js', 'manifest.webmanifest', 'vendor/lib.min.js',
     ]);
     assert.ok(!lista.includes('sw.js'));
     for (const x of EXCLUIDOS) assert.ok(!lista.includes(x));
@@ -94,7 +94,7 @@ test('generated block: SHELL has every file, vendor is optional, markers are rep
     for (const f of archivos) assert.ok(bloque.includes(`'./${f}'`), f);
     assert.ok(bloque.includes("'./',"));
     const opcionales = bloque.slice(bloque.indexOf('const OPCIONALES'));
-    assert.ok(opcionales.includes('./vendor/lib.min.js') && !opcionales.includes('./js/app.js'));
+    assert.ok(opcionales.includes('./vendor/lib.min.js') && !opcionales.includes('./js/main.js'));
     const sw = aplicarBloque(PLANTILLA, bloque);
     assert.ok(sw.startsWith('// header\n') && sw.endsWith('// footer\n'));
     assert.throws(() => aplicarBloque('no markers', bloque), /markers/);
@@ -127,7 +127,7 @@ test('verificar: missing imports, missing useStyles sheets and missing html refe
   const raiz = app({
     'js/rota.js': "import './no-existe.js';\nimport { x } from './util/a.js';\nuseStyles('inexistente');\n",
     'js/comentada.js': "// import './fantasma.js';\n/* import('./fantasma2.js') */\nexport {};",
-    'index.html': '<link rel="stylesheet" href="./css/falta.css"><script src="./js/app.js"></script>',
+    'index.html': '<link rel="stylesheet" href="./css/falta.css"><script src="./js/main.js"></script>',
   });
   try {
     const errores = verificar(raiz).join('\n');

@@ -4,8 +4,8 @@ import { createHash } from 'node:crypto';
 import { crearBackupService } from '../../js/application/backupService.js';
 import { crearBackupCrypto } from '../../js/infrastructure/backupCrypto.js';
 import { crearBackupsDrive } from '../../js/infrastructure/backupDrive.js';
-import { SHEETS, ENTITY_SHEETS } from '../../js/schema.js';
-import { dataToDoc, metaVacia } from '../../js/sheetdata.js';
+import { SHEETS, ENTITY_SHEETS } from '../../js/domain/schema.js';
+import { dataToDoc, metaVacia } from '../../js/domain/sheetdata.js';
 import { validarFila, errorValidacion } from '../../js/domain/validacion.js';
 
 const hash = async (t) => createHash('sha256').update(t).digest('hex');
@@ -76,8 +76,8 @@ function driveFalso() {
 function montar({ repo = repoMem(), prefs = {}, drive = null, descargas = [], categorias = null } = {}) {
   const preferencias = prefsMem(prefs);
   const svc = crearBackupService({
-    repo, preferencias, hash, crypto: cripto, ahora: () => AHORA, appVersion: '1.0.0', driveBackups: drive, categorias,
-    archivos: { descargar: async (blob, nombre) => { descargas.push({ blob, nombre }); } },
+    repo, preferencias, hash, cripto, ahora: () => AHORA, appVersion: '1.0.0', driveBackups: drive, categorias,
+    archivos: { crearBlob: (t, tipo) => new Blob([t], { type: tipo }), descargar: async (blob, nombre) => { descargas.push({ blob, nombre }); } },
   });
   return { svc, repo, preferencias, prefs, drive, descargas };
 }

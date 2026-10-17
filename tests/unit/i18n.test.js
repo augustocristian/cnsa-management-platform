@@ -1,9 +1,9 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import es from '../../js/locales/es.js';
-import en from '../../js/locales/en.js';
-import it from '../../js/locales/it.js';
-import { t, setLang, getLang, tCat, tEstado, tTipo, tDate, LANGS } from '../../js/i18n.js';
+import es from '../../js/presentation/i18n/locales/es.js';
+import en from '../../js/presentation/i18n/locales/en.js';
+import it from '../../js/presentation/i18n/locales/it.js';
+import { t, setLang, getLang, tCat, tEstado, tTipo, tDate, LANGS } from '../../js/presentation/i18n/i18n.js';
 
 const vars = (s) => [...s.matchAll(/\{(\w+)\}/g)].map((m) => m[1]).sort().join(',');
 
@@ -53,7 +53,7 @@ test('internal value helpers', () => {
 });
 
 test('schema categories, states and types have a translation', async () => {
-  const s = await import('../../js/schema.js');
+  const s = await import('../../js/domain/schema.js');
   setLang('it', { persist: false });
   for (const c of s.CATEGORIAS) assert.notEqual(tCat(c), '', c);
   for (const [fn, list] of [[tTipo, s.TIPOS_CARGA],
@@ -74,7 +74,7 @@ test('tDate per language', () => {
 });
 
 test('vistas-a: key and variable parity in es/en/it', async () => {
-  const [a, b, c] = await Promise.all(['es', 'en', 'it'].map((l) => import(`../../js/locales/vistas-a.${l}.js`).then((m) => m.default)));
+  const [a, b, c] = await Promise.all(['es', 'en', 'it'].map((l) => import(`../../js/presentation/i18n/locales/vistas-a.${l}.js`).then((m) => m.default)));
   for (const [name, d] of [['en', b], ['it', c]]) {
     assert.deepEqual(Object.keys(a).filter((k) => !(k in d)), [], 'missing in ' + name);
     assert.deepEqual(Object.keys(d).filter((k) => !(k in a)), [], 'orphans in ' + name);
@@ -86,7 +86,7 @@ test('vistas-a: key and variable parity in es/en/it', async () => {
 });
 
 test('vistas-b (entrenamientos, asistencia, cargas, marcas): es/en/it parity', async () => {
-  const [bes, ben, bit] = (await Promise.all(['es', 'en', 'it'].map((l) => import(`../../js/locales/vistas-b.${l}.js`)))).map((m) => m.default);
+  const [bes, ben, bit] = (await Promise.all(['es', 'en', 'it'].map((l) => import(`../../js/presentation/i18n/locales/vistas-b.${l}.js`)))).map((m) => m.default);
   for (const [name, d] of [['en', ben], ['it', bit]]) {
     assert.deepEqual(Object.keys(bes).filter((k) => !(k in d)), [], 'missing in ' + name);
     assert.deepEqual(Object.keys(d).filter((k) => !(k in bes)), [], 'orphans in ' + name);
@@ -99,7 +99,7 @@ test('vistas-b (entrenamientos, asistencia, cargas, marcas): es/en/it parity', a
 });
 
 test('cargas-tipos: key and variable parity in es/en/it, and every preset translated', async () => {
-  const [ces, cen, cit] = (await Promise.all(['es', 'en', 'it'].map((l) => import(`../../js/locales/cargas-tipos.${l}.js`)))).map((m) => m.default);
+  const [ces, cen, cit] = (await Promise.all(['es', 'en', 'it'].map((l) => import(`../../js/presentation/i18n/locales/cargas-tipos.${l}.js`)))).map((m) => m.default);
   const D = await import('../../js/domain/cargas.js');
   for (const [name, d] of [['en', cen], ['it', cit]]) {
     assert.deepEqual(Object.keys(ces).filter((k) => !(k in d)), [], 'missing in ' + name);
@@ -114,7 +114,7 @@ test('cargas-tipos: key and variable parity in es/en/it, and every preset transl
 });
 
 test('contents: presets are translated, custom ones are shown as is and the edited description wins', async () => {
-  const { tContenido, tContenidoDesc } = await import('../../js/i18n.js');
+  const { tContenido, tContenidoDesc } = await import('../../js/presentation/i18n/i18n.js');
   const D = await import('../../js/domain/cargas.js');
   const fila = D.sembrarCatalogo([]).find((x) => x.id === 'tc-alactico');
   setLang('en', { persist: false });

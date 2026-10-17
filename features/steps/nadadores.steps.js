@@ -172,10 +172,10 @@ Then('in the list the swimmers of {string} appear before those of {string}', asy
 // Sets the current season of the club (settings) and recalculates the categories, using the same modules as the app.
 Given('the current season is {string}', async function (season) {
   await this.page.evaluate(async (t) => {
-    const { store } = await import('/js/store.js');
+    const { store } = await import('/js/composicion/store.js');
     const { crearCategoriasService } = await import('/js/application/categoriasService.js');
     store.setClub({ ...store.club, temporadaActual: t });
-    crearCategoriasService(store).recalcular();
+    crearCategoriasService(store, { ahora: () => new Date() }).recalcular();
   }, season);
 });
 

@@ -183,7 +183,7 @@ test('the view works with no marks and in English/Italian', async () => {
   await vista();
   assert.match(c.container.textContent, /Aún no hay marcas/);
   marca({});
-  const { setLang } = await import('../../js/i18n.js');
+  const { setLang } = await import('../../js/presentation/i18n/i18n.js');
   setLang('en', { persist: false });
   await vista();
   assert.match(c.container.textContent, /Personal bests/);
