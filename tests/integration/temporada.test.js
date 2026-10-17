@@ -4,10 +4,10 @@ import { fresh, renderView, tick, buttonByText, setValue } from '../helpers/app.
 import { importApp } from '../helpers/env.js';
 
 let c;
-// Control de formulario cuya etiqueta empieza por `texto` (label asociada con for= o envolvente).
+// Form control whose label starts with `texto` (label linked with for= or wrapping).
 function fieldByLabel(root, texto) {
   const l = [...root.querySelectorAll('label')].find((x) => x.textContent.trim().startsWith(texto));
-  if (!l) throw new Error('No hay label: ' + texto);
+  if (!l) throw new Error('No label: ' + texto);
   return l.control || l.querySelector('input,select,textarea');
 }
 const test = (name, fn) => base(name, async (t) => { c = await fresh(); return fn(t); });
@@ -22,7 +22,7 @@ const addD = (f, n) => { const d = new Date(f + 'T00:00:00Z'); d.setUTCDate(d.ge
 const lunesN = (n) => addD(temporada().fechaInicio, (n - 1) * 7);
 const hoy = () => { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`; };
 
-test('Planificación abre en Temporada y ofrece los apartados Temporada y Piscina (el reparto por calles no se rompe)', async () => {
+test('Planificación opens on Temporada and offers the Temporada and Piscina sections (the lane allocation still works)', async () => {
   await abrir();
   const tabs = [...c.container.querySelectorAll('[role=tablist] > [role=tab]')];
   assert.deepEqual(tabs.map((x) => x.textContent.trim()), ['Temporada', 'Piscina']);
@@ -32,46 +32,46 @@ test('Planificación abre en Temporada y ofrece los apartados Temporada y Piscin
   assert.ok(!c.container.querySelector('.pl-gridwrap'));
   await click(tabs[1]);
   assert.equal(tabs[1].getAttribute('aria-selected'), 'true');
-  assert.ok(c.container.querySelector('.pl-gridwrap'), 'rejilla de la piscina');
+  assert.ok(c.container.querySelector('.pl-gridwrap'), 'pool grid');
   assert.match(c.container.textContent, /Planificación de la piscina/);
   tabs[1].dispatchEvent(new window.KeyboardEvent('keydown', { key: 'ArrowLeft', bubbles: true }));
   await tick(); await tick();
   assert.equal(c.container.querySelector('#pl-tab-temporada').getAttribute('aria-selected'), 'true');
   await abrir(['piscina']);
-  assert.ok(c.container.querySelector('.pl-gridwrap'), 'la ruta #/planificacion/piscina abre ese apartado');
+  assert.ok(c.container.querySelector('.pl-gridwrap'), 'the route #/planificacion/piscina opens that section');
 });
 
-test('temporada demo: fases con fechas, semanas, resumen y eventos A/B/C', async () => {
+test('demo season: phases with dates, weeks, summary and A/B/C events', async () => {
   await abrir();
   const t = temporada();
   assert.match(t.nombre, /^Temporada [0-9]{4}-[0-9]{2}$/);
   assert.equal(c.store.list('Fases').length, 5);
   assert.equal(c.container.querySelectorAll('.tp-fases > li').length, 5);
   assert.match(c.container.querySelector('.tp-fases').textContent, /Preparación general/);
-  assert.equal(filas().length, 38, 'una fila por semana, de lunes a domingo');
+  assert.equal(filas().length, 38, 'one row per week, Monday to Sunday');
   const lunes = filas().map((r) => r.querySelector('.tp-sem-btn').getAttribute('aria-label'));
   assert.match(lunes[0], /^Ver semana 1,/);
   assert.ok(c.container.querySelectorAll('.tp-cards .tp-card').length >= 5);
   const marcas = [...c.container.querySelectorAll('svg.tp-svg .tp-evento')].map((g) => g.getAttribute('aria-label'));
   assert.ok(marcas.some((x) => /Prioridad A/.test(x)) && marcas.some((x) => /Prioridad B/.test(x)) && marcas.some((x) => /Prioridad C/.test(x)));
   const textos = [...c.container.querySelectorAll('svg.tp-svg .tp-evento .tp-marca-t')].map((x) => x.textContent);
-  assert.ok(['A', 'B', 'C'].every((l) => textos.includes(l)), 'prioridad con texto, no sólo color');
+  assert.ok(['A', 'B', 'C'].every((l) => textos.includes(l)), 'priority shown with text, not only colour');
   const formas = new Set([...c.container.querySelectorAll('svg.tp-svg .tp-evento .tp-marca > *:first-child')].map((x) => x.tagName.toLowerCase()));
-  assert.ok(formas.has('polygon') && formas.has('rect') && formas.has('circle'), 'A rombo, B cuadrado, C círculo');
-  assert.ok(c.container.querySelector('svg.tp-svg-tl'), 'línea de tiempo');
+  assert.ok(formas.has('polygon') && formas.has('rect') && formas.has('circle'), 'A diamond, B square, C circle');
+  assert.ok(c.container.querySelector('svg.tp-svg-tl'), 'timeline');
   assert.ok(c.container.querySelectorAll('svg.tp-svg-tl .tp-tl-fase').length === 5);
-  assert.ok(c.container.querySelectorAll('ul.tp-ley li').length > 8, 'leyenda');
+  assert.ok(c.container.querySelectorAll('ul.tp-ley li').length > 8, 'legend');
   const dentro = hoy() >= t.fechaInicio && hoy() <= t.fechaFin;
-  assert.equal(!!c.container.querySelector('table[data-tabla=semanas] tr.tp-act'), dentro, 'la semana actual está resaltada');
+  assert.equal(!!c.container.querySelector('table[data-tabla=semanas] tr.tp-act'), dentro, 'the current week is highlighted');
   assert.equal(!!c.container.querySelector('svg.tp-svg .tp-hoy'), dentro);
 });
 
-test('gráfico accesible: columnas con nombre, foco y selección con teclado', async () => {
+test('accessible chart: named columns, focus and keyboard selection', async () => {
   await abrir();
   const cols = [...c.container.querySelectorAll('svg.tp-svg g.tp-col')];
   assert.equal(cols.length, 38);
   assert.ok(cols.every((g) => /^Semana \d+, /.test(g.getAttribute('aria-label')) && g.getAttribute('role') === 'button'));
-  assert.equal(cols.filter((g) => g.getAttribute('tabindex') === '0').length, 1, 'tabulación única (roving tabindex)');
+  assert.equal(cols.filter((g) => g.getAttribute('tabindex') === '0').length, 1, 'single tab stop (roving tabindex)');
   const sel = c.container.querySelector('g.tp-col[tabindex="0"]');
   const n = Number(sel.dataset.n);
   sel.dispatchEvent(new window.KeyboardEvent('keydown', { key: 'ArrowRight', bubbles: true }));
@@ -85,12 +85,12 @@ test('gráfico accesible: columnas con nombre, foco y selección con teclado', a
   assert.equal(c.container.querySelector('.tp-scroll').getAttribute('role'), 'region');
 });
 
-test('previsto vs real: la semana pasada trae las cargas por contenido, la desviación y el estado', async () => {
+test('planned vs actual: the past week brings loads per content, the deviation and the status', async () => {
   await abrir();
   const t = temporada();
   const m = (await importApp('js/application/temporadaService.js')).crearTemporadaService(c.store, { ahora: () => new Date() }).resumen(t.id);
   const pasada = [...m.semanas].reverse().find((s) => s.tiempo === 'pasada' && s.real.fuente === 'cargas');
-  if (!pasada) return; // la demo no tiene cargas dentro de la temporada (verano)
+  if (!pasada) return; // the demo has no loads inside the season (summer)
   await verSemana(pasada.n);
   const tr = fila(pasada.n);
   assert.match(tr.textContent, /cargas/);
@@ -101,10 +101,10 @@ test('previsto vs real: la semana pasada trae las cargas por contenido, la desvi
   const filasC = det.querySelectorAll('table[data-tabla=contenidos] tbody tr');
   assert.ok(filasC.length >= 1);
   assert.match(det.querySelector('table[data-tabla=contenidos]').textContent, /Aeróbico|Piernas|Virajes|Aláctico/);
-  assert.ok(det.querySelectorAll('[data-lista=entrenos] li').length >= 1, 'entrenos de la semana');
+  assert.ok(det.querySelectorAll('[data-lista=entrenos] li').length >= 1, 'training sessions of the week');
 });
 
-test('añadir una fase; las fechas solapadas piden confirmar', async () => {
+test('add a phase; overlapping dates ask for confirmation', async () => {
   await abrir();
   const n0 = c.store.list('Fases').length;
   await click(buttonByText(c.container, 'Añadir fase'));
@@ -113,22 +113,22 @@ test('añadir una fase; las fechas solapadas piden confirmar', async () => {
   setValue(fieldByLabel(modal(), 'Fecha de inicio'), lunesN(2));
   setValue(fieldByLabel(modal(), 'Fecha de fin'), addD(lunesN(3), 6));
   await click(buttonByText(modal(), 'Guardar'));
-  assert.ok(modal(), 'solapa con la fase en curso: no se guarda sin confirmar');
+  assert.ok(modal(), 'overlaps the current phase: not saved without confirming');
   assert.match(modal().textContent, /se solapan con otras fases/);
   assert.equal(c.store.list('Fases').length, n0);
   await click(buttonByText(modal(), 'Guardar de todos modos'));
   assert.equal(modal(), null);
   assert.equal(c.store.list('Fases').length, n0 + 1);
   assert.match(c.container.textContent, /Puesta a punto/);
-  assert.match(c.container.textContent, /se solapan del/, 'la revisión marca el solape como error');
+  assert.match(c.container.textContent, /se solapan del/, 'the review flags the overlap as an error');
 });
 
-test('añadir una competición desde el detalle de la semana: aparece marcada, en el Calendario y en el .ics', async () => {
+test('add a competition from the week detail: it appears marked, in the Calendar and in the .ics', async () => {
   await abrir();
   const n0 = c.store.list('EventosTemporada').length;
   await verSemana(3);
   await click(buttonByText(c.container.querySelector('#tp-detalle'), 'Añadir evento'));
-  assert.equal(fieldByLabel(modal(), 'Fecha de inicio').value, addD(lunesN(3), 5), 'sábado de la semana seleccionada');
+  assert.equal(fieldByLabel(modal(), 'Fecha de inicio').value, addD(lunesN(3), 5), 'Saturday of the selected week');
   setValue(fieldByLabel(modal(), 'Nombre'), 'Open de Asturias');
   setValue(fieldByLabel(modal(), 'Prioridad'), 'A');
   setValue(fieldByLabel(modal(), 'Lugar'), 'Oviedo');
@@ -138,9 +138,9 @@ test('añadir una competición desde el detalle de la semana: aparece marcada, e
   assert.equal(c.store.list('EventosTemporada').length, n0 + 1);
   const det = c.container.querySelector('#tp-detalle');
   assert.match(det.querySelector('[data-lista=eventos-semana]').textContent, /Open de Asturias/);
-  assert.ok(fila(3).querySelector('.tp-evchip'), 'la semana queda marcada en la tabla');
+  assert.ok(fila(3).querySelector('.tp-evchip'), 'the week is marked in the table');
   assert.ok([...c.container.querySelectorAll('svg.tp-svg .tp-evento')].some((g) => /Open de Asturias/.test(g.getAttribute('aria-label'))));
-  // Calendario: misma fuente que el .ics
+  // Calendar: same source as the .ics
   const { crearCalendarioService } = await importApp('js/application/calendarioService.js');
   const { etiquetas } = await importApp('js/views/calendario.js');
   const svc = crearCalendarioService({ store: c.store, auth: c.auth, etq: etiquetas, storage: null, ahora: () => new Date() });
@@ -151,13 +151,13 @@ test('añadir una competición desde el detalle de la semana: aparece marcada, e
   const { ics } = svc.exportar({ rango: { desde: lunesN(3), hasta: addD(lunesN(3), 9) } });
   assert.match(ics, /SUMMARY:Open de Asturias \(A\)/);
   assert.match(ics, /LOCATION:Oviedo/);
-  // y la vista del Calendario lo pinta
+  // and the Calendar view renders it
   c.container.replaceChildren();
   await renderView('calendario', c.container, [], c);
   assert.ok(c.container);
 });
 
-test('editar y eliminar un evento desde la lista de la temporada', async () => {
+test('edit and delete an event from the season list', async () => {
   await abrir();
   const ev = c.store.list('EventosTemporada').find((e) => e.nombre === 'Copa Federación');
   await click(c.container.querySelector(`.tp-sec [data-evento="${ev.id}"] button`));
@@ -167,14 +167,14 @@ test('editar y eliminar un evento desde la lista de la temporada', async () => {
   assert.equal(c.store.get('EventosTemporada', ev.id).lugar, 'Gijón');
   const btn = [...c.container.querySelectorAll(`[data-evento="${ev.id}"] button`)].find((b) => b.getAttribute('aria-label')?.startsWith('Eliminar'));
   await click(btn);
-  assert.equal(c.store.get('EventosTemporada', ev.id), null, 'se elimina al instante');
+  assert.equal(c.store.get('EventosTemporada', ev.id), null, 'deleted instantly');
   const deshacer = [...document.querySelectorAll('#toasts .toast-action')].find((b) => b.textContent === 'Deshacer');
-  assert.ok(deshacer, 'con «Deshacer»');
+  assert.ok(deshacer, 'with «Deshacer» (Undo)');
   await click(deshacer);
   assert.equal(c.store.get('EventosTemporada', ev.id).nombre, 'Copa Federación');
 });
 
-test('ajustar el volumen previsto de una semana a mano', async () => {
+test('adjust the planned volume of a week by hand', async () => {
   await abrir();
   await verSemana(4);
   await click(buttonByText(c.container.querySelector('#tp-detalle'), 'Editar semana'));
@@ -188,11 +188,11 @@ test('ajustar el volumen previsto de una semana a mano', async () => {
   await click(buttonByText(c.container.querySelector('#tp-detalle'), 'Editar semana'));
   setValue(fieldByLabel(modal(), 'Volumen previsto'), '-4');
   await click(buttonByText(modal(), 'Guardar'));
-  assert.ok(modal(), 'un volumen negativo no se guarda');
+  assert.ok(modal(), 'a negative volume is not saved');
   assert.match(modal().textContent, /mayor o igual que cero/);
 });
 
-test('herramientas: ajuste ± % de varias semanas con previsualización, copiar semana y plantilla de fase', async () => {
+test('tools: ± % adjustment of several weeks with preview, copy week and phase template', async () => {
   await abrir();
   const antes = (n) => Number(c.store.list('SemanasPlan').find((s) => s.lunes === lunesN(n)).volumenPrevisto);
   const a1 = antes(1), a2 = antes(2);
@@ -201,29 +201,29 @@ test('herramientas: ajuste ± % de varias semanas con previsualización, copiar 
   setValue(fieldByLabel(modal(), 'Hasta la semana'), '2');
   setValue(fieldByLabel(modal(), 'Valor'), '-10');
   const prev = modal().querySelectorAll('.tp-prev tbody tr');
-  assert.equal(prev.length, 2, 'previsualiza las dos semanas');
-  assert.equal(antes(1), a1, 'previsualizar no cambia nada');
+  assert.equal(prev.length, 2, 'previews the two weeks');
+  assert.equal(antes(1), a1, 'previewing changes nothing');
   await click(buttonByText(modal(), 'Aplicar'));
   assert.equal(antes(1), Math.round((a1 * 0.9) / 50) * 50);
   assert.equal(antes(2), Math.round((a2 * 0.9) / 50) * 50);
-  // copiar semana 1 -> 2
+  // copy week 1 -> 2
   await click(buttonByText(c.container.querySelector('#tp-detalle'), 'Copiar semana'));
   setValue(fieldByLabel(modal(), 'Copiar a la semana'), '2');
   await click(buttonByText(modal(), 'Copiar semana'));
   assert.equal(antes(2), antes(1));
-  // plantilla de fase
+  // phase template
   await click(buttonByText(c.container.querySelector('#tp-detalle'), 'Aplicar plantilla de fase'));
   assert.ok(modal().querySelectorAll('.tp-prev tbody tr').length >= 8);
   await click(buttonByText(modal(), 'Aplicar'));
   assert.equal(modal(), null);
 });
 
-test('sugerencias: se muestran con su explicación y se pueden aplicar', async () => {
+test('suggestions: shown with their explanation and can be applied', async () => {
   await abrir();
   const lista = c.container.querySelectorAll('ul.tp-sug > li');
   assert.ok(lista.length >= 1);
   const previa = [...lista].find((l) => l.dataset.sug === 'previa-competicion' || l.dataset.sug === 'tapering');
-  assert.ok(previa, 'semana previa a la competición A o tapering');
+  assert.ok(previa, 'week before competition A, or tapering');
   assert.match(previa.textContent, /reduce el volumen|debería bajar/);
   const n0 = c.store.list('SemanasPlan').length;
   const vols = c.store.list('SemanasPlan').map((s) => s.volumenPrevisto).join();
@@ -233,7 +233,7 @@ test('sugerencias: se muestran con su explicación y se pueden aplicar', async (
   assert.match(document.getElementById('toasts').textContent, /Sugerencia aplicada/);
 });
 
-test('sin temporadas: estado vacío y creación de la temporada con sus fases por defecto', async () => {
+test('no seasons: empty state and season creation with its default phases', async () => {
   c = await fresh({ demo: false });
   await abrir();
   assert.match(c.container.textContent, /Todavía no hay ninguna temporada/);
@@ -253,7 +253,7 @@ test('sin temporadas: estado vacío y creación de la temporada con sus fases po
   assert.equal(c.container.querySelector('#tp-h-fases') !== null, true);
 });
 
-test('fechas incoherentes se rechazan con mensaje', async () => {
+test('inconsistent dates are rejected with a message', async () => {
   c = await fresh({ demo: false });
   await abrir();
   await click(buttonByText(c.container, 'Crear temporada'));
@@ -265,7 +265,7 @@ test('fechas incoherentes se rechazan con mensaje', async () => {
   assert.equal(c.store.list('Temporadas').length, 0);
 });
 
-test('varias temporadas: se cambia de una a otra y sólo una es la activa', async () => {
+test('several seasons: switch between them and only one is active', async () => {
   await abrir();
   const svc = (await importApp('js/application/temporadaService.js')).crearTemporadaService(c.store, { ahora: () => new Date() });
   svc.guardarTemporada({ nombre: 'Temporada futura', inicio: '2027-09-06', fin: '2027-11-28', activa: false });
@@ -275,14 +275,14 @@ test('varias temporadas: se cambia de una a otra y sólo una es la activa', asyn
   setValue(sel, [...sel.options].find((o) => /futura/.test(o.textContent)).value);
   await tick();
   assert.equal(filas().length, 12);
-  assert.match(c.container.querySelector('.tp-bar').textContent, /No es la temporada activa/, 'se explica por qué no es la activa');
+  assert.match(c.container.querySelector('.tp-bar').textContent, /No es la temporada activa/, 'explains why it is not the active one');
   await click(c.container.querySelector('.page-head-actions .enp-mn-btn'));
   await click([...document.querySelectorAll('[role=menuitem]')].find((b) => b.textContent.trim() === 'Marcar como activa'));
   assert.equal(c.store.list('Temporadas').filter((t) => t.activa === 'true').length, 1);
   assert.equal(svc.activa().nombre, 'Temporada futura');
 });
 
-test('idiomas: Phase/Week en inglés y Fase/Settimana en italiano', async () => {
+test('languages: Phase/Week in English and Fase/Settimana in Italian', async () => {
   const { setLang } = await importApp('js/i18n.js');
   setLang('en', { persist: false });
   await abrir();
@@ -297,7 +297,7 @@ test('idiomas: Phase/Week en inglés y Fase/Settimana en italiano', async () => 
   setLang('es', { persist: false });
 });
 
-test('en móvil se muestra la lista de semanas con mini-barras en lugar del gráfico ancho', async () => {
+test('on mobile the week list with mini-bars is shown instead of the wide chart', async () => {
   window.matchMedia = (q) => ({ matches: /max-width:\s*700px/.test(q), media: q, addEventListener() {}, removeEventListener() {} });
   try {
     await abrir();
@@ -312,7 +312,7 @@ test('en móvil se muestra la lista de semanas con mini-barras en lugar del grá
   } finally { delete window.matchMedia; }
 });
 
-test('estructura: un h1, secciones h2, sin estilos inyectados y sin colores fijos en el gráfico', async () => {
+test('structure: one h1, h2 sections, no injected styles and no fixed colours in the chart', async () => {
   await abrir();
   assert.equal(c.container.querySelectorAll('h1').length, 1);
   assert.ok(c.container.querySelectorAll('.tp-sec > .tp-sec-head > h2').length >= 4);
@@ -320,12 +320,12 @@ test('estructura: un h1, secciones h2, sin estilos inyectados y sin colores fijo
   const svg = c.container.querySelector('svg.tp-svg');
   // Phase and content colours are STORED data (inline per record); the event markers take their tone from CSS classes
   const marcas = [...svg.querySelectorAll('.tp-marca')].map((g) => g.getAttribute('class'));
-  assert.ok(marcas.length >= 3 && marcas.every((cl) => /tp-t-(danger|warn|info|ok|neutral|accent)/.test(cl)), 'eventos con tono semántico');
+  assert.ok(marcas.length >= 3 && marcas.every((cl) => /tp-t-(danger|warn|info|ok|neutral|accent)/.test(cl)), 'events with a semantic tone');
   const textos = [...svg.querySelectorAll('.tp-evento .tp-marca-t')].map((x) => x.textContent);
   assert.ok(['A', 'B', 'C'].every((l) => textos.includes(l)));
 });
 
-test('eliminar una fase se deshace con «Deshacer»', async () => {
+test('deleting a phase is undone with «Deshacer» (Undo)', async () => {
   await abrir();
   const n0 = c.store.list('Fases').length;
   const f = c.container.querySelector('.tp-fase');
@@ -336,7 +336,7 @@ test('eliminar una fase se deshace con «Deshacer»', async () => {
   assert.equal(c.store.list('Fases').length, n0);
 });
 
-test('los diálogos validan en línea: nombre vacío y fin anterior al inicio marcan sus campos', async () => {
+test('dialogs validate inline: empty name and end before start flag their fields', async () => {
   await abrir();
   await click(buttonByText(c.container, 'Añadir fase'));
   await click(buttonByText(modal(), 'Guardar'));

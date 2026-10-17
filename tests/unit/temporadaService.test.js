@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { crearTemporadaService } from '../../js/application/temporadaService.js';
 import { sembrarCatalogo, filaTipo } from '../../js/domain/cargas.js';
 
-// Repositorio en memoria con la misma interfaz que el store (list/get/upsert/remove).
+// In-memory repository with the same interface as the store (list/get/upsert/remove).
 function repoMemoria(inicial = {}) {
   const db = {};
   let n = 0;
@@ -23,11 +23,11 @@ function repoMemoria(inicial = {}) {
   };
 }
 const tipos = sembrarCatalogo([]).map(filaTipo);
-const ahora = () => new Date(2026, 9, 14); // 14 oct 2026
+const ahora = () => new Date(2026, 9, 14); // 14 Oct 2026
 const nueva = (repo, extra = {}) => crearTemporadaService(repo, { ahora, nombreFase: (t) => 'F-' + t, ...extra });
 const datos = { nombre: 'T 26', inicio: '2026-09-07', fin: '2026-11-29', grupoId: '' };
 
-test('crear temporada: valida, la primera queda activa y se pueden crear las fases por defecto', () => {
+test('create season: validates, the first one becomes active and the default phases can be created', () => {
   const repo = repoMemoria({ TiposCarga: tipos });
   const s = nueva(repo);
   assert.deepEqual(s.guardarTemporada({ ...datos, nombre: '' }).errores.map((e) => e.codigo), ['nombre-vacio']);
@@ -38,10 +38,10 @@ test('crear temporada: valida, la primera queda activa y se pueden crear las fas
   const fases = s.fases(r.temporada.id);
   assert.ok(fases.length >= 4);
   assert.ok(fases[0].nombre.startsWith('F-'));
-  assert.equal(s.resumen(r.temporada.id).validaciones.length, 0, 'las fases por defecto no dejan huecos ni solapes');
+  assert.equal(s.resumen(r.temporada.id).validaciones.length, 0, 'the default phases leave no gaps or overlaps');
 });
 
-test('una sola temporada activa y borrado en cascada', () => {
+test('only one active season and cascade delete', () => {
   const repo = repoMemoria({ TiposCarga: tipos });
   const s = nueva(repo);
   const a = s.guardarTemporada(datos).temporada;
@@ -55,10 +55,10 @@ test('una sola temporada activa y borrado en cascada', () => {
   s.guardarSemana(a.id, '2026-09-07', { volumen: 9000 });
   s.borrarTemporada(a.id);
   assert.equal(repo.list('Fases').length + repo.list('EventosTemporada').length + repo.list('SemanasPlan').length, 0);
-  assert.equal(s.activa().id, b.id, 'al borrar la activa pasa a serlo la que queda');
+  assert.equal(s.activa().id, b.id, 'when the active one is deleted the remaining one becomes active');
 });
 
-test('fases: validación, solapes necesitan forzar y aviso si salen de la temporada', () => {
+test('phases: validation, overlaps need forcing and warning if they fall outside the season', () => {
   const repo = repoMemoria({ TiposCarga: tipos });
   const s = nueva(repo);
   const t = s.guardarTemporada(datos).temporada;
@@ -75,13 +75,13 @@ test('fases: validación, solapes necesitan forzar y aviso si salen de la tempor
   const fuera = s.guardarFase(f({ nombre: 'C', inicio: '2026-11-02', fin: '2026-12-13' }));
   assert.ok(fuera.ok);
   assert.equal(fuera.avisos[0].tipo, 'fase-fuera-temporada');
-  // editar una fase no choca consigo misma
+  // editing a phase does not clash with itself
   assert.ok(s.guardarFase({ ...f({ fin: '2026-09-20' }), id: a.fase.id, objetivo: 'Base' }).ok);
   s.borrarFase(a.fase.id);
   assert.equal(s.fases(t.id).length, 2);
 });
 
-test('eventos: se guardan, avisan si están fuera de la temporada y aparecen en el resumen de la semana', () => {
+test('events: they are saved, warn if outside the season and appear in the week summary', () => {
   const repo = repoMemoria({ TiposCarga: tipos });
   const s = nueva(repo);
   const t = s.guardarTemporada(datos).temporada;
@@ -100,7 +100,7 @@ test('eventos: se guardan, avisan si están fuera de la temporada y aparecen en 
   assert.equal(s.eventos(t.id).length, 1);
 });
 
-test('semanas: guardar parcial, fusionar y borrar la fila al vaciarla; ajustes con previsualización', () => {
+test('weeks: partial save, merge and delete the row when emptied; adjustments with preview', () => {
   const repo = repoMemoria({ TiposCarga: tipos });
   const s = nueva(repo);
   const t = s.guardarTemporada(datos).temporada;
@@ -109,11 +109,11 @@ test('semanas: guardar parcial, fusionar y borrar la fila al vaciarla; ajustes c
   assert.ok(s.guardarSemana(t.id, '2026-09-07', { objetivo: 'Base' }).ok);
   const fila = s.semanasPlan(t.id)[0];
   assert.deepEqual([fila.volumen, fila.objetivo, fila.contenidos], [9000, 'Base', { 'tc-piernas': 1000 }]);
-  assert.equal(repo.list('SemanasPlan')[0].id, `sp-${t.id}-2026-09-07`, 'id determinista: no se duplican ediciones');
+  assert.equal(repo.list('SemanasPlan')[0].id, `sp-${t.id}-2026-09-07`, 'deterministic id: edits are not duplicated');
   s.guardarSemana(t.id, '2026-09-14', { volumen: 10000 });
   const prev = s.ajustarVolumen(t.id, { desde: 1, hasta: 3, pct: 10 });
   assert.deepEqual(prev.cambios.map((c) => [c.n, c.antes, c.despues]), [[1, 9000, 9900], [2, 10000, 11000]]);
-  assert.equal(s.semanasPlan(t.id).find((x) => x.lunes === '2026-09-07').volumen, 9000, 'previsualizar no escribe');
+  assert.equal(s.semanasPlan(t.id).find((x) => x.lunes === '2026-09-07').volumen, 9000, 'previewing does not write');
   s.ajustarVolumen(t.id, { desde: 1, hasta: 3, pct: 10, aplicar: true });
   assert.deepEqual(s.semanasPlan(t.id).map((x) => x.volumen).sort(), [11000, 9900]);
   assert.equal(s.semanasPlan(t.id).find((x) => x.lunes === '2026-09-07').contenidos['tc-piernas'], 1100);
@@ -121,10 +121,10 @@ test('semanas: guardar parcial, fusionar y borrar la fila al vaciarla; ajustes c
   assert.ok(mov.cambios.length >= 2);
   assert.deepEqual(s.semanasPlan(t.id).map((x) => [x.lunes, x.volumen]).filter(([, v]) => v != null).sort(), [['2026-09-14', 9900], ['2026-09-21', 11000]]);
   s.guardarSemana(t.id, '2026-09-14', { volumen: null, contenidos: {}, intensidad: null, objetivo: '', notas: '' });
-  assert.equal(s.semanasPlan(t.id).length, 2, 'una semana sin datos se elimina');
+  assert.equal(s.semanasPlan(t.id).length, 2, 'a week without data is removed');
 });
 
-test('copiar semana, plantilla de fase y aplicar sugerencia', () => {
+test('copy week, phase template and apply suggestion', () => {
   const repo = repoMemoria({ TiposCarga: tipos });
   const s = nueva(repo);
   const t = s.guardarTemporada(datos, { conFases: true }).temporada;
@@ -141,7 +141,7 @@ test('copiar semana, plantilla de fase y aplicar sugerencia', () => {
   assert.ok(repo.list('SemanasPlan').length >= escritas);
   const m = s.resumen(t.id);
   const w1 = m.semanas.find((x) => x.fase && x.fase.id === fase.id);
-  assert.equal(w1.plan.volumen, 9000, 'la primera semana de la plantilla general es el 90 % de la base');
+  assert.equal(w1.plan.volumen, 9000, 'the first week of the general template is 90 % of the base');
   assert.equal(Object.values(w1.plan.contenidos).reduce((a, b) => a + b, 0), 9000);
   const sug = { accion: { tipo: 'fijar', semana: 2, volumen: 5000 } };
   assert.ok(s.aplicarSugerencia(t.id, sug).ok);
@@ -149,7 +149,7 @@ test('copiar semana, plantilla de fase y aplicar sugerencia', () => {
   assert.equal(s.aplicarSugerencia(t.id, { accion: null }).ok, false);
 });
 
-test('solo escribe con permiso y entrenosDeSemana lista las sesiones con su total', () => {
+test('only writes with permission and entrenosDeSemana lists the sessions with their total', () => {
   const repo = repoMemoria({
     TiposCarga: tipos, Grupos: [{ id: 'g3', nombre: 'Infantil' }],
     Entrenamientos: [

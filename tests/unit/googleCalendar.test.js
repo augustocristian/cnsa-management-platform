@@ -1,4 +1,4 @@
-// Tests del cliente de Google Calendar (js/infrastructure/googleCalendar.js) con fetch simulado y sin esperas reales.
+// Tests for the Google Calendar client (js/infrastructure/googleCalendar.js) with a simulated fetch and no real waits.
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { crearClienteGoogleCalendar, GoogleCalendarError } from '../../js/infrastructure/googleCalendar.js';
@@ -23,7 +23,7 @@ function montar(respuestas, extra = {}) {
   return { cliente, llamadas, esperas, tokens };
 }
 
-test('insertar: POST al calendario primario con Bearer y JSON', async () => {
+test('insertar: POST to the primary calendar with Bearer and JSON', async () => {
   const { cliente, llamadas } = montar([resp(200, { id: 'g1' })]);
   const r = await cliente.insertar({ summary: 'x' });
   assert.equal(r.id, 'g1');
@@ -33,7 +33,7 @@ test('insertar: POST al calendario primario con Bearer y JSON', async () => {
   assert.deepEqual(JSON.parse(llamadas[0].body), { summary: 'x' });
 });
 
-test('actualizar: PATCH con status confirmed; 404 => code no-existe', async () => {
+test('actualizar: PATCH with status confirmed; 404 => code no-existe', async () => {
   const { cliente, llamadas } = montar([resp(200, { id: 'g1' }), resp(404, { error: { message: 'Not Found' } })]);
   await cliente.actualizar('g/1', { summary: 'y' });
   assert.equal(llamadas[0].method, 'PATCH');
@@ -42,7 +42,7 @@ test('actualizar: PATCH con status confirmed; 404 => code no-existe', async () =
   await assert.rejects(cliente.actualizar('g2', {}), (e) => e instanceof GoogleCalendarError && e.code === 'no-existe');
 });
 
-test('borrar: DELETE 204 y un evento ya inexistente (404/410) cuenta como borrado', async () => {
+test('borrar: DELETE 204 and an already missing event (404/410) counts as deleted', async () => {
   const { cliente, llamadas } = montar([resp(204), resp(404, {}), resp(410, {})]);
   await cliente.borrar('a');
   await cliente.borrar('b');
@@ -50,7 +50,7 @@ test('borrar: DELETE 204 y un evento ya inexistente (404/410) cuenta como borrad
   assert.deepEqual(llamadas.map((l) => l.method), ['DELETE', 'DELETE', 'DELETE']);
 });
 
-test('401: renueva el token una vez y reintenta; si vuelve a fallar => code auth', async () => {
+test('401: refreshes the token once and retries; if it fails again => code auth', async () => {
   const a = montar([resp(401, {}), resp(200, { id: 'ok' })]);
   assert.equal((await a.cliente.insertar({})).id, 'ok');
   assert.deepEqual(a.tokens, [false, true]);
@@ -60,26 +60,26 @@ test('401: renueva el token una vez y reintenta; si vuelve a fallar => code auth
   assert.equal(b.llamadas.length, 2);
 });
 
-test('sin token => code auth sin llamar a la API', async () => {
+test('no token => code auth without calling the API', async () => {
   const { cliente, llamadas } = montar([], { getToken: async () => null });
   await assert.rejects(cliente.insertar({}), (e) => e.code === 'auth');
   assert.equal(llamadas.length, 0);
 });
 
-test('429: reintenta respetando Retry-After y luego tiene éxito', async () => {
+test('429: retries honouring Retry-After and then succeeds', async () => {
   const { cliente, llamadas, esperas } = montar([resp(429, { error: { message: 'slow' } }, { 'Retry-After': '3' }), resp(429, {}), resp(200, { id: 'z' })]);
   assert.equal((await cliente.insertar({})).id, 'z');
   assert.equal(llamadas.length, 3);
-  assert.deepEqual(esperas, [3000, 1000]); // Retry-After, luego retroceso exponencial (500 * 2^1)
+  assert.deepEqual(esperas, [3000, 1000]); // Retry-After, then exponential backoff (500 * 2^1)
 });
 
-test('429 persistente: agota reintentos y falla con code limite', async () => {
+test('persistent 429: exhausts retries and fails with code limite', async () => {
   const { cliente, llamadas } = montar(Array.from({ length: 10 }, () => resp(429, { error: { message: 'slow' } })), { maxReintentos: 2 });
   await assert.rejects(cliente.insertar({}), (e) => e.code === 'limite' && e.status === 429);
   assert.equal(llamadas.length, 3);
 });
 
-test('403: límite de usuario se reintenta; permisos y API desactivada no', async () => {
+test('403: user rate limit is retried; permissions and disabled API are not', async () => {
   const lim = montar([resp(403, { error: { message: 'rate', errors: [{ reason: 'userRateLimitExceeded' }] } }), resp(200, { id: 'k' })]);
   assert.equal((await lim.cliente.insertar({})).id, 'k');
   const perm = montar([resp(403, { error: { message: 'Insufficient Permission', errors: [{ reason: 'insufficientPermissions' }] } })]);
@@ -89,7 +89,7 @@ test('403: límite de usuario se reintenta; permisos y API desactivada no', asyn
   await assert.rejects(off.cliente.insertar({}), (e) => e.code === 'api-desactivada');
 });
 
-test('5xx y fallo de red se reintentan; al final => servidor / red', async () => {
+test('5xx and network failures are retried; in the end => servidor / red', async () => {
   const a = montar([resp(503, {}), resp(200, { id: 'm' })]);
   assert.equal((await a.cliente.insertar({})).id, 'm');
   const b = montar([new TypeError('fail'), resp(200, { id: 'n' })]);
@@ -100,7 +100,7 @@ test('5xx y fallo de red se reintentan; al final => servidor / red', async () =>
   await assert.rejects(d.cliente.insertar({}), (e) => e.code === 'servidor');
 });
 
-test('listarGestionados: filtra por cnlClub, pagina y descarta cancelados', async () => {
+test('listarGestionados: filters by cnlClub, paginates and discards cancelled events', async () => {
   const item = (id, cnl, f, status = 'confirmed') => ({ id, status, start: { dateTime: f + 'T10:00:00+02:00' }, extendedProperties: { private: { cnlId: cnl, cnlClub: 'c1' } } });
   const { cliente, llamadas } = montar([
     resp(200, { items: [item('g1', 'a', '2026-10-20'), item('g2', 'b', '2026-10-21', 'cancelled')], nextPageToken: 'T2' }),

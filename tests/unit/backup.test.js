@@ -22,13 +22,13 @@ async function backupBase(extra = {}) {
 }
 
 // ---------- canonical JSON and checksum ----------
-test('canonico: mismo texto sin importar el orden de las claves; undefined se descarta', () => {
+test('canonico: same text regardless of key order; undefined is dropped', () => {
   assert.equal(D.canonico({ b: 1, a: [2, { d: 1, c: undefined }] }), D.canonico({ a: [2, { c: undefined, d: 1 }], b: 1 }));
   assert.equal(D.canonico({ b: 1, a: 2 }), '{"a":2,"b":1}');
   assert.equal(D.canonico([undefined, null]), '[null,null]');
 });
 
-test('construirBackup: formato, recuentos, hojas desconocidas y checksum sha256', async () => {
+test('construirBackup: format, counts, unknown sheets and sha256 checksum', async () => {
   const doc = await backupBase();
   assert.equal(doc.format, 'cnl-backup');
   assert.equal(doc.formatVersion, 1);
@@ -44,13 +44,13 @@ test('construirBackup: formato, recuentos, hojas desconocidas y checksum sha256'
 // ---------- validation ----------
 const opciones = { hash, esquema: SHEETS, docVersion: 1 };
 
-test('validarBackup: una copia correcta es válida y sobrevive a un viaje JSON', async () => {
+test('validarBackup: a correct backup is valid and survives a JSON round trip', async () => {
   const doc = JSON.parse(JSON.stringify(await backupBase()));
   const v = await D.validarBackup(doc, opciones);
   assert.equal(v.ok, true, JSON.stringify(v));
 });
 
-test('validarBackup: no es una copia / versión futura / versión inválida', async () => {
+test('validarBackup: not a backup / future version / invalid version', async () => {
   assert.equal((await D.validarBackup({ version: 1, hojas: {} }, opciones)).errores[0].codigo, 'no-es-backup');
   assert.equal((await D.validarBackup(null, opciones)).errores[0].codigo, 'no-es-backup');
   const futura = { ...(await backupBase()), formatVersion: 2 };
@@ -61,7 +61,7 @@ test('validarBackup: no es una copia / versión futura / versión inválida', as
   assert.equal((await D.validarBackup({ ...(await backupBase()), formatVersion: 'x' }, opciones)).errores[0].codigo, 'version-invalida');
 });
 
-test('validarBackup: checksum alterado, datos manipulados o checksum ausente = dañado', async () => {
+test('validarBackup: altered checksum, tampered data or missing checksum = damaged', async () => {
   const doc = await backupBase();
   const manipulado = JSON.parse(JSON.stringify(doc));
   manipulado.sheets.Nadadores[0].nombre = 'Otro';
@@ -74,7 +74,7 @@ test('validarBackup: checksum alterado, datos manipulados o checksum ausente = d
   assert.equal(v.errores[0].motivo, 'sin-checksum');
 });
 
-test('validarBackup: estructura (hoja conocida que no es lista, filas que no son objetos) y límites', async () => {
+test('validarBackup: structure (known sheet that is not a list, rows that are not objects) and limits', async () => {
   const mk = (sheets) => D.construirBackup({ nombre: 'C', club: {}, hojas: sheets, docVersion: 1, creado: fecha.toISOString() }, hash);
   const a = await D.validarBackup(await mk({ Nadadores: 'no' }), opciones);
   assert.equal(a.ok, false);
@@ -90,13 +90,13 @@ test('validarBackup: estructura (hoja conocida que no es lista, filas que no son
   assert.deepEqual(d.avisos.find((x) => x.codigo === 'filas-sin-id'), { codigo: 'filas-sin-id', n: 1 });
 });
 
-test('validarBackup: datos de una versión del documento más nueva se rechazan', async () => {
+test('validarBackup: data from a newer document version is rejected', async () => {
   const doc = await backupBase({ docVersion: 3 });
   const v = await D.validarBackup(doc, opciones);
   assert.equal(v.errores[0].codigo, 'documento-futuro');
 });
 
-test('documentoABackup / aDocumentoClub: copia diaria de Drive = documento del club', () => {
+test('documentoABackup / aDocumentoClub: daily Drive copy = club document', () => {
   const clubDoc = { version: 1, club: { nombre: 'A' }, hojas: { Nadadores: [{ id: '1' }], Banador: [{ id: 'b' }] }, sync: { reloj: 4 }, extraTop: 7 };
   assert.equal(D.esDocumentoClub(clubDoc), true);
   assert.equal(D.esDocumentoClub({ format: 'cnl-backup' }), false);
@@ -110,14 +110,14 @@ test('documentoABackup / aDocumentoClub: copia diaria de Drive = documento del c
   assert.deepEqual(vuelta.hojas.Nadadores, [{ id: '1' }]);
 });
 
-test('prefsDeUsuario: solo preferencias de usuario y saneadas (nunca calSync ni último club)', () => {
+test('prefsDeUsuario: only sanitised user preferences (never calSync nor last club)', () => {
   const p = D.prefsDeUsuario({ idioma: 'it', tema: 'dark', 'calendario.vista': 'mes', 'calSync.x': { items: {} }, ultimoClub: 'abc', clubes: [], tutorial: {}, idioma2: 'x', 'calendario.alarmaMin': 999 });
   assert.deepEqual(p, { idioma: 'it', tema: 'dark', 'calendario.vista': 'mes' });
   assert.deepEqual(D.prefsDeUsuario({ idioma: 'zz' }), {});
 });
 
 // ---------- summary and comparison ----------
-test('resumenBackup: club, fecha, recuentos y hojas desconocidas', async () => {
+test('resumenBackup: club, date, counts and unknown sheets', async () => {
   const r = D.resumenBackup(await backupBase(), { esquema: SHEETS });
   assert.equal(r.club, 'Club Natación Lugones');
   assert.equal(r.total, 4);
@@ -128,7 +128,7 @@ test('resumenBackup: club, fecha, recuentos y hojas desconocidas', async () => {
 
 const fila = (hoja, parcial) => Object.fromEntries([...SHEETS[hoja].map((c) => [c, '']), ...Object.entries(parcial)]);
 
-test('compararConActual: nuevas, cambiadas, eliminadas e iguales por hoja y en la identidad del club', async () => {
+test('compararConActual: new, changed, removed and equal rows per sheet and in the club identity', async () => {
   const doc = await D.construirBackup({
     nombre: 'C', club: { nombre: 'C', lema: 'Nuevo', color: 'rojo' }, docVersion: 1, creado: fecha.toISOString(),
     hojas: { Nadadores: [fila('Nadadores', { id: 'n1', nombre: 'Igual' }), fila('Nadadores', { id: 'n2', nombre: 'Cambiado' }), fila('Nadadores', { id: 'n3', nombre: 'Nuevo' })] },
@@ -148,18 +148,18 @@ test('compararConActual: nuevas, cambiadas, eliminadas e iguales por hoja y en l
   assert.equal(igual.hayCambios, false);
 });
 
-test('diferenciarFilas: la comparación ignora el orden de filas y valores vacíos equivalentes', () => {
+test('diferenciarFilas: the comparison ignores row order and equivalent empty values', () => {
   const d = D.diferenciarFilas([{ id: '1', a: '' }, { id: '2', a: 'x' }], [{ id: '2', a: 'x' }, { id: '1', a: null }], ['id', 'a']);
   assert.deepEqual({ ...d }, { nuevas: [], cambiadas: [], eliminadas: [], iguales: 2 });
 });
 
-test('separarInvalidas: las filas que el store rechazaría se apartan y se cuentan', () => {
+test('separarInvalidas: rows the store would reject are set aside and counted', () => {
   const r = D.separarInvalidas('Nadadores', [fila('Nadadores', { id: 'a', fechaNacimiento: '2015-03-04' }), fila('Nadadores', { id: 'b', fechaNacimiento: '2015-02-31' })], '2026-10-16');
   assert.deepEqual(r.filas.map((f) => f.id), ['a']);
   assert.equal(r.omitidas[0].id, 'b');
 });
 
-test('excluirBorradosRgpd: lo borrado definitivamente y sus hijos no vuelven', () => {
+test('excluirBorradosRgpd: permanently deleted rows and their children do not come back', () => {
   const hojas = {
     Nadadores: [{ id: 'n1' }, { id: 'n2' }], Asistencia: [{ id: 'a1', nadadorId: 'n1', entrenamientoId: 'e1' }, { id: 'a2', nadadorId: 'n2', entrenamientoId: 'e1' }],
     Marcas: [{ id: 'm1', nadadorId: 'n1' }], Entrenamientos: [{ id: 'e1' }],
@@ -175,7 +175,7 @@ test('excluirBorradosRgpd: lo borrado definitivamente y sus hijos no vuelven', (
 });
 
 // ---------- file names ----------
-test('nombreFichero: cnl-backup-<club>-AAAA-MM-DD-HHMM.json', () => {
+test('nombreFichero: cnl-backup-<club>-YYYY-MM-DD-HHMM.json', () => {
   assert.equal(D.nombreFichero('Club Natación Lugones', fecha), 'cnl-backup-club-natacion-lugones-2026-10-16-1530.json');
   assert.equal(D.nombreFichero('Club Natación Lugones', fecha, { cifrada: true }), 'cnl-backup-club-natacion-lugones-2026-10-16-1530-encrypted.json');
   assert.equal(D.nombreFichero('', fecha), 'cnl-backup-club-2026-10-16-1530.json');
@@ -183,7 +183,7 @@ test('nombreFichero: cnl-backup-<club>-AAAA-MM-DD-HHMM.json', () => {
   assert.ok(D.slug('x'.repeat(100)).length <= 40);
 });
 
-test('analizarNombreDrive: diaria, antes de importar y antes de restaurar', () => {
+test('analizarNombreDrive: daily, before import and before restore', () => {
   assert.deepEqual(D.analizarNombreDrive('Club-20261015.json', 'Club-'), { tipo: 'diario', fecha: '2026-10-15', hora: '' });
   assert.deepEqual(D.analizarNombreDrive('Club-import-20261015143005.json', 'Club-'), { tipo: 'importacion', fecha: '2026-10-15', hora: '14:30' });
   assert.deepEqual(D.analizarNombreDrive('Club-restore-20261015143005.json', 'Club-'), { tipo: 'restauracion', fecha: '2026-10-15', hora: '14:30' });
@@ -192,7 +192,7 @@ test('analizarNombreDrive: diaria, antes de importar y antes de restaurar', () =
 });
 
 // ---------- passphrase ----------
-test('evaluarPassphrase: vacía, corta, débil, media, fuerte', () => {
+test('evaluarPassphrase: empty, short, weak, medium, strong', () => {
   assert.equal(D.evaluarPassphrase('').clave, 'vacia');
   assert.equal(D.evaluarPassphrase('abc').clave, 'corta');
   assert.equal(D.evaluarPassphrase('aaaaaaaaaa').clave, 'debil');
@@ -206,13 +206,13 @@ test('evaluarPassphrase: vacía, corta, débil, media, fuerte', () => {
 // ---------- encrypted envelope ----------
 const cripto = crearBackupCrypto({ iteraciones: 1000 });
 
-test('cripto: base64 de ida y vuelta y sha256', async () => {
+test('crypto: base64 round trip and sha256', async () => {
   const bytes = new Uint8Array([0, 1, 2, 250, 255]);
   assert.deepEqual([...deBase64(aBase64(bytes))], [...bytes]);
   assert.equal(await cripto.sha256Hex('abc'), 'ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad');
 });
 
-test('cifrado: ida y vuelta con la contraseña correcta (unicode) y sobre bien formado', async () => {
+test('encryption: round trip with the correct passphrase (unicode) and well-formed envelope', async () => {
   const texto = JSON.stringify(await backupBase());
   const sobre = await cripto.cifrar(texto, 'contraseña-ñ-ç 123');
   assert.equal(sobre.format, 'cnl-backup-encrypted');
@@ -226,7 +226,7 @@ test('cifrado: ida y vuelta con la contraseña correcta (unicode) y sobre bien f
   assert.notEqual((await cripto.cifrar(texto, 'contraseña-ñ-ç 123')).ciphertext, sobre.ciphertext);
 });
 
-test('cifrado: contraseña incorrecta o sobre manipulado = passphrase-incorrecta', async () => {
+test('encryption: wrong passphrase or tampered envelope = passphrase-incorrecta', async () => {
   const sobre = await cripto.cifrar('hola', 'una-buena-clave');
   await assert.rejects(cripto.descifrar(sobre, 'otra-clave-distinta'), (e) => e.code === 'passphrase-incorrecta');
   const trucado = { ...sobre, ciphertext: aBase64(Uint8Array.from(deBase64(sobre.ciphertext), (b, i) => (i === 0 ? b ^ 1 : b))) };
@@ -235,7 +235,7 @@ test('cifrado: contraseña incorrecta o sobre manipulado = passphrase-incorrecta
   await assert.rejects(cripto.descifrar({ ...sobre, iterations: 1001 }, 'una-buena-clave'), (e) => e.code === 'passphrase-incorrecta');
 });
 
-test('validarSobre: estructura, iteraciones fuera de rango y versión futura', async () => {
+test('validarSobre: structure, out-of-range iterations and future version', async () => {
   const sobre = await cripto.cifrar('x', 'una-buena-clave');
   assert.equal(D.validarSobre({ ...sobre, formatVersion: 2 }).errores[0].codigo, 'version-futura');
   assert.equal(D.validarSobre({ ...sobre, iterations: 5 }).errores[0].codigo, 'estructura');
@@ -246,7 +246,7 @@ test('validarSobre: estructura, iteraciones fuera de rango y versión futura', a
   await assert.rejects(cripto.descifrar({ ...sobre, iv: '***' }, 'x'), (e) => e.code === 'estructura');
 });
 
-test('cifrado: sin WebCrypto se avisa con código sin-cifrado', async () => {
+test('encryption: without WebCrypto the code sin-cifrado is reported', async () => {
   const sin = crearBackupCrypto({ cripto: {} });
   assert.equal(sin.disponible, false);
   await assert.rejects(sin.cifrar('x', 'abcdefgh'), (e) => e.code === 'sin-cifrado');

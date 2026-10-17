@@ -35,7 +35,7 @@ In `js/ui.js`: `export function <name>({ ... } = {})` returning a node built wit
 
 - Unit (`tests/unit/ui-diseno.test.js` pattern, jsdom): the helper produces the right roles/attributes, escapes text (`<img onerror>` stays text), wires `aria-describedby`.
 - `tests/unit/diseno-estatico.test.js` stays green (token contrast). If you add colour tokens, add their contrast assertions there.
-- e2e if there is interaction: `features/diseno-sistema.feature` pattern (steps in `features/steps/diseno-sistema.steps.js`); run it by tag: `npx cucumber-js --tags "@diseno and not @google and not @pendiente"` and with `VIEWPORT=movil`.
+- e2e if there is interaction: `features/diseno-sistema.feature` pattern (steps in `features/steps/diseno-sistema.steps.js`); run it by tag: `npx cucumber-js --tags "@design and not @google and not @pending"` and with `VIEWPORT=mobile`.
 
 ## 7. Verify visually
 

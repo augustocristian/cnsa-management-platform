@@ -22,7 +22,7 @@ function repoMem({ hojas = {}, club = { nombre: 'Club Test' }, extra, lapidas = 
     documento: () => dataToDoc({ db: r.db, club: r.club, meta: { ...metaVacia(), reloj: 5, lapidas: r.lapidas }, extra: r.extra }),
     list: (s) => r.db[s].map((x) => ({ ...x })),
     upsertMany(s, rows) {
-      if (r.fallarEn === s) throw new Error('fallo simulado en ' + s);
+      if (r.fallarEn === s) throw new Error('simulated failure on ' + s);
       rows.forEach((x) => { const e = validarFila(s, x); if (e.length) throw errorValidacion(s, e); });
       r.escrituras.push(['upsert', s, rows.length]);
       rows.forEach((x) => { const i = r.db[s].findIndex((y) => y.id === x.id); if (i >= 0) r.db[s][i] = { ...x }; else r.db[s].push({ ...x }); });
@@ -58,7 +58,7 @@ function driveFalso() {
     archivos, eventos: [], fallar: false,
     prefijo: 'Club Test-',
     async guardarSeguridad(club, doc, fecha) {
-      if (d.fallar) throw new Error('Drive no disponible');
+      if (d.fallar) throw new Error('Drive unavailable');
       const id = 'seg' + (++n);
       const nombre = `Club Test-restore-2026101615301${n}.json`;
       archivos.set(id, { id, name: nombre, modified: fecha.toISOString(), contenido: JSON.parse(JSON.stringify(doc)) });
@@ -91,7 +91,7 @@ const clubBase = { nombre: 'Club Test', lema: 'Lema', colorPrimario: '#112233' }
 const textoDe = async (blob) => JSON.parse(await blob.text());
 
 // ---------- creating ----------
-test('crearBackup: copia completa con hojas desconocidas, preferencias de usuario y checksum válido', async () => {
+test('crearBackup: full backup with unknown sheets, user preferences and valid checksum', async () => {
   const repo = repoMem({ hojas: datosBase(), club: clubBase, extra: { top: { campoFuturo: 1 }, hojas: { HojaFutura: [{ id: 'f1', x: 1 }] }, cols: { Nadadores: { n1: { columnaFutura: 'z' } } } } });
   const { svc } = montar({ repo, prefs: { idioma: 'en', tema: 'dark', 'calSync.cuenta': { items: {} }, ultimoClub: 'c1' } });
   const r = await svc.crearBackup();
@@ -108,7 +108,7 @@ test('crearBackup: copia completa con hojas desconocidas, preferencias de usuari
   assert.equal((await svc.leerBackup(new Blob([JSON.stringify(doc)]))).doc.checksum, doc.checksum);
 });
 
-test('descargarBackup: entrega el fichero y recuerda la última copia en las preferencias', async () => {
+test('descargarBackup: delivers the file and remembers the last backup in the preferences', async () => {
   const m = montar({ repo: repoMem({ hojas: datosBase(), club: clubBase }) });
   const r = await m.svc.descargarBackup();
   assert.equal(m.descargas.length, 1);
@@ -120,7 +120,7 @@ test('descargarBackup: entrega el fichero y recuerda la última copia en las pre
   assert.equal(new Date(u.creada).getTime(), AHORA.getTime());
 });
 
-test('copia cifrada: necesita la contraseña, la incorrecta falla con un error claro y la corta se rechaza', async () => {
+test('encrypted backup: needs the passphrase, a wrong one fails with a clear error and a short one is rejected', async () => {
   const repo = repoMem({ hojas: datosBase(), club: clubBase });
   const { svc } = montar({ repo });
   await assert.rejects(svc.crearBackup({ passphrase: 'corta' }), (e) => e.code === 'passphrase-corta');
@@ -137,9 +137,9 @@ test('copia cifrada: necesita la contraseña, la incorrecta falla con un error c
 });
 
 // ---------- reading ----------
-test('leerBackup: archivo que no es JSON, que no es una copia, manipulado, de versión futura o demasiado grande', async () => {
+test('leerBackup: file that is not JSON, not a backup, tampered with, from a future version or too large', async () => {
   const { svc } = montar({ repo: repoMem({ hojas: datosBase(), club: clubBase }) });
-  await assert.rejects(svc.leerBackup(new Blob(['esto no es json'])), (e) => e.code === 'ilegible');
+  await assert.rejects(svc.leerBackup(new Blob(['this is not json'])), (e) => e.code === 'ilegible');
   await assert.rejects(svc.leerBackup(new Blob([JSON.stringify({ hola: 1 })])), (e) => e.code === 'no-es-backup');
   const doc = await textoDe((await svc.crearBackup()).blob);
   const manipulado = JSON.parse(JSON.stringify(doc));
@@ -149,7 +149,7 @@ test('leerBackup: archivo que no es JSON, que no es una copia, manipulado, de ve
   await assert.rejects(svc.leerBackup({ size: 21 * 1024 * 1024, text: async () => '{}' }), (e) => e.code === 'demasiado-grande');
 });
 
-test('leerBackup: devuelve la vista previa por hoja (nuevas, cambiadas, eliminadas) frente a los datos actuales', async () => {
+test('leerBackup: returns the per-sheet preview (new, changed, removed) against the current data', async () => {
   const origen = montar({ repo: repoMem({ hojas: datosBase(), club: clubBase }) });
   const doc = await textoDe((await origen.svc.crearBackup()).blob);
   const actual = datosBase();
@@ -174,7 +174,7 @@ async function preparar({ actual, copia, club = clubBase, clubActual = clubBase,
   return { ...m, doc, drive };
 }
 
-test('restaurar (reemplazar): deja los datos como la copia, elimina lo que sobra y guarda ANTES una copia previa', async () => {
+test('restaurar (replace): leaves the data as in the backup, removes the surplus and saves a safety copy BEFORE', async () => {
   const actual = { Nadadores: [fila('Nadadores', { id: 'n2', nombre: 'Editado', fechaNacimiento: '2013-01-02' }), fila('Nadadores', { id: 'n9', nombre: 'Sobra', fechaNacimiento: '2010-01-01' })], Grupos: [] };
   const m = await preparar({ actual, clubActual: { nombre: 'Club Test', lema: 'Cambiado', extra: 'sobra' } });
   const orden = [];
@@ -204,7 +204,7 @@ test('restaurar (reemplazar): deja los datos como la copia, elimina lo que sobra
   assert.equal(m.repo.migraciones, 1);
 });
 
-test('restaurar: si la copia previa no se puede guardar no se toca NADA', async () => {
+test('restaurar: if the safety copy cannot be saved NOTHING is touched', async () => {
   const m = await preparar({ actual: { Nadadores: [fila('Nadadores', { id: 'n9', nombre: 'Intacto', fechaNacimiento: '2010-01-01' })] } });
   m.drive.fallar = true;
   const antes = JSON.stringify(m.repo.documento());
@@ -214,7 +214,7 @@ test('restaurar: si la copia previa no se puede guardar no se toca NADA', async 
   assert.equal(m.svc.haySeguridad(), false);
 });
 
-test('restaurar: si falla a medias se devuelve automáticamente el estado anterior', async () => {
+test('restaurar: if it fails halfway the previous state is restored automatically', async () => {
   const actual = { Nadadores: [fila('Nadadores', { id: 'n9', nombre: 'Intacto', fechaNacimiento: '2010-01-01' })], Marcas: [] };
   const m = await preparar({ actual });
   m.repo.fallarEn = 'Marcas'; // Nadadores are written first, then Marcas fails
@@ -225,7 +225,7 @@ test('restaurar: si falla a medias se devuelve automáticamente el estado anteri
   assert.equal(m.repo.list('Marcas').length, 0);
 });
 
-test('restaurar (combinar): añade lo que falta, conserva lo actual y NO elimina nada; lo borrado después vuelve', async () => {
+test('restaurar (merge): adds what is missing, keeps the current data and removes NOTHING; rows deleted afterwards come back', async () => {
   const actual = {
     Nadadores: [fila('Nadadores', { id: 'n1', nombre: 'Lucía (editada hoy)', fechaNacimiento: '2015-03-04' }), fila('Nadadores', { id: 'n9', nombre: 'Solo actual', fechaNacimiento: '2010-01-01' })],
   };
@@ -242,7 +242,7 @@ test('restaurar (combinar): añade lo que falta, conserva lo actual y NO elimina
   assert.ok(!m.repo.escrituras.some((e) => e[0] === 'remove'));
 });
 
-test('restaurar dos veces es idempotente: la segunda no escribe nada', async () => {
+test('restaurar twice is idempotent: the second time writes nothing', async () => {
   const m = await preparar({ actual: { Grupos: [fila('Grupos', { id: 'gx', nombre: 'Sobra' })] } });
   await m.svc.restaurar(m.doc);
   const escrituras = m.repo.escrituras.length;
@@ -253,7 +253,7 @@ test('restaurar dos veces es idempotente: la segunda no escribe nada', async () 
   assert.equal(m.repo.sincronizaciones, 1); // nothing to upload the second time
 });
 
-test('restaurar una copia de una versión anterior: columnas que faltan, hoja retirada y valores sin normalizar', async () => {
+test('restaurar a backup from an earlier version: missing columns, retired sheet and unnormalised values', async () => {
   // A club document from before several columns existed (a daily copy from Drive)
   const antiguo = {
     version: 1, club: { nombre: 'Club Test', lema: 'Viejo' },
@@ -278,7 +278,7 @@ test('restaurar una copia de una versión anterior: columnas que faltan, hoja re
   assert.deepEqual(m.repo.documento().hojas.Hoja_de_futuro, [{ id: 'f1' }]); // unknown sheet is
 });
 
-test('hojas, columnas y claves desconocidas viajan en la copia y se conservan al restaurar', async () => {
+test('unknown sheets, columns and keys travel in the backup and are kept on restore', async () => {
   const extra = { top: { campoFuturo: { a: 1 } }, hojas: { HojaFutura: [{ id: 'f1', x: 1 }] }, cols: { Nadadores: { n1: { columnaFutura: 'z' } } } };
   const origen = montar({ repo: repoMem({ hojas: datosBase(), club: clubBase, extra }) });
   const doc = await textoDe((await origen.svc.crearBackup()).blob);
@@ -290,7 +290,7 @@ test('hojas, columnas y claves desconocidas viajan en la copia y se conservan al
   assert.equal(destino.repo.documento().hojas.HojaFutura.length, 1);
 });
 
-test('filas no válidas se omiten y se informan; el resto se restaura', async () => {
+test('invalid rows are skipped and reported; the rest is restored', async () => {
   const origen = montar({ repo: repoMem({ hojas: datosBase(), club: clubBase }) });
   const doc = await textoDe((await origen.svc.crearBackup()).blob);
   doc.sheets.Nadadores.push(fila('Nadadores', { id: 'malo', nombre: 'Fecha imposible', fechaNacimiento: '2015-02-31' }));
@@ -305,7 +305,7 @@ test('filas no válidas se omiten y se informan; el resto se restaura', async ()
   assert.equal(m.repo.list('Nadadores').length, 2);
 });
 
-test('RGPD: lo borrado definitivamente (y sus hijos) no resucita al restaurar', async () => {
+test('GDPR: permanently deleted rows (and their children) are not resurrected on restore', async () => {
   const m = await preparar();
   m.repo.lapidas = { Nadadores: { n1: { s: '8@t', h: 1 } } }; // erased for good after the backup
   const lectura = await m.svc.leerBackup(new Blob([JSON.stringify(m.doc)]));
@@ -316,7 +316,7 @@ test('RGPD: lo borrado definitivamente (y sus hijos) no resucita al restaurar', 
   assert.ok(r.excluidas >= 2);
 });
 
-test('club en solo lectura (versión futura): no se restaura nada', async () => {
+test('read-only club (future version): nothing is restored', async () => {
   const m = await preparar();
   m.repo.soloLectura = { version: 9 };
   await assert.rejects(m.svc.restaurar(m.doc), (e) => e.code === 'solo-lectura');
@@ -324,14 +324,14 @@ test('club en solo lectura (versión futura): no se restaura nada', async () => 
   assert.equal(m.drive.archivos.size, 0);
 });
 
-test('modo desconocido y copia inválida se rechazan antes de tocar nada', async () => {
+test('unknown mode and invalid backup are rejected before touching anything', async () => {
   const m = await preparar();
   await assert.rejects(m.svc.restaurar(m.doc, { modo: 'borrar-todo' }), (e) => e.code === 'modo-invalido');
   await assert.rejects(m.svc.restaurar({ ...m.doc, checksum: 'sha256:00' }), (e) => e.code === 'danado');
   assert.deepEqual(m.repo.escrituras, []);
 });
 
-test('preferencias: se aplican idioma/tema y nunca claves de cuenta', async () => {
+test('preferences: language/theme are applied and account keys never are', async () => {
   const origen = montar({ repo: repoMem({ hojas: datosBase(), club: clubBase }), prefs: { idioma: 'it', tema: 'dark' } });
   const doc = await textoDe((await origen.svc.crearBackup()).blob);
   doc.preferences.ultimoClub = 'x'; doc.preferences['calSync.a'] = { items: {} }; // tampering outside the checksum is impossible; this is a hand-made doc
@@ -346,14 +346,14 @@ test('preferencias: se aplican idioma/tema y nunca claves de cuenta', async () =
   assert.equal(m.prefs['calSync.a'], undefined);
 });
 
-test('categorías: tras restaurar se recalculan con el servicio existente', async () => {
+test('categories: after restoring they are recalculated with the existing service', async () => {
   let llamadas = 0;
   const m = await preparar({ categorias: { alAbrirClub: () => { llamadas++; } } });
   await m.svc.restaurar(m.doc);
   assert.equal(llamadas, 1);
 });
 
-test('revertir la última restauración devuelve los datos de antes sin otra copia previa; solo existe en la sesión', async () => {
+test('reverting the last restore brings back the previous data without another safety copy; it only exists in the session', async () => {
   const actual = { Nadadores: [fila('Nadadores', { id: 'n9', nombre: 'Lo de antes', fechaNacimiento: '2010-01-01' })] };
   const m = await preparar({ actual });
   assert.equal(m.svc.haySeguridad(), false);
@@ -368,7 +368,7 @@ test('revertir la última restauración devuelve los datos de antes sin otra cop
   assert.equal(m.drive.archivos.size, 1); // reverting did not take another safety copy
 });
 
-test('modo demo: la copia previa se queda en la sesión (descargable), sin tocar Drive', async () => {
+test('demo mode: the safety copy stays in the session (downloadable), without touching Drive', async () => {
   const drive = driveFalso();
   const descargas = [];
   const origen = montar({ repo: repoMem({ hojas: datosBase(), club: clubBase }) });
@@ -385,7 +385,7 @@ test('modo demo: la copia previa se queda en la sesión (descargable), sin tocar
 });
 
 // ---------- Drive backups ----------
-test('Drive: lista (fecha, tipo), recuentos, restaurar y eliminar copias de cnl/backups', async () => {
+test('Drive: lists (date, type), counts, restores and deletes copies in cnl/backups', async () => {
   const drive = driveFalso();
   const antiguo = { version: 1, club: { nombre: 'Club Test', lema: 'De Drive' }, hojas: { Nadadores: [fila('Nadadores', { id: 'd1', nombre: 'Drive', fechaNacimiento: '2012-05-06' })] } };
   drive.poner('a', 'Club Test-20261014.json', antiguo);
@@ -404,7 +404,7 @@ test('Drive: lista (fecha, tipo), recuentos, restaurar y eliminar copias de cnl/
   assert.ok(!(await m.svc.listarBackupsDrive()).some((x) => x.id === 'b'));
 });
 
-test('adaptador de Drive: prefijo del club, guardar con etiqueta restore y listar solo las copias del club', async () => {
+test('Drive adapter: club prefix, save with a restore label and list only the club backups', async () => {
   const llamadas = [];
   const drive = {
     backupClub: async (club, doc, op) => { llamadas.push(['backup', club, op.etiqueta]); return { id: 'x', name: 'Mi Club-restore-20261016153012.json' }; },

@@ -1,4 +1,4 @@
-// Node 24 trata `node --test <dir>` como un fichero: este índice carga todos los *.test.js de la carpeta.
+// Node 24 treats `node --test <dir>` as a file: this index loads every *.test.js in the folder.
 import { readdirSync } from 'node:fs';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import path from 'node:path';

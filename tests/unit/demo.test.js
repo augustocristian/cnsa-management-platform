@@ -39,7 +39,7 @@ function espiarDrive() {
   restaurar.push(() => { globalThis.fetch = f; });
 }
 
-describe('modo demo', () => {
+describe('demo mode', () => {
 beforeEach(() => {
   localStorage.clear();
   store.cerrar();
@@ -59,7 +59,7 @@ afterEach(async () => {
   if (fake) { fake.desinstalar(); fake = null; }
 });
 
-test('adaptador: aislado en cnl:demo:*, con su propio documento y sin copias de seguridad ni Drive', async () => {
+test('adapter: isolated under cnl:demo:*, with its own document and no backups or Drive', async () => {
   assert.equal(demo.existe(), false);
   const { ref, nuevo } = demo.asegurar('Demo');
   assert.equal(nuevo, true);
@@ -79,7 +79,7 @@ test('adaptador: aislado en cnl:demo:*, con su propio documento y sin copias de 
   assert.deepEqual(Object.keys(localStorage), []);
 });
 
-test('entrar en la demo: store.mode demo, datos de ejemplo relativos al reloj, bandera cnl:mode y NINGUNA llamada a Drive', async () => {
+test('entering the demo: store.mode demo, sample data relative to the clock, cnl:mode flag and NO Drive call', async () => {
   assert.equal(store.mode, 'drive');
   const r = await modo.enterDemo();
   assert.equal(r.nuevo, true);
@@ -92,14 +92,14 @@ test('entrar en la demo: store.mode demo, datos de ejemplo relativos al reloj, b
   const fechas = store.list('Entrenamientos').map((e) => e.fecha).sort();
   const lunes = new Date(HOY); lunes.setDate(HOY.getDate() - 2);
   assert.ok(fechas[0] < ymd(HOY) && fechas.at(-1) > ymd(HOY));
-  assert.ok(fechas.includes(ymd(lunes)), 'hay sesión el lunes de la semana del reloj');
-  assert.deepEqual(llamadasDrive, [], 'la demo nunca toca Drive');
+  assert.ok(fechas.includes(ymd(lunes)), 'there is a session on the Monday of the clock\'s week');
+  assert.deepEqual(llamadasDrive, [], 'the demo never touches Drive');
   const claves = Object.keys(localStorage);
-  assert.ok(claves.some((k) => k.startsWith('cnl:demo:club:')), 'espejo local de la demo');
-  assert.ok(!claves.some((k) => k.startsWith('cnl:club:')), 'no se mezcla con los clubes reales');
+  assert.ok(claves.some((k) => k.startsWith('cnl:demo:club:')), 'local mirror of the demo');
+  assert.ok(!claves.some((k) => k.startsWith('cnl:club:')), 'not mixed with the real clubs');
 });
 
-test('las ediciones en la demo se guardan localmente, sobreviven a "recargar" y no suben nada', async () => {
+test('edits in the demo are saved locally, survive a "reload" and upload nothing', async () => {
   await modo.enterDemo();
   store.upsert('Grupos', { id: 'g-nuevo', nombre: 'Mi grupo' });
   await store.sync();
@@ -107,21 +107,21 @@ test('las ediciones en la demo se guardan localmente, sobreviven a "recargar" y 
   assert.equal(store.status, 'sincronizado');
   store.cerrar();
   const otra = await modo.enterDemo(); // "reload"
-  assert.equal(otra.nuevo, false, 'no se vuelve a sembrar');
+  assert.equal(otra.nuevo, false, 'it is not seeded again');
   assert.ok(store.get('Grupos', 'g-nuevo'));
   assert.deepEqual(llamadasDrive, []);
 });
 
-test('en la demo: Excel, PDF-calendario y datos funcionan; copia en Drive y copias de seguridad están desactivadas', async () => {
+test('in the demo: Excel, calendar PDF and data work; copy to Drive and backups are disabled', async () => {
   await modo.enterDemo();
   await assert.rejects(store.guardarXlsxEnDrive(), (e) => e.code === 'demo-sin-drive');
   assert.deepEqual(await store.listarBackups(), []);
   const res = await store.purgarNadador(store.list('Nadadores')[0].id);
-  assert.deepEqual(res.errores, [], 'borrar un nadador en la demo no intenta tocar Drive');
+  assert.deepEqual(res.errores, [], 'deleting a swimmer in the demo does not try to touch Drive');
   assert.deepEqual(llamadasDrive, []);
 });
 
-test('salir de la demo borra TODOS los datos de la demo, la bandera y deja el store en modo drive', async () => {
+test('leaving the demo deletes ALL the demo data and the flag, and leaves the store in drive mode', async () => {
   localStorage.setItem('cnl:lang', 'en');
   await modo.enterDemo();
   store.upsert('Grupos', { id: 'g-x', nombre: 'X' });
@@ -130,12 +130,12 @@ test('salir de la demo borra TODOS los datos de la demo, la bandera y deja el st
   assert.equal(store.clubRef, null);
   assert.equal(demo.existe(), false);
   assert.equal(flag.leer(), null);
-  assert.deepEqual(Object.keys(localStorage), ['cnl:lang'], 'sólo queda lo que no es de la demo');
+  assert.deepEqual(Object.keys(localStorage), ['cnl:lang'], 'only what is not demo data remains');
   await new Promise((r) => setTimeout(r, 400)); // a late flush must not resurrect anything
   assert.deepEqual(Object.keys(localStorage), ['cnl:lang']);
 });
 
-test('conectar Drive desde la demo: se pide la autorización, la demo se borra y el club real empieza vacío', async () => {
+test('connecting Drive from the demo: authorization is requested, the demo is deleted and the real club starts empty', async () => {
   fake = instalarFakeGoogle({ conexion: driveConnection, drive, opciones: { sinClientId: true } });
   await driveConnection.init();
   await modo.enterDemo();
@@ -147,7 +147,7 @@ test('conectar Drive desde la demo: se pide la autorización, la demo se borra y
   assert.equal(store.mode, 'drive');
   assert.equal(demo.existe(), false);
   assert.equal(flag.leer(), null);
-  assert.deepEqual(await drive.listClubs(), [], 'Drive no recibe nada de la demo: el asistente creará un club vacío');
+  assert.deepEqual(await drive.listClubs(), [], 'Drive receives nothing from the demo: the wizard will create an empty club');
   const ref = await drive.createClub('Real');
   await store.init(ref);
   assert.equal(store.mode, 'drive');
@@ -155,7 +155,7 @@ test('conectar Drive desde la demo: se pide la autorización, la demo se borra y
   assert.equal(store.list('Entrenamientos').length, 0);
 });
 
-test('si conectar Drive falla, la demo sigue intacta', async () => {
+test('if connecting Drive fails, the demo stays intact', async () => {
   fake = instalarFakeGoogle({ conexion: driveConnection, drive, opciones: { sinClientId: true, errorConexion: 'popup-cerrado' } });
   await modo.enterDemo();
   await assert.rejects(modo.connectDrive({ clientId: CLIENT_ID }), (e) => e.code === 'popup-cerrado');
@@ -166,7 +166,7 @@ test('si conectar Drive falla, la demo sigue intacta', async () => {
   assert.equal(demo.existe(), true);
 });
 
-test('no se puede abrir la demo con Drive conectado', async () => {
+test('the demo cannot be opened with Drive connected', async () => {
   fake = instalarFakeGoogle({ conexion: driveConnection, drive, opciones: { conectado: true } });
   await driveConnection.init();
   await assert.rejects(modo.enterDemo(), (e) => e.code === 'demo-con-drive');
@@ -210,7 +210,7 @@ test('demoDisponible: only without a Client ID and without authorised Drive (ful
   assert.equal(demoDisponible({ clientId: '' }), true);
 });
 
-test('arranque: la autorización de Drive manda sobre la bandera de la demo (sesionService.resolveStartMode)', async () => {
+test('startup: the Drive authorization wins over the demo flag (sesionService.resolveStartMode)', async () => {
   let conectado = false;
   const sesion = crearSesionService({
     auth: { isConnected: () => conectado, enabled: false }, store, banderas: { demoGuardada: () => flag.leer() === 'demo', guardarDemo() {} }, limpiarDatosLocales,
@@ -222,7 +222,7 @@ test('arranque: la autorización de Drive manda sobre la bandera de la demo (ses
   assert.equal(sesion.resolveStartMode(), 'drive');
 });
 
-test('el borrado local del cierre/salida (limpiarDatosLocales) también elimina la demo entera', async () => {
+test('the local wipe on close/exit (limpiarDatosLocales) also removes the whole demo', async () => {
   await modo.enterDemo();
   await hasta(() => Object.keys(localStorage).some((k) => k.startsWith('cnl:demo:club:')));
   store.cerrar();

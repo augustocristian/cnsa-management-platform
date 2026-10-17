@@ -78,7 +78,7 @@ test('persistence: saves to preferences and applies the stored / remote value', 
   assert.equal(guardado.tema, 'light');
   theme.setTheme('auto');
   assert.equal('tema' in guardado, false, 'auto deletes the preference');
-  // cambio hecho en otro dispositivo
+  // change made on another device
   guardado.tema = 'dark';
   oyente({ tipo: 'cambio', origen: 'remoto', claves: ['tema'] });
   assert.equal(theme.getTheme(), 'dark');
@@ -131,5 +131,5 @@ test('theme-boot.js applies the stored theme before first paint', () => {
   assert.deepEqual(correr('light'), { 'data-theme': 'light' });
   assert.deepEqual(correr(undefined), {});
   assert.deepEqual(correr('<script>'), {}, 'unknown values are ignored');
-  assert.doesNotThrow(() => vm.runInNewContext(src, { localStorage: { getItem: () => { throw new Error('bloqueado'); } }, document: { documentElement: {} } }));
+  assert.doesNotThrow(() => vm.runInNewContext(src, { localStorage: { getItem: () => { throw new Error('blocked'); } }, document: { documentElement: {} } }));
 });

@@ -6,15 +6,15 @@ import { CATEGORIAS } from '../../js/schema.js';
 const nad = (fecha, sexo = 'F', extra = {}) => ({ fechaNacimiento: fecha, sexo, ...extra });
 const cat = (fecha, temporada, sexo = 'F', extra = {}, config) => C.categoriaDe(nad(fecha, sexo, extra), temporada, config).categoria;
 
-// ---------- Constantes ----------
-test('el orden de categorías del dominio coincide con schema.CATEGORIAS', () => {
+// ---------- Constants ----------
+test('the domain category order matches schema.CATEGORIAS', () => {
   assert.deepEqual(C.CATEGORIAS_ORDEN, CATEGORIAS);
   assert.equal(C.ordenCategoria('Master'), 6);
   assert.equal(C.ordenCategoria('Desconocida'), 7);
 });
 
-// ---------- Temporadas ----------
-test('temporadaDe: la temporada empieza el 1 de septiembre', () => {
+// ---------- Seasons ----------
+test('temporadaDe: the season starts on 1 September', () => {
   assert.equal(C.temporadaDe('2026-09-01'), 2026);
   assert.equal(C.temporadaDe('2026-08-31'), 2025);
   assert.equal(C.temporadaDe('2026-12-31'), 2026);
@@ -25,15 +25,15 @@ test('temporadaDe: la temporada empieza el 1 de septiembre', () => {
   assert.equal(C.temporadaDe(new Date(2027, 2, 3)), 2026);
 });
 
-test('temporadaDe: fechas inválidas -> null, sin lanzar', () => {
+test('temporadaDe: invalid dates -> null, without throwing', () => {
   for (const f of ['', null, undefined, 'hola', '2026-13-01', '2026-02-30', '2026-00-10', '26-01-01', 20260101, {}, [], new Date('x'), '1800-01-01']) {
     assert.equal(C.temporadaDe(f), null, String(f));
   }
-  assert.equal(C.temporadaDe('2024-02-29'), 2023); // bisiesto válido
+  assert.equal(C.temporadaDe('2024-02-29'), 2023); // valid leap year
   assert.equal(C.temporadaDe('2025-02-29'), null);
 });
 
-test('etiqueta y parseo de temporada', () => {
+test('season label and parsing', () => {
   assert.equal(C.etiquetaTemporada(2026), '2026-2027');
   assert.equal(C.etiquetaTemporada('2026'), '2026-2027');
   assert.equal(C.etiquetaTemporada('x'), '');
@@ -54,8 +54,8 @@ test('edadCumplida', () => {
   assert.equal(C.edadCumplida('2010-01-01', 'x'), '');
 });
 
-// ---------- Tabla de la temporada 2026-2027 (referencia RFEN) ----------
-test('tablaCategorias 2026: sale del cálculo, no de datos fijos', () => {
+// ---------- 2026-2027 season table (RFEN reference) ----------
+test('tablaCategorias 2026: comes from the calculation, not from fixed data', () => {
   const filas = C.tablaCategorias(2026);
   const r = Object.fromEntries(filas.map((f) => [f.categoria, [f.desde, f.hasta]]));
   assert.deepEqual(r['Pre-Benjamín'], [2018, 2018]);
@@ -64,13 +64,13 @@ test('tablaCategorias 2026: sale del cálculo, no de datos fijos', () => {
   assert.deepEqual(r['Infantil'], [2012, 2013]);
   assert.deepEqual(r['Junior'], [2009, 2011]);
   assert.deepEqual(r['Absoluto'], [null, 2008]);
-  assert.deepEqual(r['Master'], [null, 2001]); // 25 años en la temporada
+  assert.deepEqual(r['Master'], [null, 2001]); // 25 years old in the season
   assert.deepEqual(filas.map((f) => f.categoria), CATEGORIAS);
   assert.equal(filas.at(-1).master, true);
   assert.equal(filas.filter((f) => f.master).length, 1);
 });
 
-test('tablaCategorias es relativa al año de inicio: 2027 y 2028 desplazan un año por temporada', () => {
+test('tablaCategorias is relative to the start year: 2027 and 2028 shift one year per season', () => {
   const rango = (t, c) => { const x = C.rangoAnios(c, t); return [x.desde, x.hasta]; };
   assert.deepEqual(rango(2027, 'Pre-Benjamín'), [2019, 2019]);
   assert.deepEqual(rango(2027, 'Benjamín'), [2017, 2018]);
@@ -79,7 +79,7 @@ test('tablaCategorias es relativa al año de inicio: 2027 y 2028 desplazan un a�
   assert.deepEqual(rango(2025, 'Junior'), [2008, 2010]);
 });
 
-test('tablaCategorias: temporada inválida -> []; rangoAnios de categoría desconocida -> null', () => {
+test('tablaCategorias: invalid season -> []; rangoAnios of an unknown category -> null', () => {
   assert.deepEqual(C.tablaCategorias('x'), []);
   assert.deepEqual(C.tablaCategorias(null), []);
   assert.equal(C.rangoAnios('Nada', 2026), null);
@@ -87,7 +87,7 @@ test('tablaCategorias: temporada inválida -> []; rangoAnios de categoría desco
 });
 
 // ---------- categoriaDe ----------
-test('categoriaDe: cada año de la tabla 2026-2027 cae en su categoría', () => {
+test('categoriaDe: each year of the 2026-2027 table falls in its category', () => {
   const esperado = {
     2020: 'Pre-Benjamín', 2019: 'Pre-Benjamín', 2018: 'Pre-Benjamín',
     2017: 'Benjamín', 2016: 'Benjamín', 2015: 'Alevín', 2014: 'Alevín',
@@ -96,12 +96,12 @@ test('categoriaDe: cada año de la tabla 2026-2027 cae en su categoría', () => 
   };
   for (const [anio, c] of Object.entries(esperado)) {
     assert.equal(cat(`${anio}-06-15`, 2026), c, anio);
-    assert.equal(cat(`${anio}-01-01`, 2026), c, anio + ' 1 ene');
-    assert.equal(cat(`${anio}-12-31`, 2026), c, anio + ' 31 dic');
+    assert.equal(cat(`${anio}-01-01`, 2026), c, anio + ' 1 Jan');
+    assert.equal(cat(`${anio}-12-31`, 2026), c, anio + ' 31 Dec');
   }
 });
 
-test('categoriaDe: bordes 31 dic / 1 ene (cuenta el año de nacimiento, no el mes)', () => {
+test('categoriaDe: 31 Dec / 1 Jan edges (the birth year counts, not the month)', () => {
   assert.equal(cat('2008-12-31', 2026), 'Absoluto');
   assert.equal(cat('2009-01-01', 2026), 'Junior');
   assert.equal(cat('2011-12-31', 2026), 'Junior');
@@ -112,26 +112,26 @@ test('categoriaDe: bordes 31 dic / 1 ene (cuenta el año de nacimiento, no el me
   assert.equal(cat('2018-01-01', 2026), 'Pre-Benjamín');
 });
 
-test('categoriaDe: detalle del resultado (edad, año, origen)', () => {
+test('categoriaDe: result detail (age, year, origin)', () => {
   const r = C.categoriaDe(nad('2013-06-30'), 2026);
   assert.deepEqual([r.categoria, r.origen, r.edad, r.anioNacimiento, r.sexo, r.avisos], ['Infantil', 'edad', 13, 2013, 'F', []]);
 });
 
-test('un nadador cambia de categoría al cambiar de temporada: 2026 -> 2027 -> 2028', () => {
+test('a swimmer changes category when the season changes: 2026 -> 2027 -> 2028', () => {
   const n = nad('2014-05-05');
   assert.deepEqual([2026, 2027, 2028, 2029].map((t) => C.categoriaDe(n, t).categoria), ['Alevín', 'Infantil', 'Infantil', 'Junior']);
   const m = nad('2008-03-03', 'M');
   assert.deepEqual([2025, 2026, 2027].map((t) => C.categoriaDe(m, t).categoria), ['Junior', 'Absoluto', 'Absoluto']);
 });
 
-test('categoriaDe: la temporada se deriva de una fecha con temporadaDe', () => {
+test('categoriaDe: the season is derived from a date with temporadaDe', () => {
   const n = nad('2012-06-01');
-  assert.equal(C.categoriaDe(n, C.temporadaDe('2026-08-31')).categoria, 'Infantil'); // temporada 2025: 13 años
-  assert.equal(C.categoriaDe(n, C.temporadaDe('2026-09-01')).categoria, 'Infantil'); // temporada 2026: 14 años
-  assert.equal(C.categoriaDe(n, C.temporadaDe('2027-09-01')).categoria, 'Junior'); // temporada 2027: 15 años
+  assert.equal(C.categoriaDe(n, C.temporadaDe('2026-08-31')).categoria, 'Infantil'); // season 2025: 13 years old
+  assert.equal(C.categoriaDe(n, C.temporadaDe('2026-09-01')).categoria, 'Infantil'); // season 2026: 14 years old
+  assert.equal(C.categoriaDe(n, C.temporadaDe('2027-09-01')).categoria, 'Junior'); // season 2027: 15 years old
 });
 
-test('categoriaDe: demasiado joven -> Pre-Benjamín con aviso por-debajo-edad', () => {
+test('categoriaDe: too young -> Pre-Benjamín with warning por-debajo-edad', () => {
   for (const f of ['2019-01-01', '2024-05-05', '2026-10-01', '2030-01-01']) {
     const r = C.categoriaDe(nad(f), 2026);
     assert.equal(r.categoria, 'Pre-Benjamín', f);
@@ -140,7 +140,7 @@ test('categoriaDe: demasiado joven -> Pre-Benjamín con aviso por-debajo-edad', 
   assert.deepEqual(C.categoriaDe(nad('2018-12-31'), 2026).avisos, []);
 });
 
-test('categoriaDe: datos inválidos o ausentes -> sin categoría y nunca lanza', () => {
+test('categoriaDe: invalid or missing data -> no category and never throws', () => {
   const malos = [null, undefined, {}, [], 'x', 5, nad(''), nad(null), nad('mañana'), nad('2026-02-30'), nad('31/12/2010'), nad(12345), { fechaNacimiento: { a: 1 } }];
   for (const n of malos) {
     const r = C.categoriaDe(n, 2026);
@@ -152,41 +152,41 @@ test('categoriaDe: datos inválidos o ausentes -> sin categoría y nunca lanza',
   assert.doesNotThrow(() => C.categoriaDe(nad('2010-01-01'), 2026, { edades: 5 }));
 });
 
-test('categoriaDe: sexo (F/M, variantes y vacío)', () => {
+test('categoriaDe: sex (F/M, variants and empty)', () => {
   for (const s of ['F', 'f', 'Femenino', 'mujer']) assert.equal(C.sexoNormalizado(s), 'F');
   for (const s of ['M', 'm', 'Masculino', 'hombre']) assert.equal(C.sexoNormalizado(s), 'M');
   for (const s of ['', null, undefined, 'X', 5]) assert.equal(C.sexoNormalizado(s), '');
-  // por defecto F y M comparten tabla, también sin sexo
+  // by default F and M share the table, also without sex
   assert.equal(cat('2013-01-01', 2026, ''), 'Infantil');
   assert.equal(cat('2013-01-01', 2026, 'M'), 'Infantil');
   assert.equal(cat('2013-01-01', 2026, 'Masculino'), 'Infantil');
 });
 
 // ---------- Master ----------
-test('Master: licencia máster Y edad mínima (25 por defecto)', () => {
+test('Master: master licence AND minimum age (25 by default)', () => {
   assert.equal(cat('1984-07-09', 2026, 'M', { licenciaMaster: 'true' }), 'Master');
-  assert.equal(cat('1984-07-09', 2026, 'M', { licenciaMaster: 'false' }), 'Absoluto'); // sin licencia
+  assert.equal(cat('1984-07-09', 2026, 'M', { licenciaMaster: 'false' }), 'Absoluto'); // no licence
   assert.equal(cat('1984-07-09', 2026, 'M', {}), 'Absoluto');
   assert.equal(C.categoriaDe(nad('1984-07-09', 'M', { licenciaMaster: 'true' }), 2026).origen, 'master');
-  // edad 25 en la temporada: nacido en 2001
+  // age 25 in the season: born in 2001
   assert.equal(cat('2001-12-31', 2026, 'F', { licenciaMaster: 'true' }), 'Master');
   assert.equal(cat('2002-01-01', 2026, 'F', { licenciaMaster: 'true' }), 'Absoluto'); // 24
-  // al cambiar de temporada alcanza la edad
+  // when the season changes the age is reached
   assert.equal(cat('2002-01-01', 2027, 'F', { licenciaMaster: 'true' }), 'Master');
   assert.deepEqual(C.categoriaDe(nad('2002-01-01', 'F', { licenciaMaster: 'true' }), 2026).avisos, ['master-edad-insuficiente']);
 });
 
-test('Master: variantes de licenciaMaster y booleano', () => {
+test('Master: licenciaMaster variants and boolean', () => {
   for (const v of [true, 'true', 'TRUE', 'sí', 'Si', '1', 'yes']) assert.equal(cat('1980-01-01', 2026, 'M', { licenciaMaster: v }), 'Master', String(v));
   for (const v of [false, 'false', '', null, undefined, 0, 'no', 'zz']) assert.equal(cat('1980-01-01', 2026, 'M', { licenciaMaster: v }), 'Absoluto', String(v));
 });
 
-test('Master: una licencia máster en un joven no lo convierte en Master y respeta la tabla por año', () => {
+test('Master: a master licence on a young swimmer does not make them Master and respects the per-year table', () => {
   assert.equal(cat('2013-01-01', 2026, 'F', { licenciaMaster: 'true' }), 'Infantil');
 });
 
-// ---------- Configuración ----------
-test('configPorDefecto: idéntica para F y M, 25 años, y es una copia independiente', () => {
+// ---------- Configuration ----------
+test('configPorDefecto: identical for F and M, 25 years, and an independent copy', () => {
   const c = C.configPorDefecto();
   assert.equal(c.edadMinimaMaster, 25);
   assert.deepEqual(c.edades.F, c.edades.M);
@@ -197,7 +197,7 @@ test('configPorDefecto: idéntica para F y M, 25 años, y es una copia independi
   assert.deepEqual(C.validarConfig(C.configPorDefecto()), []);
 });
 
-test('config editable: edad mínima máster de 30 años', () => {
+test('editable config: master minimum age of 30', () => {
   const cfg = C.configPorDefecto();
   cfg.edadMinimaMaster = 30;
   assert.equal(cat('1997-01-01', 2026, 'M', { licenciaMaster: 'true' }, cfg), 'Absoluto'); // 29
@@ -205,7 +205,7 @@ test('config editable: edad mínima máster de 30 años', () => {
   assert.equal(C.rangoAnios('Master', 2026, { config: cfg }).hasta, 1996);
 });
 
-test('tabla por sexo distinta: F y M se calculan por separado', () => {
+test('different table per sex: F and M are calculated separately', () => {
   const cfg = C.configPorDefecto();
   cfg.edades.M['Junior'] = [15, 18];
   cfg.edades.M['Absoluto'] = [19, null];
@@ -214,12 +214,12 @@ test('tabla por sexo distinta: F y M se calculan por separado', () => {
   assert.equal(cat('2008-06-01', 2026, 'M', {}, cfg), 'Junior'); // 18
   assert.equal(cat('2008-06-01', 2026, 'F', {}, cfg), 'Absoluto');
   assert.deepEqual(C.tablaCategorias(2026, { sexo: 'M', config: cfg }).find((f) => f.categoria === 'Absoluto'), { categoria: 'Absoluto', edadMin: 19, edadMax: null, desde: null, hasta: 2007 });
-  // sin sexo y con tablas distintas no se puede decidir
+  // without sex and with different tables it cannot be decided
   const r = C.categoriaDe(nad('2008-06-01', ''), 2026, cfg);
   assert.deepEqual([r.categoria, r.origen], ['', 'sin-sexo']);
 });
 
-test('validarConfig detecta huecos, solapes, abiertas y edades no válidas', () => {
+test('validarConfig detects gaps, overlaps, open ranges and invalid ages', () => {
   const con = (fn) => { const c = C.configPorDefecto(); fn(c); return C.validarConfig(c).map((e) => `${e.codigo}:${e.sexo || ''}:${e.categoria || ''}`); };
   assert.deepEqual(con((c) => { c.edades.F['Alevín'] = [12, 13]; }), ['no-contigua:F:Alevín', 'no-contigua:F:Infantil']);
   assert.deepEqual(con((c) => { c.edades.M['Junior'] = [15, 20]; }), ['no-contigua:M:Absoluto']);
@@ -231,7 +231,7 @@ test('validarConfig detecta huecos, solapes, abiertas y edades no válidas', () 
   assert.ok(C.validarConfig(null).length > 0);
 });
 
-test('normalizarConfig siempre devuelve una configuración válida (JSON, parcial o rota)', () => {
+test('normalizarConfig always returns a valid configuration (JSON, partial or broken)', () => {
   const def = C.configPorDefecto();
   for (const raw of [undefined, null, '', 'no json', '[]', 5, {}, { edades: { F: { 'Alevín': [1, 2] } } }]) assert.deepEqual(C.normalizarConfig(raw), def, JSON.stringify(raw));
   const cfg = C.configPorDefecto();
@@ -240,7 +240,7 @@ test('normalizarConfig siempre devuelve una configuración válida (JSON, parcia
   cfg.edades.M['Absoluto'] = [19, null];
   const n = C.normalizarConfig(JSON.stringify(cfg));
   assert.deepEqual(n, cfg);
-  // una tabla inválida se sustituye sólo en ese sexo; la edad máster válida se conserva
+  // an invalid table is replaced only for that sex; the valid master age is kept
   const parcial = JSON.parse(JSON.stringify(cfg));
   parcial.edades.F['Alevín'] = [20, 21];
   const p = C.normalizarConfig(parcial);
@@ -250,26 +250,26 @@ test('normalizarConfig siempre devuelve una configuración válida (JSON, parcia
   assert.deepEqual(C.validarConfig(p), []);
 });
 
-// ---------- categoriaVigente y cambiosDeTemporada ----------
-test('categoriaVigente: la manual manda; si no, la calculada', () => {
+// ---------- categoriaVigente and cambiosDeTemporada ----------
+test('categoriaVigente: the manual one wins; otherwise the calculated one', () => {
   const a = C.categoriaVigente(nad('2013-06-30', 'F', { categoriaManual: 'Junior' }), 2026);
   assert.deepEqual([a.categoria, a.manual, a.calculada], ['Junior', true, 'Infantil']);
   const b = C.categoriaVigente(nad('2013-06-30', 'F', { categoriaManual: '  ' }), 2026);
   assert.deepEqual([b.categoria, b.manual], ['Infantil', false]);
-  const c = C.categoriaVigente(nad('', 'F', { categoriaManual: 'Alevín' }), 2026); // manual sin fecha
+  const c = C.categoriaVigente(nad('', 'F', { categoriaManual: 'Alevín' }), 2026); // manual without date
   assert.deepEqual([c.categoria, c.manual], ['Alevín', true]);
   assert.equal(C.categoriaVigente(null, 2026).categoria, '');
 });
 
-test('cambiosDeTemporada: quién cambia de categoría entre dos temporadas', () => {
+test('cambiosDeTemporada: who changes category between two seasons', () => {
   const lista = [
     { id: '1', nombre: 'Ana', apellidos: 'Z', fechaNacimiento: '2014-05-05', sexo: 'F' }, // Alevín -> Infantil (2027)
     { id: '2', nombre: 'Beto', apellidos: 'A', fechaNacimiento: '2014-05-05', sexo: 'M' },
-    { id: '3', nombre: 'Cris', apellidos: 'M', fechaNacimiento: '2013-05-05', sexo: 'F' }, // Infantil -> Infantil (14->... 2027: 14) sin cambio
-    { id: '4', nombre: 'Dani', apellidos: 'M', fechaNacimiento: '2014-05-05', sexo: 'F', categoriaManual: 'Alevín' }, // manual: omitido
-    { id: '5', nombre: 'Eva', apellidos: 'M', fechaNacimiento: '', sexo: 'F' }, // sin fecha: omitido
-    { id: '6', nombre: 'Fer', apellidos: 'M', fechaNacimiento: '1990-01-01', sexo: 'M', licenciaMaster: 'true' }, // Master ya
-    { id: '7', nombre: 'Gus', apellidos: 'B', fechaNacimiento: '2002-02-02', sexo: 'M', licenciaMaster: 'true' }, // Absoluto -> Master en 2027
+    { id: '3', nombre: 'Cris', apellidos: 'M', fechaNacimiento: '2013-05-05', sexo: 'F' }, // Infantil -> Infantil (age 14 in 2027) no change
+    { id: '4', nombre: 'Dani', apellidos: 'M', fechaNacimiento: '2014-05-05', sexo: 'F', categoriaManual: 'Alevín' }, // manual: skipped
+    { id: '5', nombre: 'Eva', apellidos: 'M', fechaNacimiento: '', sexo: 'F' }, // no date: skipped
+    { id: '6', nombre: 'Fer', apellidos: 'M', fechaNacimiento: '1990-01-01', sexo: 'M', licenciaMaster: 'true' }, // already Master
+    { id: '7', nombre: 'Gus', apellidos: 'B', fechaNacimiento: '2002-02-02', sexo: 'M', licenciaMaster: 'true' }, // Absoluto -> Master in 2027
   ];
   const c = C.cambiosDeTemporada(lista, 2026, 2027);
   assert.deepEqual(c.map((x) => [x.id, x.de, x.a, x.sube]), [['1', 'Alevín', 'Infantil', true], ['2', 'Alevín', 'Infantil', true], ['7', 'Absoluto', 'Master', true]]);
@@ -288,18 +288,18 @@ import { t, setLang } from '../../js/i18n.js';
 
 const vars = (s) => [...s.matchAll(/\{(\w+)\}/g)].map((m) => m[1]).sort().join(',');
 for (const [nombre, d] of [['en', en], ['it', it]]) {
-  test(`categorías ${nombre}: mismas claves y variables que es`, () => {
+  test(`categories ${nombre}: same keys and variables as es`, () => {
     assert.deepEqual(Object.keys(es).filter((k) => !(k in d)), []);
     assert.deepEqual(Object.keys(d).filter((k) => !(k in es)), []);
     for (const k of Object.keys(es)) { assert.ok(d[k].trim().length > 0, k); assert.equal(vars(d[k]), vars(es[k]), k); }
   });
 }
 
-test('categorías: todas las claves categorias.* usadas en el código existen y están fusionadas en i18n', () => {
+test('categories: all categorias.* keys used in the code exist and are merged into i18n', () => {
   const codigo = ['js/views/categorias-panel.js', 'js/views/nadadores.js'].map((f) => readFileSync(f, 'utf8')).join('\n');
   const usadas = new Set([...codigo.matchAll(/'(categorias\.[\w.-]+)'/g)].map((m) => m[1]));
   const dinamicas = ['categorias.reglas.err.']; // categorias.reglas.err.<codigo>
-  for (const k of usadas) assert.ok(k in es, 'falta ' + k);
+  for (const k of usadas) assert.ok(k in es, 'missing ' + k);
   for (const e of ['edad-invalida', 'no-contigua', 'rango-invalido', 'ultima-abierta', 'tabla-invalida', 'edad-master-invalida']) assert.ok(`${dinamicas[0]}${e}` in es);
   for (const lang of ['es', 'en', 'it']) { setLang(lang, { persist: false }); assert.notEqual(t('categorias.panel.cambiar'), 'categorias.panel.cambiar', lang); }
   setLang('es', { persist: false });

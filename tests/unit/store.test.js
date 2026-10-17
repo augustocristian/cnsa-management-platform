@@ -9,10 +9,10 @@ const { driveConnection: auth } = await importApp('js/infrastructure/driveConnec
 const { drive } = await importApp('js/drive.js');
 const { instalarFakeGoogle } = await importApp('js/infrastructure/fakeGoogle.js');
 
-// Suite propia: los hooks no deben aplicarse a los tests de otros ficheros del mismo proceso.
-// AÑADE LOS TESTS NUEVOS DENTRO (antes del cierre del final del fichero).
-describe('almacén de datos (store) con Drive simulado', () => {
-// El almacén se prueba contra el Drive simulado (infrastructure/fakeGoogle.js): sin Google real, sin modo local.
+// Own suite: the hooks must not apply to the tests of other files in the same process.
+// ADD NEW TESTS INSIDE IT (before the closing at the end of the file).
+describe('data store (store) with simulated Drive', () => {
+// The store is tested against the simulated Drive (infrastructure/fakeGoogle.js): no real Google, no local mode.
 let fake;
 let ref;
 beforeEach(async () => {
@@ -25,18 +25,18 @@ beforeEach(async () => {
 });
 after(() => { if (fake) fake.desinstalar(); });
 
-test('init con un club de Drive: nombre, estado y fichero vacío', async () => {
+test('init with a Drive club: name, status and empty file', async () => {
   await store.sync();
   assert.equal(store.status, 'sincronizado');
   assert.equal(store.club.nombre, 'Club Test');
-  // TiposCarga trae sembrado el catálogo predefinido de contenidos de entrenamiento
+  // TiposCarga comes seeded with the predefined catalogue of training contents
   for (const s of ENTITY_SHEETS.filter((x) => x !== 'TiposCarga')) assert.deepEqual(store.list(s), []);
   assert.equal(store.list('TiposCarga').length, 10);
   assert.deepEqual(store.clubRef, { name: 'Club Test', id: ref.id });
-  assert.equal(store.localClubs, undefined, 'ya no existe el modo local');
+  assert.equal(store.localClubs, undefined, 'local mode no longer exists');
 });
 
-test('upsert genera id, get lo recupera y list devuelve copia', () => {
+test('upsert generates an id, get retrieves it and list returns a copy', () => {
   const r = store.upsert('Nadadores', { nombre: 'Ana', apellidos: 'Pérez' });
   assert.ok(r.id && typeof r.id === 'string');
   assert.equal(store.get('Nadadores', r.id).nombre, 'Ana');
@@ -46,30 +46,30 @@ test('upsert genera id, get lo recupera y list devuelve copia', () => {
   assert.equal(store.list('Nadadores').length, 1);
 });
 
-test('upsert rellena todas las columnas y descarta las desconocidas', () => {
+test('upsert fills in all columns and discards unknown ones', () => {
   const r = store.upsert('Grupos', { nombre: 'G', extra: 'zzz', otra: 1 });
   assert.deepEqual(Object.keys(r).sort(), [...SHEETS.Grupos].sort());
   assert.equal(r.categoria, '');
   assert.equal('extra' in r, false);
 });
 
-test('upsert con id existente actualiza, no duplica', () => {
+test('upsert with an existing id updates, does not duplicate', () => {
   const a = store.upsert('Grupos', { nombre: 'Uno' });
   store.upsert('Grupos', { id: a.id, nombre: 'Dos' });
   assert.equal(store.list('Grupos').length, 1);
   assert.equal(store.get('Grupos', a.id).nombre, 'Dos');
 });
 
-test('upsert normaliza el id numérico a string', () => {
+test('upsert normalises a numeric id to a string', () => {
   store.upsert('Grupos', { id: 7, nombre: 'Siete' });
   assert.equal(store.get('Grupos', 7).id, '7');
 });
 
-test('upsert en hoja desconocida lanza', () => {
+test('upsert on an unknown sheet throws', () => {
   assert.throws(() => store.upsert('Nada', {}), /desconocida/);
 });
 
-test('remove borra y es idempotente', () => {
+test('remove deletes and is idempotent', () => {
   const a = store.upsert('Grupos', { nombre: 'A' });
   store.remove('Grupos', a.id);
   assert.equal(store.list('Grupos').length, 0);
@@ -77,7 +77,7 @@ test('remove borra y es idempotente', () => {
   assert.doesNotThrow(() => store.remove('Inexistente', 'x'));
 });
 
-test('on() emite eventos de cambio y se puede cancelar', () => {
+test('on() emits change events and can be cancelled', () => {
   const evts = [];
   const off = store.on((e) => { if (e.type !== 'status') evts.push(e); });
   const a = store.upsert('Grupos', { nombre: 'A' });
@@ -90,7 +90,7 @@ test('on() emite eventos de cambio y se puede cancelar', () => {
   assert.equal(evts.length, 3);
 });
 
-test('remove de algo inexistente no emite evento', () => {
+test('remove of something non-existent emits no event', () => {
   const evts = [];
   const off = store.on((e) => { if (e.type !== 'status') evts.push(e); });
   store.remove('Grupos', 'no-existe');
@@ -98,7 +98,7 @@ test('remove de algo inexistente no emite evento', () => {
   assert.equal(evts.length, 0);
 });
 
-test('setClub fusiona con la config existente', () => {
+test('setClub merges with the existing config', () => {
   store.setClub({ colorPrimario: '#123456' });
   store.setClub({ lema: 'Lema' });
   assert.equal(store.club.colorPrimario, '#123456');
@@ -106,7 +106,7 @@ test('setClub fusiona con la config existente', () => {
   assert.equal(store.club.nombre, 'Club Test');
 });
 
-test('persistencia en localStorage: re-init recupera los datos', async () => {
+test('persistence in localStorage: re-init recovers the data', async () => {
   store.upsert('Grupos', { id: 'g9', nombre: 'Persistente' });
   store.setClub({ lema: 'L' });
   await store.init(ref);
@@ -114,25 +114,25 @@ test('persistencia en localStorage: re-init recupera los datos', async () => {
   assert.equal(store.club.lema, 'L');
 });
 
-test('clear vacía los datos', () => {
+test('clear empties the data', () => {
   store.upsert('Grupos', { nombre: 'A' });
   store.clear();
   assert.equal(store.list('Grupos').length, 0);
 });
 
-test('seedDemo crea datos coherentes', () => {
+test('seedDemo creates coherent data', () => {
   const counts = store.seedDemo();
-  for (const s of ENTITY_SHEETS.filter((x) => x !== 'Usuarios' && x !== 'ObjetivosCarga')) assert.ok(counts[s] > 0, `${s} vacío`);
+  for (const s of ENTITY_SHEETS.filter((x) => x !== 'Usuarios' && x !== 'ObjetivosCarga')) assert.ok(counts[s] > 0, `${s} empty`);
   assert.equal(store.club.nombre, 'Club Natación Lugones');
 
   const nad = new Set(store.list('Nadadores').map((n) => n.id));
   const gr = new Set(store.list('Grupos').map((g) => g.id));
   const ent = new Set(store.list('Entrenamientos').map((e) => e.id));
   for (const sheet of ['Asistencia', 'Cargas', 'Marcas']) {
-    for (const r of store.list(sheet)) assert.ok(nad.has(r.nadadorId), `${sheet} ${r.id}: nadador ${r.nadadorId}`);
+    for (const r of store.list(sheet)) assert.ok(nad.has(r.nadadorId), `${sheet} ${r.id}: swimmer ${r.nadadorId}`);
   }
   for (const sheet of ['Asistencia', 'Cargas']) {
-    for (const r of store.list(sheet)) assert.ok(ent.has(r.entrenamientoId), `${sheet} ${r.id}: entrenamiento`);
+    for (const r of store.list(sheet)) assert.ok(ent.has(r.entrenamientoId), `${sheet} ${r.id}: training session`);
   }
   for (const n of store.list('Nadadores')) {
     assert.ok(gr.has(n.grupoId));
@@ -141,13 +141,13 @@ test('seedDemo crea datos coherentes', () => {
   for (const e of store.list('Entrenamientos')) assert.ok(gr.has(e.grupoId));
   for (const s of ENTITY_SHEETS) {
     const ids = store.list(s).map((r) => r.id);
-    assert.equal(new Set(ids).size, ids.length, `ids duplicados en ${s}`);
+    assert.equal(new Set(ids).size, ids.length, `duplicate ids in ${s}`);
   }
   for (const m of store.list('Marcas')) assert.ok(m.tiempoMs > 0);
   for (const c of store.list('Cargas')) assert.ok(c.metros > 0 && c.rpe >= 1 && c.rpe <= 10);
 });
 
-test('seedDemo es determinista en datos (sin contar fechas)', () => {
+test('seedDemo is deterministic in data (not counting dates)', () => {
   store.seedDemo();
   const a = store.list('Marcas').map((m) => [m.nadadorId, m.prueba, m.tiempoMs].join('|'));
   store.seedDemo();
@@ -155,21 +155,21 @@ test('seedDemo es determinista en datos (sin contar fechas)', () => {
   assert.deepEqual(a, b);
 });
 
-test('catálogo de contenidos: se siembra al abrir, no se duplica al reabrir ni pisa ediciones', async () => {
+test('contents catalogue: seeded on open, not duplicated on reopen and does not overwrite edits', async () => {
   assert.equal(store.list('TiposCarga').length, 10);
   const piernas = store.get('TiposCarga', 'tc-piernas');
   store.upsert('TiposCarga', { ...piernas, color: '#123456', descripcion: 'Mi descripción', minSemanalM: 700 });
-  store.remove('TiposCarga', 'tc-brazos'); // p. ej. borrado a mano en la hoja: se repone
+  store.remove('TiposCarga', 'tc-brazos'); // e.g. deleted by hand in the sheet: it is restored
   await store.init(ref);
   assert.equal(store.list('TiposCarga').length, 10);
   const p = store.get('TiposCarga', 'tc-piernas');
   assert.deepEqual([p.color, p.descripcion, p.minSemanalM], ['#123456', 'Mi descripción', 700]);
   assert.ok(store.get('TiposCarga', 'tc-brazos'));
   await store.init(ref);
-  assert.equal(store.list('TiposCarga').length, 10, 'idempotente');
+  assert.equal(store.list('TiposCarga').length, 10, 'idempotent');
 });
 
-test('catálogo de contenidos: migra cargas y objetivos antiguos sin perder nada', async () => {
+test('contents catalogue: migrates old loads and goals without losing anything', async () => {
   store.upsert('Cargas', { id: 'c1', nadadorId: 'n', fecha: '2026-10-12', metros: 1000, tipo: 'Velocidad' });
   store.upsert('Cargas', { id: 'c2', nadadorId: 'n', fecha: '2026-10-12', metros: 500, tipo: 'Técnica' });
   store.upsert('ObjetivosCarga', { id: 'o1', tipo: 'Velocidad', minSemanalM: 1500, maxSemanalM: 3500 });
@@ -180,22 +180,22 @@ test('catálogo de contenidos: migra cargas y objetivos antiguos sin perder nada
   const tec = store.get('TiposCarga', 'tc-tecnica');
   assert.deepEqual([tec.minSemanalM, tec.maxSemanalM], [2000, 4000]);
   assert.equal(store.list('ObjetivosCarga').length, 0);
-  assert.deepEqual(store.list('Cargas').map((c) => c.tipo).sort(), ['Técnica', 'Velocidad'], 'las cargas no se tocan');
+  assert.deepEqual(store.list('Cargas').map((c) => c.tipo).sort(), ['Técnica', 'Velocidad'], 'loads are left untouched');
   await store.init(ref);
-  assert.equal(store.list('TiposCarga').length, 11, 'segunda apertura: sin cambios');
+  assert.equal(store.list('TiposCarga').length, 11, 'second open: no changes');
 });
 
-test('catálogo de contenidos: clear lo vuelve a sembrar', () => {
+test('contents catalogue: clear seeds it again', () => {
   store.clear();
   assert.equal(store.list('TiposCarga').length, 10);
 });
 
-test('init sin club de Drive falla (no hay modo local)', async () => {
+test('init without a Drive club fails (there is no local mode)', async () => {
   await assert.rejects(store.init('Club Test'), /Falta el club/);
   await assert.rejects(store.init(null), /Falta el club/);
 });
 
-test('sync sube el club a cnl/<Club>.json con la forma {version, club, hojas}', async () => {
+test('sync uploads the club to cnl/<Club>.json with the shape {version, club, hojas}', async () => {
   const g = store.upsert('Grupos', { nombre: 'Promoción' });
   store.setClub({ lema: 'Lema' });
   assert.equal(store.status, 'pendiente');
@@ -205,12 +205,12 @@ test('sync sube el club a cnl/<Club>.json con la forma {version, club, hojas}', 
   assert.equal(doc.version, 1);
   assert.equal(doc.club.lema, 'Lema');
   assert.deepEqual(doc.hojas.Grupos.map((r) => r.id), [g.id]);
-  assert.equal('Usuarios' in doc.hojas, false, 'sin hoja de usuarios');
+  assert.equal('Usuarios' in doc.hojas, false, 'no users sheet');
 });
 
-test('refresh incorpora los cambios hechos desde otro dispositivo', async () => {
+test('refresh picks up changes made from another device', async () => {
   await store.sync();
-  assert.equal(await store.refresh(), false, 'sin cambios');
+  assert.equal(await store.refresh(), false, 'no changes');
   fake.editarClubExterno(ref.id, (d) => { d.hojas.Grupos.push({ id: 'ext1', nombre: 'Externo', categoria: '', entrenador: '' }); });
   const evts = [];
   const off = store.on((e) => evts.push(e.type));
@@ -221,7 +221,7 @@ test('refresh incorpora los cambios hechos desde otro dispositivo', async () => 
   assert.equal(await store.refresh(), false);
 });
 
-test('sync fusiona por fila: se conservan los cambios locales y los remotos', async () => {
+test('sync merges per row: local and remote changes are both kept', async () => {
   await store.sync();
   store.upsert('Grupos', { id: 'loc1', nombre: 'Local' });
   fake.editarClubExterno(ref.id, (d) => { d.hojas.Grupos.push({ id: 'ext1', nombre: 'Externo', categoria: '', entrenador: '' }); });
@@ -230,13 +230,13 @@ test('sync fusiona por fila: se conservan los cambios locales y los remotos', as
   assert.deepEqual(fake.club(ref.id).doc.hojas.Grupos.map((g) => g.id).sort(), ['ext1', 'loc1']);
 });
 
-test('sin conexión los cambios quedan en la cola y se suben al volver', async () => {
+test('offline, changes stay in the queue and are uploaded on return', async () => {
   await store.sync();
   fake.opciones.fallos.escribir = 'offline';
   store.upsert('Grupos', { id: 'g1', nombre: 'Pendiente' });
   await assert.rejects(store.sync(), /conexión/);
   assert.equal(store.status, 'offline');
-  assert.ok(JSON.parse(localStorage.getItem('cnl:club:' + ref.id)).dirty, 'la caché local guarda la marca de pendiente');
+  assert.ok(JSON.parse(localStorage.getItem('cnl:club:' + ref.id)).dirty, 'the local cache keeps the pending flag');
   assert.equal(fake.club(ref.id).doc.hojas.Grupos.length, 0);
   fake.opciones.fallos.escribir = null;
   await store.sync();
@@ -244,17 +244,17 @@ test('sin conexión los cambios quedan en la cola y se suben al volver', async (
   assert.equal(fake.club(ref.id).doc.hojas.Grupos[0].nombre, 'Pendiente');
 });
 
-test('al cambiar el nombre del club se renombra el fichero en Drive', async () => {
+test('renaming the club renames the file on Drive', async () => {
   store.setClub({ nombre: 'Club Renombrado' });
   await store.sync();
   assert.equal(fake.club(ref.id).name, 'Club Renombrado');
   assert.equal(store.clubRef.name, 'Club Renombrado');
 });
 
-test('guardarXlsxEnDrive sube (y luego reemplaza) la copia .xlsx en cnl', async () => {
+test('guardarXlsxEnDrive uploads (and then replaces) the .xlsx copy in cnl', async () => {
   const a = await store.guardarXlsxEnDrive();
   const b = await store.guardarXlsxEnDrive();
-  assert.equal(a.id, b.id, 'no duplica el fichero');
+  assert.equal(a.id, b.id, 'does not duplicate the file');
   assert.deepEqual(fake.archivos().filter((f) => f.name.endsWith('.xlsx')).map((f) => f.name), ['Club Test.xlsx']);
 });
 });

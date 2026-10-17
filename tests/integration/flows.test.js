@@ -3,21 +3,21 @@ import assert from 'node:assert/strict';
 import { fresh, renderView, tick, fieldByLabel, buttonByText, setValue } from '../helpers/app.js';
 
 let c;
-// Cada test arranca con DOM limpio y store sembrado (sin hooks: los ficheros comparten proceso vía index.js).
+// Each test starts with a clean DOM and a seeded store (no hooks: the files share a process via index.js).
 const test = (name, fn) => base(name, async (t) => { c = await fresh(); return fn(t); });
 
 const today = () => c.ui.isoDate(new Date());
 const submit = (form) => form.dispatchEvent(new window.Event('submit', { cancelable: true, bubbles: true }));
 
-test('crear nadador desde el modal y verlo en el listado', async () => {
+test('create a swimmer from the modal and see it in the list', async () => {
   c.store.setClub({ ...c.store.club, temporadaActual: '2026-2027' });
   await renderView('nadadores', c.container, [], c);
   const before = c.store.list('Nadadores').length;
   buttonByText(c.container, 'Nuevo nadador').click();
   const ov = document.querySelector('.sheet-overlay');
-  assert.ok(ov, 'no se abrió el modal');
+  assert.ok(ov, 'the modal did not open');
 
-  // validación: sin nombre no guarda, el modal sigue abierto y el error sale junto al campo
+  // validation: without a name it does not save, the modal stays open and the error appears next to the field
   buttonByText(ov, 'Guardar').click();
   await tick();
   assert.equal(c.store.list('Nadadores').length, before);
@@ -27,12 +27,12 @@ test('crear nadador desde el modal y verlo en el listado', async () => {
 
   setValue(fieldByLabel(ov, 'Nombre'), 'Zoe');
   setValue(fieldByLabel(ov, 'Apellidos'), 'Zamora Test');
-  setValue(fieldByLabel(ov, 'Fecha de nacimiento'), '2014-05-05'); // la categoría se calcula: Alevín en la temporada 2026-2027
+  setValue(fieldByLabel(ov, 'Fecha de nacimiento'), '2014-05-05'); // the category is computed: Alevín in the 2026-2027 season
   setValue(fieldByLabel(ov, 'Grupo'), 'g2');
   buttonByText(ov, 'Guardar').click();
   await tick();
 
-  assert.equal(document.querySelector('.sheet-overlay'), null, 'modal cerrado');
+  assert.equal(document.querySelector('.sheet-overlay'), null, 'modal closed');
   const nuevo = c.store.list('Nadadores').find((n) => n.nombre === 'Zoe');
   assert.ok(nuevo && nuevo.id);
   assert.equal(nuevo.grupoId, 'g2');
@@ -43,18 +43,18 @@ test('crear nadador desde el modal y verlo en el listado', async () => {
   assert.match(c.container.textContent, new RegExp(`${before + 1} nadadores`));
 });
 
-test('listado de nadadores: búsqueda y filtros', async () => {
+test('swimmer list: search and filters', async () => {
   await renderView('nadadores', c.container, [], c);
   const rows = () => c.container.querySelectorAll('tbody tr.nad-row').length;
   assert.equal(rows(), 12);
-  setValue(c.container.querySelector('input[type=search]'), 'alvaro'); // sin tildes
+  setValue(c.container.querySelector('input[type=search]'), 'alvaro'); // without accents
   assert.equal(rows(), 1);
   setValue(c.container.querySelector('input[type=search]'), '');
   setValue(c.container.querySelectorAll('select')[0], 'Infantil');
   assert.equal(rows(), 2);
 });
 
-test('clic en una fila navega a la ficha y la ficha muestra datos', async () => {
+test('clicking a row navigates to the profile and the profile shows data', async () => {
   await renderView('nadadores', c.container, [], c);
   c.container.querySelector('tr.nad-row').click();
   assert.match(location.hash, /^#\/nadadores\/n\d+$/);
@@ -63,10 +63,10 @@ test('clic en una fila navega a la ficha y la ficha muestra datos', async () => 
   const n = c.store.get('Nadadores', id);
   assert.ok(c.container.textContent.includes(`${n.nombre} ${n.apellidos}`));
   for (const t of ['Asistencia', 'Cargas', 'Evolución de marcas', 'Licencia']) assert.ok(c.container.textContent.includes(t), t);
-  assert.ok(c.container.querySelector('svg.nad-chart'), 'gráfico de marcas');
+  assert.ok(c.container.querySelector('svg.nad-chart'), 'times chart');
 });
 
-test('ficha de nadador inexistente y ficha vía hash', async () => {
+test('non-existent swimmer profile and profile via hash', async () => {
   await renderView('nadadores', c.container, ['nope'], c);
   assert.match(c.container.textContent, /no encontrado/i);
   location.hash = '#/nadadores/n05';
@@ -74,7 +74,7 @@ test('ficha de nadador inexistente y ficha vía hash', async () => {
   assert.match(c.container.textContent, /Álvaro/);
 });
 
-test('editar y eliminar nadador desde la ficha', async () => {
+test('edit and delete a swimmer from the profile', async () => {
   await renderView('nadadores', c.container, ['n01'], c);
   buttonByText(c.container, 'Editar').click();
   const ov = document.querySelector('.sheet-overlay');
@@ -84,7 +84,7 @@ test('editar y eliminar nadador desde la ficha', async () => {
   assert.equal(c.store.get('Nadadores', 'n01').notas, 'Nota de prueba');
   assert.match(c.container.textContent, /Nota de prueba/);
 
-  // eliminar es deshacible: sin diálogo, con aviso «Deshacer»
+  // deleting is undoable: no dialog, with a «Deshacer» (Undo) notice
   const antes = ['Asistencia', 'Cargas', 'Marcas'].map((sheet) => c.store.list(sheet).filter((a) => a.nadadorId === 'n01').length);
   buttonByText(c.container, 'Eliminar').click();
   await tick(10);
@@ -94,15 +94,15 @@ test('editar y eliminar nadador desde la ficha', async () => {
   }
   buttonByText(document.querySelector('#toasts'), 'Deshacer').click();
   await tick(10);
-  assert.ok(c.store.get('Nadadores', 'n01'), 'deshacer devuelve al nadador');
+  assert.ok(c.store.get('Nadadores', 'n01'), 'undo brings the swimmer back');
   assert.deepEqual(['Asistencia', 'Cargas', 'Marcas'].map((sheet) => c.store.list(sheet).filter((a) => a.nadadorId === 'n01').length), antes);
 });
 
-test('grupos: crear grupo desde el modal', async () => {
+test('groups: create a group from the modal', async () => {
   await renderView('grupos', c.container, [], c);
   buttonByText(c.container, 'Nuevo grupo').click();
   const input = document.querySelector('body > div input[type=text]');
-  assert.ok(input, 'modal de grupo');
+  assert.ok(input, 'group modal');
   input.value = 'Grupo Nuevo';
   buttonByText(input.closest('body > div'), 'Guardar').click();
   await tick();
@@ -110,13 +110,13 @@ test('grupos: crear grupo desde el modal', async () => {
   assert.match(c.container.textContent, /Grupo Nuevo/);
 });
 
-test('asistencia: un toque marca presente, tocar de nuevo desmarca, "Marcar todos" usa una sola escritura y se puede deshacer', async () => {
+test('attendance: one tap marks present, tapping again clears it, "Marcar todos" uses a single write and can be undone', async () => {
   const ses = c.store.upsert('Entrenamientos', { fecha: today(), hora: '10:00', titulo: 'Sesión test', grupoId: 'g1', estado: 'planificado' });
   await renderView('asistencia', c.container, [ses.id], c);
   const regs = () => c.store.list('Asistencia').filter((a) => a.entrenamientoId === ses.id);
   const tarjetas = () => [...c.container.querySelectorAll('li.asi-card')];
   const pulsar = (i, estado) => tarjetas()[i].querySelector('.asi-btn[data-estado="' + estado + '"]').click();
-  assert.equal(tarjetas().length, 3, 'g1 tiene 3 nadadores');
+  assert.equal(tarjetas().length, 3, 'g1 has 3 swimmers');
   assert.equal(regs().length, 0);
   assert.ok(tarjetas().every((t) => t.dataset.estado === ''), 'nobody is marked by default');
 
@@ -145,7 +145,7 @@ test('asistencia: un toque marca presente, tocar de nuevo desmarca, "Marcar todo
   assert.equal(regs().length, 0);
 });
 
-test('asistencia: historial por nadador', async () => {
+test('attendance: history per swimmer', async () => {
   await renderView('asistencia', c.container, [], c);
   buttonByText(c.container, 'Historial').click();
   assert.match(c.container.textContent, /% asistencia/);
@@ -154,13 +154,13 @@ test('asistencia: historial por nadador', async () => {
   assert.ok(c.container.querySelector('tr.asi-det'));
 });
 
-test('asistencia sin sesiones muestra aviso', async () => {
+test('attendance without sessions shows a notice', async () => {
   c = await fresh({ demo: false });
   await renderView('asistencia', c.container, [], c);
   assert.match(c.container.textContent, /No hay sesiones/);
 });
 
-test('entrenamientos: crear sesión desde el formulario', async () => {
+test('training: create a session from the form', async () => {
   await renderView('entrenamientos', c.container, [], c);
   const before = c.store.list('Entrenamientos').length;
   buttonByText(c.container, 'Nueva sesión').click();
@@ -185,7 +185,7 @@ test('entrenamientos: crear sesión desde el formulario', async () => {
   assert.match(c.container.textContent, /Sesión creada en test/);
 });
 
-test('entrenamientos: volumen mínimo > máximo no guarda', async () => {
+test('training: minimum volume > maximum does not save', async () => {
   await renderView('entrenamientos', c.container, [], c);
   const before = c.store.list('Entrenamientos').length;
   buttonByText(c.container, 'Nueva sesión').click();
@@ -200,7 +200,7 @@ test('entrenamientos: volumen mínimo > máximo no guarda', async () => {
   assert.match(m.querySelector('.field-error').textContent, /El volumen mínimo no puede superar el máximo/);
 });
 
-test('entrenamientos: marcar realizado y reabrir desde el menú de la sesión', async () => {
+test('training: mark as done and reopen from the session menu', async () => {
   const s = c.store.upsert('Entrenamientos', { fecha: today(), hora: '07:00', titulo: 'Para cambiar', grupoId: 'g1', estado: 'planificado' });
   await renderView('entrenamientos', c.container, [], c);
   const fila = () => [...c.container.querySelectorAll('.ent-sess')].find((e) => e.textContent.includes('Para cambiar'));
@@ -213,7 +213,7 @@ test('entrenamientos: marcar realizado y reabrir desde el menú de la sesión', 
   assert.equal(c.store.get('Entrenamientos', s.id).estado, 'planificado');
 });
 
-test('cargas: registrar carga y verla en la semana', async () => {
+test('loads: log a load and see it in the week', async () => {
   await renderView('cargas', c.container, [], c);
   const before = c.store.list('Cargas').length;
   buttonByText(c.container, 'Registrar carga').click();
@@ -233,7 +233,7 @@ test('cargas: registrar carga y verla en la semana', async () => {
   assert.match(c.container.textContent, /Carla Menéndez Vigil/);
 });
 
-test('cargas: sin metros no registra', async () => {
+test('loads: without metres it does not log', async () => {
   await renderView('cargas', c.container, [], c);
   const before = c.store.list('Cargas').length;
   buttonByText(c.container, 'Registrar carga').click();
@@ -245,7 +245,7 @@ test('cargas: sin metros no registra', async () => {
   assert.match(d.textContent, /Indica los metros/);
 });
 
-test('cargas: guardar objetivo semanal', async () => {
+test('loads: save weekly target', async () => {
   await renderView('cargas', c.container, [], c);
   const form = c.container.querySelector('form.cg-obj');
   const fila = [...form.querySelectorAll('tbody tr')].find((tr) => tr.firstChild.textContent === 'Brazos');
@@ -256,7 +256,7 @@ test('cargas: guardar objetivo semanal', async () => {
   assert.deepEqual([o.minSemanalM, o.maxSemanalM], [100, 900]);
 });
 
-test('marcas: registrar marca válida (hoja con máscara numérica)', async () => {
+test('times: log a valid time (sheet with numeric mask)', async () => {
   await renderView('marcas', c.container, [], c);
   const before = c.store.list('Marcas').length;
   buttonByText(c.container, 'Registrar marca').click();
@@ -280,7 +280,7 @@ test('marcas: registrar marca válida (hoja con máscara numérica)', async () =
   assert.match(c.container.textContent, /00:27\.85/);
 });
 
-test('marcas: tiempo inválido no se guarda y se explica en línea', async () => {
+test('times: invalid time is not saved and is explained inline', async () => {
   await renderView('marcas', c.container, [], c);
   const before = c.store.list('Marcas').length;
   buttonByText(c.container, 'Registrar marca').click();
@@ -294,7 +294,7 @@ test('marcas: tiempo inválido no se guarda y se explica en línea', async () =>
   assert.ok(c.store.list('Marcas').every((m) => Number.isFinite(m.tiempoMs)));
 });
 
-test('marcas: la evolución se dibuja por defecto para el nadador con más marcas y al filtrar', async () => {
+test('times: the progression is drawn by default for the swimmer with most times and when filtering', async () => {
   await renderView('marcas', c.container, [], c);
   assert.ok(c.container.querySelector('svg.mc-svg'), 'chart without choosing anything');
   const m = c.store.list('Marcas')[0];
@@ -318,18 +318,18 @@ test('notices and notes: saving a notice with HTML in the title escapes it', asy
 });
 
 test('individual use: forms and edit actions are always available (no roles)', async () => {
-  assert.equal(c.auth.role, undefined, 'no hay roles');
-  assert.equal(c.auth.setDemoRole, undefined, 'no hay selector de rol');
+  assert.equal(c.auth.role, undefined, 'there are no roles');
+  assert.equal(c.auth.setDemoRole, undefined, 'there is no role selector');
   await renderView('entrenamientos', c.container, [], c);
   assert.ok(c.container.textContent.includes('Nueva sesión'));
   for (const [name, sel] of [['cargas', '.cg-add'], ['marcas', '.mc-add'], ['comunicaciones', 'form.cm-form']]) {
     await renderView(name, c.container, [], c);
-    assert.ok(c.container.querySelector(sel), `${name} debería mostrar ${sel}`);
+    assert.ok(c.container.querySelector(sel), `${name} should show ${sel}`);
   }
   await renderView('nadadores', c.container, [], c);
   assert.ok(buttonByText(c.container, 'Nuevo nadador'));
   await renderView('club', c.container, [], c);
-  assert.ok(c.container.querySelector('input[type=text]'), 'Configuración abierta para el único usuario');
+  assert.ok(c.container.querySelector('input[type=text]'), 'Settings open for the only user');
 });
 
 test('notices and notes: all of them are shown (no per-group filter)', async () => {

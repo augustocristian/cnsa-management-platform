@@ -28,7 +28,7 @@ npm run test:e2e            # desktop + mobile, ~8-10 min: run in the background
 npm audit --omit=dev --audit-level=high
 npm ci && git diff --exit-code -- vendor/     # only when dependencies changed (vendor in sync)
 ```
-During development, per commit, the relevant e2e area is enough: `npx cucumber-js --tags "@<area> and not @google and not @pendiente"` (a bare feature path would run ALL scenarios, see `nuevo-escenario-cucumber`), and again with `VIEWPORT=movil` (`$env:VIEWPORT='movil'` in PowerShell) when the UI changed. Red tests are fixed at the cause, never skipped. A red e2e that cannot be explained by your change may come from another agent's unfinished work: re-run the area, inspect `reports/screenshots/`, and report it instead of committing over it.
+During development, per commit, the relevant e2e area is enough: `npx cucumber-js --tags "@<area> and not @google and not @pending"` (a bare feature path would run ALL scenarios, see `nuevo-escenario-cucumber`), and again with `VIEWPORT=mobile` (`$env:VIEWPORT='mobile'` in PowerShell) when the UI changed. Red tests are fixed at the cause, never skipped. A red e2e that cannot be explained by your change may come from another agent's unfinished work: re-run the area, inspect `reports/screenshots/`, and report it instead of committing over it.
 
 ## 4. Commits
 

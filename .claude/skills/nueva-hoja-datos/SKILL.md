@@ -30,7 +30,7 @@ Data lives in `cnl/<Club>.json` in the user's Drive: `{ version, club, hojas: { 
     - Merge: two "devices" edit different fields of the same row (both kept) and delete vs edit (the edit wins).
     - When you use `fakeGoogle.editarClubExterno` to simulate the other device, check that `store.sync()` merges.
 11. **Docs** - sheets table in `docs/ARCHITECTURE.md` (columns, formats, what is LEGACY) and the README if relevant.
-12. **Verification** - `npm run check && npm run test:unit && npm run test:integration` and the data e2e areas (`npx cucumber-js --tags "(@usuario-unico or @integridad) and not @google and not @pendiente"`; a bare feature path would run the whole suite - see `nuevo-escenario-cucumber`); commit `feat(data): <Sheet> sheet`.
+12. **Verification** - `npm run check && npm run test:unit && npm run test:integration` and the data e2e areas (`npx cucumber-js --tags "(@single-user or @data-integrity) and not @google and not @pending"`; a bare feature path would run the whole suite - see `nuevo-escenario-cucumber`); commit `feat(data): <Sheet> sheet`.
 
 ## Do not
 

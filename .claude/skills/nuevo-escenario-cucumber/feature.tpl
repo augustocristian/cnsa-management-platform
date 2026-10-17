@@ -19,10 +19,10 @@ Feature: <Feature title>
   Scenario: Create an item
     When I open the "<Menu label>" module
     And I press "Nuevo"
-    And I fill in "Nombre" with "Ejemplo"
-    And I fill in "Fecha" with the date 0 days from now
+    And I fill "Nombre" with "Ejemplo"
+    And I fill "Fecha" with the date 0 days from now
     And I press "Guardar"
-    Then I see the notice "<Saved message>"
+    Then I see the toast "<Saved message>"
     And I see the text "Ejemplo"
 
   Scenario: Required data is validated next to the field

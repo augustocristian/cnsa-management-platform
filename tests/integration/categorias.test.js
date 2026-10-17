@@ -4,7 +4,7 @@ import { fresh, renderView, tick, fieldByLabel, buttonByText, setValue } from '.
 import { temporadaDe, etiquetaTemporada } from '../../js/domain/categorias.js';
 
 let c;
-// Cada test arranca con DOM limpio y el store sembrado con la demo; la temporada se fija en el club para no depender del reloj.
+// Each test starts with a clean DOM and the store seeded with the demo; the season is fixed in the club so it does not depend on the clock.
 const test = (name, fn) => base(name, async (t) => {
   c = await fresh();
   c.store.setClub({ ...c.store.club, temporadaActual: '2026-2027', temporadaAplicada: '2026-2027' });
@@ -20,13 +20,13 @@ const abrirAlta = async () => {
 const vivo = (ov) => ov.querySelector('[data-testid=categoria-auto]').textContent;
 const porNombre = (n) => c.store.list('Nadadores').find((x) => x.nombre === n);
 
-test('datos demo: los 12 nadadores caen en las categorías esperadas y no hace falta recalcular', async () => {
+test('demo data: the 12 swimmers fall into the expected categories and no recalculation is needed', async () => {
   const esperado = { 'Lucía': 'Pre-Benjamín', 'Martina': 'Benjamín', 'Pelayo': 'Benjamín', 'Carla': 'Alevín', 'Álvaro': 'Alevín', 'Noa': 'Infantil', 'Iker': 'Infantil', 'Paula': 'Junior', 'Marcos': 'Junior', 'Claudia': 'Absoluto', 'Daniel': 'Absoluto', 'Javier': 'Master' };
   for (const [nombre, cat] of Object.entries(esperado)) assert.equal(porNombre(nombre).categoria, cat, nombre);
   assert.equal(porNombre('Javier').licenciaMaster, 'true');
-  assert.equal(porNombre('Daniel').licenciaMaster, 'false', 'Daniel tiene 25 años pero no licencia máster');
+  assert.equal(porNombre('Daniel').licenciaMaster, 'false', 'Daniel is 25 but has no master licence');
   assert.ok(c.store.list('Nadadores').every((n) => n.categoriaManual === ''));
-  // la demo guarda la temporada aplicada de su reloj y las fechas son relativas a esa temporada
+  // the demo stores the applied season from its clock and the dates are relative to that season
   const hoy = temporadaDe(c.ui.isoDate(new Date()));
   const demo = await fresh();
   assert.equal(demo.store.club.temporadaAplicada, etiquetaTemporada(hoy));
@@ -36,7 +36,7 @@ test('datos demo: los 12 nadadores caen en las categorías esperadas y no hace f
   assert.deepEqual(crearCategoriasService(demo.store).recalcular().cambios, []);
 });
 
-test('alta: la categoría se calcula en vivo con fecha de nacimiento y sexo, solo lectura', async () => {
+test('new swimmer: the category is computed live from birth date and sex, read-only', async () => {
   const ov = await abrirAlta();
   assert.match(vivo(ov), /Indica la fecha de nacimiento/);
   assert.equal(ov.querySelector('[data-testid=categoria-auto]').getAttribute('aria-live'), 'polite');
@@ -52,11 +52,11 @@ test('alta: la categoría se calcula en vivo con fecha de nacimiento y sexo, sol
   assert.match(vivo(ov), /Por debajo de la edad mínima/);
   setValue(fieldByLabel(ov, 'Sexo'), 'M');
   assert.match(vivo(ov), /Pre-Benjamín/);
-  // la categoría automática no es un campo editable
+  // the automatic category is not an editable field
   assert.equal(ov.querySelector('[data-testid=categoria-auto]').querySelector('input,select'), null);
 });
 
-test('alta automática: guarda la categoría calculada y no marca manual', async () => {
+test('automatic new swimmer: saves the computed category and does not flag manual', async () => {
   const ov = await abrirAlta();
   setValue(fieldByLabel(ov, 'Nombre'), 'Zoe');
   setValue(fieldByLabel(ov, 'Apellidos'), 'Zamora Test');
@@ -67,16 +67,16 @@ test('alta automática: guarda la categoría calculada y no marca manual', async
   assert.deepEqual([n.categoria, n.categoriaManual, n.licenciaMaster], ['Benjamín', '', 'false']);
   const fila = [...c.container.querySelectorAll('tr.nad-row')].find((r) => r.textContent.includes('Zoe'));
   assert.ok(fila.textContent.includes('Benjamín'));
-  assert.equal(fila.querySelector('.nad-manual'), null, 'sin insignia manual');
+  assert.equal(fila.querySelector('.nad-manual'), null, 'no manual badge');
 });
 
-test('Master: sólo con licencia máster y edad mínima', async () => {
+test('Master: only with a master licence and minimum age', async () => {
   const ov = await abrirAlta();
   setValue(fieldByLabel(ov, 'Fecha de nacimiento'), '1985-02-02');
   assert.match(vivo(ov), /Absoluto/);
   marcar(fieldByLabel(ov, 'Licencia máster'), true);
   assert.match(vivo(ov), /Master · licencia máster y 25 años o más · temporada 2026-2027/);
-  setValue(fieldByLabel(ov, 'Fecha de nacimiento'), '2005-02-02'); // 21 años
+  setValue(fieldByLabel(ov, 'Fecha de nacimiento'), '2005-02-02'); // 21 years old
   assert.match(vivo(ov), /Absoluto/);
   assert.match(vivo(ov), /requiere 25 años o más/);
   setValue(fieldByLabel(ov, 'Nombre'), 'Mari');
@@ -88,7 +88,7 @@ test('Master: sólo con licencia máster y edad mínima', async () => {
   assert.deepEqual([n.categoria, n.licenciaMaster], ['Master', 'true']);
 });
 
-test('categoría manual: el interruptor muestra el selector, manda sobre el cálculo y se señala con una insignia', async () => {
+test('manual category: the switch shows the selector, overrides the calculation and is flagged with a badge', async () => {
   const ov = await abrirAlta();
   const chk = fieldByLabel(ov, 'Categoría manual');
   const eleg = fieldByLabel(ov, 'Categoría elegida');
@@ -107,19 +107,19 @@ test('categoría manual: el interruptor muestra el selector, manda sobre el cál
   const fila = [...c.container.querySelectorAll('tr.nad-row')].find((r) => r.textContent.includes('Mano'));
   assert.equal(fila.querySelector('.nad-manual').textContent, 'manual');
 
-  // ficha: categoría vigente + insignia
+  // profile: current category + badge
   await renderView('nadadores', c.container, [n.id], c);
   const dd = [...c.container.querySelectorAll('dt')].find((d) => d.textContent === 'Categoría').nextElementSibling;
   assert.match(dd.textContent, /Junior/);
   assert.match(dd.textContent, /manual/);
-  // al cambiar de temporada no se toca
+  // it is left untouched when the season changes
   const { crearCategoriasService } = await import('../../js/application/categoriasService.js');
   crearCategoriasService(c.store).cambiarTemporada(2030);
   assert.equal(porNombre('Mano').categoria, 'Junior');
 });
 
-test('edición: se puede pasar de manual a automática', async () => {
-  const n = porNombre('Carla'); // 2014 en la demo de 2026 -> Alevín
+test('edit: it can be switched from manual to automatic', async () => {
+  const n = porNombre('Carla'); // 2014 in the 2026 demo -> Alevín
   c.store.upsert('Nadadores', { ...n, categoria: 'Junior', categoriaManual: 'Junior' });
   await renderView('nadadores', c.container, [n.id], c);
   buttonByText(c.container, 'Editar').click();
@@ -132,7 +132,7 @@ test('edición: se puede pasar de manual a automática', async () => {
   assert.deepEqual([g.categoria, g.categoriaManual], ['Alevín', '']);
 });
 
-test('ficha: edad y categoría coherentes con la temporada, y regla de la categoría', async () => {
+test('profile: age and category consistent with the season, and the category rule', async () => {
   const n = porNombre('Carla');
   await renderView('nadadores', c.container, [n.id], c);
   const txt = c.container.textContent;
@@ -141,7 +141,7 @@ test('ficha: edad y categoría coherentes con la temporada, y regla de la catego
   assert.match(txt, /Licencia máster/);
 });
 
-test('listado: tabla de años de la temporada, filtro y orden por el orden de categorías', async () => {
+test('list: season years table, filter and sort by category order', async () => {
   await renderView('nadadores', c.container, [], c);
   const det = c.container.querySelector('details');
   assert.match(det.querySelector('summary').textContent, /Categorías de la temporada 2026-2027/);
@@ -157,10 +157,10 @@ test('listado: tabla de años de la temporada, filtro y orden por el orden de ca
   assert.deepEqual([...sel.options].slice(1).map((o) => o.textContent), orden);
 });
 
-// ---------- Configuración: panel de categorías ----------
+// ---------- Settings: categories panel ----------
 const panel = () => c.container.querySelector('.catp');
 
-test('club: panel "Categorías de la temporada 2026-2027" con la tabla calculada', async () => {
+test('club: "Categorías de la temporada 2026-2027" panel with the computed table', async () => {
   await renderView('club', c.container, [], c);
   assert.match(panel().querySelector('h2').textContent, /Categorías de la temporada 2026-2027/);
   const filas = [...panel().querySelectorAll('table[aria-label] tbody tr')].map((r) => r.textContent);
@@ -170,7 +170,7 @@ test('club: panel "Categorías de la temporada 2026-2027" con la tabla calculada
   assert.match(panel().textContent, /Fijada manualmente/);
 });
 
-test('cambiar de temporada: previsualiza quién cambia y aplica tras confirmar', async () => {
+test('change season: previews who changes and applies after confirming', async () => {
   await renderView('club', c.container, [], c);
   const sel = panel().querySelector('#catp-temporada');
   setValue(sel, '2027');
@@ -179,10 +179,10 @@ test('cambiar de temporada: previsualiza quién cambia y aplica tras confirmar',
   assert.match(modal.textContent, /Cambiar a la temporada 2027-2028/);
   assert.match(modal.textContent, /nadadores cambian de categoría/);
   const filas = [...modal.querySelectorAll('tbody tr')].map((r) => r.textContent);
-  // Lucía (8) pasa a Benjamín; Pelayo (9 -> 10) sigue; Martina (10 -> 11) pasa a Alevín
+  // Lucía (8) moves to Benjamín; Pelayo (9 -> 10) stays; Martina (10 -> 11) moves to Alevín
   assert.ok(filas.some((f) => f.includes('Fernández Roces') && f.includes('Pre-Benjamín') && f.includes('Benjamín')));
   assert.ok(filas.some((f) => f.includes('Suárez Cuesta') && f.includes('Alevín')));
-  assert.equal(porNombre('Lucía').categoria, 'Pre-Benjamín', 'la previsualización no escribe');
+  assert.equal(porNombre('Lucía').categoria, 'Pre-Benjamín', 'the preview does not write');
   assert.equal(c.store.club.temporadaActual, '2026-2027');
   buttonByText(modal, 'Aplicar cambio de temporada').click();
   await tick();
@@ -194,7 +194,7 @@ test('cambiar de temporada: previsualiza quién cambia y aplica tras confirmar',
   assert.match(panel().querySelector('h2').textContent, /2027-2028/);
 });
 
-test('cambiar de temporada a la misma avisa y no abre previsualización; "Automática" vuelve a la temporada de hoy', async () => {
+test('changing to the same season warns and opens no preview; "Automática" returns to the current season', async () => {
   c.store.setClub({ ...c.store.club, temporadaActual: '2040-2041' });
   await renderView('club', c.container, [], c);
   panel().querySelector('#catp-cambiar').click();
@@ -209,7 +209,7 @@ test('cambiar de temporada a la misma avisa y no abre previsualización; "Autom�
   assert.match(panel().querySelector('h2').textContent, new RegExp(hoy));
 });
 
-test('recalcular a demanda corrige categorías desactualizadas', async () => {
+test('on-demand recalculation fixes outdated categories', async () => {
   const n = porNombre('Carla');
   c.store.upsert('Nadadores', { ...n, categoria: 'Master' });
   await renderView('club', c.container, [], c);
@@ -218,35 +218,35 @@ test('recalcular a demanda corrige categorías desactualizadas', async () => {
   assert.match(document.body.textContent, /Categorías recalculadas: 1 cambio/);
 });
 
-test('reglas por sexo: validación, guardado y recálculo', async () => {
+test('rules by sex: validation, saving and recalculation', async () => {
   await renderView('club', c.container, [], c);
   const inp = (sexo, cat, i) => panel().querySelector(`input[aria-label="${cat} (${sexo === 'F' ? 'Femenino' : 'Masculino'}): ${i === 0 ? 'Edad desde' : 'Edad hasta'}"]`);
-  // hueco entre Junior y Absoluto -> error y no se guarda
+  // gap between Junior and Absoluto -> error and nothing saved
   setValue(inp('M', 'Junior', 1), '18');
   panel().querySelector('#catp-guardar-reglas').click();
   assert.match(panel().querySelector('.catp-errores').textContent, /Absoluto \(Masculino\) debe empezar justo después/);
   assert.equal(c.store.club.categoriasConfig, undefined);
-  // tabla continua -> guarda; los chicos de 18 años siguen en Junior
+  // continuous table -> saves; 18-year-old boys stay in Junior
   setValue(inp('M', 'Absoluto', 0), '19');
   panel().querySelector('#catp-guardar-reglas').click();
   assert.ok(c.store.club.categoriasConfig);
   assert.equal(JSON.parse(c.store.club.categoriasConfig).edades.M.Junior[1], 18);
-  // F y M distintas: la tabla muestra dos columnas
+  // different F and M: the table shows two columns
   await renderView('club', c.container, [], c);
   const cab = [...panel().querySelectorAll('table[aria-label] thead th')].map((x) => x.textContent);
   assert.deepEqual(cab, ['Categoría', 'Nacidos en (Femenino)', 'Nacidos en (Masculino)']);
-  // edad mínima máster
+  // master minimum age
   setValue(panel().querySelector('#catp-master-edad'), '30');
   panel().querySelector('#catp-guardar-reglas').click();
   assert.equal(JSON.parse(c.store.club.categoriasConfig).edadMinimaMaster, 30);
-  assert.equal(porNombre('Javier').categoria, 'Master'); // 42 años
-  // restablecer
+  assert.equal(porNombre('Javier').categoria, 'Master'); // 42 years old
+  // reset
   await renderView('club', c.container, [], c);
   panel().querySelector('#catp-restablecer').click();
   assert.equal(c.store.club.categoriasConfig, '');
 });
 
-test('esquema: Nadadores incluye licenciaMaster y categoriaManual y un club antiguo sin ellos se lee bien', async () => {
+test('schema: Nadadores includes licenciaMaster and categoriaManual and an old club without them reads fine', async () => {
   const { SHEETS } = await import('../../js/schema.js');
   assert.ok(SHEETS.Nadadores.includes('licenciaMaster') && SHEETS.Nadadores.includes('categoriaManual'));
   const antiguo = { id: 'old1', nombre: 'Vieja', apellidos: 'Fila', fechaNacimiento: '2013-02-02', sexo: 'F', categoria: 'Alevín', grupoId: '' };

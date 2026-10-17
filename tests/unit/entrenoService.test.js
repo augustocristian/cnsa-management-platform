@@ -4,7 +4,7 @@ import { importApp } from '../helpers/env.js';
 
 const { crearEntrenoService } = await importApp('js/application/entrenoService.js');
 
-// Repositorio en memoria con la misma interfaz que el store
+// In-memory repository with the same interface as the store
 function repoMem(datos = {}) {
   const db = { Entrenamientos: [], EntrenoLineas: [], Grupos: [], Cargas: [], ...datos };
   let n = 0;
@@ -33,13 +33,13 @@ const plan = {
 let ids = 0;
 const mk = (repo, opts = {}) => crearEntrenoService(repo, { genId: () => 'L' + (++ids), club: () => ({ nombre: 'Club Test' }), ...opts });
 
-test('guardarPlan: guarda campos de la sesión y líneas, y las lee ordenadas', () => {
+test('guardarPlan: saves the session fields and rows, and reads them back sorted', () => {
   const repo = repoMem({ Entrenamientos: [sesion('e1', '2026-10-15')], Grupos: [{ id: 'g2', nombre: 'Alevín' }] });
   const svc = mk(repo);
   const r = svc.guardarPlan('e1', plan);
   assert.equal(r.ok, true);
   assert.equal(repo.get('Entrenamientos', 'e1').tipoSesion, 'Aer+Ritmo');
-  assert.equal(repo.get('Entrenamientos', 'e1').titulo, 'Sesión e1', 'conserva el resto de campos');
+  assert.equal(repo.get('Entrenamientos', 'e1').titulo, 'Sesión e1', 'keeps the other fields');
   const ls = svc.lineas('e1');
   assert.equal(ls.length, 2);
   assert.deepEqual(ls.map((l) => l.objetivo), ['Calentamiento', 'Piernas']);
@@ -48,19 +48,19 @@ test('guardarPlan: guarda campos de la sesión y líneas, y las lee ordenadas', 
   assert.equal(svc.tienePlan('e1'), true);
 });
 
-test('guardarPlan: sustituye las líneas anteriores (quita las borradas, conserva ids de las que siguen)', () => {
+test('guardarPlan: replaces the previous rows (removes the deleted ones, keeps the ids of those that remain)', () => {
   const repo = repoMem({ Entrenamientos: [sesion('e1', '2026-10-15')] });
   const svc = mk(repo);
   svc.guardarPlan('e1', plan);
   const [a] = svc.lineas('e1');
-  svc.guardarPlan('e1', { ...plan, lineas: [a, { set: 2, orden: 1, series: 4, distancia: 100 }, { set: 3, orden: 1 }] }); // la última está vacía y se descarta
+  svc.guardarPlan('e1', { ...plan, lineas: [a, { set: 2, orden: 1, series: 4, distancia: 100 }, { set: 3, orden: 1 }] }); // the last one is empty and is discarded
   const ls = svc.lineas('e1');
   assert.equal(ls.length, 2);
   assert.equal(ls[0].id, a.id);
   assert.equal(repo.list('EntrenoLineas').length, 2);
 });
 
-test('guardarPlan: errores de validación impiden guardar; los avisos no', () => {
+test('guardarPlan: validation errors prevent saving; warnings do not', () => {
   const repo = repoMem({ Entrenamientos: [sesion('e1', '2026-10-15', { volumenMin: 100, volumenMax: 200 })] });
   const svc = mk(repo);
   const mal = svc.guardarPlan('e1', { lineas: [{ set: 1, orden: 1, series: 'x', distancia: 50 }] });
@@ -73,7 +73,7 @@ test('guardarPlan: errores de validación impiden guardar; los avisos no', () =>
   assert.equal(svc.guardarPlan('no-existe', plan).ok, false);
 });
 
-test('validar: avisa si el total difiere de la carga registrada', () => {
+test('validar: warns if the total differs from the recorded load', () => {
   const repo = repoMem({ Entrenamientos: [sesion('e1', '2026-10-15')], Cargas: [{ entrenamientoId: 'e1', metros: 2000 }, { entrenamientoId: 'e1', metros: 2200 }] });
   const svc = mk(repo);
   svc.guardarPlan('e1', plan);
@@ -82,7 +82,7 @@ test('validar: avisa si el total difiere de la carga registrada', () => {
   assert.deepEqual(a.params, { total: 700, registrada: 2100 });
 });
 
-test('duplicarSesion: copia sesión y plan con ids nuevos', () => {
+test('duplicarSesion: copies the session and plan with new ids', () => {
   const repo = repoMem({ Entrenamientos: [sesion('e1', '2026-10-15', { estado: 'realizado' })] });
   const svc = mk(repo);
   svc.guardarPlan('e1', plan);
@@ -100,7 +100,7 @@ test('duplicarSesion: copia sesión y plan con ids nuevos', () => {
   assert.equal(svc.duplicarSesion('nada'), null);
 });
 
-test('copiarPlan, planDesdeSesion y planDesdePlantilla', () => {
+test('copiarPlan, planDesdeSesion and planDesdePlantilla', () => {
   const repo = repoMem({ Entrenamientos: [sesion('e1', '2026-10-15'), sesion('e2', '2026-10-16')] });
   const svc = mk(repo);
   svc.guardarPlan('e1', plan);
@@ -108,7 +108,7 @@ test('copiarPlan, planDesdeSesion y planDesdePlantilla', () => {
   assert.equal(svc.resumen('e2').metros, 700);
   assert.equal(repo.get('Entrenamientos', 'e2').materialDia, 'JJDD');
   const pd = svc.planDesdeSesion('e1');
-  assert.ok(pd.lineas.every((l) => l.id === ''), 'el plan copiado no arrastra ids');
+  assert.ok(pd.lineas.every((l) => l.id === ''), 'the copied plan does not carry over ids');
   assert.equal(svc.planDesdeSesion('nada'), null);
   const pt = svc.planDesdePlantilla('aerobico');
   assert.ok(pt.lineas.length >= 4);
@@ -117,7 +117,7 @@ test('copiarPlan, planDesdeSesion y planDesdePlantilla', () => {
   assert.deepEqual(svc.sesionesConPlan({ salvo: 'e1' }).map((s) => s.id), ['e2']);
 });
 
-test('eliminarSesion borra también el plan', () => {
+test('eliminarSesion also deletes the plan', () => {
   const repo = repoMem({ Entrenamientos: [sesion('e1', '2026-10-15'), sesion('e2', '2026-10-16')] });
   const svc = mk(repo);
   svc.guardarPlan('e1', plan);
@@ -128,7 +128,7 @@ test('eliminarSesion borra también el plan', () => {
   assert.equal(svc.lineas('e2').length, 2);
 });
 
-test('sugerencias de lo usado antes', () => {
+test('suggestions from what was used before', () => {
   const repo = repoMem({ Entrenamientos: [sesion('e1', '2026-10-15')] });
   const svc = mk(repo);
   svc.guardarPlan('e1', plan);
@@ -136,7 +136,7 @@ test('sugerencias de lo usado antes', () => {
   assert.deepEqual(svc.sugerencias('material', ['Aletas']), ['Tabla', 'Aletas']);
 });
 
-test('ficha: datos para el PDF (club, grupo, sets, totales) y borrador sin guardar', () => {
+test('ficha: data for the PDF (club, group, sets, totals) and unsaved draft', () => {
   const repo = repoMem({ Entrenamientos: [sesion('e1', '2026-10-15T00:00:00')], Grupos: [{ id: 'g2', nombre: 'Alevín' }] });
   const svc = mk(repo);
   svc.guardarPlan('e1', plan);
@@ -151,11 +151,11 @@ test('ficha: datos para el PDF (club, grupo, sets, totales) y borrador sin guard
   const b = svc.ficha('e1', { tipoSesion: 'Otro', lineas: [{ set: 1, orden: 1, series: 2, distancia: 25 }] });
   assert.equal(b.sesion.tipoSesion, 'Otro');
   assert.equal(b.totales.metros, 50);
-  assert.equal(svc.lineas('e1').length, 2, 'el borrador no se guarda');
+  assert.equal(svc.lineas('e1').length, 2, 'the draft is not saved');
   assert.equal(svc.ficha('nada'), null);
 });
 
-test('fichasSemana: sesiones de la semana (opcionalmente de un grupo) ordenadas', () => {
+test('fichasSemana: sessions of the week (optionally of one group) sorted', () => {
   const repo = repoMem({
     Entrenamientos: [
       sesion('a', '2026-10-13', { hora: '18:30' }), sesion('b', '2026-10-15', { hora: '19:50' }), sesion('c', '2026-10-15', { hora: '17:30', grupoId: 'g1' }),
@@ -169,7 +169,7 @@ test('fichasSemana: sesiones de la semana (opcionalmente de un grupo) ordenadas'
   assert.deepEqual(svc.fichasSemana('2030-01-01'), []);
 });
 
-// ---------- Contenidos y estilo por ejercicio ----------
+// ---------- Contents and stroke per exercise ----------
 const PLAN_MULTI = {
   tipoSesion: 'Mixta',
   lineas: [
@@ -178,7 +178,7 @@ const PLAN_MULTI = {
   ],
 };
 
-test('guardarPlan: componentes y estilo se guardan como texto en la hoja y vuelven como estructuras', () => {
+test('guardarPlan: components and stroke are stored as text in the sheet and come back as structures', () => {
   const repo = repoMem({ Entrenamientos: [sesion('e1', '2026-10-15')] });
   const svc = mk(repo);
   assert.equal(svc.guardarPlan('e1', PLAN_MULTI).ok, true);
@@ -186,7 +186,7 @@ test('guardarPlan: componentes y estilo se guardan como texto en la hoja y vuelv
   assert.equal(typeof fila.componentes, 'string');
   assert.deepEqual(JSON.parse(fila.componentes).map((c) => c.metrosPorRep), [75, 25]);
   assert.equal(fila.estilo, 'Crol');
-  assert.equal(repo.db.EntrenoLineas.find((l) => l.objetivo === 'Calentamiento').componentes, '', 'filas antiguas: sin componentes');
+  assert.equal(repo.db.EntrenoLineas.find((l) => l.objetivo === 'Calentamiento').componentes, '', 'old rows: no components');
   const ls = svc.lineas('e1');
   assert.equal(ls[1].componentes.length, 2);
   assert.equal(ls[1].estilos[0].estilo, 'Crol');
@@ -195,7 +195,7 @@ test('guardarPlan: componentes y estilo se guardan como texto en la hoja y vuelv
   assert.deepEqual(d.porContenido.map((c) => [c.contenido, c.metros]), [['Aeróbico ligero', 600], ['Aláctico / Sprint', 100]]);
 });
 
-test('validar: el reparto incompleto avisa pero no bloquea guardar', () => {
+test('validar: an incomplete split warns but does not block saving', () => {
   const repo = repoMem({ Entrenamientos: [sesion('e1', '2026-10-15')] });
   const svc = mk(repo);
   const incompleto = { lineas: [{ set: 1, orden: 1, series: 4, distancia: 100, componentes: [{ contenido: 'Aeróbico ligero', metrosPorRep: 60, modo: 'manual' }] }] };
@@ -206,7 +206,7 @@ test('validar: el reparto incompleto avisa pero no bloquea guardar', () => {
   assert.ok(r.avisos.some((a) => a.codigo === 'reparto-incompleto'));
 });
 
-test('ficha: incluye el catálogo y el desglose para el PDF', () => {
+test('ficha: includes the catalogue and the breakdown for the PDF', () => {
   const repo = repoMem({ Entrenamientos: [sesion('e1', '2026-10-15')], Grupos: [{ id: 'g2', nombre: 'Alevín' }] });
   const svc = mk(repo);
   svc.guardarPlan('e1', PLAN_MULTI);
@@ -216,7 +216,7 @@ test('ficha: incluye el catálogo y el desglose para el PDF', () => {
   assert.deepEqual(f.sets[1].lineas[0].estilos.map((e) => e.estilo), ['Crol']);
 });
 
-test('registrarCargasDesdePlan: una carga por contenido y nadador, sin duplicar y respetando la asistencia', () => {
+test('registrarCargasDesdePlan: one load per content and swimmer, without duplicating and respecting attendance', () => {
   const repo = repoMem({
     Entrenamientos: [sesion('e1', '2026-10-15')], Grupos: [{ id: 'g2', nombre: 'Alevín' }],
     Nadadores: [{ id: 'n1', grupoId: 'g2', activo: 'true' }, { id: 'n2', grupoId: 'g2', activo: 'true' }, { id: 'n3', grupoId: 'g2', activo: 'false' }, { id: 'n4', grupoId: 'g9', activo: 'true' }],
@@ -224,24 +224,24 @@ test('registrarCargasDesdePlan: una carga por contenido y nadador, sin duplicar 
   });
   const svc = mk(repo);
   svc.guardarPlan('e1', PLAN_MULTI);
-  // sin asistencia: nadadores activos del grupo (n1, n2)
+  // without attendance: active swimmers of the group (n1, n2)
   let r = svc.registrarCargasDesdePlan('e1');
   assert.deepEqual([r.ok, r.creadas, r.omitidas, r.nadadores, r.contenidos], [true, 4, 0, 2, 2]);
   const cargas = repo.db.Cargas.filter((c) => c.entrenamientoId === 'e1');
   assert.equal(cargas.length, 4);
   assert.deepEqual(cargas.filter((c) => c.nadadorId === 'n1').map((c) => [c.tipo, c.metros]).sort(), [['Aeróbico ligero', 600], ['Aláctico / Sprint', 100]]);
   assert.ok(cargas.every((c) => c.fecha === '2026-10-15'));
-  assert.equal(r.sinContenidoM, 0, 'el calentamiento se clasifica por su objetivo');
-  // segunda vez: nada nuevo
+  assert.equal(r.sinContenidoM, 0, 'the warm-up is classified by its objective');
+  // second time: nothing new
   r = svc.registrarCargasDesdePlan('e1');
   assert.deepEqual([r.creadas, r.omitidas], [0, 4]);
   assert.equal(repo.db.Cargas.length, 4);
-  // con asistencia: sólo los presentes
+  // with attendance: only those present
   repo.db.Cargas = [];
   repo.db.Asistencia = [{ id: 'a1', entrenamientoId: 'e1', nadadorId: 'n2', estado: 'presente' }, { id: 'a2', entrenamientoId: 'e1', nadadorId: 'n1', estado: 'ausente' }];
   r = svc.registrarCargasDesdePlan('e1');
   assert.deepEqual([r.creadas, r.nadadores], [2, 1]);
   assert.ok(repo.db.Cargas.every((c) => c.nadadorId === 'n2'));
-  // sin sesión
+  // no session
   assert.equal(svc.registrarCargasDesdePlan('nada').ok, false);
 });

@@ -6,32 +6,32 @@ import * as C from '../../js/domain/calendario.js';
 
 const tipos = sembrarCatalogo([]);
 const tid = (clave) => 'tc-' + clave;
-const temporada = { id: 't1', nombre: 'T', inicio: '2026-09-07', fin: '2026-11-29', activa: true, grupoId: '', notas: '' }; // 12 semanas completas
+const temporada = { id: 't1', nombre: 'T', inicio: '2026-09-07', fin: '2026-11-29', activa: true, grupoId: '', notas: '' }; // 12 full weeks
 const fase = (id, nombre, tipo, inicio, fin, orden = 0) => D.normalizarFase({ id, temporadaId: 't1', nombre, tipo, fechaInicio: inicio, fechaFin: fin, orden });
 const sp = (lunes, volumen, contenidos = {}, extra = {}) => D.normalizarSemanaPlan({ id: 'x' + lunes, temporadaId: 't1', lunes, volumenPrevisto: volumen, contenidos, ...extra });
 const resumen = (o = {}) => D.resumenSemanas({ temporada, tipos, hoy: '2026-10-14', ...o });
 
-test('generarSemanas: lunes a domingo, numeradas, con cambio de año', () => {
+test('generarSemanas: Monday to Sunday, numbered, across a year change', () => {
   const s = D.generarSemanas('2026-12-28', '2027-01-17');
   assert.deepEqual(s.map((x) => [x.n, x.lunes, x.domingo]), [[1, '2026-12-28', '2027-01-03'], [2, '2027-01-04', '2027-01-10'], [3, '2027-01-11', '2027-01-17']]);
   assert.ok(s.every((x) => !x.parcial));
-  assert.equal(C.diaSemana(s[0].lunes), 0, 'cada semana empieza en lunes');
+  assert.equal(C.diaSemana(s[0].lunes), 0, 'each week starts on Monday');
 });
 
-test('generarSemanas: semanas parciales al inicio y al final, año bisiesto y entradas inválidas', () => {
-  const s = D.generarSemanas('2027-02-24', '2027-03-03'); // miércoles a miércoles
+test('generarSemanas: partial weeks at the start and end, leap year and invalid inputs', () => {
+  const s = D.generarSemanas('2027-02-24', '2027-03-03'); // Wednesday to Wednesday
   assert.equal(s.length, 2);
   assert.deepEqual([s[0].lunes, s[0].desde, s[0].hasta, s[0].parcial], ['2027-02-22', '2027-02-24', '2027-02-28', true]);
   assert.deepEqual([s[1].lunes, s[1].desde, s[1].hasta], ['2027-03-01', '2027-03-01', '2027-03-03']);
-  assert.equal(D.generarSemanas('2028-02-28', '2028-03-06').length, 2); // 29 feb 2028 existe
+  assert.equal(D.generarSemanas('2028-02-28', '2028-03-06').length, 2); // 29 Feb 2028 exists
   assert.deepEqual(D.generarSemanas('2026-09-07', '2026-09-01'), []);
   assert.deepEqual(D.generarSemanas('nada', '2026-09-01'), []);
-  assert.equal(D.generarSemanas('2026-01-01', '2036-01-01').length, D.MAX_SEMANAS, 'tope de semanas');
+  assert.equal(D.generarSemanas('2026-01-01', '2036-01-01').length, D.MAX_SEMANAS, 'cap on weeks');
   assert.equal(D.semanaDeFecha(D.generarSemanas('2026-09-07', '2026-09-27'), '2026-09-15'), 2);
   assert.equal(D.semanaDeFecha(D.generarSemanas('2026-09-07', '2026-09-27'), '2026-10-15'), 0);
 });
 
-test('normalización: ida y vuelta de temporada, fase, semana y evento', () => {
+test('normalisation: round trip of season, phase, week and event', () => {
   const t = D.normalizarTemporada({ id: 5, nombre: ' A ', fechaInicio: '2026-09-07T00:00', fechaFin: '2027-05-30', activa: 'TRUE', grupoId: 'g3' });
   assert.deepEqual([t.id, t.nombre, t.inicio, t.activa], ['5', 'A', '2026-09-07', true]);
   assert.equal(D.filaTemporada(t).activa, 'true');
@@ -47,7 +47,7 @@ test('normalización: ida y vuelta de temporada, fase, semana y evento', () => {
   assert.equal(D.normalizarEvento({ tipo: '??' }).tipo, 'otro');
 });
 
-test('validaciones de temporada, fase, evento y semana', () => {
+test('validations of season, phase, event and week', () => {
   const cod = (e) => e.map((x) => x.codigo);
   assert.deepEqual(cod(D.validarTemporada({ nombre: '', inicio: 'x', fin: '' })), ['nombre-vacio', 'fecha-invalida', 'fecha-invalida']);
   assert.deepEqual(cod(D.validarTemporada({ nombre: 'T', inicio: '2026-09-10', fin: '2026-09-01' })), ['fin-antes-inicio']);
@@ -62,14 +62,14 @@ test('validaciones de temporada, fase, evento y semana', () => {
   assert.deepEqual(cod(D.validarSemanaPlan({ volumen: '', intensidad: '', contenidos: { a: 'x' } })), ['contenido-invalido']);
 });
 
-test('fase de cada semana: la que cubre más días; sin fase fuera de rangos', () => {
+test('phase of each week: the one covering most days; no phase outside ranges', () => {
   const fs = [fase('a', 'A', 'preparacion-general', '2026-09-07', '2026-09-23'), fase('b', 'B', 'competitiva', '2026-09-24', '2026-11-29')];
   const sem = D.generarSemanas(temporada.inicio, temporada.fin);
   assert.equal(D.faseDeSemana(fs, sem[0]).id, 'a');
-  assert.equal(D.faseDeSemana(fs, sem[2]).id, 'b', 'semana 21-27 sep: 3 días de A y 4 de B -> B');
+  assert.equal(D.faseDeSemana(fs, sem[2]).id, 'b', 'week 21-27 Sep: 3 days of A and 4 of B -> B');
 });
 
-test('validarPlan: fases solapadas (error), huecos y fuera de temporada (aviso)', () => {
+test('validarPlan: overlapping phases (error), gaps and outside the season (warning)', () => {
   const fs = [fase('a', 'A', 'preparacion-general', '2026-09-07', '2026-09-27'), fase('b', 'B', 'competitiva', '2026-09-21', '2026-10-11'), fase('c', 'C', 'tapering', '2026-10-26', '2026-12-13')];
   const ev = [D.normalizarEvento({ id: 'e', tipo: 'competicion', nombre: 'Fuera', fechaInicio: '2027-01-10', prioridad: 'A' })];
   const v = D.validarPlan({ temporada, fases: fs, eventos: ev });
@@ -85,7 +85,7 @@ test('validarPlan: fases solapadas (error), huecos y fuera de temporada (aviso)'
   assert.deepEqual(D.fasesQueSolapan({ id: 'z', inicio: '2026-09-01', fin: '2026-09-08' }, fs).map((f) => f.id), ['a']);
 });
 
-test('fasesPorDefecto: cubren toda la temporada sin huecos ni solapes', () => {
+test('fasesPorDefecto: cover the whole season with no gaps or overlaps', () => {
   for (const [i, f] of [['2026-09-07', '2027-05-30'], ['2026-12-28', '2027-03-21'], ['2026-09-09', '2026-12-06']]) {
     const fs = D.fasesPorDefecto(i, f, (t) => t).map((x, k) => D.normalizarFase({ ...x, id: 'f' + k, fechaInicio: x.inicio, fechaFin: x.fin }));
     const v = D.validarPlan({ temporada: { inicio: i, fin: f }, fases: fs, eventos: [] });
@@ -93,10 +93,10 @@ test('fasesPorDefecto: cubren toda la temporada sin huecos ni solapes', () => {
     assert.equal(fs[0].inicio, i);
     assert.equal(fs[fs.length - 1].fin, f);
   }
-  assert.equal(D.fasesPorDefecto('2026-09-07', '2026-09-20').length, 1, 'temporada corta: una sola fase');
+  assert.equal(D.fasesPorDefecto('2026-09-07', '2026-09-20').length, 1, 'short season: a single phase');
 });
 
-test('clasificar contenidos del plan: nombre exacto, reglas y herencia dentro del set', () => {
+test('classify plan contents: exact name, rules and inheritance within the set', () => {
   assert.equal(D.clasificarContenido('Piernas', tipos), tid('piernas'));
   assert.equal(D.clasificarContenido('aerobico ligero', tipos), tid('aerobico-ligero'));
   assert.equal(D.clasificarContenido('Calentamiento', tipos), tid('aerobico-ligero'));
@@ -109,10 +109,10 @@ test('clasificar contenidos del plan: nombre exacto, reglas y herencia dentro de
   assert.equal(D.clasificarContenido('Sesión de gimnasio', propio), 'x1');
   const lineas = [
     { set: 1, orden: 1, objetivo: 'Calentamiento', series: 1, distancia: 300 },
-    { set: 1, orden: 2, series: 4, distancia: 50 }, // hereda Calentamiento
+    { set: 1, orden: 2, series: 4, distancia: 50 }, // inherits Calentamiento
     { set: 2, orden: 1, objetivo: 'Piernas', series: 8, distancia: 50 },
     { set: 3, orden: 1, objetivo: 'Cosa rara', series: 2, distancia: 100 },
-    { set: 4, orden: 1, series: 1, distancia: 100 }, // sin etiqueta: no clasificable
+    { set: 4, orden: 1, series: 1, distancia: 100 }, // no label: not classifiable
   ];
   const v = D.volumenPlanSesion(lineas, tipos);
   assert.equal(v.total, 300 + 200 + 400 + 200 + 100);
@@ -139,25 +139,25 @@ const cargas = [
   { id: 'c4', nadadorId: 'n3', fecha: '2026-09-09', metros: 9999, tipo: 'Piernas' },
 ];
 
-test('agregados reales: planes (con estimación) y cargas (media por nadador, filtrando grupo)', () => {
+test('real aggregates: plans (with estimate) and loads (average per swimmer, filtering by group)', () => {
   const lpm = new Map([['s2', [lineas[0]]], ['s4', [lineas[1]]]]);
   const g3 = D.agregarPlanes({ sesiones, lineasPorSesion: lpm, tipos, desde: '2026-09-07', hasta: '2026-09-13', grupoId: 'g3' });
   assert.equal(g3.total, 3200 + 1000);
   assert.equal(g3.metros[tid('piernas')], 1000);
-  assert.equal(g3.sinClasificar, 3200, 'sesión sin líneas: estimada con la media de su volumen objetivo');
+  assert.equal(g3.sinClasificar, 3200, 'session without lines: estimated with the average of its target volume');
   assert.deepEqual([g3.sesiones, g3.realizadas, g3.estimadas], [2, 2, 1]);
   const todos = D.agregarPlanes({ sesiones, lineasPorSesion: lpm, tipos, desde: '2026-09-07', hasta: '2026-09-13' });
   assert.equal(todos.grupos, 2);
-  assert.equal(todos.total, (3200 + 1000 + 1000) / 2, 'media por grupo');
+  assert.equal(todos.total, (3200 + 1000 + 1000) / 2, 'average per group');
   const cg = D.agregarCargas({ cargas, nadadores, tipos, desde: '2026-09-07', hasta: '2026-09-13', grupoId: 'g3' });
-  assert.equal(cg.total, 4500, '(4000 + 3000 + 2000) / 2 nadadores con carga');
+  assert.equal(cg.total, 4500, '(4000 + 3000 + 2000) / 2 swimmers with load');
   assert.equal(cg.metros[tid('aerobico-ligero')], 3500);
   assert.equal(D.agregarCargas({ cargas, nadadores, tipos, desde: '2026-09-07', hasta: '2026-09-13', grupoId: 'gX' }).total, 0);
 });
 
-test('desviación y estado: en rango, bajo, alto y sin previsto', () => {
+test('deviation and status: in range, low, high and no forecast', () => {
   assert.deepEqual(D.desviacion(10000, 10500), { abs: 500, pct: 5, estado: 'en-rango' });
-  assert.equal(D.desviacion(10000, 11000).estado, 'en-rango', 'justo en el límite del 10 %');
+  assert.equal(D.desviacion(10000, 11000).estado, 'en-rango', 'right at the 10 % limit');
   assert.equal(D.desviacion(10000, 8200).estado, 'bajo');
   assert.equal(D.desviacion(10000, 8200).pct, -18);
   assert.equal(D.desviacion(10000, 12000).estado, 'alto');
@@ -165,7 +165,7 @@ test('desviación y estado: en rango, bajo, alto y sin previsto', () => {
   assert.equal(D.desviacion(10000, 8200, 0.25).estado, 'en-rango');
 });
 
-test('resumenSemanas: previsto vs real, fuente, estados y acumulados', () => {
+test('resumenSemanas: forecast vs actual, source, statuses and cumulative totals', () => {
   const fs = [fase('a', 'A', 'preparacion-general', '2026-09-07', '2026-09-27'), fase('b', 'B', 'competitiva', '2026-09-28', '2026-11-29')];
   const planes = [sp('2026-09-07', 4500, { [tid('aerobico-ligero')]: 3000, [tid('piernas')]: 1500 }), sp('2026-09-14', 5000), sp('2026-09-21', 5000)];
   const r = resumen({ fases: fs, semanasPlan: planes, sesiones: sesiones.map((s) => ({ ...s })), lineas, cargas, nadadores: [...nadadores], eventos: [], hoy: '2026-09-17' });
@@ -182,22 +182,22 @@ test('resumenSemanas: previsto vs real, fuente, estados y acumulados', () => {
   const ligero = s1.contenidos.find((c) => c.tipo.id === tid('aerobico-ligero'));
   assert.deepEqual([ligero.previsto, ligero.real, ligero.desv.estado], [3000, 3500, 'alto']);
   const s2 = r3[1];
-  assert.deepEqual([s2.tiempo, s2.real.fuente, s2.real.total], ['actual', 'planes', 1000], 'sin cargas: usa los planes de entreno');
+  assert.deepEqual([s2.tiempo, s2.real.fuente, s2.real.total], ['actual', 'planes', 1000], 'without loads: uses the training plans');
   assert.equal(s2.estado, 'bajo');
-  assert.equal(r3[2].estado, 'pendiente', 'futura sin datos');
+  assert.equal(r3[2].estado, 'pendiente', 'future without data');
   assert.equal(r3[3].estado, 'sin-previsto');
   assert.equal(s1.acumPrevisto, 4500);
   assert.equal(r3[2].acumPrevisto, 14500);
-  assert.equal(r3[2].acumReal, null, 'las semanas futuras no acumulan real');
+  assert.equal(r3[2].acumReal, null, 'future weeks do not accumulate actuals');
   assert.equal(r3[1].acumReal, 5500);
-  // fuente forzada
+  // forced source
   const soloPlanes = D.resumenSemanas({ temporada: temp, tipos, fases: fs, semanasPlan: planes, sesiones, lineas, cargas, nadadores, hoy: '2026-09-17', fuente: 'planes' });
   assert.equal(soloPlanes[0].real.fuente, 'planes');
   assert.equal(soloPlanes[0].real.total, 4200);
   assert.equal(r.length, 12);
 });
 
-test('totales por fase y acumulado de temporada', () => {
+test('totals per phase and season cumulative', () => {
   const fs = [fase('a', 'A', 'preparacion-general', '2026-09-07', '2026-09-20'), fase('b', 'B', 'competitiva', '2026-09-21', '2026-11-29')];
   const planes = [sp('2026-09-07', 4500), sp('2026-09-14', 5000), sp('2026-09-21', 6000)];
   const temp = { ...temporada, grupoId: 'g3' };
@@ -208,54 +208,54 @@ test('totales por fase y acumulado de temporada', () => {
   assert.deepEqual([a.fase.id, a.semanas, a.previsto, a.previstoHastaHoy, a.real], ['a', 2, 9500, 9500, 5500]);
   assert.equal(a.desv.estado, 'bajo');
   assert.equal(tot.fases[1].previsto, 6000);
-  assert.equal(tot.fases[1].real, 0, 'sin semanas empezadas no hay real');
+  assert.equal(tot.fases[1].real, 0, 'no actual without started weeks');
   assert.equal(tot.total.previsto, 15500);
   assert.equal(tot.total.previstoHastaHoy, 9500);
 });
 
-test('sugerencias: contenido por debajo, previa a competición A, tapering y semanas sin previsto', () => {
-  // 12 semanas, hoy en la semana 7; las semanas 1-6 llevan aeróbico medio previsto 3000 y real 2400 (-20 %).
+test('suggestions: content below target, run-up to an A competition, tapering and weeks without forecast', () => {
+  // 12 weeks, today in week 7; weeks 1-6 have a forecast of 3000 medium aerobic and an actual of 2400 (-20 %).
   const fs = [fase('a', 'A', 'preparacion-general', '2026-09-07', '2026-10-25'), fase('t', 'Tapering', 'tapering', '2026-11-16', '2026-11-29')];
   const planes = [];
   for (let i = 0; i < 12; i++) planes.push(sp(C.addDias('2026-09-07', i * 7), 10000, { [tid('aerobico-medio')]: 3000 }));
   const cg = [];
   for (let i = 0; i < 6; i++) cg.push({ id: 'k' + i, nadadorId: 'n1', fecha: C.addDias('2026-09-08', i * 7), metros: 10000, tipo: 'Aeróbico medio / Umbral anaeróbico' });
-  // el real por contenido de arriba: 10000 en aeróbico medio => alto; para el caso "bajo" se reparte con otro tipo
+  // the actual per content above: 10000 in medium aerobic => high; for the "low" case it is split with another type
   cg.forEach((c, i) => { c.metros = 2400; });
   cg.push(...Array.from({ length: 6 }, (_, i) => ({ id: 'o' + i, nadadorId: 'n1', fecha: C.addDias('2026-09-09', i * 7), metros: 7600, tipo: 'Piernas' })));
   const ev = [D.normalizarEvento({ id: 'ea', tipo: 'competicion', nombre: 'Campeonato', fechaInicio: '2026-11-08', prioridad: 'A' })];
   const sem = D.resumenSemanas({ temporada, tipos, fases: fs, semanasPlan: planes, eventos: ev, cargas: cg, nadadores: [{ id: 'n1', grupoId: 'g3' }], sesiones: [], lineas: [], hoy: '2026-10-21' });
   const sug = D.sugerencias({ semanas: sem, tipos, hoy: '2026-10-21' });
   const bajo = sug.find((s) => s.codigo === 'contenido-bajo');
-  assert.ok(bajo, 'hay sugerencia de aeróbico medio');
+  assert.ok(bajo, 'there is a medium aerobic suggestion');
   assert.equal(bajo.params.tipoId, tid('aerobico-medio'));
   assert.equal(bajo.params.pct, -20);
   assert.equal(bajo.accion.tipo, 'anadir-contenido');
   assert.ok(bajo.accion.metros > 0 && bajo.accion.metros % 50 === 0);
-  // previa a la competición A (semana 9, 2 y 1 semanas antes = 7 y 8): bajan un 15 % y un 30 % de la media de las 3 anteriores
+  // run-up to the A competition (week 9, 2 and 1 weeks before = 7 and 8): they drop 15 % and 30 % of the average of the 3 previous
   const previa = sug.filter((s) => s.codigo === 'previa-competicion');
   assert.deepEqual(previa.map((s) => [s.semana, s.accion.volumen]), [[7, 8500], [8, 7000]]);
   assert.equal(previa[0].params.evento, 'Campeonato');
-  // tapering (semanas 11-12): 80 % y 50 % de la media de las 3 anteriores a la fase (10000 cada una)
+  // tapering (weeks 11-12): 80 % and 50 % of the average of the 3 weeks before the phase (10000 each)
   const tap = sug.filter((s) => s.codigo === 'tapering');
   assert.deepEqual(tap.map((s) => [s.semana, s.accion.volumen]), [[11, 8000], [12, 5000]]);
   assert.ok(!sug.some((s) => s.codigo === 'sin-previsto'));
-  // semanas futuras sin previsto
+  // future weeks without forecast
   const sin = D.sugerencias({ semanas: D.resumenSemanas({ temporada, tipos, fases: fs, semanasPlan: [], hoy: '2026-10-21' }), tipos, hoy: '2026-10-21' });
   assert.deepEqual(sin.map((s) => s.codigo), ['sin-previsto']);
   assert.equal(sin[0].params.n, 6);
-  // ya reducida: no se sugiere
+  // already reduced: not suggested
   const planesOk = planes.map((p) => (p.lunes === '2026-10-19' ? { ...p, volumen: 8000 } : p.lunes === '2026-10-26' ? { ...p, volumen: 6000 } : p));
   const sem2 = D.resumenSemanas({ temporada, tipos, fases: fs, semanasPlan: planesOk, eventos: ev, hoy: '2026-10-21' });
   assert.equal(D.sugerencias({ semanas: sem2, tipos, hoy: '2026-10-21' }).filter((s) => s.codigo === 'previa-competicion').length, 0);
-  // aplicar una acción
+  // apply an action
   assert.deepEqual(D.aplicarAccion(sem, previa[1].accion), { n: 8, lunes: '2026-10-26', volumen: 7000, contenidos: { [tid('aerobico-medio')]: 2100 } });
   const aniadido = D.aplicarAccion(sem, bajo.accion);
   assert.equal(aniadido.volumen, 10000 + bajo.accion.metros);
   assert.equal(aniadido.contenidos[tid('aerobico-medio')], 3000 + bajo.accion.metros);
 });
 
-test('herramientas: ajustar ± %, mover semanas, copiar y plantillas de fase', () => {
+test('tools: adjust ± %, move weeks, copy and phase templates', () => {
   const planes = [sp('2026-09-07', 10000, { [tid('piernas')]: 1000 }), sp('2026-09-14', 11000), sp('2026-09-28', 9000)];
   const sem = D.resumenSemanas({ temporada, tipos, semanasPlan: planes, hoy: '2026-09-01' });
   const aj = D.ajustarVolumenes(sem, { desde: 1, hasta: 4, pct: -15 });
@@ -265,7 +265,7 @@ test('herramientas: ajustar ± %, mover semanas, copiar y plantillas de fase', (
   const mv = D.desplazarPlan(sem, { desde: 1, hasta: 2, k: 2 });
   assert.deepEqual(mv.map((c) => [c.n, c.antes, c.despues]), [[1, 10000, null], [2, 11000, null], [3, null, 10000], [4, 9000, 11000]]);
   assert.deepEqual(D.copiarPlanSemana(sem[0].plan), { volumen: 10000, contenidos: { [tid('piernas')]: 1000 }, intensidad: null, objetivo: '', notas: '' });
-  // plantilla: el reparto suma el volumen y respeta sólo contenidos activos
+  // template: the split adds up to the volume and only respects active contents
   const pl = D.aplicarPlantillaFase(sem, { nIni: 1, nFin: 4, tipo: 'preparacion-general', volumenBase: 10000, tipos });
   assert.deepEqual(pl.map((x) => x.volumen), [9000, 10000, 10800, 7500]);
   pl.forEach((x) => assert.equal(D.sumaContenidos(x.contenidos), x.volumen));
@@ -276,10 +276,10 @@ test('herramientas: ajustar ± %, mover semanas, copiar y plantillas de fase', (
   const tap = D.aplicarPlantillaFase(sem, { nIni: 1, nFin: 2, tipo: 'tapering', volumenBase: 10000, tipos });
   assert.deepEqual(tap.map((x) => x.volumen), [8000, 5000]);
   assert.equal(D.volumenBaseSugerido(sem, 1, 4), 10000);
-  assert.equal(D.volumenBaseSugerido(sem, 6, 8), 9000, 'sin previsto en la fase: media de las semanas previas');
+  assert.equal(D.volumenBaseSugerido(sem, 6, 8), 9000, 'no forecast in the phase: average of the previous weeks');
 });
 
-test('eventos de la temporada para el calendario y el .ics (fuente registrable)', () => {
+test('season events for the calendar and the .ics (registrable source)', () => {
   const datos = {
     Grupos: [{ id: 'g3', nombre: 'Infantil' }], Entrenamientos: [],
     EventosTemporada: [
@@ -294,10 +294,10 @@ test('eventos de la temporada para el calendario y el .ics (fuente registrable)'
   assert.equal(evs[0].grupoNombre, 'Infantil');
   assert.match(evs[1].descripcion, /Día 2 de 3/);
   assert.match(evs[0].descripcion, /Pruebas: 100 libre/);
-  assert.equal(D.eventosDeTemporada(datos, { desde: '2026-11-07', hasta: '2026-11-07' }).length, 1, 'sólo los días del rango');
+  assert.equal(D.eventosDeTemporada(datos, { desde: '2026-11-07', hasta: '2026-11-07' }).length, 1, 'only the days in the range');
   C.registrarFuente(D.FUENTE_CALENDARIO);
   C.registrarFuente(D.FUENTE_CALENDARIO);
-  assert.equal(C.FUENTES_EVENTOS.filter((f) => f.id === 'temporada').length, 1, 'registrar dos veces no duplica');
+  assert.equal(C.FUENTES_EVENTOS.filter((f) => f.id === 'temporada').length, 1, 'registering twice does not duplicate');
   const todos = C.eventosEnRango(datos, { desde: '2026-11-01', hasta: '2026-12-31' });
   assert.equal(todos.filter((e) => e.origen === 'temporada').length, 4);
   const ics = C.generarICS(todos, { ahora: new Date(Date.UTC(2026, 9, 1)) });
@@ -308,20 +308,20 @@ test('eventos de la temporada para el calendario y el .ics (fuente registrable)'
   assert.deepEqual(D.colorEventoCalendario(evs[0]), { semantico: 'danger' }, 'priority A is the danger tone (no hex in the domain)');
 });
 
-test('temporadaDemo: fases con fechas continuas, semanas con previsto y eventos de distinta prioridad', () => {
+test('temporadaDemo: phases with continuous dates, weeks with forecast and events of different priority', () => {
   const d = D.temporadaDemo({ hoy: '2026-10-15', grupoId: 'g3', tipos });
   const t = D.normalizarTemporada(d.temporada);
   assert.equal(t.nombre, 'Temporada 2026-27');
   assert.equal(C.diaSemana(t.inicio), 0);
   const fs = d.fases.map(D.normalizarFase);
   const ev = d.eventos.map(D.normalizarEvento);
-  assert.deepEqual(D.validarPlan({ temporada: t, fases: fs, eventos: ev }), [], 'sin solapes, huecos ni eventos fuera');
+  assert.deepEqual(D.validarPlan({ temporada: t, fases: fs, eventos: ev }), [], 'no overlaps, gaps or events outside');
   assert.equal(d.semanas.length, D.generarSemanas(t.inicio, t.fin).length);
   assert.ok(d.semanas.every((s) => D.normalizarSemanaPlan(s).volumen > 0));
   const comps = ev.filter((e) => e.tipo === 'competicion');
-  assert.ok(comps.length >= 3 && new Set(comps.map((e) => e.prioridad)).size >= 3, 'competiciones A, B y C');
+  assert.ok(comps.length >= 3 && new Set(comps.map((e) => e.prioridad)).size >= 3, 'competitions A, B and C');
   assert.deepEqual(fs.map((f) => f.tipo), ['preparacion-general', 'preparacion-especifica', 'competitiva', 'tapering', 'transicion']);
-  // la ventana de datos demo siempre cae dentro de la temporada
+  // the demo data window always falls inside the season
   const lejos = D.temporadaDemo({ hoy: '2026-07-20', tipos, desdeFecha: '2026-06-29' });
   assert.ok(lejos.temporada.fechaInicio <= '2026-06-01');
 });

@@ -583,6 +583,6 @@ test('P2: the Google simulator is only activated on localhost/127.0.0.1 (or with
   assert.equal(pruebasPermitidas({ location: { hostname: 'miclub.github.io' }, localStorage: ls('1') }), false, 'a stale localStorage value does not replace Google in production');
   assert.equal(pruebasPermitidas({ location: { hostname: 'localhost' }, localStorage: ls(null) }), false);
   assert.equal(pruebasPermitidas({ location: { hostname: 'miclub.github.io' }, localStorage: ls(null), __CNL_TEST__: { sesion: true } }), true, 'Playwright injects it with addInitScript');
-  assert.equal(pruebasPermitidas({ location: { hostname: 'evil.com' }, localStorage: { getItem() { throw new Error('bloqueado'); } } }), false);
+  assert.equal(pruebasPermitidas({ location: { hostname: 'evil.com' }, localStorage: { getItem() { throw new Error('blocked'); } } }), false);
 });
 });

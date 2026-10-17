@@ -1,4 +1,4 @@
-// Desglose por contenido y estilo: parser del texto, reparto auto/manual, validación, totales y porcentajes, migración.
+// Breakdown by content and stroke: text parser, auto/manual split, validation, totals and percentages, migration.
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { importApp } from '../helpers/env.js';
@@ -17,7 +17,7 @@ const suma = (l, k) => Math.round(l.reduce((a, x) => a + x[k], 0) * 100) / 100;
 const nombres = (p) => p.componentes.map((c) => c.contenido);
 
 // ---------- Parser ----------
-test('parser: ejemplo del entrenador «4x100 Crol. 75 AeL-25 Tope»', () => {
+test('parser: the coach\'s example "4x100 Crol. 75 AeL-25 Tope"', () => {
   const p = G.parsearEjercicio('4x100 Crol. 75 AeL-25 Tope');
   assert.equal(p.ok, true);
   assert.equal(p.series, 4);
@@ -27,20 +27,20 @@ test('parser: ejemplo del entrenador «4x100 Crol. 75 AeL-25 Tope»', () => {
   assert.deepEqual(p.sinReconocer, []);
 });
 
-test('parser: paréntesis, sumas y un solo contenido', () => {
+test('parser: parentheses, sums and a single content', () => {
   let p = G.parsearEjercicio('8x50 (25 Sprint+25 AeL)');
   assert.deepEqual([p.series, p.distancia], [8, 50]);
   assert.deepEqual(p.componentes, [comp(SPR, 25), comp(AEL, 25)]);
   p = G.parsearEjercicio('6x100 AeL');
   assert.deepEqual([p.series, p.distancia], [6, 100]);
-  assert.deepEqual(p.componentes, [comp(AEL)], 'sin número: toma el resto (toda la distancia)');
+  assert.deepEqual(p.componentes, [comp(AEL)], 'no number: takes the rest (the whole distance)');
   p = G.parsearEjercicio('3x(200 AeM + 100 AeI)');
-  assert.deepEqual([p.series, p.distancia], [3, 300], 'la distancia es la suma del paréntesis');
+  assert.deepEqual([p.series, p.distancia], [3, 300], 'the distance is the sum inside the parentheses');
   assert.deepEqual(p.componentes, [comp(AEM, 200), comp(AEI, 100)]);
 });
 
-test('parser: alias, nombres completos y tramos de nombres con barra, sin tildes ni mayúsculas', () => {
-  assert.deepEqual(nombres(G.parsearEjercicio('2x100 Pn + 2x0')), [], 'varios bloques no se interpreta');
+test('parser: aliases, full names and slash-separated name parts, without accents or capitals', () => {
+  assert.deepEqual(nombres(G.parsearEjercicio('2x100 Pn + 2x0')), [], 'several blocks are not interpreted');
   assert.deepEqual(nombres(G.parsearEjercicio('4X100 AERÓBICO LIGERO')), [AEL]);
   assert.deepEqual(nombres(G.parsearEjercicio('4x50 Aláctico / Sprint')), [SPR]);
   assert.deepEqual(nombres(G.parsearEjercicio('4x50 Tope')), [SPR]);
@@ -50,10 +50,10 @@ test('parser: alias, nombres completos y tramos de nombres con barra, sin tildes
   assert.deepEqual(nombres(G.parsearEjercicio('4x50 Vir')), ['Virajes/volteos']);
   assert.deepEqual(nombres(G.parsearEjercicio('4x100 umbral')), [AEM]);
   assert.deepEqual(nombres(G.parsearEjercicio('4x100 tolerancia al lactato')), [LAC]);
-  assert.deepEqual(nombres(G.parsearEjercicio('4x100 Sprint/Alactico')), [SPR], 'dos alias del mismo contenido = uno');
+  assert.deepEqual(nombres(G.parsearEjercicio('4x100 Sprint/Alactico')), [SPR], 'two aliases of the same content = one');
 });
 
-test('parser: unidades «m», decimales y estilos con reparto', () => {
+test('parser: "m" units, decimals and strokes with a split', () => {
   let p = G.parsearEjercicio('4x100m Crol');
   assert.deepEqual([p.series, p.distancia, p.estilos[0].estilo], [4, 100, 'Crol']);
   p = G.parsearEjercicio('2x(12,5 Sprint + 37,5 AeL)');
@@ -62,13 +62,13 @@ test('parser: unidades «m», decimales y estilos con reparto', () => {
   p = G.parsearEjercicio('4x100 50 Crol + 50 Espalda');
   assert.deepEqual(p.estilos, [{ estilo: 'Crol', metrosPorRep: 50 }, { estilo: 'Espalda', metrosPorRep: 50 }]);
   p = G.parsearEjercicio('4x100 25 mariposa + 25 espalda + 25 braza + 25 libre');
-  assert.deepEqual(p.estilos.map((e) => e.estilo), ['Mariposa', 'Espalda', 'Braza', 'Crol'], '«m» de mariposa no es la unidad');
+  assert.deepEqual(p.estilos.map((e) => e.estilo), ['Mariposa', 'Espalda', 'Braza', 'Crol'], 'the "m" of mariposa is not the unit');
   assert.deepEqual(G.parsearEjercicio('100 Free').estilos[0].estilo, 'Crol');
   assert.equal(G.canonicoEstilo('backstroke'), 'Espalda');
-  assert.equal(G.canonicoEstilo('Tortuga'), 'Tortuga', 'estilo libre sin cambios');
+  assert.equal(G.canonicoEstilo('Tortuga'), 'Tortuga', 'free-text stroke unchanged');
 });
 
-test('parser: casos raros e inválidos no lanzan', () => {
+test('parser: odd and invalid inputs do not throw', () => {
   for (const x of ['', '   ', null, undefined, 'hola', '4x', 'x100', '0x100 AeL', '4x100 xyz', '---', '😀', '4x100 AeL AeL AeL']) {
     assert.doesNotThrow(() => G.parsearEjercicio(x), String(x));
   }
@@ -77,75 +77,75 @@ test('parser: casos raros e inválidos no lanzan', () => {
   assert.equal(G.parsearEjercicio('hola').codigo, 'sin-datos');
   assert.equal(G.parsearEjercicio('2x100 AeL + 3x50 Pn').codigo, 'varios-bloques');
   const p = G.parsearEjercicio('4x100 25 flecha');
-  assert.equal(p.ok, true, 'hay series y distancia');
-  assert.deepEqual(p.sinReconocer, ['flecha'], 'lo que sigue a un número y no se conoce queda listado');
-  assert.deepEqual(G.parsearEjercicio('4x100 AeL AeL AeL').componentes, [comp(AEL)], 'repetidos: uno');
-  assert.deepEqual(G.parsearEjercicio('4x100 75 AeL').componentes, [comp(AEL, 75, 'manual')], 'un número que no cuadra se respeta (manual)');
+  assert.equal(p.ok, true, 'there are series and distance');
+  assert.deepEqual(p.sinReconocer, ['flecha'], 'what follows a number and is not recognised is listed');
+  assert.deepEqual(G.parsearEjercicio('4x100 AeL AeL AeL').componentes, [comp(AEL)], 'repeated: one');
+  assert.deepEqual(G.parsearEjercicio('4x100 75 AeL').componentes, [comp(AEL, 75, 'manual')], 'a number that does not add up is respected (manual)');
 });
 
-test('parser: usa los alias del catálogo del club (editables) y los contenidos propios', () => {
+test('parser: uses the club catalogue aliases (editable) and its own contents', () => {
   const tipos = C.sembrarCatalogo([]).concat([
     { id: 'x1', nombre: 'Fuerza en seco', alias: ['FZ'], color: '#112233', activo: true, predefinido: false, categoria: 'personalizado', orden: 50 },
   ]);
   tipos.find((t) => t.id === 'tc-aerobico-ligero').alias = ['Suavecito'];
   const p = G.parsearEjercicio('4x100 50 Suavecito + 50 FZ', { tipos });
   assert.deepEqual(p.componentes, [comp(AEL, 50), comp('Fuerza en seco', 50)]);
-  assert.deepEqual(G.parsearEjercicio('4x100 AeL', { tipos }).componentes, [], 'AeL ya no es alias en ese catálogo');
+  assert.deepEqual(G.parsearEjercicio('4x100 AeL', { tipos }).componentes, [], 'AeL is no longer an alias in that catalogue');
 });
 
-// ---------- Reparto ----------
-test('repartir: un contenido recibe toda la distancia; varios automáticos, a partes iguales', () => {
+// ---------- Split ----------
+test('repartir: one content gets the whole distance; several automatic ones, in equal parts', () => {
   assert.deepEqual(G.repartir([{ modo: 'auto' }], 100).m, [100]);
   assert.deepEqual(G.repartir([{ modo: 'auto' }, { modo: 'auto' }], 100).m, [50, 50]);
   const tres = G.repartir([{ modo: 'auto' }, { modo: 'auto' }, { modo: 'auto' }], 100);
-  assert.equal(suma([{ m: tres.m[0] }, { m: tres.m[1] }, { m: tres.m[2] }], 'm'), 100, 'el último absorbe el redondeo');
+  assert.equal(suma([{ m: tres.m[0] }, { m: tres.m[1] }, { m: tres.m[2] }], 'm'), 100, 'the last one absorbs the rounding');
   assert.deepEqual(G.repartir([], 100), { m: [], asignado: 0, resto: 100, exceso: 0 });
 });
 
-test('repartir: manual por metros o por porcentaje; los automáticos reparten el resto', () => {
+test('repartir: manual by metres or by percentage; automatic ones share the rest', () => {
   const r = G.repartir([{ metrosPorRep: 30, modo: 'manual' }, { modo: 'auto' }, { modo: 'auto' }], 100);
   assert.deepEqual(r.m, [30, 35, 35]);
   assert.deepEqual([r.resto, r.exceso], [0, 0]);
   const p = G.repartir([{ pct: 25, modo: 'manual' }, { modo: 'auto' }], 200);
   assert.deepEqual(p.m, [50, 150]);
   const fijo = G.repartir([{ metrosPorRep: 60, modo: 'manual' }], 100);
-  assert.deepEqual([fijo.m[0], fijo.resto], [60, 40], 'un único manual no se estira: queda resto');
+  assert.deepEqual([fijo.m[0], fijo.resto], [60, 40], 'a single manual one is not stretched: a remainder is left');
 });
 
-test('repartir: resto sin asignar y exceso', () => {
+test('repartir: unassigned remainder and excess', () => {
   const r = G.repartir([{ metrosPorRep: 75, modo: 'auto' }, { metrosPorRep: 20, modo: 'auto' }], 100);
   assert.deepEqual([r.resto, r.exceso], [5, 0]);
   const e = G.repartir([{ metrosPorRep: 80, modo: 'manual' }, { metrosPorRep: 40, modo: 'manual' }], 100);
   assert.deepEqual([e.resto, e.exceso], [0, 20]);
   const sobra = G.repartir([{ metrosPorRep: 120, modo: 'manual' }, { modo: 'auto' }], 100);
-  assert.deepEqual([sobra.m[1], sobra.exceso], [0, 20], 'sin nada que repartir el automático recibe 0');
+  assert.deepEqual([sobra.m[1], sobra.exceso], [0, 20], 'with nothing left to share the automatic one gets 0');
 });
 
-test('manual gana a auto: autocompletar desde el texto no toca los componentes manuales', () => {
+test('manual wins over auto: autocompleting from the text does not touch manual components', () => {
   const l = { series: '', distancia: '', ejercicio: '4x100 Crol. 75 AeL-25 Tope', componentes: [comp(SPR, 30, 'manual')] };
   const r = G.autocompletarLinea(l);
-  assert.deepEqual([r.linea.series, r.linea.distancia], [4, 100], 'rellena series y distancia vacías');
+  assert.deepEqual([r.linea.series, r.linea.distancia], [4, 100], 'fills in empty series and distance');
   assert.deepEqual(r.linea.componentes, [comp(SPR, 30, 'manual'), comp(AEL, 75)]);
   assert.deepEqual(r.linea.estilos, [{ estilo: 'Crol', metrosPorRep: null }]);
   assert.equal(r.cambios.componentes, true);
-  // «NxM» en el texto manda sobre series/distancia de la fila; los estilos existentes se respetan
+  // "NxM" in the text takes precedence over the row's series/distance; existing strokes are respected
   const dos = G.autocompletarLinea({ series: 2, distancia: 200, ejercicio: '4x100 Crol. 75 AeL-25 Tope', estilos: [{ estilo: 'Braza', metrosPorRep: null }] });
   assert.deepEqual([dos.linea.series, dos.linea.distancia, dos.linea.estilos[0].estilo], [4, 100, 'Braza']);
   assert.deepEqual([dos.cambios.series, dos.cambios.distancia, dos.cambios.estilos], [true, true, false]);
-  // sin «NxM» (sólo reparto) no se pisa nada de la fila: la distancia deducida (100) sólo rellena si está vacía
+  // without "NxM" (split only) nothing in the row is overwritten: the deduced distance (100) only fills in if empty
   const sinPrefijo = G.autocompletarLinea({ series: 2, distancia: 200, ejercicio: '75 AeL + 25 Tope' });
   assert.deepEqual([sinPrefijo.linea.series, sinPrefijo.linea.distancia], [2, 200]);
   assert.equal(G.autocompletarLinea({ ejercicio: '75 AeL + 25 Tope' }).linea.distancia, 100);
-  // texto sin nada reconocible: no cambia
+  // text with nothing recognisable: unchanged
   const nada = G.autocompletarLinea({ series: 1, distancia: 50, ejercicio: 'hola', componentes: [comp(AEL, 50, 'manual')] });
   assert.equal(nada.parse.ok, false);
   assert.deepEqual(nada.linea.componentes, [comp(AEL, 50, 'manual')]);
 });
 
-test('editar componentes: añadir, fijar (manual), liberar (auto), igualar y quitar', () => {
+test('editing components: add, pin (manual), release (auto), equalise and remove', () => {
   let cs = G.anadirComponente([], AEL);
   cs = G.anadirComponente(cs, 'aerobico LIGERO');
-  assert.equal(cs.length, 1, 'no se repite el mismo contenido');
+  assert.equal(cs.length, 1, 'the same content is not repeated');
   cs = G.anadirComponente(cs, SPR);
   cs = G.fijarComponente(cs, SPR, { metrosPorRep: 20 });
   assert.deepEqual(cs[1], comp(SPR, 20, 'manual'));
@@ -154,12 +154,12 @@ test('editar componentes: añadir, fijar (manual), liberar (auto), igualar y qui
   cs = G.liberarComponente(cs, SPR);
   assert.deepEqual(cs[1], comp(SPR));
   cs = G.repartirIgual([comp(AEL, 70), comp(SPR, 10, 'manual')]);
-  assert.deepEqual(cs, [comp(AEL), comp(SPR, 10, 'manual')], 'los manuales no se tocan');
-  assert.deepEqual(G.quitarComponente(cs, 'sprint').length, 2, 'quitar por nombre exacto; «sprint» no es el nombre');
+  assert.deepEqual(cs, [comp(AEL), comp(SPR, 10, 'manual')], 'manual ones are not touched');
+  assert.deepEqual(G.quitarComponente(cs, 'sprint').length, 2, 'remove by exact name; "sprint" is not the name');
   assert.deepEqual(G.quitarComponente(cs, SPR).map((c) => c.contenido), [AEL]);
 });
 
-test('fijar a mano reequilibra los automáticos con metros (proporcional) y no toca el resto de casos', () => {
+test('pinning by hand rebalances the automatic ones with metres (proportionally) and leaves the other cases alone', () => {
   const base = { series: 4, distancia: 100 };
   let cs = G.fijarReequilibrando({ ...base, componentes: [comp(AEL, 75), comp(SPR, 25)] }, SPR, { metrosPorRep: 40 });
   assert.deepEqual(cs, [comp(AEL, 60), comp(SPR, 40, 'manual')]);
@@ -169,41 +169,41 @@ test('fijar a mano reequilibra los automáticos con metros (proporcional) y no t
   cs = G.fijarReequilibrando({ ...base, componentes: [comp(AEL, 50), comp(AEM, 30), comp(SPR, 20)] }, SPR, { pct: 10 });
   assert.deepEqual(cs.map((c) => c.metrosPorRep), [56.25, 33.75, null]);
   assert.deepEqual(cs[2], comp(SPR, null, 'manual', 10));
-  // con un automático sin metros él absorbe la diferencia: no se toca nada más
+  // with an automatic one without metres it absorbs the difference: nothing else is touched
   cs = G.fijarReequilibrando({ ...base, componentes: [comp(AEL), comp(SPR, 25)] }, SPR, { metrosPorRep: 40 });
   assert.deepEqual(cs, [comp(AEL), comp(SPR, 40, 'manual')]);
-  // sin otros automáticos, o sin distancia, sólo se fija
+  // with no other automatic ones, or no distance, it is only pinned
   assert.deepEqual(G.fijarReequilibrando({ ...base, componentes: [comp(AEL, 10, 'manual'), comp(SPR, 90, 'manual')] }, SPR, { metrosPorRep: 20 }).map((c) => c.metrosPorRep), [10, 20]);
   assert.deepEqual(G.fijarReequilibrando({ componentes: [comp(AEL, 75), comp(SPR, 25)] }, SPR, { metrosPorRep: 40 }).map((c) => c.metrosPorRep), [75, 40]);
-  // fijar más de lo que hay: los automáticos quedan a 0
+  // pinning more than there is: the automatic ones end up at 0
   assert.deepEqual(G.fijarReequilibrando({ ...base, componentes: [comp(AEL, 75), comp(SPR, 25)] }, SPR, { metrosPorRep: 120 }).map((c) => c.metrosPorRep), [0, 120]);
 });
 
-test('validación: resto sin asignar, exceso y asignar el resto', () => {
+test('validation: unassigned remainder, excess and assigning the remainder', () => {
   const l = { set: 1, orden: 2, series: 4, distancia: 100, componentes: [comp(AEL, 75), comp(SPR, 20)] };
   const v = G.validarReparto(l);
   assert.deepEqual(v.map((x) => x.codigo), ['reparto-incompleto']);
   assert.deepEqual(v[0].params, { resto: 5, distancia: 100 });
   assert.deepEqual([v[0].set, v[0].orden], [1, 2]);
-  // asignar el resto a un componente existente o a uno nuevo; queda manual
+  // assign the remainder to an existing or a new component; it becomes manual
   const a = G.asignarResto(l, SPR);
   assert.deepEqual(a[1], comp(SPR, 25, 'manual'));
   assert.deepEqual(G.validarReparto({ ...l, componentes: a }), []);
   const b = G.asignarResto(l, 'Piernas');
   assert.deepEqual(b[2], comp('Piernas', 5, 'manual'));
-  assert.deepEqual(G.asignarResto({ ...l, componentes: [comp(AEL)] }, SPR), [comp(AEL)], 'sin resto no cambia nada');
+  assert.deepEqual(G.asignarResto({ ...l, componentes: [comp(AEL)] }, SPR), [comp(AEL)], 'with no remainder nothing changes');
   const ex = G.validarReparto({ ...l, componentes: [comp(AEL, 80, 'manual'), comp(SPR, 40, 'manual')] });
   assert.deepEqual(ex.map((x) => x.codigo), ['reparto-excede']);
   assert.equal(ex[0].params.exceso, 20);
   assert.equal(G.validarReparto({ set: 1, orden: 1, componentes: [comp(AEL)] })[0].codigo, 'reparto-sin-distancia');
-  assert.deepEqual(G.validarReparto({ set: 1, orden: 1, series: 1, distancia: 50 }), [], 'sin componentes no hay nada que validar');
+  assert.deepEqual(G.validarReparto({ set: 1, orden: 1, series: 1, distancia: 50 }), [], 'with no components there is nothing to validate');
   const est = G.validarReparto({ set: 1, orden: 1, series: 2, distancia: 100, estilos: [{ estilo: 'Crol', metrosPorRep: 30 }, { estilo: 'Espalda', metrosPorRep: 30 }] });
   assert.deepEqual(est.map((x) => x.codigo), ['estilo-incompleto']);
   assert.equal(G.validarRepartoSesion([{ set: 1, orden: 1, series: 4, distancia: 100, componentes: [comp(AEL, 10, 'manual')] }, { set: 1, orden: 2 }]).length, 1);
 });
 
-// ---------- Totales y porcentajes ----------
-test('porcentajes suman siempre 100 (mayor resto)', () => {
+// ---------- Totals and percentages ----------
+test('percentages always add up to 100 (largest remainder)', () => {
   assert.deepEqual(G.porcentajes([1, 1, 1]), [33.4, 33.3, 33.3]);
   assert.deepEqual(G.porcentajes([300, 100]), [75, 25]);
   assert.deepEqual(G.porcentajes([0, 0]), [0, 0]);
@@ -219,7 +219,7 @@ test('porcentajes suman siempre 100 (mayor resto)', () => {
   }
 });
 
-test('desgloseSesion: ejemplo del entrenador (400 m, AeL 300, Sprint 100, Crol 400)', () => {
+test('desgloseSesion: the coach\'s example (400 m, AeL 300, Sprint 100, Crol 400)', () => {
   const l = G.autocompletarLinea({ set: 1, orden: 1, ejercicio: '4x100 Crol. 75 AeL-25 Tope' }).linea;
   const d = G.desgloseSesion([l]);
   assert.equal(d.totalM, 400);
@@ -234,25 +234,25 @@ test('desgloseSesion: ejemplo del entrenador (400 m, AeL 300, Sprint 100, Crol 4
   assert.equal(G.textoEjercicio({ series: 1, distancia: 50 }), '');
 });
 
-test('desgloseSesion: filas, sets y sesión suman el total; contenido manual, auto, resto y estilos', () => {
+test('desgloseSesion: rows, sets and session add up to the total; manual and auto content, remainder and strokes', () => {
   const lineas = [
-    { set: 1, orden: 1, series: 1, distancia: 300, objetivo: 'Calentamiento' }, // antigua: AeL por «Calentamiento»
+    { set: 1, orden: 1, series: 1, distancia: 300, objetivo: 'Calentamiento' }, // old row: AeL via "Calentamiento"
     { set: 2, orden: 1, series: 8, distancia: 50, componentes: [comp('Piernas', 30, 'manual'), comp(SPR)], estilos: [{ estilo: 'Mariposa', metrosPorRep: 20 }, { estilo: 'Crol', metrosPorRep: 30 }] },
-    { set: 2, orden: 2, series: 4, distancia: 100, componentes: [comp(AEL, 60, 'manual')] }, // 40 m/rep sin asignar
-    { set: 3, orden: 1, series: 2, distancia: 25, componentes: [comp(AEM), comp(AEI), comp(SPR)] }, // 3 al reparto: 8,33...
+    { set: 2, orden: 2, series: 4, distancia: 100, componentes: [comp(AEL, 60, 'manual')] }, // 40 m/rep unassigned
+    { set: 3, orden: 1, series: 2, distancia: 25, componentes: [comp(AEM), comp(AEI), comp(SPR)] }, // 3 to split: 8.33...
   ];
   const d = G.desgloseSesion(lineas);
   assert.equal(d.totalM, 300 + 400 + 400 + 50);
-  assert.equal(suma(d.porContenido, 'metros'), d.totalM, 'los metros por contenido suman el total');
+  assert.equal(suma(d.porContenido, 'metros'), d.totalM, 'the metres per content add up to the total');
   assert.equal(Math.round(suma(d.porContenido, 'pct') * 10) / 10, 100);
   assert.equal(Math.round(suma(d.porEstilo, 'pct') * 10) / 10, 100);
   assert.equal(suma(d.porEstilo, 'metros'), d.totalM);
   const por = Object.fromEntries(d.porContenido.map((c) => [c.contenido || '(sin)', c.metros]));
   assert.equal(por.Piernas, 240);
   assert.equal(por[AEL], 300 + 240);
-  assert.equal(por['(sin)'], 160, 'lo no asignado se cuenta como «sin contenido»');
-  assert.equal(d.porContenido[d.porContenido.length - 1].contenido, '', 'y va al final');
-  assert.deepEqual(d.porEstilo.map((e) => e.estilo), ['Crol', 'Mariposa', ''], 'orden: por metros, sin estilo al final');
+  assert.equal(por['(sin)'], 160, 'what is unassigned is counted as "no content"');
+  assert.equal(d.porContenido[d.porContenido.length - 1].contenido, '', 'and goes last');
+  assert.deepEqual(d.porEstilo.map((e) => e.estilo), ['Crol', 'Mariposa', ''], 'order: by metres, no stroke last');
   const set2 = d.porSet.find((s) => s.set === 2);
   assert.equal(set2.totalM, 800);
   assert.equal(suma(d.porSet.map((s) => ({ m: s.totalM })), 'm'), d.totalM);
@@ -260,13 +260,13 @@ test('desgloseSesion: filas, sets y sesión suman el total; contenido manual, au
   assert.equal(d.filas[2].resolucion.resto, 40);
 });
 
-test('desgloseSesion: pasarse de la distancia se ajusta proporcionalmente y sigue sumando el total', () => {
+test('desgloseSesion: exceeding the distance is adjusted proportionally and still adds up to the total', () => {
   const d = G.desgloseSesion([{ set: 1, orden: 1, series: 2, distancia: 100, componentes: [comp(AEL, 100, 'manual'), comp(SPR, 100, 'manual')] }]);
   assert.equal(d.totalM, 200);
   assert.deepEqual(d.porContenido.map((c) => [c.metros, c.pct]), [[100, 50], [100, 50]]);
 });
 
-test('migración: filas antiguas sin componentes van al contenido del objetivo (con herencia en el set) o a «sin contenido»', () => {
+test('migration: old rows without components go to the objective\'s content (inherited within the set) or to "no content"', () => {
   const EJEMPLO = [
     { set: 1, orden: 1, series: 1, distancia: 300, objetivo: 'Calentamiento' },
     { set: 1, orden: 2, series: 4, distancia: 50, ejercicio: 'tec' },
@@ -277,17 +277,17 @@ test('migración: filas antiguas sin componentes van al contenido del objetivo (
   ];
   const d = G.desgloseSesion(EJEMPLO);
   const por = Object.fromEntries(d.porContenido.map((c) => [c.contenido || '(sin)', c.metros]));
-  assert.equal(por[AEL], 300 + 200, 'hereda el objetivo de la fila anterior del set');
+  assert.equal(por[AEL], 300 + 200, 'inherits the objective of the previous row in the set');
   assert.equal(por.Piernas, 400);
   assert.equal(por[AEM], 600);
   assert.equal(por['Técnica'], 400);
   assert.equal(por['(sin)'], 60);
   assert.equal(d.porEstilo.length, 1);
-  assert.equal(d.porEstilo[0].estilo, '', 'sin estilo');
-  assert.equal(d.totalM, D.totales(EJEMPLO).metros, 'el total sigue siendo la suma de Dist. Bloque');
+  assert.equal(d.porEstilo[0].estilo, '', 'no stroke');
+  assert.equal(d.totalM, D.totales(EJEMPLO).metros, 'the total is still the sum of Dist. Bloque');
 });
 
-test('volumenPorContenido: agregados de varias sesiones (para la planificación de temporada)', () => {
+test('volumenPorContenido: aggregates of several sessions (for season planning)', () => {
   const a = [{ set: 1, orden: 1, series: 4, distancia: 100, componentes: [comp(AEL, 75), comp(SPR, 25)] }];
   const b = { lineas: [{ set: 1, orden: 1, series: 2, distancia: 200, objetivo: 'Piernas' }, { set: 2, orden: 1, series: 1, distancia: 100, ejercicio: 'x' }] };
   const v = G.volumenPorContenido([a, b]);
@@ -298,20 +298,20 @@ test('volumenPorContenido: agregados de varias sesiones (para la planificación 
   assert.equal(v.sinClasificar, 100);
   assert.deepEqual(G.volumenPorContenido([]).porContenido, []);
   assert.equal(G.volumenPorContenido(null).totalM, 0);
-  // con catálogo propio: los contenidos de otro catálogo no se reconocen
+  // with its own catalogue: contents from another catalogue are not recognised
   const sinCatalogo = G.volumenPorContenido([a], { tipos: [{ id: 'z', nombre: 'Otro', alias: [], activo: true, predefinido: false }] });
   assert.equal(sinCatalogo.sinClasificar, 400);
 });
 
-// ---------- Columnas, normalización y alias ----------
-test('componentes y estilo: lectura/escritura de las columnas, JSON inválido y normalizarLinea', () => {
+// ---------- Columns, normalisation and aliases ----------
+test('components and stroke: reading/writing the columns, invalid JSON and normalizarLinea', () => {
   assert.deepEqual(D.leerComponentes('no es json'), []);
   assert.deepEqual(D.leerComponentes('[1,2,{"contenido":""}]'), []);
   assert.deepEqual(D.leerComponentes('[{"contenido":"A","metrosPorRep":"25","modo":"manual","pct":"10"}]'), [comp('A', 25, 'manual', 10)]);
   assert.equal(D.escribirComponentes([]), '');
   const json = D.escribirComponentes([comp(AEL, 75), comp(SPR, null, 'manual', 25)]);
   assert.deepEqual(D.leerComponentes(json), [comp(AEL, 75), comp(SPR, null, 'manual', 25)]);
-  assert.equal(D.escribirEstilos([{ estilo: 'Crol', metrosPorRep: null }]), 'Crol', 'un estilo sin reparto = su nombre');
+  assert.equal(D.escribirEstilos([{ estilo: 'Crol', metrosPorRep: null }]), 'Crol', 'a stroke without a split = its name');
   assert.deepEqual(D.leerEstilos('Crol'), [{ estilo: 'Crol', metrosPorRep: null }]);
   const dos = D.escribirEstilos([{ estilo: 'Crol', metrosPorRep: 50 }, { estilo: 'Espalda', metrosPorRep: 50 }]);
   assert.match(dos, /^\[/);
@@ -320,24 +320,24 @@ test('componentes y estilo: lectura/escritura de las columnas, JSON inválido y 
   const n = D.normalizarLinea({ set: 1, orden: 1, componentes: json, estilo: 'Braza' });
   assert.deepEqual([n.componentes.length, n.estilos[0].estilo], [2, 'Braza']);
   assert.deepEqual(D.normalizarLinea({}).componentes, []);
-  // ida y vuelta a la fila de la hoja
+  // round trip to the sheet row
   const fila = D.serializarLinea(n);
   assert.equal(typeof fila.componentes, 'string');
   assert.equal(fila.estilo, 'Braza');
   assert.equal('estilos' in fila, false);
   assert.deepEqual(D.normalizarLinea(fila).componentes, n.componentes);
-  // renumerar, duplicar y clonar conservan el reparto sin compartir referencias
+  // renumbering, duplicating and cloning keep the split without sharing references
   const copia = D.duplicarFila([n], 1, 1)[1];
   assert.deepEqual(copia.componentes, n.componentes);
   assert.notEqual(copia.componentes, n.componentes);
 });
 
-test('plantillas y plan de demo traen ejercicios multicontenido coherentes (el reparto suma la distancia)', () => {
+test('templates and the demo plan bring consistent multi-content exercises (the split adds up to the distance)', () => {
   const d = G.desgloseSesion(D.lineasDePlantilla('aerobico'));
   assert.ok(d.porContenido.length >= 3);
-  assert.equal(d.porContenido.find((c) => c.contenido === '')?.metros ?? 0, 0, 'sin metros sin asignar');
+  assert.equal(d.porContenido.find((c) => c.contenido === '')?.metros ?? 0, 0, 'no unassigned metres');
   const ejemplo = D.lineasDePlantilla('aerobico').find((l) => l.ejercicio === '4x100 Crol. 75 AeL-25 Tope');
-  assert.ok(ejemplo, 'incluye el ejemplo del entrenador');
+  assert.ok(ejemplo, 'includes the coach\'s example');
   assert.deepEqual(G.validarReparto(ejemplo), []);
   for (const p of D.PLANTILLAS) {
     assert.deepEqual(G.validarRepartoSesion(D.lineasDePlantilla(p.id)), [], p.id);
@@ -350,16 +350,16 @@ test('plantillas y plan de demo traen ejercicios multicontenido coherentes (el r
     }
   }
   const mixta = G.desgloseSesion(D.lineasDePlantilla('mixta'));
-  assert.ok(mixta.porEstilo.length >= 3, 'estilos con reparto: crol, estilos, mariposa');
+  assert.ok(mixta.porEstilo.length >= 3, 'strokes with a split: freestyle, medley, butterfly');
 });
 
-test('alias en el catálogo: lectura, valores de fábrica, validación y sembrado', () => {
+test('aliases in the catalogue: reading, factory values, validation and seeding', () => {
   assert.deepEqual(C.parseAlias('AeL, Ae1 ;  ael |  Tope\nX'), ['AeL', 'Ae1', 'Tope', 'X']);
   assert.deepEqual(C.parseAlias(null), []);
   const pre = C.normalizarTipo({ id: 'tc-piernas', nombre: 'Piernas', predefinido: 'true' });
-  assert.deepEqual(pre.alias, ['Pn', 'Pies'], 'un predefinido sin alias usa los de fábrica');
+  assert.deepEqual(pre.alias, ['Pn', 'Pies'], 'a predefined one without aliases uses the factory ones');
   assert.deepEqual(C.normalizarTipo({ id: 'tc-piernas', nombre: 'Piernas', predefinido: 'true', alias: 'Patada' }).alias, ['Patada']);
-  assert.deepEqual(C.normalizarTipo({ id: 'p1', nombre: 'Fuerza' }).alias, [], 'los personalizados no traen alias');
+  assert.deepEqual(C.normalizarTipo({ id: 'p1', nombre: 'Fuerza' }).alias, [], 'custom ones come without aliases');
   assert.equal(C.filaTipo({ ...pre, min: null, max: null }).alias, 'Pn, Pies');
   const sembrados = C.sembrarCatalogo([]);
   assert.ok(sembrados.every((t) => t.alias.length >= 1));
@@ -367,18 +367,18 @@ test('alias en el catálogo: lectura, valores de fábrica, validación y sembrad
   const cod = (d, id = '') => C.validarTipo({ nombre: 'Nuevo', ...d }, existentes, { id }).map((e) => e.codigo);
   assert.deepEqual(cod({ alias: 'FZ, Fuerza' }), []);
   assert.deepEqual(cod({ alias: 'AeL' }), ['alias-duplicado']);
-  assert.deepEqual(cod({ alias: 'piernas' }), ['alias-duplicado'], 'tampoco el nombre de otro contenido');
+  assert.deepEqual(cod({ alias: 'piernas' }), ['alias-duplicado'], 'nor the name of another content');
   assert.deepEqual(cod({ alias: 'a'.repeat(25) }), ['alias-largo']);
   assert.deepEqual(cod({ alias: 'a,b,c,d,e,f,g,h,i' }), ['alias-muchos']);
-  assert.deepEqual(cod({ alias: 'AeL' }, 'tc-aerobico-ligero'), [], 'conservar los propios alias al editar');
-  assert.deepEqual(cod({}), [], 'sin campo alias no se valida');
+  assert.deepEqual(cod({ alias: 'AeL' }, 'tc-aerobico-ligero'), [], 'keep its own aliases when editing');
+  assert.deepEqual(cod({}), [], 'without an alias field nothing is validated');
 });
 
-test('renombrar o fusionar un contenido actualiza los componentes guardados', () => {
+test('renaming or merging a content updates the stored components', () => {
   const json = D.escribirComponentes([comp('Fuerza', 25), comp(AEL, 75)]);
   assert.deepEqual(D.leerComponentes(G.renombrarEnComponentes(json, 'fuerza', 'Fuerza en seco')).map((c) => c.contenido), ['Fuerza en seco', AEL]);
-  assert.equal(G.renombrarEnComponentes(json, 'Otro', 'X'), null, 'si no lo usa, no hay nada que cambiar');
+  assert.equal(G.renombrarEnComponentes(json, 'Otro', 'X'), null, 'if it does not use it, there is nothing to change');
   assert.equal(G.renombrarEnComponentes('', 'Fuerza', 'X'), null);
   const fusion = D.leerComponentes(G.renombrarEnComponentes(json, 'Fuerza', AEL));
-  assert.deepEqual(fusion, [comp(AEL, 100)], 'si acaban siendo el mismo contenido se suman');
+  assert.deepEqual(fusion, [comp(AEL, 100)], 'if they end up being the same content they are added together');
 });

@@ -21,7 +21,7 @@ Small, descriptive commits; push at every milestone; **never break the app** - `
 | Unit (~450 tests, ~15 s) | `npm run test:unit` (one file: `node --test tests/unit/<file>.test.js`) |
 | Integration (jsdom) | `npm run test:integration` |
 | E2E, desktop then mobile (8-10 min, run in background) | `npm run test:e2e` |
-| E2E, one area | `npx cucumber-js --tags "@<area> and not @google and not @pendiente"` (+ `VIEWPORT=movil`). **A bare feature path runs ALL scenarios**, because `cucumber.js` merges its `paths` with the CLI ones; use the area tag |
+| E2E, one area | `npx cucumber-js --tags "@<area> and not @google and not @pending"` (+ `VIEWPORT=mobile`). **A bare feature path runs ALL scenarios**, because `cucumber.js` merges its `paths` with the CLI ones; use the area tag |
 | Screenshots | `npm run capturas [-- --solo=id1,id2 --dispositivo=movil]` |
 | Local server | `npm run serve` (port 4173) |
 

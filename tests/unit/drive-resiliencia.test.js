@@ -37,7 +37,7 @@ beforeEach(() => {
 });
 
 // fetch that never answers but honours AbortController
-const colgado = (url, opts) => new Promise((_, rej) => { opts.signal.addEventListener('abort', () => rej(Object.assign(new Error('abortado'), { name: 'AbortError' }))); });
+const colgado = (url, opts) => new Promise((_, rej) => { opts.signal.addEventListener('abort', () => rej(Object.assign(new Error('aborted'), { name: 'AbortError' }))); });
 
 test('P0-4: a request that does not answer is aborted after 30 s (here 30 ms) with code timeout', async () => {
   drive.config.timeoutMs = 30;
@@ -76,7 +76,7 @@ test('P0-4: 429/5xx are retried with exponential backoff; Retry-After rules; in 
   assert.deepEqual(esperas, [7000]);
   esperas.length = 0;
   calls.length = 0;
-  handler = () => resp({ error: { message: 'caído' } }, 500);
+  handler = () => resp({ error: { message: 'down' } }, 500);
   await assert.rejects(drive.meta('F'), (e) => e.status === 500);
   assert.equal(calls.length, 4, '1 attempt + 3 retries');
   assert.equal(esperas.length, 3);

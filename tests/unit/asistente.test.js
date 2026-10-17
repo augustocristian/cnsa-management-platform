@@ -1,4 +1,4 @@
-// Asistente de primer arranque (lógica), clasificación de errores de Google y adaptador de pruebas de Drive.
+// First-run wizard (logic), Google error classification and the Drive test adapter.
 import test, { describe, afterEach } from 'node:test';
 import assert from 'node:assert/strict';
 import { setupEnv, importApp } from '../helpers/env.js';
@@ -10,11 +10,11 @@ const { driveConnection: auth } = await importApp('js/infrastructure/driveConnec
 const { drive } = await importApp('js/drive.js');
 const { instalarFakeGoogle } = await importApp('js/infrastructure/fakeGoogle.js');
 let fake = null;
-describe('asistente, errores de Google y Drive simulado', () => {
+describe('wizard, Google errors and simulated Drive', () => {
 afterEach(() => { if (fake) { fake.desinstalar(); fake = null; } localStorage.clear(); sessionStorage.clear(); });
 
-// ---------- asistente ----------
-test('asistente: dos pasos, nombre obligatorio y límites', () => {
+// ---------- wizard ----------
+test('wizard: two steps, mandatory name and limits', () => {
   assert.deepEqual(PASOS, ['datos', 'aspecto']);
   assert.deepEqual(validar({ nombre: '' }, 'datos').errores, { nombre: 'nombre-vacio' });
   assert.deepEqual(validar({ nombre: '   ' }, 'datos').errores, { nombre: 'nombre-vacio' });
@@ -24,15 +24,15 @@ test('asistente: dos pasos, nombre obligatorio y límites', () => {
   assert.equal(validar({ nombre: 'Club Natación' }, 'datos').ok, true);
 });
 
-test('asistente: paso de aspecto valida colores y zona horaria', () => {
+test('wizard: appearance step validates colours and time zone', () => {
   assert.equal(validar({ colorPrimario: '#1a73e8', colorSecundario: '#0b3d91', zonaHoraria: 'Europe/Madrid' }, 'aspecto').ok, true);
-  assert.equal(validar({}, 'aspecto').ok, true, 'todo opcional: hay valores por defecto');
+  assert.equal(validar({}, 'aspecto').ok, true, 'everything optional: there are default values');
   assert.deepEqual(validar({ colorPrimario: 'rojo', colorSecundario: '#12', zonaHoraria: 'Marte/Olimpo' }, 'aspecto').errores,
     { colorPrimario: 'color', colorSecundario: 'color', zonaHoraria: 'zona' });
   assert.equal(validar({ nombre: '' }, 'todo').ok, false);
 });
 
-test('asistente: datosDelClub rellena valores por defecto y limpia espacios', () => {
+test('wizard: datosDelClub fills in default values and trims whitespace', () => {
   const c = datosDelClub({ nombre: '  Club Lugones ', lema: ' Pequeño ', colorPrimario: 'mal' });
   assert.equal(c.nombre, 'Club Lugones');
   assert.equal(c.lema, 'Pequeño');
@@ -40,35 +40,35 @@ test('asistente: datosDelClub rellena valores por defecto y limpia espacios', ()
   assert.match(c.colorSecundario, /^#[0-9a-f]{6}$/i);
   assert.equal(c.zonaHoraria, zonaDelNavegador());
   assert.equal(datosDelClub({ nombre: 'X', zonaHoraria: 'America/Mexico_City' }).zonaHoraria, 'America/Mexico_City');
-  assert.equal('logo' in c, false, 'club nuevo sin datos de ejemplo');
+  assert.equal('logo' in c, false, 'new club without sample data');
 });
 
-test('asistente: crearClub crea el fichero en cnl y devuelve la identidad elegida', async () => {
+test('wizard: crearClub creates the file in cnl and returns the chosen identity', async () => {
   fake = instalarFakeGoogle({ auth, drive, opciones: { conectado: true } });
   await auth.init();
   const r = await crearClub({ drive, datos: { nombre: ' Club Nuevo ', lema: 'Lema', colorPrimario: '#e91e63' } });
   assert.equal(r.ref.name, 'Club Nuevo');
   assert.equal(r.club.colorPrimario, '#e91e63');
   assert.deepEqual(fake.clubs().map((c) => c.name), ['Club Nuevo']);
-  assert.deepEqual(fake.club(r.ref.id).doc, { version: 1, club: {}, hojas: {} }, 'el fichero nace vacío');
+  assert.deepEqual(fake.club(r.ref.id).doc, { version: 1, club: {}, hojas: {} }, 'the file starts out empty');
   assert.deepEqual((await drive.listClubs()).map((c) => c.name), ['Club Nuevo']);
 });
 
-test('asistente: crearClub rechaza datos inválidos sin tocar Drive', async () => {
+test('wizard: crearClub rejects invalid data without touching Drive', async () => {
   fake = instalarFakeGoogle({ auth, drive, opciones: { conectado: true } });
   await auth.init();
   await assert.rejects(crearClub({ drive, datos: { nombre: '' } }), (e) => e.code === 'datos-invalidos' && e.errores.nombre === 'nombre-vacio');
   assert.equal(fake.clubs().length, 0);
 });
 
-test('asistente: si Drive falla el error se propaga con su código (para mostrar la ayuda)', async () => {
+test('wizard: if Drive fails the error propagates with its code (to show the help)', async () => {
   fake = instalarFakeGoogle({ auth, drive, opciones: { conectado: true, fallos: { crearClub: 'offline' } } });
   await auth.init();
   await assert.rejects(crearClub({ drive, datos: { nombre: 'Club' } }), (e) => e.offline === true);
 });
 
-// ---------- errores de Google ----------
-test('errores de conexión con Drive: popup bloqueado, cerrado, acceso denegado, origen y red', () => {
+// ---------- Google errors ----------
+test('Drive connection errors: popup blocked, closed, access denied, origin and network', () => {
   assert.equal(clasificarErrorConexion({ type: 'popup_failed_to_open' }), 'popup-bloqueado');
   assert.equal(clasificarErrorConexion({ type: 'popup_closed' }), 'popup-cerrado');
   assert.equal(clasificarErrorConexion({ error: 'access_denied' }), 'acceso-denegado');
@@ -77,21 +77,21 @@ test('errores de conexión con Drive: popup bloqueado, cerrado, acceso denegado,
   assert.equal(clasificarErrorConexion(new Error('Error 400: redirect_uri_mismatch')), 'origen-no-autorizado');
   assert.equal(clasificarErrorConexion(new Error('No se pudo cargar Google Identity Services')), 'sin-gis');
   assert.equal(clasificarErrorConexion(new Error('Could not load Google Identity Services')), 'sin-gis');
-  assert.equal(clasificarErrorLogin, clasificarErrorConexion, 'alias antiguo');
+  assert.equal(clasificarErrorLogin, clasificarErrorConexion, 'old alias');
   assert.equal(clasificarErrorConexion(new TypeError('Failed to fetch')), 'sin-conexion');
   assert.equal(clasificarErrorConexion({ offline: true }), 'sin-conexion');
   assert.equal(clasificarErrorConexion(null), 'desconocido');
-  assert.equal(clasificarErrorConexion('algo raro'), 'desconocido');
+  assert.equal(clasificarErrorConexion('something odd'), 'desconocido');
 });
 
-test('errores de la API: API no activada con enlace de activación, permisos, límite', () => {
+test('API errors: API not enabled with activation link, permissions, limit', () => {
   const cuerpo = { error: { code: 403, message: 'Google Drive API has not been used in project 424242 before or it is disabled.', errors: [{ reason: 'accessNotConfigured' }],
     details: [{ reason: 'SERVICE_DISABLED', metadata: { activationUrl: 'https://console.developers.google.com/apis/api/drive.googleapis.com/overview?project=424242', serviceTitle: 'Google Drive API' } }] } };
   const a = clasificarErrorApi(403, cuerpo);
   assert.equal(a.codigo, 'api-desactivada');
   assert.match(a.enlace, /project=424242/);
   assert.equal(a.servicio, 'Google Drive API');
-  // sin detalles: se deduce el proyecto del mensaje
+  // without details: the project is deduced from the message
   const b = clasificarErrorApi(403, JSON.stringify({ error: { message: 'API has not been used in project 777 before or it is disabled' } }));
   assert.equal(b.codigo, 'api-desactivada');
   assert.match(b.enlace, /drive\.googleapis\.com\?project=777/);
@@ -103,7 +103,7 @@ test('errores de la API: API no activada con enlace de activación, permisos, l�
   assert.equal(clasificarErrorApi(500, 'x').codigo, 'desconocido');
 });
 
-test('todos los códigos de error tienen texto en es, en e it', async () => {
+test('all error codes have text in es, en and it', async () => {
   const { t, setLang } = await importApp('js/i18n.js');
   for (const l of ['es', 'en', 'it']) {
     setLang(l);
@@ -112,8 +112,8 @@ test('todos los códigos de error tienen texto en es, en e it', async () => {
   setLang('es');
 });
 
-// ---------- Drive simulado ----------
-test('Drive simulado: misma interfaz que drive.js (clubes, lectura/escritura, preferencias, ficheros)', async () => {
+// ---------- Simulated Drive ----------
+test('Simulated Drive: same interface as drive.js (clubs, read/write, preferences, files)', async () => {
   fake = instalarFakeGoogle({ auth, drive, opciones: { conectado: true } });
   await auth.init();
   assert.deepEqual(await drive.listClubs(), []);
@@ -136,19 +136,19 @@ test('Drive simulado: misma interfaz que drive.js (clubes, lectura/escritura, pr
   await assert.rejects(drive.read('nada'), (e) => e.status === 404);
 });
 
-test('Drive simulado: sin conectar Drive no se puede usar; los datos sobreviven a recargar (espejo en localStorage)', async () => {
+test('Simulated Drive: cannot be used without connecting Drive; data survives a reload (localStorage mirror)', async () => {
   fake = instalarFakeGoogle({ auth, drive, opciones: {} });
   await auth.init();
   await assert.rejects(drive.listClubs(), (e) => e.status === 401);
   await auth.connect();
   const c = await drive.createClub('Persistente');
   fake.desinstalar();
-  fake = instalarFakeGoogle({ auth, drive, opciones: {} }); // "recarga": lee 'cnl:test:drive'
+  fake = instalarFakeGoogle({ auth, drive, opciones: {} }); // "reload": reads 'cnl:test:drive'
   await auth.init();
   assert.deepEqual((await drive.listClubs()).map((x) => x.id), [c.id]);
 });
 
-test('Drive simulado: opción demo prepara un club y siembra los datos de demostración una sola vez', async () => {
+test('Simulated Drive: demo option prepares a club and seeds the demo data only once', async () => {
   const { store } = await importApp('js/store.js');
   fake = instalarFakeGoogle({ auth, drive, opciones: { conectado: true, demo: true, club: 'Club Demo' } });
   await auth.init();
@@ -157,6 +157,6 @@ test('Drive simulado: opción demo prepara un club y siembra los datos de demost
   await store.init(club);
   assert.equal(fake.despuesDeAbrirClub(store), true);
   assert.ok(store.list('Nadadores').length > 0);
-  assert.equal(fake.despuesDeAbrirClub(store), false, 'no se vuelve a sembrar');
+  assert.equal(fake.despuesDeAbrirClub(store), false, 'it is not seeded again');
 });
 });

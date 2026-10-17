@@ -2,7 +2,7 @@
 
 Operating manual for any Claude Code session working on this repository. Read it fully before changing anything. Project documentation for humans lives in `README.md` and `docs/`; this file is the working contract.
 
-Language policy: everything outside the app's UI strings (code comments in new code, commit messages, docs, this file) is written in **English**. UI strings live only in `js/locales/*` (es/en/it). Existing identifiers, file names, sheet names, test descriptions, Gherkin features and stored data values are Spanish and **must stay as they are** (for example `Nadadores`, `Entrenamientos`, `'Pre-Benjamín'`, `planificado`). Do not rename them to English; explain them in English where useful.
+Language policy: everything outside the app's UI strings (code comments in new code, commit messages, docs, this file) is written in **English**. UI strings live only in `js/locales/*` (es/en/it). Existing identifiers, file names, sheet names and stored data values are Spanish and **must stay as they are** (for example `Nadadores`, `Entrenamientos`, `'Pre-Benjamín'`, `planificado`). Do not rename them to English; explain them in English where useful. Tests (names, comments, messages) and the Gherkin features (steps, tags, helpers) are English too; only the quoted UI texts inside steps stay Spanish.
 
 ---
 
@@ -52,11 +52,11 @@ Always run from the repo root. Install once with `npm install` (also copies Shee
 | Syntax check | `npm run check` | Runs `node --check` on every `js/**/*.js` and `sw.js` (102 files at the last run). Fast. |
 | Unit tests | `npm run test:unit` | `node --test tests/unit` (loader `tests/unit/index.js`). ~15 s, 450 tests at the last run. |
 | Integration tests | `npm run test:integration` | jsdom, views + store + fake Google. ~45 s. |
-| All e2e (desktop then mobile) | `npm run test:e2e` | `scripts/e2e.mjs`: runs Cucumber twice (`VIEWPORT=escritorio`, then `VIEWPORT=movil`). Extra args are forwarded to both runs, e.g. `npm run test:e2e -- --tags @smoke`. Several minutes. |
-| e2e desktop only | `npm run test:e2e:escritorio` (= `cucumber-js`) | |
-| e2e mobile only (Pixel 5) | PowerShell: `$env:VIEWPORT='movil'; npx cucumber-js` / bash: `VIEWPORT=movil npx cucumber-js` | Mobile excludes `@escritorio` scenarios. |
-| By tag | `npx cucumber-js --tags @smoke` / `--tags "@temporada and not @smoke"` | Tags in use: `@smoke` (essential scenarios, ~48), one tag per area (`@temporada`, `@categorias`, `@planificacion`, `@entreno`, `@entreno-pdf`, `@calendario`, `@cargas`...), `@escritorio`, `@movil`, `@accesibilidad`, `@tema`. `@google` and `@pendiente` are always excluded (need a real Google account). |
-| One feature / scenario | `npx cucumber-js features/temporada.feature` / `features/temporada.feature:12` / `--name "part of the name"` | `--dry-run` lists/validates steps without running (248 scenarios in the desktop profile). |
+| All e2e (desktop then mobile) | `npm run test:e2e` | `scripts/e2e.mjs`: runs Cucumber twice (`VIEWPORT=desktop`, then `VIEWPORT=mobile`). Extra args are forwarded to both runs, e.g. `npm run test:e2e -- --tags @smoke`. Several minutes. |
+| e2e desktop only | `npm run test:e2e:desktop` (= `cucumber-js`) | |
+| e2e mobile only (Pixel 5) | PowerShell: `$env:VIEWPORT='mobile'; npx cucumber-js` / bash: `VIEWPORT=mobile npx cucumber-js` | Mobile excludes `@desktop` scenarios. |
+| By tag | `npx cucumber-js --tags @smoke` / `--tags "@season and not @smoke"` | Tags in use: `@smoke` (essential scenarios, ~48), one tag per area (`@season`, `@categories`, `@planning`, `@training`, `@training-pdf`, `@calendar`, `@loads`...), `@desktop`, `@mobile`, `@accessibility`, `@theme`. `@google` and `@pending` are always excluded (need a real Google account). |
+| One feature / scenario | `npx cucumber-js features/temporada.feature` / `features/temporada.feature:12` / `--name "part of the name"` | `--dry-run` lists/validates steps without running (339 scenarios in the desktop profile). |
 | Single unit/integration file | `node --test tests/unit/temporada.test.js` | Same for `tests/integration/*.test.js`. |
 | Everything | `npm test` | unit + integration + e2e. |
 | E2E summary | `npm run e2e:resumen` | Markdown table from `reports/*.xml` (used by CI in the job summary). |
@@ -65,7 +65,7 @@ Always run from the repo root. Install once with `npm install` (also copies Shee
 | Icons | `node scripts/iconos.mjs` | Regenerates `icons/apple-touch-icon.png` and `icons/icon-maskable-512.png` (no dependencies). |
 | Format / lint | **Not available yet.** There are no Prettier/ESLint scripts. Planned (see section 14). Do not invent `npm run lint`/`format`. |
 
-Reports go to `reports/` (git-ignored): `cucumber.html|xml`, `cucumber-movil.html|xml`, failure screenshots in `reports/screenshots/`.
+Reports go to `reports/` (git-ignored): `cucumber.html|xml`, `cucumber-mobile.html|xml`, failure screenshots in `reports/screenshots/`.
 
 ### Screenshots (`npm run capturas`)
 
@@ -258,7 +258,7 @@ Other core modules: `js/app.js` (thin entry; the shell lives in `js/presentation
 - Add a new locale file for a new area: create the three files, import and spread them into all three `DICTS` entries in `i18n.js`, add them to `SHELL` in `sw.js`, add them to the parity test.
 - Add a language: use the `nuevo-idioma` skill (dictionaries, `LANGS`, `INTL` locale map, PDF texts `entreno.<lang>.js`, `sw.js`, parity tests).
 - Terminology: Phase = macrocycle, Week = microcycle (es "Fase"/"Semana", en "Phase"/"Week", it "Fase"/"Settimana").
-- Documentation and code comments are English; only UI strings and Gherkin features are Spanish/en/it.
+- Documentation, tests (names, comments, messages) and code comments are English; only UI strings are Spanish/en/it (inside Gherkin steps, quoted UI texts stay Spanish because the e2e app runs with `cnl:lang=es`).
 
 ---
 
@@ -305,28 +305,28 @@ Dark mode: `[data-theme="dark"]` forces it; `prefers-color-scheme: dark` applies
 
 - `tests/helpers/env.js`: `setupEnv()` (global jsdom), `importApp(rel)`, `tick()`.
 - `tests/helpers/app.js`: `boot()`, `fresh({demo, club})` (clean DOM + fake Drive + open club), `renderView(name, container, params, ctx)`, `fieldByLabel`, `buttonByText`, `setValue`. `tests/helpers/pdf.js`: PDF inspection.
-- Cucumber: `features/support/world.js` (`MundoCNL`: `abrirApp`, `entrarConClub({demo})`, `irA(route)`, `eventually`, `verVisible`, `rellenar`, `drive()`), `hooks.js` (free port, static server, Chromium, fresh context per scenario, failure screenshot, **fails a passing scenario if there were console errors or 4xx/5xx**), `cucumber.js` (profile/tags/retries: 2 in CI). `MODULOS` in `world.js` maps visible module names to routes (add new modules there).
+- Cucumber: `features/support/world.js` (`CnlWorld`: `openApp`, `enterClub({demo})`, `goTo(route)`, `eventually`, `expectVisible`, `fill`, `drive()`), `hooks.js` (free port, static server, Chromium, fresh context per scenario, failure screenshot, **fails a passing scenario if there were console errors or 4xx/5xx**), `cucumber.js` (profile/tags/retries: 2 in CI). `MODULES` in `world.js` maps visible module names to routes (add new modules there).
 
-### Writing a Cucumber feature (Spanish Gherkin)
+### Writing a Cucumber feature (English Gherkin)
 
-Features are Spanish (`# language: es`; keywords `Caracteristica`, `Antecedentes`, `Escenario`, `Esquema del escenario`, `Dado` (Given), `Cuando` (When), `Entonces` (Then), `Y` (And)). Reuse existing steps (`features/steps/comunes.steps.js` has club setup, navigation, buttons, text, forms); add area-specific steps in a new `features/steps/<area>.steps.js` using `this.page`/`this.eventually` (never fixed sleeps).
+Features are English (`# language: en`; keywords `Feature`, `Background`, `Scenario`, `Scenario Outline`, `Given`, `When`, `Then`, `And`). Texts that come from the UI (button labels, headings, toasts, stored values) stay Spanish inside the English step, e.g. `When I open the "Nadadores" module`. Reuse existing steps (`features/steps/comunes.steps.js` has club setup, navigation, buttons, text, forms); add area-specific steps in a new `features/steps/<area>.steps.js` using `this.page`/`this.eventually` (never fixed sleeps).
 
 ```gherkin
-# language: es
-@miarea
-Característica: Nombre de la capacidad
-  Como entrenador quiero ... para ...
+# language: en
+@myarea
+Feature: Name of the capability
+  As a coach I want ... so that ...
 
-  Antecedentes:
-    Dado un club con datos de demostración
+  Background:
+    Given a club with demo data
 
   @smoke
-  Escenario: Camino feliz esencial
-    Cuando abro el módulo "Nadadores"
-    Entonces veo el botón "Nuevo nadador"
+  Scenario: Essential happy path
+    When I open the "Nadadores" module
+    Then I see the button "Nuevo nadador"
 ```
 
-Starting states: `Dado un club con datos de demostración`, `Dado un club vacío con Drive conectado`, `Dado que la aplicación está recién abierta sin Drive conectado`, `Dado que la aplicación está abierta sin Client ID de Google`. Put `@smoke` only on essential scenarios; use `@escritorio` / `@movil` when the layout differs; one area tag per feature. Use the `nuevo-escenario-cucumber` skill.
+Starting states: `Given a club with demo data`, `Given an empty club with Drive connected`, `Given the app has just been opened without Drive connected`, `Given the app is open without a Google Client ID`. Put `@smoke` only on essential scenarios; use `@desktop` / `@mobile` when the layout differs; one area tag per feature. Use the `nuevo-escenario-cucumber` skill.
 
 ### Rules
 
@@ -339,7 +339,7 @@ Starting states: `Dado un club con datos de demostración`, `Dado un club vacío
 
 ## 10. CI/CD, deployment, dependencies
 
-Workflow `.github/workflows/pages.yml` ("CI y despliegue en GitHub Pages"; triggers: push to `main`, pull requests, manual; concurrency cancels superseded runs; Node 22; `npm ci`):
+Workflow `.github/workflows/pages.yml` ("CI and deployment to GitHub Pages"; triggers: push to `main`, pull requests, manual; concurrency cancels superseded runs; Node 22; `npm ci`):
 
 | Job | Needs | What |
 |---|---|---|
@@ -381,7 +381,7 @@ PWA: `sw.js` is stale-while-revalidate for HTML/JS/CSS and cache-first for `vend
 2. **Service** `js/application/<area>Service.js`: `crear<Area>Service(repo, {puedeEditar, ahora, genId})`; the repository (`list/get/upsert/remove`) is injected; no DOM. Unit tests with an in-memory repo.
 3. **Data** if it persists: see "a data sheet" below.
 4. **View** `js/views/<name>.js`: `export async function render(container, params, ctx)`; presentation only; build DOM with `h()`; use `ui.js` helpers and design components (section 8); empty state with a call to action; works on mobile first.
-5. **Route**: add the route to a group in `js/presentation/shell/navModel.js` only for a top-level module; add `nav.<name>` in locales, the icon in `js/icons.js`, and the module in `MODULOS` of `features/support/world.js`.
+5. **Route**: add the route to a group in `js/presentation/shell/navModel.js` only for a top-level module; add `nav.<name>` in locales, the icon in `js/icons.js`, and the module in `MODULES` of `features/support/world.js`.
 6. **i18n**: all strings in es/en/it (section 7).
 7. **Tests**: unit (domain + service), integration (`tests/integration/<area>.test.js` with `fresh()`/`renderView()`), and add the view to `VIEWS` in `tests/helpers/app.js` if it should be in the generic render test.
 8. **Cucumber** feature + steps (section 9), with `@smoke` for the essential scenario; mobile profile must pass too.
@@ -451,15 +451,15 @@ Existence check at the time of writing: all nine agents exist in `.claude/agents
 ### Traps
 
 - **`sw.js` SHELL/VERSION are generated.** After adding, renaming or editing any file under `js/`, `css/`, `icons/` or `vendor/` (or `index.html`/the manifest) run `npm run build:sw` and commit `sw.js`; `npm run check` (and CI) fails with a readable report when it is stale. Only `fakeGoogle.js` is deliberately excluded. A required file that fails to precache aborts the worker install (no silent catch); `vendor/*` are optional.
-- **Not tested against real Google.** All automated tests use the fake. The end-to-end flow with a real account (consent screen, `drive.file` behavior, token expiry after 7 days in "Testing" mode, Calendar sync) is unverified in production; `@google @pendiente` scenarios are documented but excluded. `BUILTIN_CLIENT_ID` is empty in the repo.
-- **Windows / PowerShell**: the shell here is PowerShell (and Git Bash); `&&` does not exist in Windows PowerShell 5.1; set env vars with `$env:VIEWPORT='movil'`; use forward slashes in npm scripts and paths; `rm -rf`, `head`, etc. are not PowerShell. Never `taskkill /IM node.exe`.
+- **Not tested against real Google.** All automated tests use the fake. The end-to-end flow with a real account (consent screen, `drive.file` behavior, token expiry after 7 days in "Testing" mode, Calendar sync) is unverified in production; `@google @pending` scenarios are documented but excluded. `BUILTIN_CLIENT_ID` is empty in the repo.
+- **Windows / PowerShell**: the shell here is PowerShell (and Git Bash); `&&` does not exist in Windows PowerShell 5.1; set env vars with `$env:VIEWPORT='mobile'`; use forward slashes in npm scripts and paths; `rm -rf`, `head`, etc. are not PowerShell. Never `taskkill /IM node.exe`.
 - **CRLF**: files in this checkout have CRLF line endings (e.g. `README.md`). Keep the line endings of the file you edit (do not mix); `git diff --exit-code -- vendor/` in CI can differ from local if `core.autocrlf` rewrites vendor files, so commit `vendor/` as produced by `npm run vendor`.
 - **Ports**: never hard-code a test port; a stuck server from a previous run (static server or Chromium) can hold one. Kill only your own PID.
 - **Dates**: no hidden dependency on today's date (season changes on 1 September; the category table shifts with it). The demo data is clock-relative.
 - **Drive scope**: with `drive.file` the app cannot see files it did not create; do not write features that assume it can list the whole Drive or reuse a hand-made `cnl` folder.
-- **Docs drift**: `docs/ARCHITECTURE.md` and `docs/SETUP-GOOGLE.md` say merge is "per row"; the code merges per field with logical stamps and tombstones. Some docs still carry Spanish text and the old "design target mockup" section.
+- **Docs drift**: `docs/ARCHITECTURE.md` and `docs/SETUP-GOOGLE.md` say merge is "per row"; the code merges per field with logical stamps and tombstones. The old "design target mockup" section may still be present.
 - Legacy views still inject `<style>` (CSP therefore keeps `'unsafe-inline'` for styles); `components.css` block 11 is a temporary `!important` bridge for dark mode.
-- Snapshot of the suite when this file was written (repo mid-refactor by several agents, uncommitted work in the tree): `check` OK (102 files); unit 450/450; integration 159/167 (failures in "uso individual: formularios y acciones de edición siempre disponibles" and "vista comunicaciones: renderiza con datos demo", being aligned with the single-user model); smoke desktop 45/48 scenarios (3 in the loads/personal-bests steps `features/steps/cargas-marcas.steps.js`). Re-run before relying on this.
+- Suite status: run `npm run check`, `npm run test:unit` and `npm run test:integration` (plus the e2e smoke) before relying on any recorded count.
 
 ### Roadmap (status: in progress unless noted)
 

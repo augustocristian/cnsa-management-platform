@@ -38,7 +38,7 @@ test('start screen: the one-off notice that the demo was closed is announced pol
   assert.equal(montar(acceso.login({ auth: { connect: async () => {} }, onConectar: () => {} })).querySelector('#acc-aviso'), null);
 });
 
-test('inicio: el selector de idioma no es lo primero de la tarjeta y es un grupo de botones, no un select', async () => {
+test('start: the language selector is not the first thing in the card and is a button group, not a select', async () => {
   const acceso = await importApp('js/views/acceso.js');
   const root = montar(acceso.login({ auth: { connect: async () => {} }, onConectar: () => {} }));
   assert.equal(root.querySelector('select'), null);
@@ -46,11 +46,11 @@ test('inicio: el selector de idioma no es lo primero de la tarjeta y es un grupo
   assert.ok(grupo);
   assert.deepEqual([...grupo.querySelectorAll('[role="radio"]')].map((b) => b.dataset.lang), ['es', 'en', 'it']);
   assert.notEqual(root.firstElementChild, grupo.closest('.acc-foot'));
-  assert.equal(root.lastElementChild, grupo.closest('.acc-foot'), 'en el pie de la tarjeta');
+  assert.equal(root.lastElementChild, grupo.closest('.acc-foot'), 'in the card footer');
   assert.ok(root.firstElementChild.matches('img.logo-big'));
 });
 
-test('conectar: éxito llama a onConectar; un error de Google se explica con .alert accesible y el botón se libera', async () => {
+test('connect: success calls onConectar; a Google error is explained with an accessible .alert and the button is released', async () => {
   const acceso = await importApp('js/views/acceso.js');
   let ok = 0;
   let fallo = true;
@@ -70,10 +70,10 @@ test('conectar: éxito llama a onConectar; un error de Google se explica con .al
   btn.click();
   await tick(5);
   assert.equal(ok, 1);
-  assert.equal(root.querySelector('#login-salida').children.length, 0, 'el error anterior se limpia');
+  assert.equal(root.querySelector('#login-salida').children.length, 0, 'the previous error is cleared');
 });
 
-test('errorGoogle: el origen actual aparece junto a su botón Copiar en una sola fila alineada', async () => {
+test('errorGoogle: the current origin appears next to its Copy button in a single aligned row', async () => {
   const acceso = await importApp('js/views/acceso.js');
   const e = new Error('origin'); e.code = 'origen-no-autorizado'; e.origin = 'http://localhost:4500';
   const box = acceso.errorGoogle(e);
@@ -83,7 +83,7 @@ test('errorGoogle: el origen actual aparece junto a su botón Copiar en una sola
   assert.deepEqual([...fila.children].map((x) => x.tagName), ['CODE', 'BUTTON']);
 });
 
-test('configuración necesaria: texto de conexión (no de sesión), campo con etiqueta y error accesible', async () => {
+test('configuration needed: connection wording (not session), labelled field and accessible error', async () => {
   const acceso = await importApp('js/views/acceso.js');
   let listo = 0;
   const root = montar(acceso.configNecesaria({ auth: { connect: async () => {} }, onListo: () => { listo++; } }));
@@ -135,7 +135,7 @@ test('configuration needed reached from the demo: Back to the demo instead of Tr
   assert.equal(volver, 1);
 });
 
-test('asistente: errores inline accesibles, vista previa en vivo de los colores y sin saltos al avanzar', async () => {
+test('wizard: accessible inline errors, live colour preview and no jumps when advancing', async () => {
   const acceso = await importApp('js/views/acceso.js');
   let creado = null;
   let redibujo = null;
@@ -154,14 +154,14 @@ test('asistente: errores inline accesibles, vista previa en vivo de los colores 
   await tick(5);
   assert.match(root.textContent, /Paso 2 de 2/);
   const previa = root.querySelector('.acc-prev');
-  assert.ok(previa, 'vista previa');
+  assert.ok(previa, 'preview');
   assert.equal(previa.querySelector('.acc-prev-nombre').textContent, 'Club Prueba');
   const antes = previa.style.getPropertyValue('--c-action');
   const c1 = root.querySelector('#as-color1');
   c1.value = '#d81b60';
   c1.dispatchEvent(new window.Event('input', { bubbles: true }));
   const despues = previa.style.getPropertyValue('--c-action');
-  assert.notEqual(despues, antes, 'la vista previa cambia con el color');
+  assert.notEqual(despues, antes, 'the preview changes with the colour');
   assert.match(despues, /^#[0-9a-f]{6}$/i);
   assert.match(previa.style.getPropertyValue('--c-on-primary'), /^#[0-9a-f]{6}$/i);
   assert.equal(root.querySelector('.acc-foot [role="radiogroup"]') !== null, true);
@@ -172,7 +172,7 @@ test('asistente: errores inline accesibles, vista previa en vivo de los colores 
   assert.equal(datos.colorPrimario, '#d81b60');
 });
 
-test('asistente: si Drive falla al crear el club se muestra el error de Google como alerta y se puede reintentar', async () => {
+test('wizard: if Drive fails when creating the club the Google error is shown as an alert and can be retried', async () => {
   const acceso = await importApp('js/views/acceso.js');
   let intentos = 0;
   acceso.asistente({
@@ -191,7 +191,7 @@ test('asistente: si Drive falla al crear el club se muestra el error de Google c
   assert.equal(root.querySelector('#as-siguiente').disabled, false);
 });
 
-test('selector de clubes: usa "Desconectar Drive", sin correo ni cuenta', async () => {
+test('club selector: uses "Desconectar Drive", no email or account', async () => {
   const acceso = await importApp('js/views/acceso.js');
   let elegido = null;
   const root = montar(acceso.selector({ clubes: [{ id: 'a', name: 'Club A' }, { id: 'b', name: 'Club B' }], onElegir: (x) => { elegido = x; }, onCrear: () => {}, onSalir: () => {} }));

@@ -35,7 +35,7 @@ const archivoElegido = async (panel, texto, nombre = 'copia.json') => {
 const hojasConDatos = () => ['Nadadores', 'Grupos', 'Entrenamientos', 'Asistencia', 'Cargas', 'Marcas', 'Comunicaciones', 'Banadores', 'Piscinas', 'TiposCarga'];
 const foto = () => JSON.stringify(hojasConDatos().map((s) => c.store.list(s).sort((a, b) => a.id.localeCompare(b.id)))); // row order is not part of the data
 
-test('Configuración monta el panel de copia de seguridad', async () => {
+test('Settings mounts the backup panel', async () => {
   await renderView('club', c.container, [], c);
   assert.ok(c.container.querySelector('#backup-panel'));
   assert.ok(c.container.querySelector('#backup-descargar'));
@@ -46,7 +46,7 @@ test('Configuración monta el panel de copia de seguridad', async () => {
   assert.ok(c.container.querySelectorAll('.backup-panel h2').length >= 3);
 });
 
-test('descargar: entrega un fichero con contenido válido y muestra la última copia', async () => {
+test('download: delivers a file with valid content and shows the latest backup', async () => {
   const { svc, descargas } = await montar();
   const panel = c.container;
   assert.match(panel.querySelector('#backup-ultima').textContent, /Todavía no has descargado/);
@@ -63,7 +63,7 @@ test('descargar: entrega un fichero con contenido válido y muestra la última c
   assert.ok(svc.ultimaCopia().nombre);
 });
 
-test('descargar con contraseña: valida la confirmación y cifra el fichero', async () => {
+test('download with password: validates the confirmation and encrypts the file', async () => {
   const { descargas } = await montar();
   const panel = c.container;
   const p1 = panel.querySelector('#backup-pass');
@@ -89,7 +89,7 @@ test('descargar con contraseña: valida la confirmación y cifra el fichero', as
   assert.equal(JSON.parse(await descargas[0].blob.text()).format, 'cnl-backup-encrypted');
 });
 
-test('restaurar desde archivo: vista previa, puerta de confirmación y los datos vuelven', async () => {
+test('restore from file: preview, confirmation gate and the data comes back', async () => {
   const { svc, descargas } = await montar();
   const original = foto();
   await svc.descargarBackup();
@@ -136,7 +136,7 @@ test('restaurar desde archivo: vista previa, puerta de confirmación y los datos
   assert.equal(c.store.club.lema, 'Cambiado');
 });
 
-test('el tombstone del borrado llega al fichero de Drive al restaurar en modo reemplazar', async () => {
+test('the deletion tombstone reaches the Drive file when restoring in replace mode', async () => {
   const { svc } = await montar();
   const doc = JSON.parse(await (await svc.crearBackup()).blob.text());
   c.store.upsert('Grupos', { id: 'extra-g', nombre: 'Extra', categoria: '', entrenador: '' });
@@ -151,7 +151,7 @@ test('el tombstone del borrado llega al fichero de Drive al restaurar en modo re
   assert.ok(copias.some((b) => /-restore-\d{14}\.json$/.test(b.name)));
 });
 
-test('copia dañada: se muestra el error y no cambia nada', async () => {
+test('damaged backup: the error is shown and nothing changes', async () => {
   const { svc, descargas } = await montar();
   await svc.descargarBackup();
   const doc = JSON.parse(await descargas[0].blob.text());
@@ -167,7 +167,7 @@ test('copia dañada: se muestra el error y no cambia nada', async () => {
   assert.match(panel.querySelector('.alert--danger').textContent, /JSON/);
 });
 
-test('copia cifrada: pide la contraseña y la incorrecta se indica en el campo', async () => {
+test('encrypted backup: asks for the passphrase and a wrong one is flagged on the field', async () => {
   const { svc } = await montar();
   const r = await svc.crearBackup({ passphrase: 'una-clave-larga-1' });
   const panel = c.container;
@@ -185,7 +185,7 @@ test('copia cifrada: pide la contraseña y la incorrecta se indica en el campo',
   assert.ok(panel.querySelector('#backup-restaurar'));
 });
 
-test('copias en Drive: lista las de cnl/backups y permite restaurar una', async () => {
+test('backups in Drive: lists those in cnl/backups and allows restoring one', async () => {
   const { svc } = await montar();
   await c.drive.backupClub(c.store.clubRef.name, await (async () => { const d = c.store.documento(); return d; })(), { fecha: new Date(2026, 9, 14) });
   c.store.removeMany('Nadadores', c.store.list('Nadadores').map((n) => n.id));
@@ -207,7 +207,7 @@ test('copias en Drive: lista las de cnl/backups y permite restaurar una', async 
   assert.equal(c.store.list('Nadadores').length, 12);
 });
 
-test('modo demo: la descarga y la restauración funcionan; las copias de Drive se explican y quedan desactivadas', async () => {
+test('demo mode: download and restore work; Drive backups are explained and disabled', async () => {
   const { crearDemoStorage } = await importApp('js/infrastructure/demoStorage.js');
   await c.store.initDemo({ hoy: AHORA, demo: crearDemoStorage() });
   assert.equal(c.store.mode, 'demo');

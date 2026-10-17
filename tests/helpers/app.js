@@ -1,5 +1,5 @@
-// Contexto de integración: jsdom + adaptador de pruebas de Google (infrastructure/fakeGoogle.js) + store con un club
-// sembrado con seedDemo + ctx de las vistas. No se habla con Google: el "Drive" vive en memoria.
+// Integration context: jsdom + Google test adapter (infrastructure/fakeGoogle.js) + store with a club
+// seeded with seedDemo + the views' ctx. Google is never contacted: the "Drive" lives in memory.
 import { setupEnv, importApp, tick } from './env.js';
 
 export { tick };
@@ -23,7 +23,7 @@ async function doBoot(xlsx) {
   return ctxCache;
 }
 
-// Estado limpio: DOM vacío, Drive simulado nuevo con Drive conectado, un club abierto con la demo (o vacío).
+// Clean state: empty DOM, new simulated Drive already connected, one club open with the demo (or empty).
 export async function fresh({ demo = true, xlsx = false, club = 'Club Test' } = {}) {
   await boot({ xlsx });
   const ctx = ctxCache;
@@ -51,16 +51,16 @@ export async function renderView(name, container, params, ctx) {
   return mod;
 }
 
-// Encuentra el elemento de formulario dentro de la <label> cuyo texto empieza por `text`.
+// Finds the form element inside the <label> whose text starts with `text`.
 export function fieldByLabel(root, text) {
   const l = [...root.querySelectorAll('label')].find((x) => x.textContent.trim().startsWith(text));
-  if (!l) throw new Error('No hay label: ' + text);
+  if (!l) throw new Error('No label: ' + text);
   return l.querySelector('input,select,textarea');
 }
 
 export function buttonByText(root, text) {
   const b = [...root.querySelectorAll('button')].find((x) => x.textContent.trim() === text);
-  if (!b) throw new Error('No hay botón: ' + text);
+  if (!b) throw new Error('No button: ' + text);
   return b;
 }
 

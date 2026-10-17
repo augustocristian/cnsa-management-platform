@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { crearCategoriasService } from '../../js/application/categoriasService.js';
 import { configPorDefecto } from '../../js/domain/categorias.js';
 
-// Repositorio en memoria con el mismo contrato que el store (list/upsert + club/setClub)
+// In-memory repository with the same contract as the store (list/upsert + club/setClub)
 function repoMem(nadadores = [], club = {}) {
   const filas = nadadores.map((n) => ({ ...n }));
   const repo = {
@@ -25,7 +25,7 @@ function repoMem(nadadores = [], club = {}) {
 const reloj = (iso) => () => { const [y, m, d] = iso.split('-').map(Number); return new Date(y, m - 1, d, 12); };
 const N = (id, fecha, extra = {}) => ({ id, nombre: 'N' + id, apellidos: 'A' + id, fechaNacimiento: fecha, sexo: 'F', categoria: '', licenciaMaster: 'false', categoriaManual: '', ...extra });
 
-test('temporada vigente: derivada del reloj o fijada en el club', () => {
+test('current season: derived from the clock or pinned on the club', () => {
   const r = repoMem();
   assert.equal(crearCategoriasService(r, { ahora: reloj('2026-10-15') }).temporadaActual(), 2026);
   assert.equal(crearCategoriasService(r, { ahora: reloj('2027-03-01') }).temporadaActual(), 2026);
@@ -35,15 +35,15 @@ test('temporada vigente: derivada del reloj o fijada en el club', () => {
   assert.equal(fijada.temporadaActual(), 2028);
   assert.equal(fijada.esAutomatica(), false);
   assert.equal(fijada.etiqueta(), '2028-2029');
-  // valor inválido -> automática
+  // invalid value -> automatic
   assert.equal(crearCategoriasService(repoMem([], { temporadaActual: 'basura' }), { ahora: reloj('2026-10-15') }).temporadaActual(), 2026);
 });
 
-test('recalcular actualiza categoria de los no manuales y devuelve el resumen', () => {
+test('recalcular updates the category of non-manual swimmers and returns the summary', () => {
   const r = repoMem([
-    N('1', '2018-03-01'), N('2', '2013-05-05', { categoria: 'Alevín' }), N('3', '2008-01-01', { categoria: 'Absoluto' }), // 3 ya correcto
-    N('4', '2013-05-05', { categoria: 'Junior', categoriaManual: 'Junior' }), // manual: no cambia
-    N('5', '', { categoria: 'Benjamín' }), // sin fecha: se conserva
+    N('1', '2018-03-01'), N('2', '2013-05-05', { categoria: 'Alevín' }), N('3', '2008-01-01', { categoria: 'Absoluto' }), // 3 already correct
+    N('4', '2013-05-05', { categoria: 'Junior', categoriaManual: 'Junior' }), // manual: unchanged
+    N('5', '', { categoria: 'Benjamín' }), // no date: kept as is
     N('6', '1980-01-01', { licenciaMaster: 'true' }),
   ]);
   const s = crearCategoriasService(r, { ahora: reloj('2026-10-15') });
@@ -55,13 +55,13 @@ test('recalcular actualiza categoria de los no manuales y devuelve el resumen', 
   assert.equal(r.get('4').categoria, 'Junior');
   assert.equal(r.get('5').categoria, 'Benjamín');
   assert.equal(r.club.temporadaAplicada, '2026-2027');
-  // idempotente: segunda pasada sin cambios y sin escribir nadadores
+  // idempotent: second pass with no changes and no swimmer writes
   const antes = r.escrituras;
   assert.deepEqual(s.recalcular().cambios, []);
   assert.equal(r.escrituras, antes);
 });
 
-test('la categoría manual manda aunque cambie la temporada', () => {
+test('the manual category wins even if the season changes', () => {
   const r = repoMem([N('1', '2013-05-05', { categoriaManual: 'Master' })]);
   const s = crearCategoriasService(r, { ahora: reloj('2026-10-15') });
   s.recalcular(2026);
@@ -71,40 +71,40 @@ test('la categoría manual manda aunque cambie la temporada', () => {
   assert.deepEqual(s.previsualizarCambio(2030), []);
 });
 
-test('alAbrirClub recalcula sólo si la temporada vigente no es la última aplicada', () => {
+test('alAbrirClub recalculates only if the current season is not the last applied one', () => {
   const r = repoMem([N('1', '2014-05-05', { categoria: 'Alevín' })], { temporadaAplicada: '2026-2027' });
-  // misma temporada: no hace nada
+  // same season: does nothing
   assert.equal(crearCategoriasService(r, { ahora: reloj('2027-03-01') }).alAbrirClub(), null);
   assert.equal(r.get('1').categoria, 'Alevín');
-  // nueva temporada (1 sep 2027): recalcula y guarda temporadaAplicada
+  // new season (1 Sep 2027): recalculates and saves temporadaAplicada
   const res = crearCategoriasService(r, { ahora: reloj('2027-09-01') }).alAbrirClub();
   assert.deepEqual(res.cambios.map((c) => [c.id, c.de, c.a]), [['1', 'Alevín', 'Infantil']]);
   assert.equal(r.club.temporadaAplicada, '2027-2028');
   assert.equal(r.get('1').categoria, 'Infantil');
-  // una segunda apertura ya no recalcula
+  // a second opening no longer recalculates
   assert.equal(crearCategoriasService(r, { ahora: reloj('2027-09-02') }).alAbrirClub(), null);
 });
 
-test('alAbrirClub en un club antiguo (sin temporadaAplicada) calcula las categorías', () => {
+test('alAbrirClub on an old club (without temporadaAplicada) computes the categories', () => {
   const r = repoMem([N('1', '2016-05-05', { categoria: '' })], {});
   const res = crearCategoriasService(r, { ahora: reloj('2026-10-15') }).alAbrirClub();
   assert.equal(res.cambios.length, 1);
   assert.equal(r.get('1').categoria, 'Benjamín');
 });
 
-test('cambiar de temporada: previsualiza, aplica y deja la temporada fijada (o automática si es la de hoy)', () => {
+test('changing season: previews, applies and leaves the season pinned (or automatic if it is today\'s)', () => {
   const r = repoMem([N('1', '2014-05-05', { categoria: 'Alevín' }), N('2', '2013-05-05', { categoria: 'Infantil' }), N('3', '2014-05-05', { categoria: 'Alevín', categoriaManual: 'Alevín' })]);
   const s = crearCategoriasService(r, { ahora: reloj('2026-10-15') });
   s.recalcular();
   assert.deepEqual(s.previsualizarCambio('2027-2028').map((c) => [c.id, c.de, c.a, c.sube]), [['1', 'Alevín', 'Infantil', true]]);
-  assert.equal(r.get('1').categoria, 'Alevín', 'previsualizar no escribe');
+  assert.equal(r.get('1').categoria, 'Alevín', 'previewing does not write');
   const res = s.cambiarTemporada(2027);
   assert.equal(r.club.temporadaActual, '2027-2028');
   assert.equal(res.etiqueta, '2027-2028');
   assert.equal(r.get('1').categoria, 'Infantil');
   assert.equal(r.get('3').categoria, 'Alevín');
   assert.equal(r.club.temporadaAplicada, '2027-2028');
-  // volver a la de hoy deja la configuración como automática
+  // going back to today's season leaves the setting as automatic
   s.cambiarTemporada(2026);
   assert.equal(r.club.temporadaActual, '');
   assert.equal(r.get('1').categoria, 'Alevín');
@@ -113,17 +113,17 @@ test('cambiar de temporada: previsualiza, aplica y deja la temporada fijada (o a
   assert.deepEqual(s.previsualizarCambio('basura'), []);
 });
 
-test('guardarNadador materializa la categoría (automática, manual, sin fecha)', () => {
+test('guardarNadador materialises the category (automatic, manual, no date)', () => {
   const r = repoMem();
   const s = crearCategoriasService(r, { ahora: reloj('2026-10-15') });
   assert.equal(s.guardarNadador({ ...N('a', '2012-02-02') }).categoria, 'Infantil');
   assert.equal(s.guardarNadador({ ...N('b', '2012-02-02', { categoriaManual: 'Master' }) }).categoria, 'Master');
   assert.equal(s.guardarNadador({ ...N('c', '1985-02-02', { licenciaMaster: 'true' }) }).categoria, 'Master');
-  assert.equal(s.guardarNadador({ ...N('d', '', { categoria: 'Alevín' }) }).categoria, 'Alevín'); // no se puede calcular: se conserva
+  assert.equal(s.guardarNadador({ ...N('d', '', { categoria: 'Alevín' }) }).categoria, 'Alevín'); // cannot be computed: kept as is
   assert.equal(s.guardarNadador({ ...N('e', '') }).categoria, '');
 });
 
-test('previsualizar para el formulario: rango, avisos y categoría manual', () => {
+test('previsualizar for the form: range, warnings and manual category', () => {
   const s = crearCategoriasService(repoMem(), { ahora: reloj('2026-10-15') });
   const p = s.previsualizar({ fechaNacimiento: '2014-05-05', sexo: 'F' });
   assert.deepEqual([p.categoria, p.manual, p.rango.desde, p.rango.hasta], ['Alevín', false, 2014, 2015]);
@@ -135,7 +135,7 @@ test('previsualizar para el formulario: rango, avisos y categoría manual', () =
   assert.equal(s.previsualizar(null).rango, null);
 });
 
-test('reglas: guardarConfig valida, guarda y recalcula; restablecerConfig vuelve a los valores por defecto', () => {
+test('rules: guardarConfig validates, saves and recalculates; restablecerConfig goes back to the defaults', () => {
   const r = repoMem([N('1', '2008-06-01', { categoria: 'Absoluto' })]);
   const s = crearCategoriasService(r, { ahora: reloj('2026-10-15') });
   const mala = configPorDefecto();

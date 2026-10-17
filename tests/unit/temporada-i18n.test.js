@@ -10,9 +10,9 @@ import * as D from '../../js/domain/temporada.js';
 const vars = (s) => [...s.matchAll(/\{(\w+)\}/g)].map((m) => m[1]).sort().join(',');
 
 for (const [name, d] of [['en', en], ['it', it]]) {
-  test(`temporada ${name}: mismas claves y variables que es, sin valores vacíos`, () => {
-    assert.deepEqual(Object.keys(es).filter((k) => !(k in d)), [], 'faltan');
-    assert.deepEqual(Object.keys(d).filter((k) => !(k in es)), [], 'huérfanas');
+  test(`temporada ${name}: same keys and variables as es, no empty values`, () => {
+    assert.deepEqual(Object.keys(es).filter((k) => !(k in d)), [], 'missing');
+    assert.deepEqual(Object.keys(d).filter((k) => !(k in es)), [], 'orphans');
     for (const k of Object.keys(es)) {
       assert.equal(vars(d[k]), vars(es[k]), k);
       assert.ok(d[k].trim().length > 0, k);
@@ -20,17 +20,17 @@ for (const [name, d] of [['en', en], ['it', it]]) {
   });
 }
 
-test('terminología: Fase y Semana en es; Phase/Week en en; Fase/Settimana en it', () => {
+test('terminology: Fase and Semana in es; Phase/Week in en; Fase/Settimana in it', () => {
   assert.equal(es['tp.fase'], 'Fase');
   assert.equal(es['tp.semana'], 'Semana');
   assert.equal(en['tp.fase'], 'Phase');
   assert.equal(en['tp.semana'], 'Week');
   assert.equal(it['tp.fase'], 'Fase');
   assert.equal(it['tp.semana'], 'Settimana');
-  assert.ok(!Object.values(es).some((v) => /macrociclo|microciclo/i.test(v)), 'no se habla de macro/microciclos en la interfaz');
+  assert.ok(!Object.values(es).some((v) => /macrociclo|microciclo/i.test(v)), 'macro/microcycles are not mentioned in the interface');
 });
 
-test('todas las claves usadas por las vistas (literales y familias dinámicas) existen', () => {
+test('all keys used by the views (literals and dynamic families) exist', () => {
   const claves = new Set();
   for (const f of ['js/views/temporada.js', 'js/views/temporada-grafico.js', 'js/views/planificacion.js', 'js/views/calendario.js']) {
     const src = readFileSync(new URL('../../' + f, import.meta.url), 'utf8');
@@ -48,7 +48,7 @@ test('todas las claves usadas por las vistas (literales y familias dinámicas) e
   for (const [pre, lista] of Object.entries(familias)) for (const x of lista) assert.ok(pre + x in es, pre + x);
 });
 
-test('los textos se resuelven en cada idioma mediante t()', () => {
+test('texts are resolved in each language through t()', () => {
   setLang('en', { persist: false });
   assert.equal(t('tp.semana-n', { n: 3 }), 'Week 3');
   assert.equal(t('plan.apartado.piscina'), 'Pool');

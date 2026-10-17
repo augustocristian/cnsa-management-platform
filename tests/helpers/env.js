@@ -1,4 +1,4 @@
-// Entorno jsdom global para ejecutar los módulos ES de la app bajo node --test.
+// Global jsdom environment to run the app's ES modules under node --test.
 import { JSDOM } from 'jsdom';
 import { readFileSync } from 'node:fs';
 import vm from 'node:vm';
@@ -11,7 +11,7 @@ function define(name, value) {
   Object.defineProperty(globalThis, name, { value, configurable: true, writable: true });
 }
 
-// Instala window/document/localStorage... como globales. loadXlsx=true carga SheetJS (global XLSX).
+// Installs window/document/localStorage... as globals. loadXlsx=true loads SheetJS (global XLSX).
 export function setupEnv({ loadXlsx = false, hash = '' } = {}) {
   const dom = new JSDOM('<!doctype html><html><body><main id="app"></main></body></html>', {
     url: 'http://localhost/' + (hash ? '#' + hash : ''),
@@ -21,7 +21,7 @@ export function setupEnv({ loadXlsx = false, hash = '' } = {}) {
   define('window', w);
   define('document', w.document);
   define('localStorage', w.localStorage);
-  try { w.localStorage.setItem('cnl:lang', 'es'); } catch (e) { /* ignorar */ }
+  try { w.localStorage.setItem('cnl:lang', 'es'); } catch (e) { /* ignore */ }
   define('sessionStorage', w.sessionStorage);
   define('location', w.location);
   define('navigator', w.navigator);
@@ -31,7 +31,7 @@ export function setupEnv({ loadXlsx = false, hash = '' } = {}) {
   if (loadXlsx) {
     const src = readFileSync(path.join(ROOT, 'vendor', 'xlsx.full.min.js'), 'utf8');
     vm.runInThisContext(src);
-    if (!globalThis.XLSX) throw new Error('XLSX no se cargó');
+    if (!globalThis.XLSX) throw new Error('XLSX was not loaded');
   }
   return dom;
 }
@@ -39,5 +39,5 @@ export function setupEnv({ loadXlsx = false, hash = '' } = {}) {
 export const appUrl = (rel) => pathToFileURL(path.join(ROOT, rel)).href;
 export const importApp = (rel) => import(appUrl(rel));
 
-// Deja que los handlers async pendientes terminen.
+// Lets pending async handlers finish.
 export const tick = (ms = 0) => new Promise((r) => setTimeout(r, ms));

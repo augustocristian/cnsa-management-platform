@@ -4,7 +4,7 @@ import { importApp } from '../helpers/env.js';
 
 const D = await importApp('js/domain/entreno.js');
 
-// Plan del PDF de ejemplo del club (jueves 15/10/26, Alevín): 3060 m y 88 min
+// Plan from the club's sample PDF (Thursday 15/10/26, Alevín): 3060 m and 88 min
 const EJEMPLO = [
   { set: 1, orden: 1, tiempoMin: 7, objetivo: 'Calentamiento', series: 1, distancia: 300, ejercicio: '100suave+100Lig+100prog' },
   { set: 1, orden: 2, tiempoMin: 6, series: 4, distancia: 50, ejercicio: '25tec/25N. 1xEstilo' },
@@ -19,10 +19,10 @@ const EJEMPLO = [
   { set: 5, orden: 2, ejercicio: 'Estiramientos' },
 ];
 
-test('totales: fila, set y sesión como en el ejemplo (88 min, 3060 m)', () => {
+test('totals: row, set and session as in the example (88 min, 3060 m)', () => {
   assert.equal(D.distanciaBloque({ series: 4, distancia: 50 }), 200);
   assert.equal(D.distanciaBloque({ series: '6', distancia: '100' }), 600);
-  assert.equal(D.distanciaBloque({ series: '', distancia: 200 }), 200, 'series vacías con distancia = 1');
+  assert.equal(D.distanciaBloque({ series: '', distancia: 200 }), 200, 'empty series with a distance = 1');
   assert.equal(D.distanciaBloque({ series: 4, distancia: '' }), 0);
   const sets = D.agruparSets(EJEMPLO);
   assert.deepEqual(sets.map((s) => s.distSet), [800, 400, 1600, 60, 200]);
@@ -30,7 +30,7 @@ test('totales: fila, set y sesión como en el ejemplo (88 min, 3060 m)', () => {
   assert.deepEqual(D.totales(EJEMPLO), { metros: 3060, tiempoMin: 88, sets: 5, filas: 11 });
 });
 
-test('totales ignoran las filas vacías y no fallan con valores no numéricos', () => {
+test('totals ignore empty rows and do not fail with non-numeric values', () => {
   const t = D.totales([{ set: 1, orden: 1 }, { set: 1, orden: 2, series: 2, distancia: 100, tiempoMin: 5 }, { set: 2, orden: 1, series: 'x', distancia: 50 }]);
   assert.equal(t.metros, 200);
   assert.equal(t.tiempoMin, 5);
@@ -38,7 +38,7 @@ test('totales ignoran las filas vacías y no fallan con valores no numéricos', 
   assert.equal(t.sets, 2);
 });
 
-test('resumen: objetivos distintos y desglose por set', () => {
+test('summary: distinct objectives and breakdown per set', () => {
   const r = D.resumen(EJEMPLO);
   assert.deepEqual(r.objetivos, ['Calentamiento', 'Piernas', 'Aerobico', 'vuelta a la calma']);
   assert.equal(r.porSet.length, 5);
@@ -46,7 +46,7 @@ test('resumen: objetivos distintos y desglose por set', () => {
   assert.equal(r.metros, 3060);
 });
 
-test('parsearSalida: ciclo C/1\'10" y descanso d/15" en sus variantes', () => {
+test('parsearSalida: cycle C/1\'10" and rest d/15" in their variants', () => {
   const casos = [
     ["C/1'10\"", 'ciclo', 70, "C/1'10\""], ["c/1'10''", 'ciclo', 70, "C/1'10\""], ['C/1:10', 'ciclo', 70, "C/1'10\""], ["cada 1'30", 'ciclo', 90, "C/1'30\""],
     ['d/15"', 'descanso', 15, 'd/15"'], ["D/15''", 'descanso', 15, 'd/15"'], ['descanso 20s', 'descanso', 20, 'd/20"'], ["C/2'", 'ciclo', 120, "C/2'"],
@@ -64,13 +64,13 @@ test('parsearSalida: ciclo C/1\'10" y descanso d/15" en sus variantes', () => {
   for (const mal of ['xx', 'C/', 'C/abc', 'd/-', 'libre y suave']) assert.equal(D.parsearSalida(mal).valido, false, mal);
 });
 
-test('tiempo estimado: sólo para salidas de ciclo', () => {
+test('estimated time: only for cycle intervals', () => {
   assert.equal(D.segundosEstimados({ series: 8, distancia: 50, salida: "C/1'10\"" }), 560);
   assert.equal(D.segundosEstimados({ series: 6, distancia: 100, salida: 'd/15"' }), 0);
   assert.equal(D.segundosEstimados({ series: 6, distancia: 100, salida: '' }), 0);
 });
 
-test('validarLinea: números no válidos son errores y la salida desconocida es un aviso', () => {
+test('validarLinea: invalid numbers are errors and an unknown interval is a warning', () => {
   const v = D.validarLinea(D.normalizarLinea({ set: 1, orden: 2, series: 'cuatro', distancia: '1x', tiempoMin: 'ya', salida: 'rapido' }));
   const por = (c) => v.find((x) => x.codigo === c);
   assert.equal(por('series-no-numerica').severidad, 'error');
@@ -82,11 +82,11 @@ test('validarLinea: números no válidos son errores y la salida desconocida es 
   assert.equal(D.validarLinea(D.normalizarLinea({ series: -2, distancia: 50 }))[0].codigo, 'numero-negativo');
   assert.equal(D.validarLinea(D.normalizarLinea({ series: 1.5, distancia: 50 }))[0].codigo, 'series-no-numerica');
   assert.equal(D.validarLinea(D.normalizarLinea({ series: 4 }))[0].codigo, 'sin-distancia');
-  // coma decimal admitida en tiempo
+  // decimal comma accepted in time
   assert.deepEqual(D.validarLinea(D.normalizarLinea({ series: 1, distancia: 50, tiempoMin: '2,5' })), []);
 });
 
-test('validarSesion: aviso si la distancia total difiere de la carga registrada (tolerancia 10 %)', () => {
+test('validarSesion: warning if the total distance differs from the recorded load (10 % tolerance)', () => {
   const lin = EJEMPLO;
   const ok = D.validarSesion({ lineas: lin, cargaMedia: 3100 });
   assert.equal(ok.some((a) => a.codigo === 'distancia-difiere-carga'), false);
@@ -94,11 +94,11 @@ test('validarSesion: aviso si la distancia total difiere de la carga registrada 
   const aviso = dif.find((a) => a.codigo === 'distancia-difiere-carga');
   assert.equal(aviso.severidad, 'aviso');
   assert.deepEqual(aviso.params, { total: 3060, registrada: 2000 });
-  assert.equal(D.validarSesion({ lineas: lin, cargaMedia: 0 }).length, 0, 'sin carga registrada no hay aviso');
+  assert.equal(D.validarSesion({ lineas: lin, cargaMedia: 0 }).length, 0, 'no warning without a recorded load');
   assert.equal(D.validarSesion({ lineas: [] }).some((a) => a.codigo === 'sin-lineas'), true);
 });
 
-test('validarSesion: volumen objetivo y duración de la sesión', () => {
+test('validarSesion: target volume and session duration', () => {
   const v = D.validarSesion({ sesion: { volumenMin: 3500, volumenMax: 4000, duracionMin: 60 }, lineas: EJEMPLO });
   assert.ok(v.some((a) => a.codigo === 'fuera-volumen-objetivo'));
   assert.ok(v.some((a) => a.codigo === 'tiempo-supera-duracion'));
@@ -108,18 +108,18 @@ test('validarSesion: volumen objetivo y duración de la sesión', () => {
   assert.equal(D.hayErrores(bien), false);
 });
 
-test('cargaRegistrada: media de metros de la sesión', () => {
+test('cargaRegistrada: average metres of the session', () => {
   const cargas = [{ entrenamientoId: 'e1', metros: 3000 }, { entrenamientoId: 'e1', metros: 3200 }, { entrenamientoId: 'e2', metros: 100 }, { entrenamientoId: 'e1', metros: '' }];
   assert.equal(D.cargaRegistrada(cargas, 'e1'), 3100);
   assert.equal(D.cargaRegistrada(cargas, 'e9'), 0);
 });
 
-test('renumerar: sets y órdenes consecutivos conservando el orden', () => {
+test('renumerar: consecutive sets and orders keeping the order', () => {
   const r = D.renumerar([{ set: 7, orden: 3, ejercicio: 'c' }, { set: 2, orden: 9, ejercicio: 'b' }, { set: 2, orden: 1, ejercicio: 'a' }]);
   assert.deepEqual(r.map((l) => [l.set, l.orden, l.ejercicio]), [[1, 1, 'a'], [1, 2, 'b'], [2, 1, 'c']]);
 });
 
-test('edición: añadir, quitar y mover filas y sets', () => {
+test('editing: add, remove and move rows and sets', () => {
   let ls = D.anadirSet([]);
   assert.equal(ls.length, 1);
   ls[0].ejercicio = 'A';
@@ -133,17 +133,17 @@ test('edición: añadir, quitar y mover filas y sets', () => {
   assert.equal(nombres(ls), '1.1A 1.2B 1.3C 2.1D');
   assert.equal(nombres(D.moverFila(ls, 1, 2, -1)), '1.1B 1.2A 1.3C 2.1D');
   assert.equal(nombres(D.moverFila(ls, 1, 2, 1)), '1.1A 1.2C 1.3B 2.1D');
-  assert.equal(nombres(D.moverFila(ls, 1, 3, 1)), '1.1A 1.2B 2.1C 2.2D', 'al bajar desde el borde pasa al set siguiente');
-  assert.equal(nombres(D.moverFila(ls, 2, 1, -1)), '1.1A 1.2B 1.3C 1.4D', 'al subir desde el borde pasa al set anterior');
-  assert.equal(nombres(D.moverFila(ls, 1, 1, -1)), nombres(ls), 'la primera fila no sube');
+  assert.equal(nombres(D.moverFila(ls, 1, 3, 1)), '1.1A 1.2B 2.1C 2.2D', 'moving down from the edge goes to the next set');
+  assert.equal(nombres(D.moverFila(ls, 2, 1, -1)), '1.1A 1.2B 1.3C 1.4D', 'moving up from the edge goes to the previous set');
+  assert.equal(nombres(D.moverFila(ls, 1, 1, -1)), nombres(ls), 'the first row does not move up');
   assert.equal(nombres(D.quitarFila(ls, 1, 2)), '1.1A 1.2C 2.1D');
   assert.equal(nombres(D.quitarSet(ls, 1)), '1.1D');
   assert.equal(nombres(D.moverSet(ls, 1, 1)), '1.1D 2.1A 2.2B 2.3C');
-  assert.equal(nombres(D.moverSet(ls, 2, 1)), nombres(ls), 'el último set no baja');
-  assert.equal(nombres(D.anadirFila(ls, 1, { set: 1, orden: 1 })).startsWith('1.1A 1.2 1.3B'), true, 'insertar tras una fila concreta');
+  assert.equal(nombres(D.moverSet(ls, 2, 1)), nombres(ls), 'the last set does not move down');
+  assert.equal(nombres(D.anadirFila(ls, 1, { set: 1, orden: 1 })).startsWith('1.1A 1.2 1.3B'), true, 'insert after a given row');
 });
 
-test('duplicar set y fila: copia justo después y asigna ids nuevos', () => {
+test('duplicate set and row: copy right after and assign new ids', () => {
   let n = 0;
   const gen = () => 'nuevo' + (++n);
   const base = D.renumerar([{ id: 'a', set: 1, orden: 1, ejercicio: 'A', series: 2, distancia: 50 }, { id: 'b', set: 1, orden: 2, ejercicio: 'B' }, { id: 'c', set: 2, orden: 1, ejercicio: 'C' }]);
@@ -156,7 +156,7 @@ test('duplicar set y fila: copia justo después y asigna ids nuevos', () => {
   assert.equal(dupFila[1].id, 'nuevo3');
 });
 
-test('duplicarSesion: copia el plan sin ids y vuelve a planificado; el original no cambia', () => {
+test('duplicarSesion: copies the plan without ids and goes back to planned; the original does not change', () => {
   const sesion = { id: 'e1', fecha: '2026-10-15', hora: '19:50', titulo: 'Alevín', estado: 'realizado', tipoSesion: 'Aer+Ritmo', materialDia: 'JJDD', notasGenerales: 'Tabla' };
   const original = D.renumerar(EJEMPLO.map((l, i) => ({ ...l, id: 'l' + i, entrenamientoId: 'e1' })));
   const d = D.duplicarSesion(sesion, original, { fecha: '2026-10-22' });
@@ -171,7 +171,7 @@ test('duplicarSesion: copia el plan sin ids y vuelve a planificado; el original 
   assert.equal(original[0].id, 'l0');
 });
 
-test('plantillas: todas son planes válidos y planDemo se ajusta al volumen', () => {
+test('templates: all are valid plans and planDemo fits the volume', () => {
   assert.ok(D.PLANTILLAS.length >= 3);
   for (const p of D.PLANTILLAS) {
     const ls = D.lineasDePlantilla(p.id);
@@ -184,21 +184,21 @@ test('plantillas: todas son planes válidos y planDemo se ajusta al volumen', ()
     for (const vol of [1800, 2600, 3800, 4500]) {
       const plan = D.planDemo(v, vol, 90);
       assert.ok(Math.abs(D.totales(plan.lineas).metros - vol) <= 25, `${v}/${vol}: ${D.totales(plan.lineas).metros}`);
-      assert.ok(D.totales(plan.lineas).tiempoMin <= 90, 'cabe en la duración');
+      assert.ok(D.totales(plan.lineas).tiempoMin <= 90, 'fits within the duration');
       assert.deepEqual(D.validarSesion({ lineas: plan.lineas }), []);
       assert.ok(!('ajusta' in plan.lineas[0]));
     }
   }
 });
 
-test('sugerencias: más frecuentes primero, sin duplicados y con valores por defecto al final', () => {
+test('suggestions: most frequent first, without duplicates and with default values last', () => {
   const ls = [{ objetivo: 'Piernas' }, { objetivo: 'piernas' }, { objetivo: 'Aeróbico' }, { objetivo: '' }, { objetivo: 'Piernas' }];
   assert.deepEqual(D.sugerencias(ls, 'objetivo'), ['Piernas', 'Aeróbico']);
   assert.deepEqual(D.sugerencias(ls, 'objetivo', { extra: ['aeróbico', 'Velocidad'] }), ['Piernas', 'Aeróbico', 'Velocidad']);
   assert.deepEqual(D.sugerencias(ls, 'objetivo', { limite: 1 }), ['Piernas']);
 });
 
-test('nombres de fichero y hora', () => {
+test('file names and time', () => {
   assert.equal(D.nombreFichero({ grupo: 'Alevín', fecha: '2026-10-15', dia: 'jueves' }), 'Alevin-2026-10-15-jueves.pdf');
   assert.equal(D.nombreFichero({ grupo: 'Infantil-Junior', fecha: '2026-10-16T10:00', dia: 'Viernes' }), 'Infantil-Junior-2026-10-16-viernes.pdf');
   assert.equal(D.nombreFichero({ fecha: '2026-10-15' }), 'Entreno-2026-10-15.pdf');

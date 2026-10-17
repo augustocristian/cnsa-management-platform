@@ -5,7 +5,7 @@ import { setupEnv, importApp } from '../helpers/env.js';
 setupEnv();
 const ui = await importApp('js/ui.js');
 
-test('parseTime / fmtTime ida y vuelta', () => {
+test('parseTime / fmtTime round trip', () => {
   for (const ms of [0, 50, 28500, 62340, 125500, 3599990]) {
     assert.equal(ui.parseTime(ui.fmtTime(ms)), ms, String(ms));
   }
@@ -15,13 +15,13 @@ test('parseTime / fmtTime ida y vuelta', () => {
   assert.equal(ui.parseTime('02:05,5'), 125500);
 });
 
-test('parseTime rechaza entradas inválidas y fmtTime valores no válidos', () => {
+test('parseTime rejects invalid inputs and fmtTime invalid values', () => {
   for (const s of ['', 'abc', '1:2:3', '-5', null, undefined]) assert.ok(Number.isNaN(ui.parseTime(s)), String(s));
   assert.equal(ui.fmtTime(-1), '');
   assert.equal(ui.fmtTime('x'), '');
 });
 
-test('fmtDate formatos corto y largo', () => {
+test('fmtDate short and long formats', () => {
   assert.equal(ui.fmtDate('2026-10-15'), '15/10/2026');
   assert.equal(ui.fmtDate('2026-10-15', 'long'), 'jueves, 15 de octubre de 2026');
   assert.equal(ui.fmtDate(''), '');
@@ -29,13 +29,13 @@ test('fmtDate formatos corto y largo', () => {
   assert.equal(ui.fmtDate('no-fecha'), 'no-fecha');
 });
 
-test('isoDate devuelve YYYY-MM-DD en hora local', () => {
+test('isoDate returns YYYY-MM-DD in local time', () => {
   assert.equal(ui.isoDate(new Date(2026, 0, 5)), '2026-01-05');
   assert.equal(ui.isoDate('2026-12-31'), '2026-12-31');
   assert.match(ui.isoDate(), /^\d{4}-\d{2}-\d{2}$/);
 });
 
-test('h() escapa texto y no interpreta HTML', () => {
+test('h() escapes text and does not interpret HTML', () => {
   const el = ui.h('div', { class: 'x' }, '<img src=x onerror=alert(1)>', '<b>hola</b>');
   assert.equal(el.querySelector('img'), null);
   assert.equal(el.querySelector('b'), null);
@@ -43,7 +43,7 @@ test('h() escapa texto y no interpreta HTML', () => {
   assert.equal(el.className, 'x');
 });
 
-test('h() atributos, eventos, hijos anidados y SVG', () => {
+test('h() attributes, events, nested children and SVG', () => {
   let n = 0;
   const el = ui.h('button', { onclick: () => n++, dataset: { a: '1' }, 'aria-busy': true, hidden: false, title: null }, ['a', [null, 'b', false, 0]]);
   el.click();
@@ -57,7 +57,7 @@ test('h() atributos, eventos, hijos anidados y SVG', () => {
   assert.equal(svg.firstChild.namespaceURI, 'http://www.w3.org/2000/svg');
 });
 
-test('formFields lee valores y valida', () => {
+test('formFields reads values and validates', () => {
   const f = ui.formFields([
     { name: 'a', label: 'A', required: true },
     { name: 'n', type: 'number' },
@@ -68,7 +68,7 @@ test('formFields lee valores y valida', () => {
   assert.equal(f.validate(), true);
 });
 
-test('modal y confirmDialog', async () => {
+test('modal and confirmDialog', async () => {
   const p = ui.confirmDialog('¿Seguro?');
   const ov = document.querySelector('.modal-overlay');
   assert.ok(ov.textContent.includes('¿Seguro?'));

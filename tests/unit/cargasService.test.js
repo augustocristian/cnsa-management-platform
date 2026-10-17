@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { crearCargasService } from '../../js/application/cargasService.js';
 
-// Repositorio en memoria con la misma interfaz que el store.
+// In-memory repository with the same interface as the store.
 function repoMem(datos = {}) {
   const db = { TiposCarga: [], Cargas: [], ObjetivosCarga: [], Nadadores: [{ id: 'n1' }, { id: 'n2' }], Entrenamientos: [{ id: 'e1', fecha: '2026-10-12', hora: '17:00', titulo: 'Sesión 1' }], ...datos };
   let n = 0;
@@ -23,11 +23,11 @@ function repoMem(datos = {}) {
 const nuevo = (opts, datos) => { const repo = repoMem(datos); const svc = crearCargasService(repo, { generarId: (() => { let i = 0; return () => 'tc-p' + (++i); })(), ...opts }); svc.asegurarCatalogo(); return { repo, svc }; };
 const carga = (o) => ({ nadadorId: 'n1', fecha: '2026-10-12', metros: 1000, ...o });
 
-test('asegurarCatalogo siembra los predefinidos una sola vez y migra objetivos antiguos', () => {
+test('asegurarCatalogo seeds the defaults only once and migrates old targets', () => {
   const repo = repoMem({ ObjetivosCarga: [{ id: 'o1', tipo: 'Técnica', minSemanalM: 100, maxSemanalM: 900 }, { id: 'o2', tipo: 'Fuerza', minSemanalM: 5, maxSemanalM: 50 }], Cargas: [{ id: 'c1', tipo: 'Fuerza' }] });
   const svc = crearCargasService(repo, { generarId: () => 'tc-heredado' });
   assert.ok(svc.asegurarCatalogo() > 0);
-  assert.equal(svc.asegurarCatalogo(), 0, 'segunda vez: nada que hacer');
+  assert.equal(svc.asegurarCatalogo(), 0, 'second time: nothing to do');
   assert.equal(svc.tipos().length, 11);
   assert.deepEqual(repo.db.ObjetivosCarga, []);
   const tec = svc.resolver('Técnica');
@@ -37,7 +37,7 @@ test('asegurarCatalogo siembra los predefinidos una sola vez y migra objetivos a
   assert.equal(svc.usos(fuerza.id), 1);
 });
 
-test('crear: valida nombre obligatorio y único, asigna personalizado/activo al final', () => {
+test('crear: validates mandatory and unique name, assigns custom/active at the end', () => {
   const { svc } = nuevo();
   assert.deepEqual(svc.crear({ nombre: '' }).errores, [{ campo: 'nombre', codigo: 'nombre-vacio' }]);
   assert.equal(svc.crear({ nombre: 'TÉCNICA' }).errores[0].codigo, 'nombre-duplicado');
@@ -49,7 +49,7 @@ test('crear: valida nombre obligatorio y único, asigna personalizado/activo al 
   assert.equal(svc.tipos().at(-1).nombre, 'Aguas abiertas');
 });
 
-test('editar: predefinido conserva el nombre; personalizado renombrado arrastra sus cargas', () => {
+test('editar: a default keeps its name; a renamed custom one carries its loads along', () => {
   const { svc, repo } = nuevo();
   const pred = svc.resolver('Piernas');
   const r = svc.editar(pred.id, { nombre: 'Otro nombre', descripcion: 'Nueva', color: '#abcdef', min: 100, max: 200 });
@@ -65,7 +65,7 @@ test('editar: predefinido conserva el nombre; personalizado renombrado arrastra 
   assert.equal(svc.editar('nada', {}).errores[0].codigo, 'no-existe');
 });
 
-test('activar/desactivar: los inactivos no se ofrecen y no admiten cargas nuevas', () => {
+test('activar/desactivar: inactive ones are not offered and accept no new loads', () => {
   const { svc } = nuevo();
   const t = svc.resolver('Brazos');
   svc.activar(t.id, false);
@@ -75,7 +75,7 @@ test('activar/desactivar: los inactivos no se ofrecen y no admiten cargas nuevas
   assert.ok(svc.registrarCarga(carga({ tipoId: t.id })).ok);
 });
 
-test('mover: reordena dentro de su categoría y no sale de los extremos', () => {
+test('mover: reorders within its category and does not go past the ends', () => {
   const { svc } = nuevo();
   const orden = () => svc.grupos()[0].tipos.map((t) => t.nombre);
   const antes = orden();
@@ -90,7 +90,7 @@ test('mover: reordena dentro de su categoría y no sale de los extremos', () => 
   void a;
 });
 
-test('borrar: no los predefinidos ni los que tienen cargas; sí los personalizados sin uso', () => {
+test('borrar: not the defaults nor those with loads; yes the unused custom ones', () => {
   const { svc } = nuevo();
   assert.deepEqual(svc.borrar(svc.resolver('Piernas').id), { ok: false, motivo: 'predefinido' });
   const mio = svc.crear({ nombre: 'Temporal' }).tipo;
@@ -102,7 +102,7 @@ test('borrar: no los predefinidos ni los que tienen cargas; sí los personalizad
   assert.equal(svc.tipo(libre.id), null);
 });
 
-test('fusionar: reasigna las cargas al destino y elimina el origen personalizado', () => {
+test('fusionar: reassigns the loads to the destination and removes the custom origin', () => {
   const { svc, repo } = nuevo();
   const o = svc.crear({ nombre: 'Origen' }).tipo;
   const d = svc.resolver('Técnica');
@@ -115,7 +115,7 @@ test('fusionar: reasigna las cargas al destino y elimina el origen personalizado
   assert.equal(svc.usos(d.id), 2);
 });
 
-test('registrarCarga: valida campos y guarda el nombre del contenido y la sesión opcional', () => {
+test('registrarCarga: validates fields and stores the content name and the optional session', () => {
   const { svc, repo } = nuevo();
   const t = svc.resolver('Salidas');
   const codigos = (d) => svc.registrarCarga(d).errores.map((e) => e.codigo);
@@ -132,7 +132,7 @@ test('registrarCarga: valida campos y guarda el nombre del contenido y la sesió
   assert.equal(repo.db.Cargas.length, 1);
 });
 
-test('semana: evaluación de objetivos y permisos de sólo lectura', () => {
+test('semana: target evaluation and read-only permissions', () => {
   const { svc } = nuevo();
   const p = svc.resolver('Piernas');
   svc.guardarObjetivo(p.id, 3000, 4000);
@@ -144,7 +144,7 @@ test('semana: evaluación de objetivos y permisos de sólo lectura', () => {
   assert.equal(svc.puedeEditar, undefined, 'no role-based permissions: the service always writes');
 });
 
-test('alias: se guardan al crear/editar (también en predefinidos) y no pueden repetirse', () => {
+test('alias: saved on create/edit (also on defaults) and cannot be repeated', () => {
   const { svc } = nuevo();
   const r = svc.crear({ nombre: 'Fuerza en seco', alias: 'FZ, Fuer' });
   assert.equal(r.ok, true);
@@ -153,16 +153,16 @@ test('alias: se guardan al crear/editar (también en predefinidos) y no pueden r
   const e = svc.editar('tc-piernas', { alias: 'Patada, Pn' });
   assert.deepEqual([e.ok, e.tipo.alias], [true, ['Patada', 'Pn']]);
   assert.equal(svc.editar('tc-brazos', { alias: 'Pn' }).errores[0].codigo, 'alias-duplicado');
-  assert.deepEqual(svc.editar('tc-piernas', { descripcion: 'x' }).tipo.alias, ['Patada', 'Pn'], 'sin tocar el alias se conserva');
+  assert.deepEqual(svc.editar('tc-piernas', { descripcion: 'x' }).tipo.alias, ['Patada', 'Pn'], 'the alias is kept when it is not touched');
 });
 
-test('renombrar o fusionar un contenido actualiza los componentes de los planes de entreno', () => {
+test('renaming or merging a content updates the components of the training plans', () => {
   const comps = (...n) => JSON.stringify(n.map((c) => ({ contenido: c, metrosPorRep: 25, modo: 'auto' })));
   const { repo, svc } = nuevo({}, { EntrenoLineas: [{ id: 'l1', entrenamientoId: 'e1', componentes: comps('Fuerza', 'Piernas') }, { id: 'l2', entrenamientoId: 'e1', componentes: '' }] });
   const f = svc.crear({ nombre: 'Fuerza' }).tipo;
   svc.editar(f.id, { nombre: 'Fuerza seca' });
   assert.deepEqual(JSON.parse(repo.db.EntrenoLineas.find((l) => l.id === 'l1').componentes).map((c) => c.contenido), ['Fuerza seca', 'Piernas']);
-  assert.equal(repo.db.EntrenoLineas.find((l) => l.id === 'l2').componentes, '', 'las filas sin componentes no se tocan');
+  assert.equal(repo.db.EntrenoLineas.find((l) => l.id === 'l2').componentes, '', 'rows without components are not touched');
   const r = svc.fusionar(f.id, 'tc-piernas');
   assert.equal(r.ok, true);
   assert.deepEqual(JSON.parse(repo.db.EntrenoLineas.find((l) => l.id === 'l1').componentes).map((c) => [c.contenido, c.metrosPorRep]), [['Piernas', 50]]);
