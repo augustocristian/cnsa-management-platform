@@ -14,10 +14,18 @@ import { abrirCatalogoBanadores, crearServicio as crearServicioBanadores, etique
 import { abrirRegistro } from './marcas-registro.js';
 import { graficoEvolucion } from './marcas-grafico.js';
 import { pruebaLabel } from './marcas-util.js';
+import { repintarAlCambiar } from './suscripcion.js';
 
-// Filters survive navigation inside the session (per club): { clubId, filtros, recuerdo }.
-let memoria = null;
+// Filters survive navigation (per club). Device-only convenience in localStorage (never the source of truth).
 const FILTROS_VACIOS = { nadadorId: '', prueba: '', piscina: '', tipo: '', marca: '', modelo: '' };
+const claveFiltros = (clubId) => `cnl:ui:marcas:${clubId}`;
+function leerFiltros(clubId) {
+  try {
+    const v = JSON.parse(localStorage.getItem(claveFiltros(clubId)) || 'null');
+    return v && typeof v === 'object' ? { ...FILTROS_VACIOS, ...v } : { ...FILTROS_VACIOS };
+  } catch (e) { return { ...FILTROS_VACIOS }; }
+}
+function guardarFiltros(clubId, filtros) { try { localStorage.setItem(claveFiltros(clubId), JSON.stringify(filtros)); } catch (e) { /* ignore */ } }
 
 export async function render(container, params, ctx) {
   useStyles('marcas');
@@ -26,7 +34,7 @@ export async function render(container, params, ctx) {
   const svc = ctx.marcas || crearMarcasService(store);
   const banSvc = crearServicioBanadores(ctx);
   const clubId = store.clubRef ? store.clubRef.id : '';
-  if (!memoria || memoria.clubId !== clubId) memoria = { clubId, filtros: { ...FILTROS_VACIOS }, recuerdo: {} };
+  const memoria = { filtros: leerFiltros(clubId), recuerdo: {} };
   const state = { pagina: 1, destacar: '' };
   svc.migrarPruebas(); // canonical event names ("100 libre" -> "100 Libre"); no-op when already canonical
 
@@ -132,6 +140,7 @@ export async function render(container, params, ctx) {
     }
     const { filtro, opciones } = D.ajustarFiltroBanador({ tipo: memoria.filtros.tipo, marca: memoria.filtros.marca, modelo: memoria.filtros.modelo }, banadores, todas);
     Object.assign(memoria.filtros, filtro);
+    guardarFiltros(clubId, memoria.filtros);
     const f = memoria.filtros;
     const base = D.filtrarPorBanador(todas, banadores, filtro);          // suit filter: it also decides which times are PB
     const visibles = D.filtrarMarcas(base, { nadadorId: f.nadadorId, prueba: f.prueba, piscina: f.piscina });
@@ -142,7 +151,7 @@ export async function render(container, params, ctx) {
       ? h('div', null, h('p', { class: 'mc-chart-title' }, t('marcas.evol-de', { nombre: nad.get(serie.nadadorId) || t('marcas.desconocido'), prueba: pruebaLabel(serie.prueba), piscina: serie.piscina || '—' })), graficoEvolucion(serie, { textoBanador }))
       : h('p', { class: 'muted' }, t('marcas.evol-vacio'));
     const card = (titulo, ...hijos) => h('section', { class: 'card' }, h('div', { class: 'card-head' }, h('h2', null, titulo)), ...hijos);
-    container.replaceChildren(cabecera, barraFiltros(todas, nadadores, opciones), chips(nad, opciones),
+    container.replaceChildren(cabecera, barraFiltros(todas, nadadores, opciones), ...[chips(nad, opciones)].filter(Boolean),
       h('div', { class: 'mc-stack' },
         card(t('marcas.evolucion'), grafico),
         card(t('marcas.mejores'), tablaMejores(D.mejoresMarcas(visibles, (id) => nad.get(id) || ''), nad, banadores)),
@@ -151,9 +160,7 @@ export async function render(container, params, ctx) {
   }
 
   draw();
-  if (store.on) {
-    const off = store.on(() => { if (container.isConnected) draw(); else off(); });
-    return off;
-  }
-  return undefined;
+  // Home quick action: #/marcas/nueva opens the log sheet straight away
+  if (Array.isArray(params) && params[0] === 'nueva') registrar();
+  return repintarAlCambiar(store, container, draw, ['Marcas', 'Nadadores', 'Banadores']);
 }

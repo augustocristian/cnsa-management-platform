@@ -17,12 +17,12 @@ export function crearBarra(env, acciones) {
     etiqueta: t('entreno.barra.mas'),
     clase: 'enp-barra-mas',
     items: () => [
-      { label: etiquetaPdf(), icono: 'descargar', onClick: acciones.pdf },
-      { label: t('entreno.vista-previa'), icono: 'ojo', onClick: acciones.previa },
-      { label: t('entreno.imprimir'), icono: 'imprimir', onClick: acciones.imprimir, oculto: esMovil() },
-      { label: t('entreno.guardar-drive'), icono: 'nube', onClick: acciones.drive, deshabilitado: !acciones.driveDisponible, ayuda: acciones.driveDisponible ? null : t('entreno.drive-demo') },
-      { label: t('entreno.res.registrar'), icono: 'cargas', onClick: acciones.registrar },
-      { label: t('entreno.res.copiar'), icono: 'copiar', onClick: acciones.copiar },
+      { id: 'pdf', label: etiquetaPdf(), icono: 'descargar', onClick: acciones.pdf },
+      { id: 'previa', label: t('entreno.vista-previa'), icono: 'ojo', onClick: acciones.previa },
+      { id: 'imprimir', label: t('entreno.imprimir'), icono: 'imprimir', onClick: acciones.imprimir, oculto: esMovil() },
+      { id: 'drive', label: t('entreno.guardar-drive'), icono: 'nube', onClick: acciones.drive, deshabilitado: !acciones.driveDisponible, ayuda: acciones.driveDisponible ? null : t('entreno.drive-demo') },
+      { id: 'registrar', label: t('entreno.res.registrar'), icono: 'cargas', onClick: acciones.registrar },
+      { id: 'copiar', label: t('entreno.res.copiar'), icono: 'copiar', onClick: acciones.copiar },
     ],
   });
   const el = h('div', { class: 'enp-foot' },

@@ -19,7 +19,7 @@
 .acc-privacidad { display: flex; align-items: flex-start; gap: var(--sp-2); padding: var(--sp-3); border-radius: var(--r-md); background: var(--info-bg); color: var(--text); font-size: var(--fs-sm); }
 .acc-privacidad .icon { color: var(--info); margin-top: 2px; }
 .auth-card .hint { text-align: center; }
-.auth-card .acc-help .hint, .auth-card .acc-form .hint { text-align: left; }
+.auth-card .acc-help .hint, .auth-card .acc-form .hint, .auth-card .acc-error .hint { text-align: left; }
 .auth-card .btn-link { align-self: center; }
 
 /* Live region for results/errors: reserves no space until used, but keeps the controls above fixed. */
@@ -33,9 +33,9 @@
 /* Copy row: the value and its button share one aligned row */
 .acc-copyrow { display: grid; gap: var(--sp-1); }
 .acc-label { font-size: var(--fs-sm); font-weight: 600; color: var(--text); }
-.acc-copy { display: flex; align-items: stretch; gap: var(--sp-2); }
+.acc-copy { display: flex; flex-wrap: wrap; align-items: stretch; gap: var(--sp-2); }
 .acc-copy code {
-  flex: 1 1 auto; min-width: 0; display: flex; align-items: center; min-height: var(--touch); padding: 0 var(--sp-3);
+  flex: 1 1 12rem; min-width: 0; display: flex; align-items: center; min-height: var(--touch); padding: 0 var(--sp-3);
   border: 1px solid var(--field-border); border-radius: var(--r-sm); background: var(--surface-2); color: var(--text);
   font-size: var(--fs-sm); overflow-wrap: anywhere;
 }

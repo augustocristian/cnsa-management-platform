@@ -34,7 +34,7 @@ Load order: `tokens.css` → `app.css` → `components.css`.
 
 **Theme.** Light by default; `[data-theme="dark"]` forces dark and `prefers-color-scheme: dark` enables it unless `[data-theme="light"]`. `setTheme('auto'|'light'|'dark')` (`js/theme.js`) sets the attribute, mirrors it in `localStorage['cnl:tema']` (read by `js/theme-boot.js` before first paint: no flash) and stores it in the Drive preferences (key `tema`). `themeSelect()` is the ready-made selector. `onThemeChange(fn)` also fires when the system theme changes.
 
-**Club colour.** `applyTheme()` (`js/app.js`) calls `variablesTema({primario, secundario}, mode)`: it validates (only `#rgb`/`#rrggbb`; anything else falls back to the default blue), keeps the colour as chosen in light mode and guarantees ≥ 4.5:1 for the primary button, links and headings (darkening/lightening just enough). Use `--c-action`/`--c-on-primary` for brand-coloured backgrounds and `--c-accent`/`--c-heading` for text; avoid `--c-primary` as a text colour in new code.
+**Club colour.** `aplicarTema()` (`js/presentation/shell/themeApply.js`) calls `variablesTema({primario, secundario}, mode)`: it validates (only `#rgb`/`#rrggbb`; anything else falls back to the default blue), keeps the colour as chosen in light mode and guarantees ≥ 4.5:1 for the primary button, links and headings (darkening/lightening just enough). Use `--c-action`/`--c-on-primary` for brand-coloured backgrounds and `--c-accent`/`--c-heading` for text; avoid `--c-primary` as a text colour in new code.
 
 ## Components (markup)
 
@@ -105,9 +105,20 @@ Load order: `tokens.css` → `app.css` → `components.css`.
 - **CSP** (meta in `index.html`): `default-src 'none'`, scripts only from self + Google Identity; no `unsafe-inline` for scripts (hence `js/theme-boot.js` is a file). Injected `<style>` needs `'unsafe-inline'` for styles until the views are migrated.
 - **SRI**: `scripts/vendor.mjs` generates `vendor/integrity.json` (sha384); `js/infrastructure/vendorIntegridad.js` (`integridad(name)`) applies it to `jsPDF`/`autotable` (`pdfEntreno.js`) and SheetJS (`lazy.js`). Any new `vendor/` script must be loaded the same way. Google Identity does not support SRI.
 - **Icons**: `scripts/iconos.mjs` generates `apple-touch-icon.png` (180, opaque) and `icon-maskable-512.png` (motif inside the safe zone).
-- When adding new CSS/JS files: add them to `SHELL` in `sw.js` and bump `VERSION`.
+- When adding new CSS/JS files run `npm run build:sw` (the precache list and `VERSION` are generated from the disk; `npm run check` fails if they are stale).
+
+## Shell (header, navigation, banners)
+
+Files: `css/app.css`, `js/presentation/shell/*.js`. The markup uses the shared components (`.alert`, `.btn`, `.icon-btn`, `.sheet`, `.lang-switch`); only the page structure is in `app.css`.
+
+- **Header** (`.topbar`): one 56 px row on mobile (logo, club name, notices bell, settings/connection button); on desktop it also shows the motto. There is no user identity anywhere: no name, e-mail or avatar.
+- **Settings and connection menu** (`.account-btn` + `.account-panel`, a disclosure: Tab walks into the panel, Escape and outside clicks close it): language (`langSwitch`), theme (`themeSelect`), Drive status row (coloured icon + text, 44 px, press to sync) and "Disconnect Drive" (asks for confirmation). In demo mode the status reads "Demo mode" and the actions are "Connect Google Drive" and "Exit demo".
+- **Navigation**: one `<nav class="sidebar">`. Desktop: Home + three groups with headers (People, Training, Club). Mobile (<= 820 px): bottom bar with Home, Training, Attendance, Calendar and **More**, which opens a bottom `sheet` with the same three groups minus what the bar already shows. Model in `navModel.js`. Active item = soft background + 3 px bar (left in the sidebar and in the sheet, top in the bottom bar), `aria-current="page"`; never a solid block. Routes that moved keep working (`#/banador` -> `#/marcas`).
+- **Banners** (`#cnl-avisos`, under the header, `.alert` component): demo mode (persistent, with its two buttons), new version available ("Reload"), offline (navigator.onLine) and the data-integrity notices. They are only repainted when their content changes.
+- **Route change accessibility**: `document.title` = "View · Club", focus moves to the view's `h1` (or `#view`) unless the view already focused a control, a polite live region (`#route-announcer`) announces the title, the skip link focuses `#view`.
+- **Footer** (`footer.footer`): only at the end of Settings.
+- **Service worker**: see `docs/ARCHITECTURE.md` (Shell and PWA).
 
 ## Pending for other work
 
-- **Shell** (`app.js`/`app.css`): redo header and menu (the theme selector is provisionally next to the language one), decide whether the footer repeats on every screen (tests look for `footer.footer`), use `.page-head`.
 - **Views**: migrate their `<style>` blocks to the components and remove block 11 of `components.css`.

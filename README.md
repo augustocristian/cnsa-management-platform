@@ -17,7 +17,7 @@
 |---|---|
 | <img src="docs/screenshots/escritorio-inicio.png" width="620" alt="Desktop home screen: welcome banner, quick access, load alerts, weekly load chart and next session"> | <img src="docs/screenshots/movil-inicio.png" width="200" alt="Mobile home screen with the bottom navigation bar and the welcome banner"> |
 
-This is an **individual-use** app: each person signs in with their own Google account and **everything is stored in the `cnl` folder of their own Google Drive**, only so that it persists and is available on all their devices (e.g. computer and phone). Drive is not a shared database: there is no sharing, no roles and no multi-user support, and the app shares data with nobody (no server, no database, no demo modes). Swimmers and groups are records you manage, not app users. It was first built for Club Natación Lugones, with a configurable visual identity so other clubs can adopt it. The interface is available in Spanish, English and Italian; the screenshots below show the Spanish interface unless noted.
+This is an **individual-use** app: there is **no sign-in and no user account**: the person just *connects Google Drive* (authorization only, the single `drive.file` permission; the app never knows who you are) and **everything is stored in the `cnl` folder of their own Google Drive**, only so that it persists and is available on all their devices (e.g. computer and phone). Drive is not a shared database: there is no sharing, no roles and no multi-user support, and the app shares data with nobody (no server, no database). To look around first, the start screen also offers **Try the demo**: sample data kept only in your browser, clearly labelled *Demo mode: your data is not saved to Drive*, erased when you exit. Swimmers and groups are records you manage, not app users. It was first built for Club Natación Lugones, with a configurable visual identity so other clubs can adopt it. The interface is available in Spanish, English and Italian; the screenshots below show the Spanish interface unless noted.
 
 ## Contents
 
@@ -38,11 +38,11 @@ This is an **individual-use** app: each person signs in with their own Google ac
 
 ### 1. First launch
 
-Sign in with Google (the only way in), then a two-step wizard creates the club file inside `cnl/`. The club starts **empty**: no sample data, a *First steps* card and empty states with calls to action.
+Connect Google Drive (or try the demo), then a two-step wizard creates the club file inside `cnl/`. The club starts **empty**: no sample data, a *First steps* card and empty states with calls to action.
 
 | Desktop | Mobile |
 |---|---|
-| <img src="docs/screenshots/escritorio-acceso.png" width="620" alt="Sign-in screen with the Iniciar sesión con Google button and the language selector"> | <img src="docs/screenshots/movil-acceso.png" width="200" alt="Mobile sign-in screen with the Google button"> |
+| <img src="docs/screenshots/escritorio-acceso.png" width="620" alt="Start screen with the Connect Google Drive and Try the demo buttons and the language selector"> | <img src="docs/screenshots/movil-acceso.png" width="200" alt="Mobile start screen with the Connect Google Drive button"> |
 | <img src="docs/screenshots/escritorio-asistente.png" width="620" alt="Wizard step 1 of 2: club name and motto already filled in"> | <img src="docs/screenshots/movil-asistente.png" width="200" alt="Mobile wizard step 1 of 2"> |
 | <img src="docs/screenshots/escritorio-asistente-colores.png" width="620" alt="Wizard step 2 of 2: club colours and time zone"> | <img src="docs/screenshots/movil-asistente-colores.png" width="200" alt="Mobile wizard step 2 of 2"> |
 | <img src="docs/screenshots/escritorio-primeros-pasos.png" width="620" alt="Home of a brand new club with the First steps card: create groups, add swimmers, define the pool, schedule a session"> | <img src="docs/screenshots/movil-primeros-pasos.png" width="200" alt="Mobile home of a new club with the First steps card"> |
@@ -159,7 +159,7 @@ The language is chosen from the selector in the header and saved in your Drive p
 | **Personal bests** | Times mm:ss.cc, best times and evolution per event (25 m / 50 m) |
 | **Swimsuit-aware marks** | A club catalogue of swimsuits (training suits and competition fast skins, with brand and model); each time can record the suit it was set with, and the times can be filtered by suit type, brand and model |
 | **Notices & notes** | Your own notices and notes for the whole club or per group, saved in your Drive; copy the text to pass it on through your usual channel (the app sends nothing to anyone) |
-| **Settings** | Club name, motto, logo and colours; season categories; training contents; where the data lives in Drive; Excel backup (export, import and save to `cnl/`); preferences; switch club |
+| **Settings** | Club name, motto, logo and colours; season categories; training contents; where the data lives in Drive; Excel export and import (for spreadsheets); **Backup** (complete, lossless copy: download, optional passphrase encryption, restore with preview, copies in Drive); preferences; switch club |
 
 ## Season categories
 
@@ -188,9 +188,19 @@ Everything lives in the **`cnl`** folder of your Google Drive, with **a single p
 | `cnl/<Club>.json` | All data and settings of the club: identity, motto, colours, logo, time zone, swimmers, groups, sessions, attendance, loads, personal bests, contents catalogue, pools, seasons... One per club. |
 | `cnl/preferencias.json` | Your preferences: language, last club opened, tutorial progress, calendar view and reminder, and the Google Calendar sync map. Schema-versioned, merged per key. |
 | `cnl/entrenos/` | Training PDFs saved from the app. |
-| `cnl/backups/` | Daily copy (last 14) and one before every Excel import. |
+| `cnl/backups/` | Daily copy (last 14), one before every Excel import and one before every backup restore (last 5 each). |
 | `cnl/<Club>.xlsx` | Optional Excel backup (*Configuración > Guardar copia Excel en Drive*). |
 | localStorage | Only a **cache and mirror** (fast start and offline use, with a queue of pending changes). Never the source of truth. Also: the owner's test Client ID and the dismissed install prompt (per-device preferences). |
+
+### Backup (Settings > Backup)
+
+A complete, lossless safety copy of the club in ONE file, separate from the Excel export (which stays for spreadsheets).
+
+- **Download backup**: all sheets (including any this version does not know), the club identity and rules, and your user preferences (language, theme, calendar view). Optional **passphrase**: the file is encrypted on your device (AES-256-GCM, key derived with PBKDF2-SHA256); without the passphrase it cannot be opened and there is no recovery. The file name is `cnl-backup-<club>-YYYY-MM-DD-HHMM.json`. The panel remembers when you last downloaded one.
+- **Restore from a file** (or drop it on the panel): the file is checked (format, version, integrity checksum), you see per sheet what would be new, different or removed, and you choose **Replace** (exactly the backup, recommended) or **Merge** (adds what is missing; your current values win; nothing is removed). Replace asks you to type the club name or `RESTORE`. A damaged, tampered or newer-version file is refused with a clear message and nothing changes.
+- **Always safe**: before applying anything the app saves an automatic copy of your current data (`cnl/backups/<club>-restore-*.json` in Drive; in demo mode it is kept for the session and offered as a download). If that copy cannot be saved, nothing is restored. **Revert the restore** (and the Undo toast) put everything back for as long as the session lasts.
+- **Backups in Drive**: lists the daily, pre-import and pre-restore copies in `cnl/backups/` and restores or deletes them. Disabled (with an explanation) in demo mode.
+- A backup holds **personal data of minors**: keep it somewhere safe. Copies you download are not touched when a swimmer is erased in the app, and rows erased for good are not brought back by a restore.
 
 The full "where each piece of data lives" table is in [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md). Changes are saved with debounce and merged per field if another device changed the file (detected with `md5Checksum`/`modifiedTime` and Drive's `version`; if someone wrote in between, their revision is fetched and merged). The Google token lives only in memory; without a network, changes wait in a queue and are uploaded when you are back online. If you already had a hand-made `cnl` folder, the app creates and uses its own (with `drive.file` it cannot see the other one): you can move your files from Drive.
 
@@ -213,9 +223,9 @@ Own design system (no UI libraries): tokens in `css/tokens.css`, components in `
 ```
 index.html · manifest.webmanifest · sw.js
 css/  tokens.css app.css components.css
-js/  app.js router.js ui.js store.js auth.js drive.js preferencias.js schema.js config.js theme.js i18n.js
+js/  app.js router.js ui.js store.js drive.js modo.js preferencias.js schema.js config.js theme.js i18n.js
 js/domain/ (pure logic)  js/application/ (services)  js/infrastructure/ (external APIs; fakeGoogle.js = test tool)
-js/views/  acceso (login, wizard, configuration needed) inicio nadadores grupos entrenamientos planificacion calendario asistencia cargas marcas comunicaciones club tutorial
+js/views/  acceso (start screen, wizard, configuration needed) inicio nadadores grupos entrenamientos planificacion calendario asistencia cargas marcas comunicaciones club tutorial
 vendor/  xlsx.full.min.js  jspdf.umd.min.js  jspdf.plugin.autotable.min.js   (generated from npm; jsPDF is loaded lazily, only when a PDF is requested)
 scripts/  serve.mjs check.mjs e2e.mjs capturas.mjs ...
 ```
@@ -228,7 +238,7 @@ npm run check      # checks the syntax of the modules
 npm run serve      # static server on http://localhost:4173 (or: python -m http.server 8080)
 ```
 
-Signing in needs a Google Client ID ([docs/SETUP-GOOGLE.md](docs/SETUP-GOOGLE.md)): paste it in `js/config.js` (`BUILTIN_CLIENT_ID`) or in the *Configuración necesaria* screen, and add your local origin to the authorised origins. Without real Google, the test tool (below) starts the app with a simulated session and Drive.
+Connecting Drive needs a Google Client ID ([docs/SETUP-GOOGLE.md](docs/SETUP-GOOGLE.md)): paste it in `js/config.js` (`BUILTIN_CLIENT_ID`) or in the *Configuración necesaria* screen, and add your local origin to the authorised origins. Without real Google, the test tool (below) starts the app with a simulated Drive connection; the demo mode needs neither.
 
 ### Regenerating the screenshots
 
@@ -252,9 +262,9 @@ npm run capturas -- --concurrencia=2 --salida=docs/otra # parallel pages, other 
 | Integration | `npm run test:integration` | Views and store working together on jsdom |
 | E2E (Cucumber) | `npm run test:e2e` | Specifications in Spanish Gherkin (`features/*.feature`) run with Playwright/Chromium on desktop and then on mobile (Pixel 5, `VIEWPORT=movil`) |
 
-**Tests without real Google.** `js/infrastructure/fakeGoogle.js` is an in-memory adapter that implements the same interfaces as `auth.js` and `drive.js` (simulated session, `cnl` folder, club file, `preferencias.json`, file upload) and demonstration data through `store.seedDemo`. It is a **test tool**, invisible to the user: it is only loaded with `localStorage['cnl:test'] = '1'` (or `window.__CNL_TEST__`). Options (JSON in `localStorage['cnl:test:opts']` or an object in `__CNL_TEST__`): `sesion` (start signed in), `demo` (club with demonstration data), `sinClientId` (*Configuración necesaria* screen), `usuario`, `errorLogin` and `fallos` (forced errors). `window.__CNL_FAKE__` lets you inspect the simulated Drive (`clubs()`, `prefs()`, `archivos()`). Unit and integration tests install it with `instalarFakeGoogle({auth, drive, opciones})` (see `tests/helpers/app.js`); the E2E tests use the steps `Dado un club con datos de demostración` or `Dado que la aplicación está recién abierta sin sesión`.
+**Tests without real Google.** `js/infrastructure/fakeGoogle.js` is an in-memory adapter that implements the same interfaces as `js/infrastructure/driveConnection.js` and `drive.js` (simulated connection, `cnl` folder, club file, `preferencias.json`, file upload) and demonstration data through `store.seedDemo`. It is a **test tool**, invisible to the user: it is only loaded with `localStorage['cnl:test'] = '1'` (or `window.__CNL_TEST__`). Options (JSON in `localStorage['cnl:test:opts']` or an object in `__CNL_TEST__`): `conectado` (start with Drive connected; old alias `sesion`), `demo` (simulated Drive that already holds a club with demonstration data; not the product demo mode), `sinClientId` (*Configuración necesaria* screen), `errorConexion` (old alias `errorLogin`) and `fallos` (forced errors). There is no user option: the app has no identity. `window.__CNL_FAKE__` lets you inspect the simulated Drive (`clubs()`, `prefs()`, `archivos()`). Unit and integration tests install it with `instalarFakeGoogle({conexion, drive, opciones})` (see `tests/helpers/app.js`); the E2E tests use the steps `Dado un club con datos de demostración` or `Dado que la aplicación está recién abierta sin Drive conectado`.
 
-The E2E tests start the static server on a free port by themselves, begin from a clean browser with simulated session and Drive (club with demonstration data or empty, depending on the scenario) and fail on console errors or 4xx/5xx responses. First time: `npx playwright install chromium`. Reports go to `reports/` (HTML, JUnit and screenshots of failures). Scenarios tagged `@google @pendiente` (they need a real Google account) are documented but excluded; `npx cucumber-js --tags @smoke` runs only the essential ones.
+The E2E tests start the static server on a free port by themselves, begin from a clean browser with a simulated Drive connection (club with demonstration data or empty, depending on the scenario) and fail on console errors or 4xx/5xx responses. First time: `npx playwright install chromium`. Reports go to `reports/` (HTML, JUnit and screenshots of failures). Scenarios tagged `@google @pendiente` (they need a real Google account) are documented but excluded; `npx cucumber-js --tags @smoke` runs only the essential ones.
 
 ## Deployment
 

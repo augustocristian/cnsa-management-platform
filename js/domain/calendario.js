@@ -75,9 +75,10 @@ const norm = (s) => str(s).normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase(
 const numOr = (v, d) => { const n = Number(v); return v !== '' && isFinite(n) ? n : d; };
 
 // Fin de un evento (fecha + hora local) -> {fecha, hora}
+export const duracionEvento = (ev) => (numOr(ev.duracionMin, DURACION_DEFECTO_MIN) > 0 ? numOr(ev.duracionMin, DURACION_DEFECTO_MIN) : DURACION_DEFECTO_MIN);
 export function finEvento(ev) {
   const ini = parseHora(ev.hora);
-  const dur = numOr(ev.duracionMin, DURACION_DEFECTO_MIN) > 0 ? numOr(ev.duracionMin, DURACION_DEFECTO_MIN) : DURACION_DEFECTO_MIN;
+  const dur = duracionEvento(ev);
   const total = ini + dur;
   return { fecha: addDias(ev.fecha, Math.floor(total / 1440)), hora: horaStr(total % 1440) };
 }
@@ -339,13 +340,19 @@ export function descripcionEvento(ev, etq = ETQ_DEFECTO) {
   ].filter(Boolean).join('\n');
 }
 
-// A start/end line for a timed event. Normal and non-existent times keep the zone (DTSTART;TZID=...) with the wall time of the
-// real instant; an AMBIGUOUS time is written in UTC so every client picks the same (first) occurrence.
-function lineaInstante(prop, zona, fecha, hora) {
-  const r = resolverHoraLocal(zona, fecha, hora);
-  if (!r) return `${prop};TZID=${zona}:${localCompact(fecha, hora)}`;
-  if (r.estado === 'ambigua') return `${prop}:${stampUtc(new Date(r.ms))}`;
-  return `${prop};TZID=${zona}:${localCompact(r.fecha, r.hora)}`;
+// Start/end lines of a timed event. A normal start keeps the zone with the club wall times. When the start is a DST edge case the
+// end is the real instant plus the duration (elapsed time, not wall-clock arithmetic): a non-existent start keeps the zone with the
+// wall time of the real instant; an AMBIGUOUS one is written in UTC so every client picks the same (first) occurrence.
+function lineasInicioFin(zona, ev) {
+  const ini = resolverHoraLocal(zona, ev.fecha, ev.hora);
+  const fin = finEvento(ev);
+  if (!ini) return [`DTSTART;TZID=${zona}:${localCompact(ev.fecha, ev.hora)}`, `DTEND;TZID=${zona}:${localCompact(fin.fecha, fin.hora)}`];
+  if (ini.estado === 'normal') return [`DTSTART;TZID=${zona}:${localCompact(ev.fecha, ev.hora)}`, `DTEND;TZID=${zona}:${localCompact(fin.fecha, fin.hora)}`];
+  const finMs = ini.ms + duracionEvento(ev) * 60000;
+  if (ini.estado === 'ambigua') return [`DTSTART:${stampUtc(new Date(ini.ms))}`, `DTEND:${stampUtc(new Date(finMs))}`];
+  const pared = new Date(finMs + offsetMin(zona, finMs) * 60000); // wall time in the zone at the end instant
+  const f = `${pared.getUTCFullYear()}${pad2(pared.getUTCMonth() + 1)}${pad2(pared.getUTCDate())}T${pad2(pared.getUTCHours())}${pad2(pared.getUTCMinutes())}00`;
+  return [`DTSTART;TZID=${zona}:${localCompact(ini.fecha, ini.hora)}`, `DTEND;TZID=${zona}:${f}`];
 }
 
 // opciones: {nombreCalendario, zona, alarmaMin (0 = sin aviso), ahora: Date (REQUIRED, the caller's clock), secuencia, etq}
@@ -364,8 +371,7 @@ export function generarICS(eventos, { nombreCalendario = 'CNL', zona = TZ_DEFECT
   eventos.forEach((ev) => {
     l.push('BEGIN:VEVENT', `UID:${uidEvento(ev)}`, `DTSTAMP:${stamp}`, `SEQUENCE:${Math.max(0, Math.floor(secuencia))}`);
     if (ev.hora) {
-      const fin = finEvento(ev);
-      l.push(lineaInstante('DTSTART', zona, ev.fecha, ev.hora), lineaInstante('DTEND', zona, fin.fecha, fin.hora));
+      l.push(...lineasInicioFin(zona, ev));
     } else {
       l.push(`DTSTART;VALUE=DATE:${ev.fecha.replace(/-/g, '')}`, `DTEND;VALUE=DATE:${addDias(ev.fecha, 1).replace(/-/g, '')}`);
     }
@@ -408,9 +414,15 @@ export function aEventoGoogle(ev, { zona = TZ_DEFECTO, alarmaMin = 0, clubId = '
   if (loc) out.location = loc;
   out.description = descripcionEvento(ev, etq);
   if (ev.hora) {
+    const ini = resolverHoraLocal(zona, ev.fecha, ev.hora);
     const fin = finEvento(ev);
     out.start = { dateTime: dateTimeGoogle(zona, ev.fecha, ev.hora), timeZone: zona };
-    out.end = { dateTime: dateTimeGoogle(zona, fin.fecha, fin.hora), timeZone: zona };
+    if (ini && ini.estado !== 'normal') { // DST edge case: end = real instant + duration, written with an explicit offset
+      const finMs = ini.ms + duracionEvento(ev) * 60000;
+      const off = offsetMin(zona, finMs);
+      const pared = new Date(finMs + off * 60000);
+      out.end = { dateTime: `${pared.getUTCFullYear()}-${pad2(pared.getUTCMonth() + 1)}-${pad2(pared.getUTCDate())}T${pad2(pared.getUTCHours())}:${pad2(pared.getUTCMinutes())}:00${fmtOffsetRfc3339(off)}`, timeZone: zona };
+    } else out.end = { dateTime: `${fin.fecha}T${fin.hora}:00`, timeZone: zona };
   } else {
     out.start = { date: ev.fecha };
     out.end = { date: addDias(ev.fecha, 1) };
@@ -504,9 +516,24 @@ export function diasDeAgenda(porDia, desde, hoy) {
   return dias.sort();
 }
 
-// Keyboard movement inside the month grid: arrow key -> day offset (null for any other key).
-export function desplazamientoTecla(key) {
-  return { ArrowLeft: -1, ArrowRight: 1, ArrowUp: -7, ArrowDown: 7 }[key] ?? null;
+// Keyboard movement inside the month grid (WAI-ARIA grid): the date reached from `f` with `key`, or null for any other key.
+// Arrows = +-1 day / +-1 week, Home/End = Monday/Sunday of the week, PageUp/PageDown = same day of the previous/next month.
+export function fechaTrasTecla(key, f) {
+  switch (key) {
+    case 'ArrowLeft': return addDias(f, -1);
+    case 'ArrowRight': return addDias(f, 1);
+    case 'ArrowUp': return addDias(f, -7);
+    case 'ArrowDown': return addDias(f, 7);
+    case 'Home': return lunesDe(f);
+    case 'End': return addDias(lunesDe(f), 6);
+    case 'PageUp':
+    case 'PageDown': {
+      const primero = addMeses(f, key === 'PageUp' ? -1 : 1);
+      const ultimo = +finMes(primero).slice(8);
+      return primero.slice(0, 8) + pad2(Math.min(+f.slice(8), ultimo));
+    }
+    default: return null;
+  }
 }
 
 // Start and end 'HH:MM' of a timed event, null for all-day events.

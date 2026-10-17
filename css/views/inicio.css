@@ -81,7 +81,7 @@
 .ini-alert-detalle { font-size: var(--fs-sm); }
 
 /* ---------- Quick actions ---------- */
-.ini-acciones { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--sp-2); }
+.ini-acciones { flex: 1 1 auto; grid-auto-rows: 1fr; list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--sp-2); }
 .ini-accion {
   display: flex; flex-direction: column; align-items: center; justify-content: center; gap: var(--sp-2); text-align: center;
   min-height: 84px; padding: var(--sp-3); border: 1px solid var(--field-border); border-radius: var(--r-md);

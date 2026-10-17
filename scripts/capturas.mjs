@@ -236,7 +236,7 @@ const ESCENARIOS = [
   { id: 'cargas-contenidos', titulo: 'Cargas: gestor de contenidos de entrenamiento', opciones: DEMO, ruta: 'cargas',
     paso: async (p) => { await boton(p, 'Contenidos de entrenamiento').click(); await p.locator('#cg-gestor *').first().waitFor(); await desplazar(p, '.cg-card:has(#cg-gestor)', 90); } },
 
-  // --- Marcas, bañador, comunicaciones ---
+  // --- Marcas, comunicaciones ---
   { id: 'marcas', titulo: 'Marcas: mejores marcas', opciones: DEMO, ruta: 'marcas' },
   { id: 'marcas-evolucion', titulo: 'Marcas: evolución de un nadador', opciones: DEMO, ruta: 'marcas',
     paso: async (p) => {
@@ -249,7 +249,6 @@ const ESCENARIOS = [
       await estable(p);
       await desplazar(p, '#view h3:has-text("Evolución")', 80);
     } },
-  { id: 'banador', titulo: 'Bañador y equipación', opciones: DEMO, ruta: 'banador' },
   { id: 'comunicaciones', titulo: 'Comunicaciones', opciones: DEMO, ruta: 'comunicaciones' },
 
   // --- Planificación ---

@@ -42,7 +42,7 @@ Stage by path: `git add js/domain/x.js tests/unit/x.test.js ...`; check `git dif
 
 ## 6. Post-deploy
 
-Open the public URL, hard-reload (the service worker is cache-first: a bumped `VERSION` activates the new shell), check the login screen loads without console errors. Report: commands and results, commit shas, CI status, URL status, and any residual risk.
+Open the public URL, hard-reload (the service worker is cache-first: a bumped `VERSION` activates the new shell), check the start screen (Connect Google Drive / Try the demo) loads without console errors. Report: commands and results, commit shas, CI status, URL status, and any residual risk.
 
 ## Dependabot PRs
 

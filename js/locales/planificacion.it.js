@@ -114,4 +114,8 @@ export default {
   'plan.sug.cerrado': '«{grupo}»: la piscina è chiusa quel giorno.',
   'plan.sug.aplicar': 'Applica proposta',
   'plan.sug.aplicadas': '{n} assegnazioni create',
+  'plan.barra': 'Opzioni della piscina e della settimana',
+  'plan.mas-acciones': 'Altre azioni',
+  'plan.rejilla-region': 'Griglia delle corsie di {piscina}, {dia}. Scorre all’interno di questo riquadro.',
+  'plan.sin-piscinas-titulo': 'Ancora nessuna piscina',
 };

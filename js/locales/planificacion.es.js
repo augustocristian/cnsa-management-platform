@@ -114,4 +114,8 @@ export default {
   'plan.sug.cerrado': '«{grupo}»: la piscina está cerrada ese día.',
   'plan.sug.aplicar': 'Aplicar propuesta',
   'plan.sug.aplicadas': '{n} asignaciones creadas',
+  'plan.barra': 'Opciones de la piscina y de la semana',
+  'plan.mas-acciones': 'Más acciones',
+  'plan.rejilla-region': 'Rejilla de calles de {piscina}, {dia}. Se desplaza dentro de este recuadro.',
+  'plan.sin-piscinas-titulo': 'Aún no hay piscinas',
 };

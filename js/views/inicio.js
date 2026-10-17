@@ -89,9 +89,9 @@ export async function render(container, params, ctx) {
           detalleSesion(s) ? h('p', { class: 'muted ini-sesion-detalle' }, detalleSesion(s)) : null),
         h('span', { class: `badge badge--${tono}` }, t(clave)));
     })));
+    if (M.proxima && !M.hoySesiones.some((s) => s.momento !== 'pasada')) hoyCard.append(bloqueProxima(M.proxima));
     const aSesion = M.sesionAsistencia;
     hoyCard.append(h('div', { class: 'ini-acciones-card' }, enlace(`#/asistencia/${aSesion.id}`, t('home.hoy.pasar-lista'), 'btn btn--primary', 'asistencia')));
-    if (M.proxima && !M.hoySesiones.some((s) => s.momento !== 'pasada')) hoyCard.append(bloqueProxima(M.proxima));
   } else if (M.proxima) {
     hoyCard.append(h('p', { class: 'muted' }, t('home.hoy.sin-sesiones')), bloqueProxima(M.proxima),
       h('div', { class: 'ini-acciones-card' }, enlace('#/entrenamientos', t('home.hoy.ver-sesiones'), 'btn', 'entrenamientos')));

@@ -114,4 +114,8 @@ export default {
   'plan.sug.cerrado': '"{grupo}": the pool is closed that day.',
   'plan.sug.aplicar': 'Apply proposal',
   'plan.sug.aplicadas': '{n} assignments created',
+  'plan.barra': 'Pool and week options',
+  'plan.mas-acciones': 'More actions',
+  'plan.rejilla-region': 'Lane grid of {piscina}, {dia}. It scrolls inside this box.',
+  'plan.sin-piscinas-titulo': 'No pools yet',
 };

@@ -25,7 +25,7 @@ import {
 
 const TUTORIAL = 'tutorial';
 const ELEGIR_CLUB = 'cnl:elegir'; // sessionStorage: force the club picker after "Switch club"
-const DEMO_GUARDADA = 'cnl:mode'; // localStorage, device only: 'demo' = the demo was left open (see application/modoService.js)
+const DEMO_GUARDADA = 'cnl:mode'; // localStorage, device only: 'demo' = the demo was left open (owned by application/modoService.js)
 const AVISOS_VISTO = 'cnl:avisos-visto'; // localStorage, device only: last day the notices view was opened
 
 const ls = {
@@ -42,7 +42,6 @@ const banderas = {
   selectorForzado: () => ss.get(ELEGIR_CLUB) === '1',
   limpiarSelectorForzado: () => ss.del(ELEGIR_CLUB),
   demoGuardada: () => ls.get(DEMO_GUARDADA) === 'demo',
-  guardarDemo: (on) => ls.set(DEMO_GUARDADA, on ? 'demo' : null),
 };
 
 // The Google simulator is only activated on localhost/127.0.0.1 (localStorage flag) or if the test runner injects
@@ -55,7 +54,7 @@ export function crearRuntime() {
     ui, banderas,
     ahora: () => new Date(),
     store: null, auth: null, drive: null, config: null, prefs: null, CLAVES: null, fake: null,
-    sesion: null, avisos: null, conexion: null,
+    sesion: null, avisos: null, conexion: null, modo: null,
     redraw: null,            // repaints the pre-shell screen when the language changes
     iniciado: false,         // listeners registered
     offline: estaOffline(),
@@ -65,6 +64,8 @@ export function crearRuntime() {
   rt.conexion = crearConexion(rt);
   rt.start = () => start(rt);
   rt.logout = () => desconectar(rt);
+  // Views (Settings) disconnect Drive through the view context; the shell owns the flow (pending-changes dialog, wipe, reload).
+  rt.ctxVista.desconectar = () => rt.logout();
   rt.reconectar = () => reconectar(rt);
   rt.sincronizar = async () => { await rt.store.sync(); await rt.prefs.flush(); };
   return rt;
@@ -83,6 +84,7 @@ async function cargarNucleo(rt) {
     const f = await import('../../infrastructure/fakeGoogle.js');
     rt.fake = f.instalarFakeGoogle({ auth: rt.auth, drive: rt.drive, config: rt.config, opciones: f.leerOpciones() });
   }
+  rt.modo = (await import('../../modo.js')).modo; // enter / exit the demo, connect Drive from the demo
   rt.sesion = crearSesionService({
     auth: rt.auth, drive: rt.drive, prefs: rt.prefs, CLAVES: rt.CLAVES, store: rt.store,
     banderas, limpiarDatosLocales,

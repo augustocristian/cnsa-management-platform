@@ -123,6 +123,8 @@ button.pl-item:focus-visible { outline: 3px solid var(--focus); outline-offset: 
 .pl-form .full, .pl-form .pl-wide { grid-column: 1 / -1; }
 .pl-hours { display: grid; grid-template-columns: minmax(110px, 1fr) minmax(0, 1fr) minmax(0, 1fr); gap: var(--sp-2) var(--sp-3); align-items: center; font-size: var(--fs-sm); }
 .pl-hours .check { font-weight: 600; }
+.pl-horario { border: 0; padding: 0; margin: 0; min-width: 0; }
+.pl-horario legend { font-weight: 600; font-size: var(--fs-sm); padding: 0 0 var(--sp-2); }
 .pl-sug { margin: 0; padding-left: 1.1rem; }
 .pl-sug li { margin: var(--sp-1) 0; }
 .pl-checks { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 0 var(--sp-3); }
@@ -133,6 +135,10 @@ button.pl-item:focus-visible { outline: 3px solid var(--focus); outline-offset: 
   .pl-nav strong { font-size: var(--fs-sm); }
 }
 @media (max-width: 520px) {
+  /* Header actions on one row: icons are dropped from the two text buttons to save width (the labels stay) */
+  .pl-cabecera .page-head-actions { flex: 1 1 100%; flex-wrap: nowrap; }
+  .pl-cabecera .page-head-actions > .btn { flex: 1 1 auto; padding-inline: var(--sp-2); }
+  .pl-cabecera .page-head-actions > .btn > .icon { display: none; }
   .pl-week { grid-template-columns: minmax(0, 1fr); }
   .pl-hours { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
   .pl-hours .check { grid-column: 1 / -1; }

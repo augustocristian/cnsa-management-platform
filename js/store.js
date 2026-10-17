@@ -580,7 +580,11 @@ export const store = {
   async initDemo({ hoy, demo = demoStorage } = {}) {
     const { ref: demoRef, nuevo } = demo.asegurar();
     await store.init(demoRef, { demo });
-    if (nuevo) { store.seedDemo({ hoy: hoy || new Date() }); await store.sync(); }
+    if (nuevo) {
+      await store.sync(); // settle the sync that init() started for the fresh file, so the seed below is uploaded by its own sync
+      store.seedDemo({ hoy: hoy || new Date() });
+      await store.sync();
+    }
     return store;
   },
 
@@ -704,6 +708,35 @@ export const store = {
     return syncing;
   },
 
+  // ---------- Full backup / restore support (application/backupService.js) ----------
+  // The whole club document as it is written to Drive (entity sheets, unknown sheets/columns/keys and the sync metadata).
+  documento() { reconciliarMeta(); return dataToDoc({ db, club, meta, extra }); },
+
+  // Runs the on-open migrations (content catalogue, legacy objectives) after data was replaced. -> true if something changed
+  migrar() {
+    guardaEscritura();
+    if (!ensureCatalog()) return false;
+    markDirty();
+    emit({ type: 'change', sheet: 'TiposCarga' });
+    return true;
+  },
+
+  // Unknown sheets / columns / top-level keys (from a newer version or a backup). reemplazar=false merges them over the current ones.
+  // -> true if something changed
+  aplicarExtras(nuevo, { reemplazar = true } = {}) {
+    guardaEscritura();
+    const n = nuevo || {};
+    const siguiente = reemplazar
+      ? { top: { ...(n.top || {}) }, hojas: { ...(n.hojas || {}) }, cols: JSON.parse(JSON.stringify(n.cols || {})) }
+      : { top: { ...extra.top, ...(n.top || {}) }, hojas: { ...extra.hojas, ...(n.hojas || {}) }, cols: { ...extra.cols } };
+    if (!reemplazar) Object.keys(n.cols || {}).forEach((s) => { siguiente.cols[s] = { ...(extra.cols[s] || {}), ...n.cols[s] }; });
+    if (JSON.stringify(siguiente) === JSON.stringify(extra)) return false;
+    extra = siguiente;
+    markDirty();
+    emit({ type: 'change', sheet: null });
+    return true;
+  },
+
   // Downloads the current club's .xlsx.
   async exportXlsx() {
     const blob = await workbookBlob();
@@ -813,7 +846,7 @@ export const store = {
           const f = await puerto.findFile(nombre, fid);
           if (f) { await puerto.eliminarDefinitivo(f.id); res.copiasBorradas++; }
         }
-        for (const b of await puerto.listarBackups(ref.name)) { await puerto.eliminarDefinitivo(b.id); res.copiasBorradas++; }
+        for (const b of await puerto.listarBackups(ref.name, { todos: true })) { await puerto.eliminarDefinitivo(b.id); res.copiasBorradas++; }
         res.revisionesBorradas = await puerto.borrarRevisionesAntiguas(ref.id);
       } catch (e) { res.errores.push(e.message || String(e)); }
     }
@@ -998,7 +1031,7 @@ function buildDemo(hoyBase) {
   });
 
   // Marcas (tiempos en ms)
-  const pruebas = [['50 libre', 28500], ['100 libre', 62000], ['50 espalda', 33000], ['100 braza', 80000], ['50 mariposa', 31000], ['200 estilos', 150000]];
+  const pruebas = [['50 Libre', 28500], ['100 Libre', 62000], ['50 Espalda', 33000], ['100 Braza', 80000], ['50 Mariposa', 31000], ['200 Estilos', 150000]];
   const mult = { 'Pre-Benjamín': 1.45, 'Benjamín': 1.3, 'Alevín': 1.2, 'Infantil': 1.08, 'Junior': 1.0, 'Absoluto': 0.97, 'Master': 1.12 };
   // Catálogo de bañadores del club: 2 de entrenamiento y 3 técnicos (fast skin) de competición.
   [

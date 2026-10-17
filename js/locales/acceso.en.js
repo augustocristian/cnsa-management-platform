@@ -1,6 +1,5 @@
 // Sign-in, first-run wizard, Google errors, setup tutorial and Drive data (en).
 export default {
-  'shell.sesion': 'Signed in',
   'shell.sync.sincronizado': 'Synced',
   'acceso.login.google': 'Connect Google Drive',
   'acceso.login.nota': 'The app only asks for permission over the files it creates itself in the "cnl" folder of your Drive. No server, no database.',
@@ -121,7 +120,7 @@ export default {
   'tutorial.paso3.intro': 'This is the screen you will see when authorizing the app.',
   'tutorial.paso3.i1': 'Open the consent screen and choose the user type "External".',
   'tutorial.paso3.i2': 'Fill in the app name, your support email and the contact email.',
-  'tutorial.paso3.i3': 'Under "Scopes" add only drive.file (value below). Basic profile data (openid, email, profile) is already included.',
+  'tutorial.paso3.i3': 'Under "Scopes" add only drive.file (value below). Do not add openid, email or profile: the app asks for no identity.',
   'tutorial.paso3.i4': 'Under "Test users" add your Google email. Without it Google will block access.',
   'tutorial.paso3.i5': 'Save. You can leave it in "Testing" or click "Publish app" (no verification needed with this permission).',
 
@@ -150,7 +149,7 @@ export default {
   'tutorial.paso6.i2': 'The first time, a two-step wizard creates your empty club (name, colours and time zone).',
   'tutorial.paso6.i3': 'Everything stays in the "cnl" folder of your Drive: <Club>.json, preferencias.json, entrenos/ and Excel copies. If you already had a "cnl" folder made by hand, the app creates its own (it only sees what it creates). Your data is saved in your Drive so you have it on all your devices (computer and phone); the app shares data with nobody.',
   'tutorial.paso6.i4': 'Add groups, swimmers and sessions: changes are saved automatically ("Synced" indicator) and work offline.',
-  'tutorial.paso6.i5': 'In Settings you can export or import Excel as a backup. "Sign out" ends the session and revokes the permission.',
+  'tutorial.paso6.i5': 'In Settings you can export or import Excel as a backup. "Disconnect Drive" revokes the permission and clears the local data of this device.',
 
   'tutorial.link.crear-proyecto': 'Create project',
   'tutorial.link.drive-api': 'Google Drive API',
@@ -177,5 +176,4 @@ export default {
   'asistente.vista-previa-nombre': 'Your club',
   'asistente.copiar-origen': 'Copy',
   'acceso.error-titulo': 'The connection could not be completed',
-  'acceso.desconectar': 'Disconnect Drive',
 };

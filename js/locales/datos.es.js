@@ -4,9 +4,9 @@ export default {
   'gerr.cuota-drive': 'Tu Google Drive está lleno: libera espacio para poder guardar los cambios.',
 
   // Shell notices
-  'dat.sesion-caducada': 'Sesión caducada: reconecta con Google para seguir guardando tus cambios en Drive.',
+  'dat.sesion-caducada': 'La conexión con Drive ha caducado: reconecta para seguir guardando tus cambios en Drive.',
   'dat.reconectar': 'Reconectar',
-  'dat.reconectado': 'Sesión renovada.',
+  'dat.reconectado': 'Conexión con Drive renovada.',
   'dat.reconectar-error': 'No se pudo reconectar: {msg}',
   'dat.solo-lectura': 'Este club lo guardó una versión más nueva de la aplicación (versión {version}). Actualiza la app para poder editarlo; mientras tanto está en solo lectura.',
   'dat.recargar': 'Recargar la app',
@@ -21,11 +21,11 @@ export default {
   'dat.reintentar': 'Reintentar',
   'dat.descargar-copia': 'Descargar copia',
 
-  // Sign-out
+  // Disconnect Drive
   'dat.logout.titulo': 'Hay cambios sin subir a Drive',
-  'dat.logout.texto': 'No se han podido subir los últimos cambios. Si cierras sesión se perderán de este dispositivo. Descarga una copia antes de salir.',
+  'dat.logout.texto': 'No se han podido subir los últimos cambios. Si desconectas Drive se perderán de este dispositivo. Descarga una copia antes de salir.',
   'dat.logout.descargar': 'Descargar copia (.xlsx)',
-  'dat.logout.descartar': 'Descartar y salir',
+  'dat.logout.descartar': 'Descartar y desconectar',
   'dat.logout.cancelar': 'Cancelar',
   'dat.logout.subiendo': 'Subiendo cambios…',
 

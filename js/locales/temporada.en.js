@@ -205,4 +205,6 @@ export default {
   'tp.err.volumen-invalido': 'The volume must be a number of metres, zero or more.',
   'tp.err.intensidad-invalida': 'The intensity must be between 1 and 10.',
   'tp.err.contenido-invalido': 'The split metres must be positive numbers.',
+  'tp.mas-acciones': 'More season actions',
+  'tp.no-activa': 'Not the active season',
 };

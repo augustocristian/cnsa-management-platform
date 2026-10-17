@@ -56,7 +56,7 @@ export async function render(container, params, ctx) {
   }
 
   container.replaceChildren(
-    h('header', { class: 'page-head' }, h('h1', null, t('nav.planificacion')), acciones),
+    h('header', { class: 'page-head pl-cabecera' }, h('h1', null, t('nav.planificacion')), acciones),
     lista, panel);
   await mostrar(actual);
   return () => { if (typeof panelOff === 'function') panelOff(); };

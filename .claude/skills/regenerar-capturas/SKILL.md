@@ -31,7 +31,7 @@ In `ESCENARIOS` of `scripts/capturas.mjs` add an entry (keep the section comment
     await p.locator(DIALOGO).last().waitFor();
   } },
 ```
-- `opciones`: `DEMO` (club with demo data), `VACIO` (empty club, first run) or `SIN_SESION` (login screen). `ruta` is the hash route without `#/` (e.g. `nadadores/n06`, `planificacion`). `sinShell: true` for pre-shell screens (login, wizard).
+- `opciones`: `DEMO` (club with demo data), `VACIO` (empty club, first run) or `SIN_SESION` (start screen without Drive connected). `ruta` is the hash route without `#/` (e.g. `nadadores/n06`, `planificacion`). `sinShell: true` for pre-shell screens (start screen, wizard).
 - Optional `idioma` (`'en'`, `'it'`) with `locale`, `tema: 'dark'`, `dispositivos: [...]` to restrict devices (see `inicio-en`, `inicio-oscuro`).
 - Helpers inside the script: `boton(p, name)`, `estable(p)` (waits for loading to end, fonts ready), `DIALOGO`, `desplazar(...)`, `abrirPlan(...)`. Prefer waiting on a visible condition to a fixed delay.
 - Keep `id` stable: the file name and the README links depend on it.

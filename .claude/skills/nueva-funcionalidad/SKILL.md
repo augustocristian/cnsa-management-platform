@@ -34,7 +34,7 @@ Own key prefix (`les.`), parity of keys and `{variables}`. Import and merge into
 ## 5. View - `js/views/<module>.js` (template `vista.js.tpl`)
 
 `export async function render(container, params, ctx)`. It only presents: `h()` from `js/ui.js`, components from `docs/DESIGN.md` (`.page-head` with one `h1`, `sheet()`, `field()`/`formFields()`, `empty()` with a CTA, `toast.undo`, `badge`, icons from `js/icons.js`), no emojis, no hard-coded colours, no new `<style>` (if a component is missing use the `nuevo-componente-ui` skill). If it is a new tab:
-- `MENU` in `js/app.js` (`['<module>', 'Label']`), the `nav.<module>` key in `js/locales/{es,en,it}.js` (the menu uses `tNav(route)`) and an icon named after the route in `js/icons.js` (SVG path with `currentColor`, like `cargas` or `banador`).
+- `MENU` in `js/app.js` (`['<module>', 'Label']`), the `nav.<module>` key in `js/locales/{es,en,it}.js` (the menu uses `tNav(route)`) and an icon named after the route in `js/icons.js` (SVG path with `currentColor`, like `cargas` or `marcas`).
 - `MODULOS` in `features/support/world.js` (menu label -> route) and `VIEWS` in `tests/helpers/app.js` if applicable.
 - If it is not a tab (sub-view/panel), call it from the parent view.
 

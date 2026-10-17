@@ -46,6 +46,12 @@ import bnIT from './locales/banadores.it.js';
 import homeES from './locales/inicio.es.js';
 import homeEN from './locales/inicio.en.js';
 import homeIT from './locales/inicio.it.js';
+import bkES from './locales/backup.es.js';
+import bkEN from './locales/backup.en.js';
+import bkIT from './locales/backup.it.js';
+import tutES from './locales/tutorial.es.js';
+import tutEN from './locales/tutorial.en.js';
+import tutIT from './locales/tutorial.it.js';
 import { normalizarNombre } from './domain/cargas.js';
 
 export const LANGS = [
@@ -54,7 +60,7 @@ export const LANGS = [
   { code: 'it', label: 'Italiano' }
 ];
 export const LANG_KEY = 'cnl:lang';
-const DICTS = { es: { ...es, ...vistasAes, ...vistasBes, ...vistasCes, ...planES, ...calES, ...entES, ...tcES , ...accES, ...disES, ...tpES, ...catES, ...datES, ...bnES, ...homeES }, en: { ...en, ...vistasAen, ...vistasBen, ...vistasCen, ...planEN, ...calEN, ...entEN, ...tcEN , ...accEN, ...disEN, ...tpEN, ...catEN, ...datEN, ...bnEN, ...homeEN }, it: { ...it, ...vistasAit, ...vistasBit, ...vistasCit, ...planIT, ...calIT, ...entIT, ...tcIT , ...accIT, ...disIT, ...tpIT, ...catIT, ...datIT, ...bnIT, ...homeIT } };
+const DICTS = { es: { ...es, ...vistasAes, ...vistasBes, ...vistasCes, ...planES, ...calES, ...entES, ...tcES , ...accES, ...disES, ...tpES, ...catES, ...datES, ...bnES, ...homeES, ...bkES, ...tutES }, en: { ...en, ...vistasAen, ...vistasBen, ...vistasCen, ...planEN, ...calEN, ...entEN, ...tcEN , ...accEN, ...disEN, ...tpEN, ...catEN, ...datEN, ...bnEN, ...homeEN, ...bkEN, ...tutEN }, it: { ...it, ...vistasAit, ...vistasBit, ...vistasCit, ...planIT, ...calIT, ...entIT, ...tcIT , ...accIT, ...disIT, ...tpIT, ...catIT, ...datIT, ...bnIT, ...homeIT, ...bkIT, ...tutIT } };
 const INTL = { es: 'es-ES', en: 'en-GB', it: 'it-IT' };
 const listeners = new Set();
 
@@ -178,21 +184,4 @@ export function tNum(n, opts) {
   const x = Number(n);
   if (!isFinite(x)) return String(n ?? '');
   return new Intl.NumberFormat(locale(), opts).format(x);
-}
-
-// <select> de idioma para la cabecera.
-export function langSelect() {
-  const sel = document.createElement('select');
-  sel.className = 'lang-select';
-  sel.setAttribute('aria-label', t('lang.etiqueta'));
-  for (const l of LANGS) {
-    const o = document.createElement('option');
-    o.value = l.code;
-    o.textContent = l.label;
-    o.selected = l.code === lang;
-    sel.appendChild(o);
-  }
-  sel.addEventListener('change', () => setLang(sel.value));
-  onLangChange((c) => { sel.value = c; sel.setAttribute('aria-label', t('lang.etiqueta')); });
-  return sel;
 }

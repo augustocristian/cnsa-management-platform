@@ -337,10 +337,11 @@ export const drive = {
   },
 
   // Backups of this club, most recent first -> [{id,name}]
-  async listarBackups(nombre) {
+  // todos: also the copies taken before an import and before a restore (needed to erase a swimmer everywhere).
+  async listarBackups(nombre, { todos = false } = {}) {
     const fid = await drive.ensureFolderPath([BACKUPS]);
-    const re = patronBackup(nombre, '');
-    return (await drive.listFiles(fid)).filter((x) => re.test(x.name)).sort((a, b) => b.name.localeCompare(a.name)).map((x) => ({ id: x.id, name: x.name }));
+    const res = (todos ? ['', 'import', 'restore'] : ['']).map((e) => patronBackup(nombre, e));
+    return (await drive.listFiles(fid)).filter((x) => res.some((re) => re.test(x.name))).sort((a, b) => b.name.localeCompare(a.name)).map((x) => ({ id: x.id, name: x.name }));
   },
 
   async leerFichero(id) {

@@ -9,6 +9,7 @@ import { panelCategorias } from './categorias-panel.js';
 import { pieRgpd } from './datos-integridad.js';
 import { tarjetaIdentidad } from './club-identidad.js';
 import { tarjetaDatos, tarjetaPreferencias, tarjetaClubes } from './club-datos.js';
+import { renderBackupPanel } from './backup-panel.js';
 
 const cargarDrive = () => import('../drive.js').then((m) => m.drive); // lazy: Drive is only needed to open the folder
 
@@ -41,6 +42,7 @@ export async function render(container, params, ctx) {
       tarjetaBanadores(ctx),
       tarjetaContenidos(ctx),
       tarjetaDatos(ctx, svc, recargar),
+      renderBackupPanel({ ...ctx, recargar }),
       tarjetaPreferencias(ctx, svc),
       tarjetaClubes(svc),
       pieRgpd()));

@@ -2,7 +2,7 @@
 
 /* ---- List ---- */
 .nad-filters .nad-extra { display: contents; }
-.nad-filters .field:not(.grow) { flex: 0 0 180px; }
+.nad-filters .field:not(.grow) { flex: 0 0 200px; }
 .nad-filter-toggle { display: none; }
 .nad-count { margin: 0 0 var(--sp-2); font-size: var(--fs-sm); }
 .nad-who { display: flex; align-items: center; gap: var(--sp-2); }

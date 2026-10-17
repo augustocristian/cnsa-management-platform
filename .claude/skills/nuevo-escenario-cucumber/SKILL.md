@@ -12,7 +12,7 @@ The e2e suite lives in `features/*.feature` (Gherkin), `features/steps/*.steps.j
 ```bash
 grep -hn "^\(Given\|When\|Then\)(" features/steps/*.js | cut -c1-140
 ```
-Reuse the common steps (`features/steps/comunes.steps.js`: club with demo data / empty club / no session, open a module, press a button, fill a field, choose in a select, see text/heading/toast, accept confirmation...) **using their exact current wording** (the features are being translated to English: copy the sentence from the step file, do not guess). Step definitions are global across files: a second definition with the same text makes Cucumber fail with "Multiple step definitions match" - if you need a step that already exists elsewhere, move it to `comunes.steps.js` instead of duplicating it.
+Reuse the common steps (`features/steps/comunes.steps.js`: club with demo data / empty club / Drive not connected (the generic starts in `conexion.steps.js`: `un club con Drive conectado y datos de demostración`, `un club vacío con Drive conectado`, `que la aplicación está recién abierta sin Drive conectado`), open a module, press a button, fill a field, choose in a select, see text/heading/toast, accept confirmation...) **using their exact current wording** (the features are being translated to English: copy the sentence from the step file, do not guess). Step definitions are global across files: a second definition with the same text makes Cucumber fail with "Multiple step definitions match" - if you need a step that already exists elsewhere, move it to `comunes.steps.js` instead of duplicating it.
 
 ## 2. Write the feature (template `feature.tpl`)
 

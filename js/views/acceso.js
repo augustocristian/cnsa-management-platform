@@ -76,7 +76,7 @@ export function configNecesaria({ auth, onListo }) {
   accionOcupada(btn, salida, async () => {
     const v = id.value.trim();
     if (!cfg.isValidClientId(v)) { fieldError(id, t('cfgreq.invalido')); return; }
-    await (auth.connect || auth.signIn).call(auth, { clientId: v });
+    await auth.connect({ interactive: true, clientId: v });
     onListo();
   });
   return [
@@ -102,7 +102,7 @@ export function login({ auth, onSesion, onConectar, onDemo }) {
   const salida = h('div', { id: 'login-salida', class: 'acc-salida', 'aria-live': 'polite' });
   const btn = h('button', { class: 'btn btn--primary btn-primary btn-lg', type: 'button', id: 'btn-google' }, icon('nube', { size: 20 }), t('acceso.login.google'));
   accionOcupada(btn, salida, async () => {
-    await (auth.connect || auth.signIn).call(auth);
+    await auth.connect({ interactive: true });
     (onConectar || onSesion)?.();
   });
   const demo = onDemo ? h('div', { class: 'acc-demo' },
@@ -225,7 +225,7 @@ export function selector({ clubes, onElegir, onCrear, onSalir }) {
     h('div', { class: 'club-list' }, clubes.map((c) => h('button', { class: 'club-item', type: 'button', onclick: () => onElegir(c) },
       h('strong', null, c.name), h('small', null, c.modified ? t('shell.club.modificado', { fecha: tDate(c.modified) }) : '')))),
     h('button', { class: 'btn', type: 'button', id: 'club-crear-otro', onclick: onCrear }, t('selector.crear-otro')),
-    h('button', { class: 'btn btn-link', type: 'button', onclick: onSalir }, t('acceso.desconectar')),
+    h('button', { class: 'btn btn-link', type: 'button', onclick: onSalir }, t('shell.desconectar')),
     pie(),
   ];
 }

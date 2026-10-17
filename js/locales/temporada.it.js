@@ -205,4 +205,6 @@ export default {
   'tp.err.volumen-invalido': 'Il volume deve essere un numero di metri maggiore o uguale a zero.',
   'tp.err.intensidad-invalida': 'L\'intensità deve essere compresa tra 1 e 10.',
   'tp.err.contenido-invalido': 'I metri della ripartizione devono essere numeri positivi.',
+  'tp.mas-acciones': 'Altre azioni della stagione',
+  'tp.no-activa': 'Non è la stagione attiva',
 };

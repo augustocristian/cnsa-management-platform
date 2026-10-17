@@ -35,6 +35,7 @@ export function parseTiempo(str) {
   }
   const m = txt.match(/^(?:(\d+):)?(\d{1,2}(?:\.\d{1,3})?)$/);
   if (!m) return NaN;
+  if (m[1] !== undefined && Number(m[2]) >= 60) return NaN; // 1:75.50 is not a time (the mask can produce it from 17550)
   return Math.round((Number(m[1] || 0) * 60 + Number(m[2])) * 1000);
 }
 

@@ -3,9 +3,9 @@ export default {
   'gerr.timeout': 'Google is not responding (timed out). Your changes are still saved on this device; it will be retried.',
   'gerr.cuota-drive': 'Your Google Drive is full: free up space so changes can be saved.',
 
-  'dat.sesion-caducada': 'Session expired: reconnect to Google to keep saving your changes to Drive.',
+  'dat.sesion-caducada': 'Drive connection expired: reconnect to keep saving your changes to Drive.',
   'dat.reconectar': 'Reconnect',
-  'dat.reconectado': 'Session renewed.',
+  'dat.reconectado': 'Drive connection renewed.',
   'dat.reconectar-error': 'Could not reconnect: {msg}',
   'dat.solo-lectura': 'This club was saved by a newer version of the app (version {version}). Update the app to edit it; meanwhile it is read-only.',
   'dat.recargar': 'Reload the app',
@@ -20,9 +20,9 @@ export default {
   'dat.descargar-copia': 'Download copy',
 
   'dat.logout.titulo': 'There are changes not uploaded to Drive',
-  'dat.logout.texto': 'The latest changes could not be uploaded. If you sign out they will be lost from this device. Download a copy before leaving.',
+  'dat.logout.texto': 'The latest changes could not be uploaded. If you disconnect Drive they will be lost from this device. Download a copy before leaving.',
   'dat.logout.descargar': 'Download copy (.xlsx)',
-  'dat.logout.descartar': 'Discard and sign out',
+  'dat.logout.descartar': 'Discard and disconnect',
   'dat.logout.cancelar': 'Cancel',
   'dat.logout.subiendo': 'Uploading changes…',
 

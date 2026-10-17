@@ -15,7 +15,7 @@ Language rule: everything you write outside the app's UI strings (code comments,
 |---|---|---|---|
 | Domain | `js/domain/*.js` | only other files in `js/domain/` (today none imports `../`) | DOM, `window`, `document`, `localStorage`, `fetch`, Drive, `i18n`, the clock (`new Date()` without a parameter), `Math.random` |
 | Application | `js/application/*.js` | `js/domain/*`, and by injection: repository, `auth`, `storage`, `ahora` (clock), `fetch`/clients | DOM, importing `js/views/*`; importing infrastructure only if injected (see debt) |
-| Infrastructure | `js/infrastructure/*.js` (+ root adapters `js/drive.js`, `js/auth.js`, `js/cache.js`, `js/lazy.js`, `js/store.js`) | domain, config; network, Drive, PDF, Google Calendar | views |
+| Infrastructure | `js/infrastructure/*.js` (+ root adapters `js/drive.js`, `js/infrastructure/driveConnection.js` (`js/auth.js` is a re-export), `js/infrastructure/demoStorage.js`, `js/cache.js`, `js/lazy.js`, `js/store.js`) | domain, config; network, Drive, PDF, Google Calendar | views |
 | Presentation | `js/views/*.js`, `js/ui.js`, `js/app.js`, `js/router.js`, `js/theme*.js`, `css/` | everything above | business logic (calculations, validation, volume distribution) |
 | Texts | `js/locales/*.js`, `js/i18n.js` | `i18n.js` imports `domain/cargas.js` (only `normalizarNombre`) | - |
 

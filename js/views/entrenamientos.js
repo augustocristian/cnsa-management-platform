@@ -13,6 +13,10 @@ const aFecha = (iso) => new Date(+iso.slice(0, 4), +iso.slice(5, 7) - 1, +iso.sl
 const corta = (iso) => new Intl.DateTimeFormat(locale(), { day: 'numeric', month: 'short' }).format(aFecha(iso));
 const nombreDia = (iso) => new Intl.DateTimeFormat(locale(), { weekday: 'long' }).format(aFecha(iso));
 
+// Store events that can change what the list shows
+const HOJAS = new Set(['Entrenamientos', 'EntrenoLineas', 'Grupos']);
+const relevante = (ev) => ['remote', 'club', 'init'].includes(ev.type) || (ev.type === 'change' && (!ev.sheet || HOJAS.has(ev.sheet)));
+
 export async function render(container, params, ctx) {
   useStyles('entrenamientos');
   const { svc } = servicios(ctx);
@@ -38,13 +42,13 @@ export async function render(container, params, ctx) {
     sel.value = estado.grupoId;
     return h('div', { class: 'ent-bar' },
       h('div', { class: 'ent-nav' },
-        h('button', { type: 'button', class: 'btn btn--ghost btn-icon', 'aria-label': t('entre.semana-anterior'), onclick: () => irA(svc.semanaAnterior(estado.lunes)) }, icon('flecha-izq', { size: 20 })),
+        h('button', { type: 'button', class: 'btn btn--ghost btn-icon', 'data-accion': 'semana-anterior', 'aria-label': t('entre.semana-anterior'), onclick: () => irA(svc.semanaAnterior(estado.lunes)) }, icon('flecha-izq', { size: 20 })),
         h('div', { class: 'ent-week num', role: 'status', 'aria-label': t('entreno.lista.semana-aria', { desde: corta(semana.lunes), hasta: corta(semana.fin) }) },
           `${corta(semana.lunes)} – ${corta(semana.fin)} ${aFecha(semana.fin).getFullYear()}`),
-        h('button', { type: 'button', class: 'btn btn--ghost btn-icon', 'aria-label': t('entre.semana-siguiente'), onclick: () => irA(svc.semanaSiguiente(estado.lunes)) }, icon('flecha-dcha', { size: 20 })),
-        h('button', { type: 'button', class: 'btn btn-sm', onclick: () => irA(svc.lunesActual()) }, t('entre.hoy'))),
+        h('button', { type: 'button', class: 'btn btn--ghost btn-icon', 'data-accion': 'semana-siguiente', 'aria-label': t('entre.semana-siguiente'), onclick: () => irA(svc.semanaSiguiente(estado.lunes)) }, icon('flecha-dcha', { size: 20 })),
+        h('button', { type: 'button', class: 'btn btn-sm', 'data-accion': 'hoy', onclick: () => irA(svc.lunesActual()) }, t('entre.hoy'))),
       h('div', { class: 'ent-filtros' }, sel,
-        h('button', { type: 'button', class: 'btn btn-sm', onclick: () => pdfSemana(ctx, { lunes: estado.lunes, grupoId: estado.grupoId }) }, icon('descargar', { size: 16 }), h('span', null, t('entreno.pdf-semana')))));
+        h('button', { type: 'button', class: 'btn btn-sm', 'data-accion': 'pdf-semana', onclick: () => pdfSemana(ctx, { lunes: estado.lunes, grupoId: estado.grupoId }) }, icon('descargar', { size: 16 }), h('span', null, t('entreno.pdf-semana')))));
   }
 
   function dia(d) {
@@ -59,7 +63,7 @@ export async function render(container, params, ctx) {
     const semana = svc.semana(estado.lunes, { grupoId: estado.grupoId });
     container.replaceChildren(
       h('header', { class: 'page-head' }, h('h1', null, t('entre.titulo')),
-        h('div', { class: 'page-head-actions' }, h('button', { type: 'button', class: 'btn btn--primary', onclick: nueva }, icon('mas', { size: 16 }), h('span', null, t('entre.nueva'))))),
+        h('div', { class: 'page-head-actions' }, h('button', { type: 'button', class: 'btn btn--primary', 'data-accion': 'nueva', onclick: nueva }, icon('mas', { size: 16 }), h('span', null, t('entre.nueva'))))),
       barra(semana),
       h('p', { class: 'ent-total' }, t('entre.total-semana', { n: semana.total })),
       semana.total
@@ -69,7 +73,11 @@ export async function render(container, params, ctx) {
 
   dibujar();
   if (ctx.store.on) {
-    const off = ctx.store.on(() => { if (container.isConnected) dibujar(); else if (typeof off === 'function') off(); });
+    const off = ctx.store.on((ev) => {
+      if (!container.isConnected) { if (typeof off === 'function') off(); return; }
+      if (ev && !relevante(ev)) return; // sync status, cache and other sheets must not close an open menu
+      dibujar();
+    });
     return off;
   }
   return undefined;

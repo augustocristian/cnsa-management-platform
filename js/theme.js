@@ -91,7 +91,7 @@ export function enlazar(prefs, CLAVES) {
   prefs.on?.((e) => { if (e.tipo === 'cambio' && e.origen === 'remoto' && e.claves.includes(clave)) desdePrefs(true); });
 }
 
-// <select> (single instance, reused across header repaints) with Automatic / Light / Dark (same pattern as langSelect). Labelled for screen readers.
+// <select> (single instance, reused across header repaints) with Automatic / Light / Dark (the language control is the flag switch in js/lang-switch.js). Labelled for screen readers.
 let selUnico = null;
 export function themeSelect() {
   if (selUnico) return selUnico;

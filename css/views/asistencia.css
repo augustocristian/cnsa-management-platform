@@ -4,6 +4,7 @@
 .asi-pick .field { flex: 1 1 auto; }
 .asi-pick .btn-icon { width: var(--touch); min-height: var(--touch); }
 .asi-search { max-width: 360px; }
+@media (min-width: 821px) { .asi-session--busca { grid-template-columns: minmax(220px, 320px) 1fr; align-items: end; } .asi-session--busca .asi-meta { grid-column: 1 / -1; } }
 .asi-meta { margin: 0; color: var(--muted); font-size: var(--fs-sm); }
 
 /* Sticky summary: progress + coloured numeric chips (stays visible while scrolling the list) */
@@ -24,17 +25,18 @@
 .asi-list { list-style: none; margin: 0; padding: 0; display: grid; gap: var(--sp-3); grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); }
 .asi-card {
   --st: var(--border); --st-bg: var(--surface);
-  display: grid; gap: var(--sp-3); padding: var(--sp-3); background: var(--st-bg); color: var(--text);
+  display: grid; gap: var(--sp-3); min-width: 0; padding: var(--sp-3); background: var(--st-bg); color: var(--text);
   border: 1px solid var(--border); border-left: 5px solid var(--st); border-radius: var(--r-md);
 }
 .asi-card[data-estado="presente"] { --st: var(--ok); --st-bg: var(--ok-bg); }
 .asi-card[data-estado="ausente"] { --st: var(--danger); --st-bg: var(--danger-bg); }
 .asi-card[data-estado="justificado"] { --st: var(--warn); --st-bg: var(--warn-bg); }
 .asi-who { display: flex; align-items: center; gap: var(--sp-3); min-width: 0; }
-.asi-name { flex: 1 1 auto; min-width: 0; font-weight: 650; overflow-wrap: anywhere; }
+.asi-id { flex: 1 1 auto; min-width: 0; display: grid; gap: var(--sp-1); justify-items: start; }
+.asi-name { font-weight: 650; overflow-wrap: anywhere; line-height: 1.25; }
 .asi-state { flex: none; }
 .asi-note { margin: 0; color: var(--muted); font-size: var(--fs-sm); overflow-wrap: anywhere; }
-.asi-actions { display: grid; grid-template-columns: 1fr 1fr var(--touch); gap: var(--sp-2); }
+.asi-actions { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--sp-2); }
 .asi-btn, .asi-more {
   display: inline-flex; align-items: center; justify-content: center; gap: var(--sp-2); min-height: 48px; padding: 0 var(--sp-2);
   font: inherit; font-weight: 600; color: var(--text); background: var(--surface); border: 1px solid var(--field-border); border-radius: var(--r-md);

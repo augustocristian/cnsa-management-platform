@@ -10,7 +10,7 @@ let secuencia = 0;
 
 // opciones: { etiqueta (aria-label of the button), items | () => items, clase?, texto? (visible label instead of the dots icon),
 //             primario? }
-// item: { label, icono?, onClick(), danger?, deshabilitado?, ayuda? (explains why it is disabled), oculto? }
+// item: { id? (data-accion, used by tests), label, icono?, onClick(), danger?, deshabilitado?, ayuda? (explains why it is disabled), oculto? }
 export function menuAcciones({ etiqueta, items, clase = '', texto = null }) {
   useStyles('entreno-menu');
   const id = 'enp-mn-' + (++secuencia);
@@ -35,7 +35,13 @@ export function menuAcciones({ etiqueta, items, clase = '', texto = null }) {
     if (foco && btn.isConnected) btn.focus();
   }
   const fuera = (e) => { if (!caja.contains(e.target)) cerrar({ foco: false }); };
-  const alMover = (e) => { if (!menu || !menu.contains(e.target)) cerrar({ foco: false }); };
+  // When something scrolls or the window resizes the menu follows its button; it closes only if the button leaves the screen.
+  const alMover = (e) => {
+    if (!menu || (e && e.target && menu.contains(e.target))) return;
+    const r = btn.getBoundingClientRect();
+    if (r.bottom < 0 || r.top > window.innerHeight) cerrar({ foco: false });
+    else posicionar();
+  };
   const botones = () => [...menu.querySelectorAll('[role="menuitem"]')];
   function teclas(e) {
     if (!menu) return;
@@ -53,7 +59,7 @@ export function menuAcciones({ etiqueta, items, clase = '', texto = null }) {
       const ayudaId = it.ayuda ? `${id}-a${i}` : null;
       return h('li', { role: 'none' },
         h('button', {
-          type: 'button', role: 'menuitem', class: 'enp-mn-item' + (it.danger ? ' enp-mn-item--peligro' : ''),
+          type: 'button', role: 'menuitem', 'data-accion': it.id || null, class: 'enp-mn-item' + (it.danger ? ' enp-mn-item--peligro' : ''),
           'aria-disabled': it.deshabilitado ? 'true' : null, 'aria-describedby': ayudaId,
           onclick: () => { if (it.deshabilitado) return; cerrar({ foco: false }); it.onClick(); },
         }, it.icono ? icon(it.icono, { size: 18 }) : null, h('span', null, it.label)),
@@ -71,6 +77,7 @@ export function menuAcciones({ etiqueta, items, clase = '', texto = null }) {
   }
 
   function posicionar() {
+    menu.style.left = '0px'; // measure at the left edge so the width is not squeezed by the space to the right
     const r = btn.getBoundingClientRect();
     const ancho = Math.min(menu.offsetWidth || 240, window.innerWidth - 16);
     const izq = Math.max(8, Math.min(r.right - ancho, window.innerWidth - ancho - 8));

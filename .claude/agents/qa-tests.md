@@ -37,7 +37,7 @@ Check the first lines of a feature (`head -4 features/<name>.feature`) for its t
 ## Golden rules for tests
 
 1. **Never depend on today's date**: the clock is injected (`ahora` in services, `fecha` parameter in the domain). In e2e use relative-date steps (e.g. "date N days from now", helper `fechaLocal` in `features/steps/temporada.steps.js`) or the demo, which is seeded relative to today (`store.seedDemo`). Forbidden: hard-coded years whose behaviour changes with the season (1 September), bare `new Date()`, long `setTimeout`s.
-2. **Every test explains itself and is independent**: clean state with `fresh()` (integration) or the "club with demo data" / "empty club with Google session" Givens (e2e). No order between tests.
+2. **Every test explains itself and is independent**: clean state with `fresh()` (integration) or the "club with demo data" / "empty club with Drive connected" Givens (e2e). No order between tests.
 3. **Test behaviour, not implementation**: in e2e interact by role/accessible label (`getByRole`, `getByLabel`), not by internal CSS classes (except the few selectors already used in each area's steps).
 4. **Wait on conditions**, never fixed pauses: in steps use `this.eventually(async () => assert...)` and `this.verVisible(...)`; in jsdom `await tick()`.
 5. **A test that fails because of a bug is fixed in the code**, the test is not relaxed. If the test is wrong, justify it in the commit.

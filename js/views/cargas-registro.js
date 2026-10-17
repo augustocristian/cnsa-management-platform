@@ -65,12 +65,10 @@ export function abrirRegistro({ ctx, svc, nadadores, recuerdo, hoy, onRegistrada
 
   // -> true when saved
   function guardar(otra) {
-    const r = svc.registrar ? null : null; // placeholder to keep the shape explicit
     const res = svc.registrarCarga({
       nadadorId: nadador.valor(), fecha: fecha.value, tipoId: tipo.value === NUEVO ? '' : tipo.value, metros: metros.value,
       rpe: rpe.value, minutos: minutos.value, notas: notas.value, entrenamientoId: sesion.value,
     });
-    void r;
     if (!res.ok) {
       res.errores.forEach((e, i) => fieldError(entradas[e.campo] || metros, mensaje(e), { focus: i === 0 }));
       return false;

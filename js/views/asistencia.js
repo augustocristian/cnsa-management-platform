@@ -8,6 +8,7 @@ import { crearAsistenciaService } from '../application/asistenciaService.js';
 import { ESTADOS, ESTADOS_RAPIDOS, MUCHAS_SESIONES, filtrarSesiones, sesionVecina } from '../domain/asistencia.js';
 import { nombreApellidosPrimero, nombreCompleto } from '../domain/nombres.js';
 import { historialPanel } from './asistencia-historial.js';
+import { repintarAlCambiar } from './suscripcion.js';
 
 const TONO = { presente: 'ok', ausente: 'danger', justificado: 'warn', '': 'neutral' };
 
@@ -44,15 +45,15 @@ export async function render(container, params, ctx) {
     return h('li', { class: 'asi-card', 'data-estado': f.estado, 'data-nid': f.nadador.id },
       h('div', { class: 'asi-who' },
         avatar(nombreCompleto(f.nadador)),
-        h('span', { class: 'asi-name' }, nombre),
-        h('span', { class: `badge badge--${TONO[f.estado]} asi-state` }, f.estado ? tEstado(f.estado) : t('asist.sin-marcar'))),
-      f.registro && f.registro.nota ? h('p', { class: 'asi-note' }, f.registro.nota) : null,
-      h('div', { class: 'asi-actions', role: 'group', 'aria-label': nombre },
-        ESTADOS_RAPIDOS.map(boton),
+        h('div', { class: 'asi-id' },
+          h('span', { class: 'asi-name' }, nombre),
+          h('span', { class: `badge badge--${TONO[f.estado]} asi-state` }, f.estado ? tEstado(f.estado) : t('asist.sin-marcar'))),
         h('button', {
           type: 'button', class: 'asi-more', 'aria-label': t('asist.mas', { nombre }), 'aria-haspopup': 'dialog', 'data-foco': `${f.nadador.id}:mas`,
           onclick: () => detalle(f, sesionId),
-        }, icon('mas-opciones', { size: 22 }))));
+        }, icon('mas-opciones', { size: 22 }))),
+      f.registro && f.registro.nota ? h('p', { class: 'asi-note' }, f.registro.nota) : null,
+      h('div', { class: 'asi-actions', role: 'group', 'aria-label': nombre }, ESTADOS_RAPIDOS.map(boton)));
   }
 
   // "..." sheet: any of the four states (including excused) plus a note.
@@ -108,7 +109,7 @@ export async function render(container, params, ctx) {
     const buscar = sesiones.length > MUCHAS_SESIONES
       ? field({ label: t('asist.sesion-buscar'), hint: t('asist.sesion-buscar-ayuda'), input: h('input', { type: 'search', class: 'asi-search', autocomplete: 'off', value: state.consulta, oninput: (e) => { state.consulta = e.target.value; llenar(); } }) })
       : null;
-    return h('div', { class: 'asi-session' }, buscar,
+    return h('div', { class: 'asi-session' + (buscar ? ' asi-session--busca' : '') }, buscar,
       h('div', { class: 'asi-pick' }, vecino(1, 'asist.sesion-anterior', 'flecha-izq'),
         field({ label: t('asist.sesion-sel'), input: sel }), vecino(-1, 'asist.sesion-siguiente', 'flecha-dcha')), cuenta);
   }
@@ -149,9 +150,5 @@ export async function render(container, params, ctx) {
   }
 
   draw();
-  if (store.on) {
-    const off = store.on(() => { if (container.isConnected) draw(); else off(); });
-    return off;
-  }
-  return undefined;
+  return repintarAlCambiar(store, container, draw, ['Asistencia', 'Entrenamientos', 'Nadadores', 'Grupos']);
 }

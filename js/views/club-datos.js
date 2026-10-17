@@ -66,11 +66,14 @@ export function tarjetaDatos(ctx, svc, recargar) {
       try { window.open(await svc.urlCarpeta(), '_blank', 'noopener'); } catch (e) { toast.error(e.message || String(e)); }
     } }, t('club.abrirCarpeta')));
   }
+  // "Disconnect Drive": the shell owns the safe flow (confirm, upload pending changes, erase local copies). It is injected as
+  // ctx.desconectar or, otherwise, requested with a window event the shell listens to.
+  const desconectar = () => (ctx.desconectar ? ctx.desconectar() : window.dispatchEvent(new CustomEvent('cnl:desconectar')));
   // Connection actions are offered when the shell provides them (they also live in the header menu).
   const conexion = demo
     ? [ctx.conexion && h('button', { type: 'button', class: 'btn btn--primary', onclick: () => ctx.conexion.conectarDesdeDemo() }, t('shell.demo.conectar')),
       ctx.conexion && h('button', { type: 'button', class: 'btn', onclick: () => ctx.conexion.salirDeDemo() }, t('shell.demo.salir'))]
-    : [ctx.desconectar && h('button', { type: 'button', class: 'btn', id: 'clb-desconectar', onclick: () => ctx.desconectar() }, t('shell.desconectar'))];
+    : [h('button', { type: 'button', class: 'btn', id: 'clb-desconectar', onclick: desconectar }, t('shell.desconectar'))];
 
   return h('section', { class: 'card clb-card', 'aria-labelledby': 'clb-datos-t' },
     h('div', { class: 'card-head' }, h('h2', { id: 'clb-datos-t' }, t('club.datos')), estado),

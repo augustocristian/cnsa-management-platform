@@ -3,9 +3,9 @@ export default {
   'gerr.timeout': 'Google non risponde (tempo scaduto). Le tue modifiche restano salvate su questo dispositivo; si riproverà.',
   'gerr.cuota-drive': 'Il tuo Google Drive è pieno: libera spazio per poter salvare le modifiche.',
 
-  'dat.sesion-caducada': 'Sessione scaduta: riconnettiti a Google per continuare a salvare le modifiche su Drive.',
+  'dat.sesion-caducada': 'Il collegamento con Drive è scaduto: riconnettiti per continuare a salvare le modifiche su Drive.',
   'dat.reconectar': 'Riconnetti',
-  'dat.reconectado': 'Sessione rinnovata.',
+  'dat.reconectado': 'Collegamento con Drive rinnovato.',
   'dat.reconectar-error': 'Impossibile riconnettersi: {msg}',
   'dat.solo-lectura': 'Questo club è stato salvato da una versione più recente dell\'app (versione {version}). Aggiorna l\'app per modificarlo; nel frattempo è in sola lettura.',
   'dat.recargar': 'Ricarica l\'app',
@@ -20,9 +20,9 @@ export default {
   'dat.descargar-copia': 'Scarica copia',
 
   'dat.logout.titulo': 'Ci sono modifiche non caricate su Drive',
-  'dat.logout.texto': 'Non è stato possibile caricare le ultime modifiche. Se esci andranno perse da questo dispositivo. Scarica una copia prima di uscire.',
+  'dat.logout.texto': 'Non è stato possibile caricare le ultime modifiche. Se scolleghi Drive andranno perse da questo dispositivo. Scarica una copia prima di uscire.',
   'dat.logout.descargar': 'Scarica copia (.xlsx)',
-  'dat.logout.descartar': 'Scarta ed esci',
+  'dat.logout.descartar': 'Scarta e scollega',
   'dat.logout.cancelar': 'Annulla',
   'dat.logout.subiendo': 'Caricamento delle modifiche…',
 

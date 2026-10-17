@@ -1,5 +1,5 @@
-// Connection use cases: which club to open after connecting to Drive, renewing an expired Drive connection, leaving the demo and
-// disconnecting. There is no user identity in the app: only a Drive connection (or the demo, store.mode === 'demo').
+// Connection use cases: which club to open after connecting to Drive, renewing an expired Drive connection and
+// disconnecting. Entering/leaving the demo belongs to application/modoService.js. There is no user identity in the app: only a Drive connection (or the demo, store.mode === 'demo').
 // Everything concrete is injected (no localStorage, document or clock in here); the shell composes the real adapters.
 //
 // Ports:
@@ -9,7 +9,7 @@
 //   CLAVES    preference keys ({ clubes, ultimoClub, ... })
 //   store     club store (mode, clubRef, soloLectura, pendiente, sync, cerrar)
 //   banderas  { selectorForzado(), limpiarSelectorForzado(),              "Switch club" flag (sessionStorage in the browser)
-//              demoGuardada(), guardarDemo(bool) }                          device flag: the demo was left open (localStorage)
+//              demoGuardada() }                                             device flag: the demo was left open (localStorage 'cnl:mode')
 //   limpiarDatosLocales()                                                  erases every local mirror of personal data
 //   espera(ms)                                                             timer, injectable for tests
 //   log       { warn }
@@ -19,7 +19,7 @@ const PREFS_ESPERA_MS = 1500;
 const esperaPorDefecto = (ms) => new Promise((r) => { const id = setTimeout(r, ms); if (id && id.unref) id.unref(); });
 
 export function crearSesionService({ auth, drive, prefs, CLAVES, store, banderas, limpiarDatosLocales, espera = esperaPorDefecto, log = console } = {}) {
-  const sinBanderas = { selectorForzado: () => false, limpiarSelectorForzado: () => {}, demoGuardada: () => false, guardarDemo: () => {} };
+  const sinBanderas = { selectorForzado: () => false, limpiarSelectorForzado: () => {}, demoGuardada: () => false };
   const flags = banderas || sinBanderas;
 
   // Which mode does the app start in? -> 'drive' (Drive already authorized) | 'demo' (the demo was left open) | 'start' (neither:
@@ -80,14 +80,6 @@ export function crearSesionService({ auth, drive, prefs, CLAVES, store, banderas
       return { ok: true };
     },
 
-    // Leaves the demo: closes the store and erases the local demo data. The caller reloads into the start screen.
-    async salirDeDemo() {
-      flags.guardarDemo(false);
-      try { store?.cerrar(); } catch (e) { /* ignore */ }
-      try { await limpiarDatosLocales?.(); } catch (e) { /* ignore */ }
-      return { salio: true };
-    },
-
     // Disconnect Drive: uploads what is pending (with a deadline), asks what to do if it could not, revokes the token and erases
     // every local mirror. In demo mode nothing is uploaded (there is no Drive). `preguntarPendientes()` -> Promise<'salir' | 'cancelar'>
     // is only called when changes could not be uploaded. -> { salio: boolean }. The caller reloads the page afterwards.
@@ -100,7 +92,6 @@ export function crearSesionService({ auth, drive, prefs, CLAVES, store, banderas
       } catch (e) { log.warn('Cierre de sesión', e); }
       try { if (prefs) await Promise.race([prefs.flush(), espera(PREFS_ESPERA_MS)]); } catch (e) { /* offline: the cache is discarded anyway */ }
       try { prefs?.desconectar(); } catch (e) { /* ignore */ }
-      flags.guardarDemo(false);
       try { auth.disconnect(); } catch (e) { /* ignore */ }
       try { drive?.reset?.(); } catch (e) { /* ignore */ }
       try { store?.cerrar(); } catch (e) { /* ignore */ }

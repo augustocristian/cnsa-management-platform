@@ -1,47 +1,52 @@
 // Adapter between the shell and the Drive connection / demo mode. The shell never reads `store.mode` or calls the
 // connection module directly: it goes through `rt.conexion`, so a change in those APIs only touches this file.
-//   esDemo()                 is the open club the in-memory demo (store.mode === 'demo')?
-//   conectarDesdeDemo()      "Connect Google Drive" in the demo banner / menu (must run from a click)
-//   salirDeDemo()            "Exit demo": drops the demo data and returns to the start screen
+//   esDemo()                 is the open club the local demo (store.mode === 'demo')?
 //   entrarEnDemo()           "Try the demo" on the start screen
-import { toast } from '../../ui.js';
+//   abrirDemo()              (re)opens the demo club at boot when the demo was left open
+//   conectarDesdeDemo()      "Connect Google Drive" in the demo banner / menu (must run from a click); the demo data is dropped
+//   salirDeDemo()            "Exit demo": asks, erases the demo data and returns to the start screen
+// The use cases live in application/modoService.js (rt.modo); this file only adds the browser parts (dialogs, reload).
+import { toast, confirmDialog } from '../../ui.js';
 import { t } from '../../i18n.js';
 
-export const REF_DEMO = { id: 'demo', name: 'Demo' };
+const volverAlInicio = () => { location.hash = ''; location.reload(); };
 
 export function crearConexion(rt) {
-  const conexion = {
+  return {
     esDemo: () => rt.store?.mode === 'demo',
 
     async entrarEnDemo() {
-      rt.banderas.guardarDemo(true);
+      try {
+        await rt.modo.enterDemo();
+      } catch (e) {
+        toast.error((e && e.message) || t('common.error'));
+        return;
+      }
       await rt.start();
     },
 
-    // Opens the in-memory demo club. The store owns what "demo" means (seeded data, no Drive writes).
+    // Opens the demo club (it reopens what the person had). No-op if it is already open.
     async abrirDemo() {
-      const { store } = rt;
-      if (typeof store.initDemo === 'function') return store.initDemo();
-      return store.init({ ...REF_DEMO, demo: true });
+      if (rt.store.mode === 'demo' && rt.store.clubRef) return rt.store;
+      await rt.modo.enterDemo();
+      return rt.store;
     },
 
     async conectarDesdeDemo() {
       try {
-        await rt.auth.connect({ interactive: true });
+        await rt.modo.connectDrive();
       } catch (e) {
         toast.error(t('dat.reconectar-error', { msg: (e && e.message) || '' }));
         return;
       }
-      await rt.sesion.salirDeDemo();
-      location.hash = '';
-      location.reload();
+      volverAlInicio();
     },
 
     async salirDeDemo() {
-      await rt.sesion.salirDeDemo();
-      location.hash = '';
-      location.reload();
+      const ok = await confirmDialog(t('shell.demo.salir.texto'), { danger: true, okLabel: t('shell.demo.salir'), title: t('shell.demo.salir') });
+      if (!ok) return;
+      await rt.modo.exitDemo();
+      volverAlInicio();
     },
   };
-  return conexion;
 }

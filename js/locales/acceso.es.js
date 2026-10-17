@@ -1,6 +1,5 @@
 // Acceso, asistente de primer arranque, errores de Google, tutorial de configuración y datos en Drive (es).
 export default {
-  'shell.sesion': 'Sesión',
   'shell.sync.sincronizado': 'Sincronizado',
   'acceso.login.google': 'Conectar Google Drive',
   'acceso.login.nota': 'Solo se pide permiso para los archivos que crea la propia app en la carpeta «cnl» de tu Drive. Sin servidor ni base de datos.',
@@ -121,7 +120,7 @@ export default {
   'tutorial.paso3.intro': 'Es la pantalla que verás al autorizar la aplicación.',
   'tutorial.paso3.i1': 'Abre la pantalla de consentimiento y elige el tipo de usuario «Externo».',
   'tutorial.paso3.i2': 'Rellena el nombre de la aplicación, tu correo de asistencia y el correo de contacto.',
-  'tutorial.paso3.i3': 'En «Permisos» (scopes) añade sólo drive.file (valor de abajo). Los datos de perfil básicos (openid, email, profile) ya están incluidos.',
+  'tutorial.paso3.i3': 'En «Permisos» (scopes) añade sólo drive.file (valor de abajo). No añadas openid, email ni profile: la app no pide ninguna identidad.',
   'tutorial.paso3.i4': 'En «Usuarios de prueba» añade tu correo de Google. Sin esto, Google bloqueará el acceso.',
   'tutorial.paso3.i5': 'Guarda. Puedes dejarla en «Prueba» o pulsar «Publicar aplicación» (no requiere verificación con este permiso).',
 
@@ -150,7 +149,7 @@ export default {
   'tutorial.paso6.i2': 'La primera vez, un asistente de dos pasos crea tu club vacío (nombre, colores y zona horaria).',
   'tutorial.paso6.i3': 'Todo queda en la carpeta «cnl» de tu Drive: <Club>.json, preferencias.json, entrenos/ y las copias de Excel. Si ya tenías una carpeta «cnl» hecha a mano, la app crea la suya (sólo ve lo que crea ella). Tus datos se guardan en tu Drive para que los tengas en todos tus dispositivos (ordenador y móvil); la app no comparte datos con nadie.',
   'tutorial.paso6.i4': 'Añade grupos, nadadores y sesiones: los cambios se guardan solos (indicador «Sincronizado») y funcionan sin conexión.',
-  'tutorial.paso6.i5': 'En Configuración puedes exportar o importar Excel como copia de seguridad. «Salir» cierra la sesión y revoca el permiso.',
+  'tutorial.paso6.i5': 'En Configuración puedes exportar o importar Excel como copia de seguridad. «Desconectar Drive» revoca el permiso y borra los datos locales de este dispositivo.',
 
   'tutorial.link.crear-proyecto': 'Crear proyecto',
   'tutorial.link.drive-api': 'Google Drive API',
@@ -177,5 +176,4 @@ export default {
   'asistente.vista-previa-nombre': 'Tu club',
   'asistente.copiar-origen': 'Copiar',
   'acceso.error-titulo': 'No se pudo completar la conexión',
-  'acceso.desconectar': 'Desconectar Drive',
 };

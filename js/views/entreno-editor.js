@@ -142,6 +142,12 @@ export function abrirEditor({ ctx, sesionId }) {
   document.body.style.overflow = 'hidden';
   document.body.appendChild(ov);
 
+  // The toasts sit above the bar: publish its real height (it grows when the total wraps or on devices with a safe area)
+  const medirBarra = () => document.body.style.setProperty('--enp-bar-h', `${barra.el.offsetHeight}px`);
+  const observador = typeof ResizeObserver === 'function' ? new ResizeObserver(medirBarra) : null;
+  observador?.observe(barra.el);
+  medirBarra();
+
   const guardia = protegerSalida({
     haySinGuardar: () => borrador.sucio(),
     pedirSalida: () => confirmDialog(t('entreno.confirm-descartar')),
@@ -149,6 +155,8 @@ export function abrirEditor({ ctx, sesionId }) {
   });
   function cierre() {
     guardia.liberar();
+    observador?.disconnect();
+    document.body.style.removeProperty('--enp-bar-h');
     document.removeEventListener('keydown', onKey);
     inertados.forEach((e) => e.removeAttribute('inert'));
     document.body.style.overflow = prevOverflow;
