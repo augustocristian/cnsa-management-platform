@@ -698,7 +698,7 @@ export const store = {
         store.lastError = e;
         reject(e);
       }, config.watchdogMs);
-      if (vigilante && vigilante.unref) vigilante.unref();
+      // Not unref'd: callers await this deadline, and Node would otherwise end the event loop while it is pending.
     });
     syncing = Promise.race([trabajo, limite]);
     const mia = syncing;

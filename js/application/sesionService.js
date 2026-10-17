@@ -16,7 +16,7 @@
 const SALIDA_ESPERA_MS = 10000;
 const PREFS_ESPERA_MS = 1500;
 
-const esperaPorDefecto = (ms) => new Promise((r) => { const id = setTimeout(r, ms); if (id && id.unref) id.unref(); });
+const esperaPorDefecto = (ms) => new Promise((r) => { setTimeout(r, ms); });
 
 export function crearSesionService({ auth, drive, prefs, CLAVES, store, banderas, limpiarDatosLocales, espera = esperaPorDefecto, log = console } = {}) {
   const sinBanderas = { selectorForzado: () => false, limpiarSelectorForzado: () => {}, demoGuardada: () => false };
