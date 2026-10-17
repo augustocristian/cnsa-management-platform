@@ -12,6 +12,7 @@ The e2e suite lives in `features/*.feature` (Gherkin), `features/steps/*.steps.j
 ```bash
 grep -hn "^\(Given\|When\|Then\)(" features/steps/*.js | cut -c1-140
 ```
+
 Reuse the common steps (`features/steps/comunes.steps.js`: club with demo data / empty club / Drive not connected (the generic starts in `conexion.steps.js`: `a club with Drive connected and demo data`, `an empty club with Drive connected`, `the app has just been opened without Drive connected`), open a module, press a button, fill a field, choose in a select, see text/heading/toast, accept confirmation...) **using their exact current wording** (copy the sentence from the step file, do not guess). Step definitions are global across files: a second definition with the same text makes Cucumber fail with "Multiple step definitions match" - if you need a step that already exists elsewhere, move it to `comunes.steps.js` instead of duplicating it.
 
 ## 2. Write the feature (template `feature.tpl`)
@@ -39,6 +40,7 @@ VIEWPORT=mobile npx cucumber-js --tags "@lesiones and not @google and not @pendi
 npx cucumber-js --tags "@lesiones and not @google and not @pending" --dry-run --format summary          # parse check / count, runs nothing
 npx cucumber-js --tags "@smoke"                                                                            # all essential scenarios
 ```
+
 First time on a machine: `npx playwright install chromium`. Reports in `reports/` (`cucumber.html`, `cucumber.xml`, `reports/screenshots/*.png` for failures). `npm run e2e:resumen` prints a Markdown summary of the JUnit files.
 
 ## 5. Diagnose

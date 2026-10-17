@@ -12,6 +12,7 @@ Example with `fr` (Français, `fr-FR`). Structure reference: `js/presentation/i1
 ```bash
 ls js/presentation/i18n/locales/*.es.js js/presentation/i18n/locales/es.js
 ```
+
 Today: `es/en/it.js` (base), `vistas-a|b|c`, `planificacion`, `calendario`, `entreno`, `cargas-tipos`, `acceso`, `diseno`, `temporada`, `categorias`, `datos`. For every `X.en.js` create `X.fr.js` (`export default {...}`) with **exactly the same keys** as `X.es.js` and the same `{variables}`. The base `en.js` -> `fr.js`. Start by copying `en` and translate; leave no text in another language or empty (the test rejects it).
 
 ## 2. Code

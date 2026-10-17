@@ -11,13 +11,13 @@ Language rule: test names, comments, Gherkin and reports are in **English**; rea
 
 ## Pyramid and verified commands (Node 22+, Windows Git Bash or PowerShell)
 
-| Level | Where | Command | Notes |
-|---|---|---|---|
-| Syntax | `scripts/check.mjs` | `npm run check` | `node --check` of all `js/` and `sw.js` (~102 files) |
-| Unit | `tests/unit/*.test.js` | `npm run test:unit` (~450 tests, ~15 s) - one file: `node --test tests/unit/temporada.test.js` | `node:test` + `assert/strict`; `tests/unit/index.js` loads everything (Node 24 treats `--test <dir>` as a file) |
-| Integration | `tests/integration/*.test.js` | `npm run test:integration` - one file: `node --test tests/integration/flows.test.js` | jsdom + store + fakeGoogle; helpers in `tests/helpers/app.js` (`fresh`, `renderView`, `tick`, `buttonByText`, `fieldByLabel`, `setValue`) and `tests/helpers/env.js` (`setupEnv`, `importApp`, `ROOT`) |
-| E2E | `features/*.feature` + `features/steps/*.js` + `features/support/{world,hooks}.js` | `npm run test:e2e` (desktop then mobile Pixel 5; **8-10 minutes for ~250 scenarios: run it in the background**) | Playwright/Chromium; first time `npx playwright install chromium`; reports in `reports/` (HTML, JUnit and failure screenshots in `reports/screenshots/`) |
-| All | | `npm run test` | unit + integration + e2e |
+| Level       | Where                                                                              | Command                                                                                                         | Notes                                                                                                                                                                                                  |
+| ----------- | ---------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Syntax      | `scripts/check.mjs`                                                                | `npm run check`                                                                                                 | `node --check` of all `js/` and `sw.js` (~102 files)                                                                                                                                                   |
+| Unit        | `tests/unit/*.test.js`                                                             | `npm run test:unit` (~450 tests, ~15 s) - one file: `node --test tests/unit/temporada.test.js`                  | `node:test` + `assert/strict`; `tests/unit/index.js` loads everything (Node 24 treats `--test <dir>` as a file)                                                                                        |
+| Integration | `tests/integration/*.test.js`                                                      | `npm run test:integration` - one file: `node --test tests/integration/flows.test.js`                            | jsdom + store + fakeGoogle; helpers in `tests/helpers/app.js` (`fresh`, `renderView`, `tick`, `buttonByText`, `fieldByLabel`, `setValue`) and `tests/helpers/env.js` (`setupEnv`, `importApp`, `ROOT`) |
+| E2E         | `features/*.feature` + `features/steps/*.js` + `features/support/{world,hooks}.js` | `npm run test:e2e` (desktop then mobile Pixel 5; **8-10 minutes for ~250 scenarios: run it in the background**) | Playwright/Chromium; first time `npx playwright install chromium`; reports in `reports/` (HTML, JUnit and failure screenshots in `reports/screenshots/`)                                               |
+| All         |                                                                                    | `npm run test`                                                                                                  | unit + integration + e2e                                                                                                                                                                               |
 
 ### Running ONE e2e area (verified gotcha)
 
@@ -30,6 +30,7 @@ npx cucumber-js --tags "@smoke"                      # 48 essential scenarios
 npx cucumber-js --tags "@season and not @google and not @pending" --dry-run --format summary   # count without running
 npx cucumber-js --name "partial scenario name"       # by scenario name (also merged with the config paths, so combine with --tags)
 ```
+
 Check the first lines of a feature (`head -4 features/<name>.feature`) for its tag; a feature without an area tag should get one when you touch it. In PowerShell set the viewport with `$env:VIEWPORT='mobile'; npx cucumber-js ...`.
 
 `cucumber.js` excludes `@google`, `@pending` and (on mobile) `@desktop`; `retry: 2` only with `CI`. Each scenario starts a clean browser context and **fails on console errors or 4xx/5xx responses** (`features/support/hooks.js`). A static server (`scripts/serve.mjs`) starts on a free port by itself: never start one by hand.

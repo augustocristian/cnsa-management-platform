@@ -11,45 +11,45 @@ Project-level Claude Code configuration, specific to this repository (static ES-
 
 ## Golden rule (applies to every agent and skill)
 
-Small, descriptive commits; push at every milestone; **never break the app** - `npm run check` + `npm run test:unit` + `npm run test:integration` + the relevant e2e area before each commit, the full `npm run test:e2e` before each push. Agents running in parallel work on **disjoint file zones** (hot files: `sw.js`, `js/presentation/i18n/i18n.js`, `js/composicion/store.js`, `js/domain/schema.js`, `js/main.js`, `README.md`, `docs/ARCHITECTURE.md`, `package*.json`) and stage explicit paths, never `git add -A`.
+Small, descriptive commits; push at every milestone; **never break the app** - `npm run verify` + `npm run test:unit` + `npm run test:integration` + the relevant e2e area before each commit, the full `npm run test:e2e` before each push. Agents running in parallel work on **disjoint file zones** (hot files: `sw.js`, `js/presentation/i18n/i18n.js`, `js/composicion/store.js`, `js/domain/schema.js`, `js/main.js`, `README.md`, `docs/ARCHITECTURE.md`, `package*.json`) and stage explicit paths, never `git add -A`.
 
 ## Verified commands
 
-| Purpose | Command |
-|---|---|
-| Syntax check | `npm run check` |
-| Unit (~450 tests, ~15 s) | `npm run test:unit` (one file: `node --test tests/unit/<file>.test.js`) |
-| Integration (jsdom) | `npm run test:integration` |
-| E2E, desktop then mobile (8-10 min, run in background) | `npm run test:e2e` |
-| E2E, one area | `npx cucumber-js --tags "@<area> and not @google and not @pending"` (+ `VIEWPORT=mobile`). **A bare feature path runs ALL scenarios**, because `cucumber.js` merges its `paths` with the CLI ones; use the area tag |
-| Screenshots | `npm run capturas [-- --solo=id1,id2 --dispositivo=movil]` |
-| Local server | `npm run serve` (port 4173) |
+| Purpose                                                | Command                                                                                                                                                                                                             |
+| ------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Syntax check                                           | `npm run check`                                                                                                                                                                                                     |
+| Unit (~450 tests, ~15 s)                               | `npm run test:unit` (one file: `node --test tests/unit/<file>.test.js`)                                                                                                                                             |
+| Integration (jsdom)                                    | `npm run test:integration`                                                                                                                                                                                          |
+| E2E, desktop then mobile (8-10 min, run in background) | `npm run test:e2e`                                                                                                                                                                                                  |
+| E2E, one area                                          | `npx cucumber-js --tags "@<area> and not @google and not @pending"` (+ `VIEWPORT=mobile`). **A bare feature path runs ALL scenarios**, because `cucumber.js` merges its `paths` with the CLI ones; use the area tag |
+| Screenshots                                            | `npm run capturas [-- --solo=id1,id2 --dispositivo=movil]`                                                                                                                                                          |
+| Local server                                           | `npm run serve` (port 4173)                                                                                                                                                                                         |
 
 ## Agents (`agents/`)
 
-| Agent | Model | Invoke it when... |
-|---|---|---|
-| `arquitecto` | opus | deciding which layer code goes in, reviewing dependency rules/ports, adding the architecture test, planning a phased refactor |
-| `desarrollador-funcionalidades` | sonnet | implementing a whole feature end to end (domain -> service -> view -> i18n -> tests -> feature -> docs -> screenshots -> service worker) |
-| `qa-tests` | sonnet | writing, running or diagnosing unit / integration / e2e tests; removing date-dependent or brittle tests |
-| `i18n` | sonnet | translating texts, key/variable parity, swimming terminology, neutral stored values, adding a language |
-| `ux-a11y` | sonnet | design system compliance, WCAG 2.2 AA, mobile-first, dark mode, Playwright visual review |
-| `datos-drive` | opus | anything touching `schema.js`, `sheetdata.js`, `store.js`, `drive.js`, `cache.js`: formats, migrations, merge, offline, backups, GDPR of minors' data |
-| `seguridad-rgpd` | opus | security/privacy review: CSP, SRI, XSS, export injection, tokens, sign-out cache, minors' data (review-first) |
-| `release-ci` | sonnet | full verification, small commits, milestone push, CI/Pages/Dependabot, service worker version |
-| `documentacion` | sonnet | README, `docs/`, screenshots, keeping docs consistent with the code |
+| Agent                           | Model  | Invoke it when...                                                                                                                                     |
+| ------------------------------- | ------ | ----------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `arquitecto`                    | opus   | deciding which layer code goes in, reviewing dependency rules/ports, adding the architecture test, planning a phased refactor                         |
+| `desarrollador-funcionalidades` | sonnet | implementing a whole feature end to end (domain -> service -> view -> i18n -> tests -> feature -> docs -> screenshots -> service worker)              |
+| `qa-tests`                      | sonnet | writing, running or diagnosing unit / integration / e2e tests; removing date-dependent or brittle tests                                               |
+| `i18n`                          | sonnet | translating texts, key/variable parity, swimming terminology, neutral stored values, adding a language                                                |
+| `ux-a11y`                       | sonnet | design system compliance, WCAG 2.2 AA, mobile-first, dark mode, Playwright visual review                                                              |
+| `datos-drive`                   | opus   | anything touching `schema.js`, `sheetdata.js`, `store.js`, `drive.js`, `cache.js`: formats, migrations, merge, offline, backups, GDPR of minors' data |
+| `seguridad-rgpd`                | opus   | security/privacy review: CSP, SRI, XSS, export injection, tokens, sign-out cache, minors' data (review-first)                                         |
+| `release-ci`                    | sonnet | full verification, small commits, milestone push, CI/Pages/Dependabot, service worker version                                                         |
+| `documentacion`                 | sonnet | README, `docs/`, screenshots, keeping docs consistent with the code                                                                                   |
 
 ## Skills (`skills/`)
 
-| Skill | Use it for | Support files |
-|---|---|---|
-| `nueva-funcionalidad` | the end-to-end recipe for a new feature | `dominio.js.tpl`, `servicio.js.tpl`, `vista.js.tpl`, `test-unit.test.js.tpl`, `test-integracion.test.js.tpl` |
-| `nueva-hoja-datos` | new sheet/columns with compatible migration, merge, demo, xlsx, GDPR relations | - |
-| `nuevo-idioma` | adding a UI language | - |
-| `nuevo-escenario-cucumber` | English Gherkin scenarios + steps, tags, running one area | `feature.tpl`, `steps.js.tpl` |
-| `nuevo-componente-ui` | a reusable component in the design system | - |
-| `regenerar-capturas` | refreshing/adding screenshots in `docs/screenshots` | - |
-| `preparar-release` | the pre-commit/pre-push checklist and CI watch | - |
+| Skill                      | Use it for                                                                     | Support files                                                                                                |
+| -------------------------- | ------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------ |
+| `nueva-funcionalidad`      | the end-to-end recipe for a new feature                                        | `dominio.js.tpl`, `servicio.js.tpl`, `vista.js.tpl`, `test-unit.test.js.tpl`, `test-integracion.test.js.tpl` |
+| `nueva-hoja-datos`         | new sheet/columns with compatible migration, merge, demo, xlsx, GDPR relations | -                                                                                                            |
+| `nuevo-idioma`             | adding a UI language                                                           | -                                                                                                            |
+| `nuevo-escenario-cucumber` | English Gherkin scenarios + steps, tags, running one area                      | `feature.tpl`, `steps.js.tpl`                                                                                |
+| `nuevo-componente-ui`      | a reusable component in the design system                                      | -                                                                                                            |
+| `regenerar-capturas`       | refreshing/adding screenshots in `docs/screenshots`                            | -                                                                                                            |
+| `preparar-release`         | the pre-commit/pre-push checklist and CI watch                                 | -                                                                                                            |
 
 The `*.tpl` files are templates (not executed): copy, replace `<module>`/`<Module>`/`<Hoja>`, and adapt.
 

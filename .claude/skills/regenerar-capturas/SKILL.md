@@ -18,6 +18,7 @@ npm run capturas -- --dispositivo=movil           # only mobile (or escritorio)
 npm run capturas -- --concurrencia=2              # fewer parallel pages (slow machines)
 npm run capturas -- --salida=C:/tmp/shots         # other output folder (to compare before overwriting)
 ```
+
 First time on a machine: `npx playwright install chromium`. The PDF screenshot (`entreno-pdf`) renders page 1 of the app's own PDF with `pdfjs-dist` (devDependency).
 
 ## Add a scenario for a new view
@@ -31,6 +32,7 @@ In `ESCENARIOS` of `scripts/capturas.mjs` add an entry (keep the section comment
     await p.locator(DIALOGO).last().waitFor();
   } },
 ```
+
 - `opciones`: `DEMO` (club with demo data), `VACIO` (empty club, first run) or `SIN_SESION` (start screen without Drive connected). `ruta` is the hash route without `#/` (e.g. `nadadores/n06`, `planificacion`). `sinShell: true` for pre-shell screens (start screen, wizard).
 - Optional `idioma` (`'en'`, `'it'`) with `locale`, `tema: 'dark'`, `dispositivos: [...]` to restrict devices (see `inicio-en`, `inicio-oscuro`).
 - Helpers inside the script: `boton(p, name)`, `estable(p)` (waits for loading to end, fonts ready), `DIALOGO`, `desplazar(...)`, `abrirPlan(...)`. Prefer waiting on a visible condition to a fixed delay.

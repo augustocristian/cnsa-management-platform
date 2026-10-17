@@ -13,14 +13,14 @@ Language rule: commit messages, PR text, reports and comments are in **English**
 
 1. **Small, descriptive commits**: one logical change per commit, imperative/present English message with a conventional prefix (`feat:`, `fix:`, `test:`, `docs:`, `refactor:`, `chore:`, `ci:`, `style:`) and a body explaining the why when it is not obvious. No `wip`, no "misc", no giant mixed commits. Read `git log --oneline -15` to match the style.
 2. **Push at every milestone** (usable feature, finished fix, stable block), not after days of accumulated work.
-3. **Never break the application**: before committing run `npm run check` + `npm run test:unit` + `npm run test:integration` + the relevant e2e area (`npx cucumber-js --tags "@<area> and not @google and not @pending"`, plus `VIEWPORT=mobile` for UI changes; a bare feature path would run the whole suite, see `qa-tests`); **before every push run the full suite `npm run test:e2e`** (desktop and mobile; 8-10 minutes: launch it in the background and wait for the notification). If something fails: fix the cause; do not disable the test, do not use `--no-verify`, do not force-push.
+3. **Never break the application**: before committing run `npm run verify` (check + format:check + lint) + `npm run test:unit` + `npm run test:integration` + the relevant e2e area (`npx cucumber-js --tags "@<area> and not @google and not @pending"`, plus `VIEWPORT=mobile` for UI changes; a bare feature path would run the whole suite, see `qa-tests`); **before every push run the full suite `npm run test:e2e`** (desktop and mobile; 8-10 minutes: launch it in the background and wait for the notification). If something fails: fix the cause; do not disable the test, do not use `--no-verify`, do not force-push.
 4. **Parallel agents work on disjoint file zones.** With several agents touching the tree at once never use `git add -A` or `git add .`: stage **explicit paths** of what you verified, review `git status` and `git diff --staged` before each commit, and never include someone else's half-done changes. Hot files (`sw.js`, `js/presentation/i18n/i18n.js`, `js/composicion/store.js`, `js/domain/schema.js`, `js/main.js`, `README.md`, `docs/ARCHITECTURE.md`, `package*.json`, `features/support/world.js`, `tests/helpers/app.js`) are committed by one person per task. If the orchestrator said "do not run git", only verify and deliver the file list and the proposed message.
 
 ## Full verification (real commands)
 
 ```bash
 npm ci                      # or npm install: postinstall runs scripts/vendor.mjs (copies to vendor/ and generates integrity.json)
-npm run check               # syntax of js/ and sw.js
+npm run verify              # check (syntax, sw.js, architecture) + Prettier check + ESLint (npm run format fixes formatting)
 npm run test:unit
 npm run test:integration
 npm run test:e2e            # desktop + mobile (Playwright/Chromium; npx playwright install chromium the first time)
@@ -42,7 +42,7 @@ npm and GitHub Actions, weekly (Monday), grouped (`npm-minor-patch`, `actions`).
 
 ## Deployment and service worker
 
-Pages serves under `/cnsa-management-platform/`: everything relative. The SW (`sw.js`) is cache-first for the shell with a `VERSION`; if `VERSION` is not bumped when cached files change, users keep seeing the old version. After deploying: open the URL, hard-reload and check the new version activates and that `npm run test:e2e` passed in CI. Requires *Settings > Pages > Source: GitHub Actions*.
+Pages serves under `/cnsa-management-platform/`: everything relative. The SW (`sw.js`) is cache-first for the shell with a `VERSION`; if `VERSION` is not bumped when cached files change, users keep seeing the old version. After deploying: open the URL, hard-reload and check the new version activates and that `npm run test:e2e` passed in CI. Requires _Settings > Pages > Source: GitHub Actions_.
 
 ## Deliverable
 

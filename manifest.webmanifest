@@ -19,8 +19,23 @@
     { "src": "icons/icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" }
   ],
   "shortcuts": [
-    { "name": "Entrenamientos", "short_name": "Entrenos", "url": "./index.html#/entrenamientos", "icons": [{ "src": "icons/icon-192.png", "sizes": "192x192", "type": "image/png" }] },
-    { "name": "Asistencia", "short_name": "Asistencia", "url": "./index.html#/asistencia", "icons": [{ "src": "icons/icon-192.png", "sizes": "192x192", "type": "image/png" }] },
-    { "name": "Calendario", "short_name": "Calendario", "url": "./index.html#/calendario", "icons": [{ "src": "icons/icon-192.png", "sizes": "192x192", "type": "image/png" }] }
+    {
+      "name": "Entrenamientos",
+      "short_name": "Entrenos",
+      "url": "./index.html#/entrenamientos",
+      "icons": [{ "src": "icons/icon-192.png", "sizes": "192x192", "type": "image/png" }]
+    },
+    {
+      "name": "Asistencia",
+      "short_name": "Asistencia",
+      "url": "./index.html#/asistencia",
+      "icons": [{ "src": "icons/icon-192.png", "sizes": "192x192", "type": "image/png" }]
+    },
+    {
+      "name": "Calendario",
+      "short_name": "Calendario",
+      "url": "./index.html#/calendario",
+      "icons": [{ "src": "icons/icon-192.png", "sizes": "192x192", "type": "image/png" }]
+    }
   ]
 }
