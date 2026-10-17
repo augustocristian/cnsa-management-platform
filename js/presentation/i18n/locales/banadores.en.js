@@ -1,7 +1,8 @@
 // Texts of the swimsuit catalogue (training / competition fast skin) and of the swimsuit filter of the times.
 export default {
   'bn.titulo': 'Swimsuits',
-  'bn.intro': 'The club swimsuits that times are recorded with, so that times can be filtered by type (training or competition fast skin), brand and model.',
+  'bn.intro':
+    'The club swimsuits that times are recorded with, so that times can be filtered by type (training or competition fast skin), brand and model.',
   'bn.nuevo': 'New swimsuit',
   'bn.nuevo-titulo': 'New swimsuit',
   'bn.editar-titulo': 'Edit swimsuit',
@@ -43,7 +44,8 @@ export default {
   'bn.fusionado': 'Swimsuit "{nombre}" merged into "{destino}" ({n} times reassigned)',
   'bn.borrar.confirmar': 'Delete the swimsuit "{nombre}"?',
   'bn.borrar.en-uso-titulo': 'Swimsuit in use',
-  'bn.borrar.en-uso': 'The swimsuit "{nombre}" is used in {n} times, so it cannot be deleted. You can deactivate it (it is no longer offered when recording times) or merge it into another swimsuit.',
+  'bn.borrar.en-uso':
+    'The swimsuit "{nombre}" is used in {n} times, so it cannot be deleted. You can deactivate it (it is no longer offered when recording times) or merge it into another swimsuit.',
   'bn.borrar.desactivar': 'Deactivate',
   'bn.borrar.fusionar': 'Merge and delete',
   'bn.borrar.fusionar-con': 'Merge into',

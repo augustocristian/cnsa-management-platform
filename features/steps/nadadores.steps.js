@@ -18,7 +18,8 @@ async function fillSwimmer(world, table) {
     else await c.fill(value);
   }
 }
-const saveForm = (world) => world.page.locator('.nad-modal').getByRole('button', { name: 'Guardar', exact: true }).click();
+const saveForm = (world) =>
+  world.page.locator('.nad-modal').getByRole('button', { name: 'Guardar', exact: true }).click();
 const swimmerRow = (world, name) => world.view.locator('tr.nad-row').filter({ hasText: allWords(name) });
 
 // ---- Create, edit, profile ----
@@ -57,8 +58,14 @@ When('I delete the swimmer', async function () {
 });
 
 Then('the form shows the error {string} in the field {string}', async function (error, field) {
-  const f = this.page.locator('.nad-modal, .grp-modal').locator('.field').filter({ has: this.page.getByLabel(field) });
-  await this.expectVisible(f.locator('.field-error', { hasText: error }).first(), `The error "${error}" is not visible next to "${field}"`);
+  const f = this.page
+    .locator('.nad-modal, .grp-modal')
+    .locator('.field')
+    .filter({ has: this.page.getByLabel(field) });
+  await this.expectVisible(
+    f.locator('.field-error', { hasText: error }).first(),
+    `The error "${error}" is not visible next to "${field}"`,
+  );
 });
 
 When('I fill the swimmer form with the data:', async function (table) {
@@ -71,7 +78,9 @@ When('I save and add another swimmer', async function () {
 });
 
 Then('the form is still open with the name empty', async function () {
-  await this.eventually(async () => assert.equal(await this.page.locator('.nad-modal').getByLabel('Nombre').first().inputValue(), ''));
+  await this.eventually(async () =>
+    assert.equal(await this.page.locator('.nad-modal').getByLabel('Nombre').first().inputValue(), ''),
+  );
 });
 
 When('I close the form', async function () {
@@ -96,7 +105,8 @@ Then('I see the profile of {string}', async function (name) {
 });
 
 Then('the profile shows the personal data:', async function (table) {
-  for (const [item] of table.raw()) await this.expectVisible(this.view.locator('dt', { hasText: item }), `The item "${item}" is missing`);
+  for (const [item] of table.raw())
+    await this.expectVisible(this.view.locator('dt', { hasText: item }), `The item "${item}" is missing`);
 });
 
 Then('the profile shows the value {string}', async function (v) {
@@ -104,7 +114,8 @@ Then('the profile shows the value {string}', async function (v) {
 });
 
 Then('the profile includes the sports profile sections:', async function (table) {
-  for (const [s] of table.raw()) await this.expectVisible(this.view.locator('h2', { hasText: s }), `The section "${s}" is missing`);
+  for (const [s] of table.raw())
+    await this.expectVisible(this.view.locator('h2', { hasText: s }), `The section "${s}" is missing`);
 });
 
 Then('the profile shows its attendance percentage', async function () {
@@ -120,7 +131,7 @@ Then('the profile shows the best time {string} in {string}', async function (tim
 // On mobile the filters fold under a "Filtros" button.
 async function openFilters(world) {
   const toggle = world.view.locator('.nad-filter-toggle');
-  if (await toggle.isVisible() && (await toggle.getAttribute('aria-expanded')) !== 'true') await toggle.click();
+  if ((await toggle.isVisible()) && (await toggle.getAttribute('aria-expanded')) !== 'true') await toggle.click();
 }
 When('I search swimmers by {string}', async function (text) {
   await this.view.locator('input[type=search]').fill(text);
@@ -137,7 +148,12 @@ When('I filter the swimmers by the group {string}', async function (g) {
 });
 
 Then('the list shows {int} swimmer(s)', async function (n) {
-  await this.eventually(async () => assert.equal((await this.view.locator('p.nad-count').first().innerText()).trim(), `${n} nadador${n === 1 ? '' : 'es'}`));
+  await this.eventually(async () =>
+    assert.equal(
+      (await this.view.locator('p.nad-count').first().innerText()).trim(),
+      `${n} nadador${n === 1 ? '' : 'es'}`,
+    ),
+  );
 });
 
 Then('all the listed swimmers are of the category {string}', async function (c) {
@@ -145,25 +161,35 @@ Then('all the listed swimmers are of the category {string}', async function (c) 
   await this.eventually(async () => {
     const t = await badges.allInnerTexts();
     assert.ok(t.length > 0, 'No rows');
-    assert.ok(t.every((x) => x.trim() === c), `Categories: ${t}`);
+    assert.ok(
+      t.every((x) => x.trim() === c),
+      `Categories: ${t}`,
+    );
   });
 });
 
 // ---- Category order ----
 Then('the category {string} is in position {int} in the category filter', async function (cat, pos) {
-  const options = (await this.view.locator('.nad-filters select').nth(0).locator('option').allInnerTexts()).map((x) => x.trim()).slice(1);
+  const options = (await this.view.locator('.nad-filters select').nth(0).locator('option').allInnerTexts())
+    .map((x) => x.trim())
+    .slice(1);
   assert.equal(options.indexOf(cat) + 1, pos, `Current order: ${options.join(', ')}`);
 });
 
 Then('the category filter offers, in this order:', async function (table) {
   const expected = table.raw().map((r) => r[0]);
-  const options = (await this.view.locator('.nad-filters select').nth(0).locator('option').allInnerTexts()).map((x) => x.trim()).slice(1);
+  const options = (await this.view.locator('.nad-filters select').nth(0).locator('option').allInnerTexts())
+    .map((x) => x.trim())
+    .slice(1);
   assert.deepEqual(options, expected);
 });
 
 Then('in the list the swimmers of {string} appear before those of {string}', async function (a, b) {
-  const cats = (await this.view.locator('tr.nad-row td:nth-child(2) .badge:first-child').allInnerTexts()).map((x) => x.trim());
-  const lastA = cats.lastIndexOf(a), firstB = cats.indexOf(b);
+  const cats = (await this.view.locator('tr.nad-row td:nth-child(2) .badge:first-child').allInnerTexts()).map((x) =>
+    x.trim(),
+  );
+  const lastA = cats.lastIndexOf(a),
+    firstB = cats.indexOf(b);
   assert.ok(lastA >= 0 && firstB >= 0, `The list does not contain ${a} and ${b}: ${[...new Set(cats)]}`);
   assert.ok(lastA < firstB, `${a} should come before ${b}: ${[...new Set(cats)]}`);
 });
@@ -186,7 +212,10 @@ Then('the swimmer {string} appears in the category {string}', async function (na
 });
 
 Then('the swimmer {string} has the badge {string}', async function (name, text) {
-  await this.expectVisible(swimmerRow(this, name).first().locator('.nad-manual', { hasText: text }), `${name} does not have the badge "${text}"`);
+  await this.expectVisible(
+    swimmerRow(this, name).first().locator('.nad-manual', { hasText: text }),
+    `${name} does not have the badge "${text}"`,
+  );
 });
 
 Then('the swimmer {string} does not have the badge {string}', async function (name, text) {
@@ -196,7 +225,11 @@ Then('the swimmer {string} does not have the badge {string}', async function (na
 
 async function quickRegister(world, name, surnames, born, manual) {
   await world.view.getByRole('button', { name: 'Nuevo nadador' }).click();
-  const rows = [['Nombre', name], ['Apellidos', surnames], ['Fecha de nacimiento', born]];
+  const rows = [
+    ['Nombre', name],
+    ['Apellidos', surnames],
+    ['Fecha de nacimiento', born],
+  ];
   if (manual) rows.push(['Categoría manual', 'Sí'], ['Categoría elegida', manual]);
   await fillSwimmer(world, { raw: () => rows });
   await saveForm(world);
@@ -206,10 +239,13 @@ Given('I have registered the swimmer {string} born on {string}', async function 
   const [n, ...a] = name.split(' ');
   await quickRegister(this, n, a.join(' '), born, null);
 });
-Given('I have registered the swimmer {string} born on {string} with the manual category {string}', async function (name, born, cat) {
-  const [n, ...a] = name.split(' ');
-  await quickRegister(this, n, a.join(' '), born, cat);
-});
+Given(
+  'I have registered the swimmer {string} born on {string} with the manual category {string}',
+  async function (name, born, cat) {
+    const [n, ...a] = name.split(' ');
+    await quickRegister(this, n, a.join(' '), born, cat);
+  },
+);
 
 When('I open the new swimmer form', async function () {
   await this.view.getByRole('button', { name: 'Nuevo nadador' }).click();
@@ -230,7 +266,13 @@ Then('the form shows the automatic category {string} for those born in {string}'
     const txt = await live(this).innerText();
     assert.ok(txt.includes(`${cat} · nacidos en ${range}`), `Current text: ${txt}`);
   });
-  assert.equal(await this.page.locator('.nad-modal [data-testid=categoria-auto] input, .nad-modal [data-testid=categoria-auto] select').count(), 0, 'the automatic category is read-only');
+  assert.equal(
+    await this.page
+      .locator('.nad-modal [data-testid=categoria-auto] input, .nad-modal [data-testid=categoria-auto] select')
+      .count(),
+    0,
+    'the automatic category is read-only',
+  );
 });
 
 // ---- Settings: categories panel ----
@@ -241,7 +283,7 @@ Then('I see the panel {string}', async function (title) {
 Then('the categories table shows:', async function (table) {
   const rows = this.view.locator('.catp table[aria-label] tbody tr');
   for (const [cat, range] of table.raw()) {
-    const f = rows.filter({ has: this.page.locator('th', { hasText: new RegExp(`^\s*${cat}\s*$`) }) }).first();
+    const f = rows.filter({ has: this.page.locator('th', { hasText: new RegExp(`^\\s*${cat}\\s*$`) }) }).first();
     await this.eventually(async () => assert.equal((await f.locator('td').first().innerText()).trim(), range, cat));
   }
 });
@@ -254,7 +296,13 @@ When('I choose the season {string} and press {string}', async function (season, 
 Then('the preview says that {string} goes from {string} to {string}', async function (name, from, to) {
   const m = this.page.locator('.modal');
   await this.expectVisible(m.locator('tbody tr', { hasText: allWords(name) }), `${name} is not in the preview`);
-  const cells = (await m.locator('tbody tr', { hasText: allWords(name) }).first().locator('td').allInnerTexts()).map((x) => x.replace('↑', '').trim());
+  const cells = (
+    await m
+      .locator('tbody tr', { hasText: allWords(name) })
+      .first()
+      .locator('td')
+      .allInnerTexts()
+  ).map((x) => x.replace('↑', '').trim());
   assert.deepEqual(cells.slice(1), [from, to]);
 });
 
@@ -269,7 +317,8 @@ When('I apply the season change', async function () {
 });
 
 // ---- Groups ----
-const groupCard = (world, name) => world.view.locator('.grp-card').filter({ has: world.page.locator('h2', { hasText: name }) });
+const groupCard = (world, name) =>
+  world.view.locator('.grp-card').filter({ has: world.page.locator('h2', { hasText: name }) });
 
 When('I create the group with the data:', async function (table) {
   await this.view.getByRole('button', { name: 'Nuevo grupo' }).click();
@@ -311,7 +360,11 @@ Then('the group {string} has {int} swimmer(s)', async function (name, n) {
 });
 
 Then('the group {string} includes {string}', async function (group, swimmer) {
-  await this.expectVisible(groupCard(this, group).first().locator('li', { hasText: allWords(swimmer) }));
+  await this.expectVisible(
+    groupCard(this, group)
+      .first()
+      .locator('li', { hasText: allWords(swimmer) }),
+  );
 });
 
 Then('the group {string} is in charge of {string}', async function (group, coach) {

@@ -10,12 +10,31 @@ export const HOJA_SESIONES = 'Entrenamientos';
 export const HOJA_LINEAS = 'EntrenoLineas';
 
 const dia10 = (f) => String(f ?? '').slice(0, 10);
-const COLUMNAS_LINEA = ['id', 'entrenamientoId', 'set', 'orden', 'tiempoMin', 'objetivo', 'bloque', 'series', 'distancia', 'salida', 'ejercicio', 'material', 'notas', 'componentes', 'estilo'];
+const COLUMNAS_LINEA = [
+  'id',
+  'entrenamientoId',
+  'set',
+  'orden',
+  'tiempoMin',
+  'objetivo',
+  'bloque',
+  'series',
+  'distancia',
+  'salida',
+  'ejercicio',
+  'material',
+  'notas',
+  'componentes',
+  'estilo',
+];
 
 // opciones: genId() -> unique string; club() -> {nombre, lema, logo, colorPrimario, colorSecundario}
 export function crearEntrenoService(repo, { genId, club = () => ({}) } = {}) {
   const lineasDe = (id) => D.renumerar(repo.list(HOJA_LINEAS).filter((l) => String(l.entrenamientoId) === String(id)));
-  const grupoNombre = (id) => { const g = id ? repo.get('Grupos', id) : null; return g ? g.nombre : ''; };
+  const grupoNombre = (id) => {
+    const g = id ? repo.get('Grupos', id) : null;
+    return g ? g.nombre : '';
+  };
   const tipos = () => repo.list('TiposCarga').map(normalizarTipo);
   const piscinaTexto = (s) => (s.piscina ? `${s.piscina} m` : '');
 
@@ -32,8 +51,12 @@ export function crearEntrenoService(repo, { genId, club = () => ({}) } = {}) {
     // Validates a draft (lineas) of session `id` against the recorded load and the session goals.
     validar(id, lineas, sesion = null) {
       const s = sesion || repo.get(HOJA_SESIONES, id) || {};
-      return D.validarSesion({ sesion: s, lineas, cargaMedia: D.cargaRegistrada(repo.list('Cargas'), id) })
-        .concat(G.validarRepartoSesion(lineas.filter((l) => !D.filaVacia(D.normalizarLinea(l))), { tipos: tipos() }));
+      return D.validarSesion({ sesion: s, lineas, cargaMedia: D.cargaRegistrada(repo.list('Cargas'), id) }).concat(
+        G.validarRepartoSesion(
+          lineas.filter((l) => !D.filaVacia(D.normalizarLinea(l))),
+          { tipos: tipos() },
+        ),
+      );
     },
 
     // Saves the plan of the session: new session fields + lines (replaces the previous ones).
@@ -42,7 +65,11 @@ export function crearEntrenoService(repo, { genId, club = () => ({}) } = {}) {
       const sesion = repo.get(HOJA_SESIONES, id);
       if (!sesion) return { ok: false, errores: [{ severidad: 'error', codigo: 'sesion-inexistente' }], avisos: [] };
       const limpias = D.renumerar(lineas.filter((l) => !D.filaVacia(D.normalizarLinea(l))));
-      const avisos = D.validarSesion({ sesion, lineas: limpias, cargaMedia: D.cargaRegistrada(repo.list('Cargas'), id) }).concat(G.validarRepartoSesion(limpias, { tipos: tipos() }));
+      const avisos = D.validarSesion({
+        sesion,
+        lineas: limpias,
+        cargaMedia: D.cargaRegistrada(repo.list('Cargas'), id),
+      }).concat(G.validarRepartoSesion(limpias, { tipos: tipos() }));
       if (D.hayErrores(avisos)) return { ok: false, errores: avisos.filter((a) => a.severidad === 'error'), avisos };
       repo.upsert(HOJA_SESIONES, { ...sesion, tipoSesion, materialDia, notasGenerales });
       const previas = repo.list(HOJA_LINEAS).filter((l) => String(l.entrenamientoId) === String(id));
@@ -52,7 +79,9 @@ export function crearEntrenoService(repo, { genId, club = () => ({}) } = {}) {
         conservar.add(fila.id);
         repo.upsert(HOJA_LINEAS, fila);
       });
-      previas.forEach((l) => { if (!conservar.has(l.id)) repo.remove(HOJA_LINEAS, l.id); });
+      previas.forEach((l) => {
+        if (!conservar.has(l.id)) repo.remove(HOJA_LINEAS, l.id);
+      });
       return { ok: true, avisos, lineas: lineasDe(id) };
     },
 
@@ -69,16 +98,38 @@ export function crearEntrenoService(repo, { genId, club = () => ({}) } = {}) {
       const activo = (n) => String(n.activo ?? 'true').toLowerCase() !== 'false';
       const nads = repo.list('Nadadores').filter(activo);
       const presentes = new Set(asist.filter((a) => a.estado === 'presente').map((a) => String(a.nadadorId)));
-      const destino = asist.length ? nads.filter((n) => presentes.has(String(n.id))) : nads.filter((n) => s.grupoId && String(n.grupoId) === String(s.grupoId));
-      const previas = new Set(repo.list('Cargas').filter((c) => String(c.entrenamientoId) === String(id)).map((c) => `${c.nadadorId}|${normalizarNombre(c.tipo)}`));
-      let creadas = 0, omitidas = 0;
-      destino.forEach((n) => items.forEach((c) => {
-        const clave = `${n.id}|${normalizarNombre(c.contenido)}`;
-        if (previas.has(clave)) { omitidas++; return; }
-        repo.upsert('Cargas', { entrenamientoId: String(id), nadadorId: String(n.id), fecha: dia10(s.fecha), tipo: c.contenido, metros: Math.round(c.metros), rpe: '', minutos: '', notas: '' });
-        previas.add(clave);
-        creadas++;
-      }));
+      const destino = asist.length
+        ? nads.filter((n) => presentes.has(String(n.id)))
+        : nads.filter((n) => s.grupoId && String(n.grupoId) === String(s.grupoId));
+      const previas = new Set(
+        repo
+          .list('Cargas')
+          .filter((c) => String(c.entrenamientoId) === String(id))
+          .map((c) => `${c.nadadorId}|${normalizarNombre(c.tipo)}`),
+      );
+      let creadas = 0,
+        omitidas = 0;
+      destino.forEach((n) =>
+        items.forEach((c) => {
+          const clave = `${n.id}|${normalizarNombre(c.contenido)}`;
+          if (previas.has(clave)) {
+            omitidas++;
+            return;
+          }
+          repo.upsert('Cargas', {
+            entrenamientoId: String(id),
+            nadadorId: String(n.id),
+            fecha: dia10(s.fecha),
+            tipo: c.contenido,
+            metros: Math.round(c.metros),
+            rpe: '',
+            minutos: '',
+            notas: '',
+          });
+          previas.add(clave);
+          creadas++;
+        }),
+      );
       return { ok: true, creadas, omitidas, nadadores: destino.length, contenidos: items.length, sinContenidoM };
     },
 
@@ -86,7 +137,13 @@ export function crearEntrenoService(repo, { genId, club = () => ({}) } = {}) {
     instantanea(id) {
       const sesion = repo.get(HOJA_SESIONES, id);
       if (!sesion) return null;
-      return { sesion: { ...sesion }, lineas: repo.list(HOJA_LINEAS).filter((l) => String(l.entrenamientoId) === String(id)).map((l) => ({ ...l })) };
+      return {
+        sesion: { ...sesion },
+        lineas: repo
+          .list(HOJA_LINEAS)
+          .filter((l) => String(l.entrenamientoId) === String(id))
+          .map((l) => ({ ...l })),
+      };
     },
     // Puts back what `instantanea` captured (same ids). -> the restored session
     restaurar(snap) {
@@ -98,7 +155,10 @@ export function crearEntrenoService(repo, { genId, club = () => ({}) } = {}) {
 
     // Deletes the session and its plan.
     eliminarSesion(id) {
-      repo.list(HOJA_LINEAS).filter((l) => String(l.entrenamientoId) === String(id)).forEach((l) => repo.remove(HOJA_LINEAS, l.id));
+      repo
+        .list(HOJA_LINEAS)
+        .filter((l) => String(l.entrenamientoId) === String(id))
+        .forEach((l) => repo.remove(HOJA_LINEAS, l.id));
       repo.remove(HOJA_SESIONES, id);
     },
 
@@ -127,14 +187,24 @@ export function crearEntrenoService(repo, { genId, club = () => ({}) } = {}) {
     },
     planDesdePlantilla(plantillaId) {
       const p = D.plantilla(plantillaId);
-      return p ? { tipoSesion: p.tipoSesion, materialDia: p.materialDia, notasGenerales: '', lineas: D.lineasDePlantilla(plantillaId) } : null;
+      return p
+        ? {
+            tipoSesion: p.tipoSesion,
+            materialDia: p.materialDia,
+            notasGenerales: '',
+            lineas: D.lineasDePlantilla(plantillaId),
+          }
+        : null;
     },
     plantillas: () => D.PLANTILLAS.map((p) => ({ id: p.id, tipoSesion: p.tipoSesion, resumen: D.resumen(p.lineas) })),
     // Sessions with a plan (for "copy from another session"), most recent first; excludes `salvo`.
     sesionesConPlan({ salvo = '', limite = 30 } = {}) {
       const con = new Set(repo.list(HOJA_LINEAS).map((l) => String(l.entrenamientoId)));
-      return repo.list(HOJA_SESIONES).filter((s) => con.has(String(s.id)) && String(s.id) !== String(salvo))
-        .sort((a, b) => dia10(b.fecha).localeCompare(dia10(a.fecha)) || String(b.hora).localeCompare(String(a.hora))).slice(0, limite);
+      return repo
+        .list(HOJA_SESIONES)
+        .filter((s) => con.has(String(s.id)) && String(s.id) !== String(salvo))
+        .sort((a, b) => dia10(b.fecha).localeCompare(dia10(a.fecha)) || String(b.hora).localeCompare(String(a.hora)))
+        .slice(0, limite);
     },
 
     // Values previously used in a field (autocomplete), most frequent first.
@@ -149,9 +219,13 @@ export function crearEntrenoService(repo, { genId, club = () => ({}) } = {}) {
     // Cards of all sessions of the week starting on `lunes` (YYYY-MM-DD) (optional: of one group).
     fichasSemana(lunes, { grupoId = '' } = {}) {
       const fin = sumarDias(lunes, 6);
-      return repo.list(HOJA_SESIONES)
+      return repo
+        .list(HOJA_SESIONES)
         .filter((s) => dia10(s.fecha) >= lunes && dia10(s.fecha) <= fin && (!grupoId || s.grupoId === grupoId))
-        .sort((a, b) => dia10(a.fecha).localeCompare(dia10(b.fecha)) || D.horaTexto(a.hora).localeCompare(D.horaTexto(b.hora)))
+        .sort(
+          (a, b) =>
+            dia10(a.fecha).localeCompare(dia10(b.fecha)) || D.horaTexto(a.hora).localeCompare(D.horaTexto(b.hora)),
+        )
         .map((s) => fichaDe(s));
     },
   };
@@ -159,13 +233,30 @@ export function crearEntrenoService(repo, { genId, club = () => ({}) } = {}) {
   function fichaDe(s, borrador = null) {
     const lineas = borrador ? D.renumerar(borrador.lineas || []) : lineasDe(s.id);
     const llenas = lineas.filter((l) => !D.filaVacia(l));
-    const sesion = { ...s, ...(borrador ? { tipoSesion: borrador.tipoSesion ?? s.tipoSesion, materialDia: borrador.materialDia ?? s.materialDia, notasGenerales: borrador.notasGenerales ?? s.notasGenerales } : {}) };
+    const sesion = {
+      ...s,
+      ...(borrador
+        ? {
+            tipoSesion: borrador.tipoSesion ?? s.tipoSesion,
+            materialDia: borrador.materialDia ?? s.materialDia,
+            notasGenerales: borrador.notasGenerales ?? s.notasGenerales,
+          }
+        : {}),
+    };
     return {
       club: club() || {},
       sesion: {
-        id: s.id, fecha: dia10(s.fecha), hora: D.horaTexto(s.hora), titulo: s.titulo || '', descripcion: s.descripcion || '',
-        grupo: grupoNombre(s.grupoId), piscina: piscinaTexto(s), duracionMin: s.duracionMin,
-        tipoSesion: sesion.tipoSesion || '', materialDia: sesion.materialDia || '', notasGenerales: sesion.notasGenerales || '',
+        id: s.id,
+        fecha: dia10(s.fecha),
+        hora: D.horaTexto(s.hora),
+        titulo: s.titulo || '',
+        descripcion: s.descripcion || '',
+        grupo: grupoNombre(s.grupoId),
+        piscina: piscinaTexto(s),
+        duracionMin: s.duracionMin,
+        tipoSesion: sesion.tipoSesion || '',
+        materialDia: sesion.materialDia || '',
+        notasGenerales: sesion.notasGenerales || '',
       },
       sets: D.agruparSets(llenas),
       totales: D.totales(llenas),
@@ -180,7 +271,8 @@ export function crearEntrenoService(repo, { genId, club = () => ({}) } = {}) {
 function filaLinea(l) {
   const n = D.serializarLinea(l);
   const o = {};
-  COLUMNAS_LINEA.forEach((c) => { o[c] = n[c] === undefined || Number.isNaN(n[c]) ? '' : n[c]; });
+  COLUMNAS_LINEA.forEach((c) => {
+    o[c] = n[c] === undefined || Number.isNaN(n[c]) ? '' : n[c];
+  });
   return o;
 }
-

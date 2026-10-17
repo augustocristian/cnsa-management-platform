@@ -17,16 +17,17 @@ export const CATEGORIAS_ORDEN = [...CATEGORIAS_POR_EDAD, MASTER];
 export const SEXOS = ['F', 'M'];
 export const EDAD_MINIMA_MASTER = 25;
 export const MES_INICIO_TEMPORADA = 9; // septiembre
-const ANIO_MIN = 1900, ANIO_MAX = 2200;
+const ANIO_MIN = 1900,
+  ANIO_MAX = 2200;
 
 // Ages (completed years in the season start year) per category: [min, max|null]. Absoluto is open-ended.
 export const EDADES_POR_DEFECTO = Object.freeze({
   'Pre-Benjamín': [8, 8],
-  'Benjamín': [9, 10],
-  'Alevín': [11, 12],
-  'Infantil': [13, 14],
-  'Junior': [15, 17],
-  'Absoluto': [18, null],
+  Benjamín: [9, 10],
+  Alevín: [11, 12],
+  Infantil: [13, 14],
+  Junior: [15, 17],
+  Absoluto: [18, null],
 });
 
 const esEntero = (v) => typeof v === 'number' && Number.isInteger(v);
@@ -44,11 +45,15 @@ export function parseFecha(f) {
   let y, m, d;
   if (f instanceof Date) {
     if (isNaN(f.getTime())) return null;
-    y = f.getFullYear(); m = f.getMonth() + 1; d = f.getDate();
+    y = f.getFullYear();
+    m = f.getMonth() + 1;
+    d = f.getDate();
   } else if (typeof f === 'string') {
     const r = /^(\d{4})-(\d{2})-(\d{2})(?:$|[T\s])/.exec(f.trim());
     if (!r) return null;
-    y = Number(r[1]); m = Number(r[2]); d = Number(r[3]);
+    y = Number(r[1]);
+    m = Number(r[2]);
+    d = Number(r[3]);
   } else return null;
   if (y < ANIO_MIN || y > ANIO_MAX || m < 1 || m > 12 || d < 1) return null;
   const dias = new Date(Date.UTC(y, m, 0)).getUTCDate();
@@ -90,7 +95,8 @@ export function limitesTemporada(anio) {
 
 // Completed years at the date `hoy`; '' if any date is not valid.
 export function edadCumplida(fechaNacimiento, hoy) {
-  const n = parseFecha(fechaNacimiento), h = parseFecha(hoy);
+  const n = parseFecha(fechaNacimiento),
+    h = parseFecha(hoy);
   if (!n || !h) return '';
   let e = h.y - n.y;
   if (h.m < n.m || (h.m === n.m && h.d < n.d)) e--;
@@ -99,7 +105,9 @@ export function edadCumplida(fechaNacimiento, hoy) {
 
 // ---------- Configuration (age table per sex and minimum master age) ----------
 export function sexoNormalizado(v) {
-  const s = String(v ?? '').trim().toLowerCase();
+  const s = String(v ?? '')
+    .trim()
+    .toLowerCase();
   if (['f', 'fem', 'femenino', 'mujer', 'female', 'woman', 'w'].includes(s)) return 'F';
   if (['m', 'masc', 'masculino', 'hombre', 'male', 'man', 'h'].includes(s)) return 'M';
   return '';
@@ -107,13 +115,20 @@ export function sexoNormalizado(v) {
 
 export function esVerdadero(v) {
   if (v === true) return true;
-  return ['true', 'si', 'sí', 'yes', 'y', 's', '1', 'x'].includes(String(v ?? '').trim().toLowerCase());
+  return ['true', 'si', 'sí', 'yes', 'y', 's', '1', 'x'].includes(
+    String(v ?? '')
+      .trim()
+      .toLowerCase(),
+  );
 }
 
 const copiaEdades = (e) => Object.fromEntries(CATEGORIAS_POR_EDAD.map((c) => [c, [...e[c]]]));
 
 export function configPorDefecto() {
-  return { edadMinimaMaster: EDAD_MINIMA_MASTER, edades: { F: copiaEdades(EDADES_POR_DEFECTO), M: copiaEdades(EDADES_POR_DEFECTO) } };
+  return {
+    edadMinimaMaster: EDAD_MINIMA_MASTER,
+    edades: { F: copiaEdades(EDADES_POR_DEFECTO), M: copiaEdades(EDADES_POR_DEFECTO) },
+  };
 }
 
 // Errors of one sex's age table: [{codigo, categoria}]. It must be contiguous, increasing and open at the top.
@@ -126,10 +141,23 @@ export function validarEdades(edades) {
     const ultima = i === CATEGORIAS_POR_EDAD.length - 1;
     const min = Array.isArray(par) ? aEntero(par[0]) : null;
     const max = Array.isArray(par) ? aEntero(par[1]) : null;
-    if (min === null || min < 0 || min > 120) { errores.push({ codigo: 'edad-invalida', categoria: c }); esperado = null; return; }
+    if (min === null || min < 0 || min > 120) {
+      errores.push({ codigo: 'edad-invalida', categoria: c });
+      esperado = null;
+      return;
+    }
     if (esperado !== null && min !== esperado) errores.push({ codigo: 'no-contigua', categoria: c });
-    if (ultima) { if (Array.isArray(par) && par[1] !== null && par[1] !== undefined && par[1] !== '') errores.push({ codigo: 'ultima-abierta', categoria: c }); esperado = null; return; }
-    if (max === null || max < min || max > 120) { errores.push({ codigo: 'rango-invalido', categoria: c }); esperado = null; return; }
+    if (ultima) {
+      if (Array.isArray(par) && par[1] !== null && par[1] !== undefined && par[1] !== '')
+        errores.push({ codigo: 'ultima-abierta', categoria: c });
+      esperado = null;
+      return;
+    }
+    if (max === null || max < min || max > 120) {
+      errores.push({ codigo: 'rango-invalido', categoria: c });
+      esperado = null;
+      return;
+    }
     esperado = max + 1;
   });
   return errores;
@@ -149,7 +177,13 @@ export function validarConfig(config) {
 // whatever is missing or invalid is replaced by the defaults (per sex, and the master age separately).
 export function normalizarConfig(raw) {
   let c = raw;
-  if (typeof c === 'string') { try { c = JSON.parse(c); } catch (e) { c = null; } }
+  if (typeof c === 'string') {
+    try {
+      c = JSON.parse(c);
+    } catch (e) {
+      c = null;
+    }
+  }
   const base = configPorDefecto();
   if (!c || typeof c !== 'object') return base;
   const em = aEntero(c.edadMinimaMaster);
@@ -157,7 +191,12 @@ export function normalizarConfig(raw) {
   SEXOS.forEach((s) => {
     const e = c.edades && c.edades[s];
     if (e && !validarEdades(e).length) {
-      base.edades[s] = Object.fromEntries(CATEGORIAS_POR_EDAD.map((cat, i) => [cat, [aEntero(e[cat][0]), i === CATEGORIAS_POR_EDAD.length - 1 ? null : aEntero(e[cat][1])]]));
+      base.edades[s] = Object.fromEntries(
+        CATEGORIAS_POR_EDAD.map((cat, i) => [
+          cat,
+          [aEntero(e[cat][0]), i === CATEGORIAS_POR_EDAD.length - 1 ? null : aEntero(e[cat][1])],
+        ]),
+      );
     }
   });
   return base;
@@ -179,7 +218,14 @@ export function tablaCategorias(temporada, { sexo = 'F', config } = {}) {
     const [edadMin, edadMax] = cfg.edades[s][categoria];
     return { categoria, edadMin, edadMax, desde: edadMax === null ? null : t - edadMax, hasta: t - edadMin };
   });
-  filas.push({ categoria: MASTER, edadMin: cfg.edadMinimaMaster, edadMax: null, desde: null, hasta: t - cfg.edadMinimaMaster, master: true });
+  filas.push({
+    categoria: MASTER,
+    edadMin: cfg.edadMinimaMaster,
+    edadMax: null,
+    desde: null,
+    hasta: t - cfg.edadMinimaMaster,
+    master: true,
+  });
   return filas;
 }
 
@@ -194,7 +240,15 @@ export function rangoAnios(categoria, temporada, opciones) {
 //  categoria '' = no category (origen 'sin-fecha' | 'sin-temporada' | 'sin-sexo'); origen: 'edad' | 'master'.
 //  avisos: 'por-debajo-edad' | 'master-edad-insuficiente'
 export function categoriaDe(nadador, temporada, config) {
-  const vacio = (origen, extra) => ({ categoria: '', origen, avisos: [], edad: '', anioNacimiento: null, sexo: '', ...extra });
+  const vacio = (origen, extra) => ({
+    categoria: '',
+    origen,
+    avisos: [],
+    edad: '',
+    anioNacimiento: null,
+    sexo: '',
+    ...extra,
+  });
   try {
     const n = nadador && typeof nadador === 'object' ? nadador : {};
     const t = parseTemporada(temporada);
@@ -230,10 +284,15 @@ export function categoriaDe(nadador, temporada, config) {
 export function categoriaVigente(nadador, temporada, config) {
   const calc = categoriaDe(nadador, temporada, config);
   const manual = String((nadador && nadador.categoriaManual) ?? '').trim();
-  return manual ? { ...calc, categoria: manual, manual: true, calculada: calc.categoria } : { ...calc, manual: false, calculada: calc.categoria };
+  return manual
+    ? { ...calc, categoria: manual, manual: true, calculada: calc.categoria }
+    : { ...calc, manual: false, calculada: calc.categoria };
 }
 
-export const ordenCategoria = (c) => { const i = CATEGORIAS_ORDEN.indexOf(c); return i < 0 ? CATEGORIAS_ORDEN.length : i; };
+export const ordenCategoria = (c) => {
+  const i = CATEGORIAS_ORDEN.indexOf(c);
+  return i < 0 ? CATEGORIAS_ORDEN.length : i;
+};
 
 const nombreDe = (n) => `${n.nombre || ''} ${n.apellidos || ''}`.trim();
 
@@ -248,7 +307,14 @@ export function cambiosDeTemporada(nadadores, de, a, config) {
     const antes = categoriaDe(n, de, config).categoria;
     const despues = categoriaDe(n, a, config).categoria;
     if (antes === despues || !despues) return;
-    out.push({ id: n.id, nombre: n.nombre || '', apellidos: n.apellidos || '', de: antes, a: despues, sube: ordenCategoria(despues) > ordenCategoria(antes) });
+    out.push({
+      id: n.id,
+      nombre: n.nombre || '',
+      apellidos: n.apellidos || '',
+      de: antes,
+      a: despues,
+      sube: ordenCategoria(despues) > ordenCategoria(antes),
+    });
   });
   return out.sort((x, y) => ordenCategoria(x.a) - ordenCategoria(y.a) || nombreDe(x).localeCompare(nombreDe(y), 'es'));
 }

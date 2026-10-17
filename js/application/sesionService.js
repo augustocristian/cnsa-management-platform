@@ -21,7 +21,17 @@ const PREFS_ESPERA_MS = 1500;
 const SILENCIO = { warn() {} }; // default log: the composition root injects the real console
 const SIN_ESPERA = () => new Promise(() => {}); // default wait: never elapses (the composition root injects a real timer)
 
-export function crearSesionService({ auth, drive, prefs, CLAVES, store, banderas, limpiarDatosLocales, espera = SIN_ESPERA, log = SILENCIO } = {}) {
+export function crearSesionService({
+  auth,
+  drive,
+  prefs,
+  CLAVES,
+  store,
+  banderas,
+  limpiarDatosLocales,
+  espera = SIN_ESPERA,
+  log = SILENCIO,
+} = {}) {
   const sinBanderas = { selectorForzado: () => false, limpiarSelectorForzado: () => {}, demoGuardada: () => false };
   const flags = banderas || sinBanderas;
 
@@ -60,15 +70,25 @@ export function crearSesionService({ auth, drive, prefs, CLAVES, store, banderas
       let clubes;
       try {
         clubes = await drive.listClubs();
-        prefs.set(CLAVES.clubes, clubes.map((c) => ({ id: c.id, name: c.name })));
+        prefs.set(
+          CLAVES.clubes,
+          clubes.map((c) => ({ id: c.id, name: c.name })),
+        );
       } catch (e) {
         const espejo = prefs.get(CLAVES.clubes, []);
-        if (e && (e.offline || e.code === 'sesion-caducada') && espejo.length) clubes = espejo.map((c) => ({ ...c, unverified: true }));
-        else { await conectando; return { accion: 'error', error: e }; }
+        if (e && (e.offline || e.code === 'sesion-caducada') && espejo.length)
+          clubes = espejo.map((c) => ({ ...c, unverified: true }));
+        else {
+          await conectando;
+          return { accion: 'error', error: e };
+        }
       }
       await conectando;
       if (!clubes.length) return { accion: 'crear' };
-      if (flags.selectorForzado()) { flags.limpiarSelectorForzado(); return { accion: 'elegir', clubes }; }
+      if (flags.selectorForzado()) {
+        flags.limpiarSelectorForzado();
+        return { accion: 'elegir', clubes };
+      }
       const hit = clubes.find((c) => c.id === prefs.get(CLAVES.ultimoClub));
       if (hit) return { accion: 'abrir', ref: hit };
       if (clubes.length === 1) return { accion: 'abrir', ref: clubes[0] };
@@ -83,7 +103,10 @@ export function crearSesionService({ auth, drive, prefs, CLAVES, store, banderas
       } catch (error) {
         return { ok: false, error };
       }
-      if (store?.clubRef) { Promise.resolve(store.sync()).catch(() => {}); Promise.resolve(prefs?.flush()).catch(() => {}); }
+      if (store?.clubRef) {
+        Promise.resolve(store.sync()).catch(() => {});
+        Promise.resolve(prefs?.flush()).catch(() => {});
+      }
       return { ok: true };
     },
 
@@ -96,13 +119,39 @@ export function crearSesionService({ auth, drive, prefs, CLAVES, store, banderas
           await Promise.race([Promise.resolve(store.sync()).catch(() => {}), espera(SALIDA_ESPERA_MS)]);
           if (store.pendiente && (await preguntarPendientes?.()) !== 'salir') return { salio: false };
         }
-      } catch (e) { log.warn('Session close', e); }
-      try { if (prefs) await Promise.race([prefs.flush(), espera(PREFS_ESPERA_MS)]); } catch (e) { /* offline: the cache is discarded anyway */ }
-      try { prefs?.desconectar(); } catch (e) { /* ignore */ }
-      try { auth.disconnect(); } catch (e) { /* ignore */ }
-      try { drive?.reset?.(); } catch (e) { /* ignore */ }
-      try { store?.cerrar(); } catch (e) { /* ignore */ }
-      try { await limpiarDatosLocales?.(); } catch (e) { /* ignore */ }
+      } catch (e) {
+        log.warn('Session close', e);
+      }
+      try {
+        if (prefs) await Promise.race([prefs.flush(), espera(PREFS_ESPERA_MS)]);
+      } catch (e) {
+        /* offline: the cache is discarded anyway */
+      }
+      try {
+        prefs?.desconectar();
+      } catch (e) {
+        /* ignore */
+      }
+      try {
+        auth.disconnect();
+      } catch (e) {
+        /* ignore */
+      }
+      try {
+        drive?.reset?.();
+      } catch (e) {
+        /* ignore */
+      }
+      try {
+        store?.cerrar();
+      } catch (e) {
+        /* ignore */
+      }
+      try {
+        await limpiarDatosLocales?.();
+      } catch (e) {
+        /* ignore */
+      }
       return { salio: true };
     },
   };

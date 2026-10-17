@@ -1,13 +1,46 @@
 /* Searchable combobox (js/presentation/views/combobox.js). Tokens only; works in light and dark. */
-.combo { position: relative; }
-.combo-list {
-  position: absolute; z-index: calc(var(--z-sheet) + 1); left: 0; right: 0; top: 100%; margin: 2px 0 0; padding: var(--sp-1);
-  list-style: none; max-height: 240px; overflow: auto; overscroll-behavior: contain;
-  background: var(--surface); color: var(--text); border: 1px solid var(--field-border); border-radius: var(--r-sm); box-shadow: var(--shadow-2);
+.combo {
+  position: relative;
 }
-.combo-list[hidden] { display: none; }
-.combo-opt, .combo-vacio { display: flex; align-items: center; min-height: var(--touch); padding: 0 var(--sp-3); border-radius: var(--r-sm); }
-.combo-opt { cursor: pointer; }
-.combo-opt:hover, .combo-opt.is-active { background: var(--c-primary-soft); }
-.combo-opt[aria-selected="true"] { font-weight: 700; }
-.combo-vacio { color: var(--muted); }
+.combo-list {
+  position: absolute;
+  z-index: calc(var(--z-sheet) + 1);
+  left: 0;
+  right: 0;
+  top: 100%;
+  margin: 2px 0 0;
+  padding: var(--sp-1);
+  list-style: none;
+  max-height: 240px;
+  overflow: auto;
+  overscroll-behavior: contain;
+  background: var(--surface);
+  color: var(--text);
+  border: 1px solid var(--field-border);
+  border-radius: var(--r-sm);
+  box-shadow: var(--shadow-2);
+}
+.combo-list[hidden] {
+  display: none;
+}
+.combo-opt,
+.combo-vacio {
+  display: flex;
+  align-items: center;
+  min-height: var(--touch);
+  padding: 0 var(--sp-3);
+  border-radius: var(--r-sm);
+}
+.combo-opt {
+  cursor: pointer;
+}
+.combo-opt:hover,
+.combo-opt.is-active {
+  background: var(--c-primary-soft);
+}
+.combo-opt[aria-selected='true'] {
+  font-weight: 700;
+}
+.combo-vacio {
+  color: var(--muted);
+}

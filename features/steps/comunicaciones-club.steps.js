@@ -3,7 +3,8 @@ import assert from 'node:assert/strict';
 import { textRegex } from '../support/world.js';
 
 // ---- Notices ----
-const notice = (world, title) => world.view.locator('.cm-item').filter({ has: world.page.locator('h3', { hasText: textRegex(title) }) });
+const notice = (world, title) =>
+  world.view.locator('.cm-item').filter({ has: world.page.locator('h3', { hasText: textRegex(title) }) });
 
 When('I save a notice with the data:', async function (table) {
   const form = this.view.locator('form.cm-form');
@@ -38,7 +39,11 @@ Then('I do not see the saved notice {string}', async function (title) {
 });
 
 Then('the notice {string} is addressed to {string}', async function (title, target) {
-  await this.expectVisible(notice(this, title).first().locator('.badge', { hasText: new RegExp(`^${target}$`) }));
+  await this.expectVisible(
+    notice(this, title)
+      .first()
+      .locator('.badge', { hasText: new RegExp(`^${target}$`) }),
+  );
 });
 
 When('I press the notices bell', async function () {
@@ -46,10 +51,14 @@ When('I press the notices bell', async function () {
 });
 
 // ---- Club: identity ----
-const identity = (w) => w.view.locator('.clb-card').filter({ has: w.page.getByRole('heading', { name: 'Identidad del club' }) });
+const identity = (w) =>
+  w.view.locator('.clb-card').filter({ has: w.page.getByRole('heading', { name: 'Identidad del club' }) });
 
 // 1x1 pixel PNG
-const PNG = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==', 'base64');
+const PNG = Buffer.from(
+  'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==',
+  'base64',
+);
 
 When('I customise the club identity with:', async function (table) {
   const card = identity(this);
@@ -60,8 +69,12 @@ When('I customise the club identity with:', async function (table) {
 });
 
 When('I upload the club logo', async function () {
-  await identity(this).locator('input[type=file]').setInputFiles({ name: 'logo.png', mimeType: 'image/png', buffer: PNG });
-  await this.eventually(async () => assert.match(await identity(this).locator('img.clb-logo').getAttribute('src'), /^data:image\//));
+  await identity(this)
+    .locator('input[type=file]')
+    .setInputFiles({ name: 'logo.png', mimeType: 'image/png', buffer: PNG });
+  await this.eventually(async () =>
+    assert.match(await identity(this).locator('img.clb-logo').getAttribute('src'), /^data:image\//),
+  );
 });
 
 When('I remove the club logo', async function () {
@@ -86,19 +99,33 @@ Then('the footer mentions {string}', async function (n) {
 });
 
 Then('the primary colour of the app is {string}', async function (c) {
-  await this.eventually(async () => assert.equal(await this.page.evaluate(() => document.documentElement.style.getPropertyValue('--c-primary').trim()), c));
+  await this.eventually(async () =>
+    assert.equal(
+      await this.page.evaluate(() => document.documentElement.style.getPropertyValue('--c-primary').trim()),
+      c,
+    ),
+  );
 });
 
 Then('the secondary colour of the app is {string}', async function (c) {
-  await this.eventually(async () => assert.equal(await this.page.evaluate(() => document.documentElement.style.getPropertyValue('--c-secondary').trim()), c));
+  await this.eventually(async () =>
+    assert.equal(
+      await this.page.evaluate(() => document.documentElement.style.getPropertyValue('--c-secondary').trim()),
+      c,
+    ),
+  );
 });
 
 Then('the header shows the uploaded logo', async function () {
-  await this.eventually(async () => assert.match(await this.page.locator('.brand img.logo').getAttribute('src'), /^data:image\//));
+  await this.eventually(async () =>
+    assert.match(await this.page.locator('.brand img.logo').getAttribute('src'), /^data:image\//),
+  );
 });
 
 Then('the header shows the default logo', async function () {
-  await this.eventually(async () => assert.match(await this.page.locator('.brand img.logo').getAttribute('src'), /icon\.svg$/));
+  await this.eventually(async () =>
+    assert.match(await this.page.locator('.brand img.logo').getAttribute('src'), /icon\.svg$/),
+  );
 });
 
 // ---- Club: data in Drive ----
@@ -126,7 +153,9 @@ Given('I have saved the notice {string} for {string}', async function (title, ta
 Then('the logo in the settings is visible', async function () {
   const img = identity(this).locator('img.clb-logo');
   await this.expectVisible(img);
-  await this.eventually(async () => assert.ok(await img.evaluate((el) => el.complete && el.naturalWidth > 0), 'The logo image is broken'));
+  await this.eventually(async () =>
+    assert.ok(await img.evaluate((el) => el.complete && el.naturalWidth > 0), 'The logo image is broken'),
+  );
 });
 
 Then('the settings offer a button to choose the logo in Spanish', async function () {

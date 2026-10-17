@@ -20,8 +20,16 @@ import { pintarBanners } from '../presentation/shell/banners.js';
 import { renderShell, refrescarShell, mostrarVista, shellAbierto } from '../presentation/shell/shell.js';
 import { crearConexion } from '../presentation/shell/conexion.js';
 import {
-  centerCard, tutorialScreen, configScreen, inicioScreen, errorScreen, flujoCrearClub, selectorClub,
-  dialogoSalidaConPendientes, pantallaErrorShell, pantallaProblema,
+  centerCard,
+  tutorialScreen,
+  configScreen,
+  inicioScreen,
+  errorScreen,
+  flujoCrearClub,
+  selectorClub,
+  dialogoSalidaConPendientes,
+  pantallaErrorShell,
+  pantallaProblema,
 } from '../presentation/shell/screens.js';
 
 const TUTORIAL = 'tutorial';
@@ -30,12 +38,36 @@ const DEMO_GUARDADA = 'cnl:mode'; // localStorage, device only: 'demo' = the dem
 const AVISOS_VISTO = 'cnl:avisos-visto'; // localStorage, device only: last day the notices view was opened
 
 const ls = {
-  get(k) { try { return localStorage.getItem(k); } catch (e) { return null; } },
-  set(k, v) { try { v == null ? localStorage.removeItem(k) : localStorage.setItem(k, v); } catch (e) { /* ignore */ } },
+  get(k) {
+    try {
+      return localStorage.getItem(k);
+    } catch (e) {
+      return null;
+    }
+  },
+  set(k, v) {
+    try {
+      v == null ? localStorage.removeItem(k) : localStorage.setItem(k, v);
+    } catch (e) {
+      /* ignore */
+    }
+  },
 };
 const ss = {
-  get(k) { try { return sessionStorage.getItem(k); } catch (e) { return null; } },
-  del(k) { try { sessionStorage.removeItem(k); } catch (e) { /* ignore */ } },
+  get(k) {
+    try {
+      return sessionStorage.getItem(k);
+    } catch (e) {
+      return null;
+    }
+  },
+  del(k) {
+    try {
+      sessionStorage.removeItem(k);
+    } catch (e) {
+      /* ignore */
+    }
+  },
 };
 
 // Browser-side implementations of the ports the application services expect.
@@ -52,15 +84,27 @@ const modoPruebas = () => pruebasPermitidas(window);
 // Runtime state shared by the shell modules (explicitly passed around; nothing global but this object).
 export function crearRuntime() {
   const rt = {
-    ui, banderas,
+    ui,
+    banderas,
     ahora: () => new Date(),
-    store: null, auth: null, drive: null, config: null, prefs: null, CLAVES: null, fake: null,
-    sesion: null, avisos: null, conexion: null, modo: null,
-    redraw: null,            // repaints the pre-shell screen when the language changes
-    iniciado: false,         // listeners registered
+    store: null,
+    auth: null,
+    drive: null,
+    config: null,
+    prefs: null,
+    CLAVES: null,
+    fake: null,
+    sesion: null,
+    avisos: null,
+    conexion: null,
+    modo: null,
+    redraw: null, // repaints the pre-shell screen when the language changes
+    iniciado: false, // listeners registered
     offline: estaOffline(),
     actualizarVersion: null, // set when a new service worker is waiting
-    rutaMostrada: '', menu: null, ctxVista: {},
+    rutaMostrada: '',
+    menu: null,
+    ctxVista: {},
   };
   rt.conexion = crearConexion(rt);
   rt.start = () => start(rt);
@@ -69,7 +113,10 @@ export function crearRuntime() {
   rt.ctxVista.desconectar = () => rt.logout();
   rt.reconectar = () => reconectar(rt);
   rt.configurar = () => configScreen(rt, { demoActiva: true }); // "Set up Google Drive" from the demo banner
-  rt.sincronizar = async () => { await rt.store.sync(); await rt.prefs.flush(); };
+  rt.sincronizar = async () => {
+    await rt.store.sync();
+    await rt.prefs.flush();
+  };
   return rt;
 }
 
@@ -88,8 +135,18 @@ async function cargarNucleo(rt) {
   }
   rt.modo = (await import('./modo.js')).modo; // enter / exit the demo, connect Drive from the demo
   rt.sesion = crearSesionService({
-    auth: rt.auth, drive: rt.drive, prefs: rt.prefs, CLAVES: rt.CLAVES, store: rt.store,
-    banderas, limpiarDatosLocales, espera: (ms) => new Promise((r) => { setTimeout(r, ms); }), log: console,
+    auth: rt.auth,
+    drive: rt.drive,
+    prefs: rt.prefs,
+    CLAVES: rt.CLAVES,
+    store: rt.store,
+    banderas,
+    limpiarDatosLocales,
+    espera: (ms) =>
+      new Promise((r) => {
+        setTimeout(r, ms);
+      }),
+    log: console,
   });
   rt.avisos = crearAvisosService({
     listar: () => rt.store.list('Comunicaciones'),
@@ -103,7 +160,9 @@ async function cargarNucleo(rt) {
 // Language <-> user preferences (Drive). Before connecting, a change stays in the cache and is uploaded on connect.
 function enlazarIdioma(rt) {
   const { prefs, CLAVES } = rt;
-  onLangChange((c) => { prefs.set(CLAVES.idioma, c); });
+  onLangChange((c) => {
+    prefs.set(CLAVES.idioma, c);
+  });
   prefs.on((e) => {
     if (e.tipo === 'cambio' && e.origen === 'remoto' && e.claves.includes(CLAVES.idioma)) {
       const l = prefs.get(CLAVES.idioma);
@@ -122,7 +181,11 @@ async function desconectar(rt) {
 
 async function reconectar(rt) {
   const r = await rt.sesion.reconectar();
-  if (r.ok) { toast(t('dat.reconectado')); refrescarShell(rt); return true; }
+  if (r.ok) {
+    toast(t('dat.reconectado'));
+    refrescarShell(rt);
+    return true;
+  }
   toast.error(t('dat.reconectar-error', { msg: (r.error && r.error.message) || '' }));
   return false;
 }
@@ -135,7 +198,8 @@ async function start(rt) {
   if (accion === 'tutorial') return tutorialScreen(rt);
   if (accion === 'config') return configScreen(rt);
   if (accion === 'inicio') return inicioScreen(rt);
-  if (accion === 'demo-cerrada') { // a Client ID was configured while the demo was left open: close it and say so
+  if (accion === 'demo-cerrada') {
+    // a Client ID was configured while the demo was left open: close it and say so
     await rt.modo.exitDemo();
     return inicioScreen(rt, { demoCerrada: true });
   }
@@ -149,7 +213,10 @@ async function resolverClub(rt) {
   rt.redraw = null;
   centerCard(rt, h('p', { class: 'muted', role: 'status' }, t('shell.club.cargando')));
   const r = await rt.sesion.resolverClub();
-  if (r.accion === 'error') { errorScreen(rt, 'shell.club.error-lista', r.error); return null; }
+  if (r.accion === 'error') {
+    errorScreen(rt, 'shell.club.error-lista', r.error);
+    return null;
+  }
   if (r.accion === 'crear') return flujoCrearClub(rt); // first time: wizard with an empty club
   if (r.accion === 'elegir') return selectorClub(rt, r.clubes);
   return { ref: r.ref };
@@ -182,14 +249,24 @@ async function abrirClub(rt, { ref, club }) {
   if (store.problema) await pantallaProblema(rt); // damaged / emptied file: a decision is needed before continuing
   if (club && !store.soloLectura) store.setClub(club); // club just created with the wizard: chosen identity
   prefs.set(CLAVES.ultimoClub, ref.id);
-  if (club) prefs.set(CLAVES.clubes, [...prefs.get(CLAVES.clubes, []).filter((c) => c.id !== ref.id), { id: ref.id, name: ref.name }]); // mirror to open it offline
+  if (club)
+    prefs.set(CLAVES.clubes, [
+      ...prefs.get(CLAVES.clubes, []).filter((c) => c.id !== ref.id),
+      { id: ref.id, name: ref.name },
+    ]); // mirror to open it offline
   rt.fake?.despuesDeAbrirClub?.(store);
   return montarShell(rt);
 }
 
 async function montarShell(rt) {
   const { store, auth } = rt;
-  try { (await import('../application/categoriasService.js')).crearCategoriasService(store, { ahora: rt.ahora }).alAbrirClub(); } catch (e) { console.warn('Categories', e); } // season changed: recompute categories
+  try {
+    (await import('../application/categoriasService.js'))
+      .crearCategoriasService(store, { ahora: rt.ahora })
+      .alAbrirClub();
+  } catch (e) {
+    console.warn('Categories', e);
+  } // season changed: recompute categories
   try {
     renderShell(rt);
     if (!rt.iniciado) {
@@ -197,7 +274,10 @@ async function montarShell(rt) {
       router.onChange((r) => mostrarVista(rt, r));
       store.on?.((evt) => {
         if (evt && evt.type === 'cache-error') toast.error(t('dat.cache-llena'), 9000);
-        if (evt && evt.type === 'problema') { pantallaProblema(rt).then(() => renderShell(rt)); return; }
+        if (evt && evt.type === 'problema') {
+          pantallaProblema(rt).then(() => renderShell(rt));
+          return;
+        }
         refrescarShell(rt);
       });
       auth.onExpired?.(() => refrescarShell(rt));
@@ -226,12 +306,25 @@ export async function iniciar() {
   enlazarSaltar();
   configurarInstalacion();
   ponerTitulo('', '');
-  registrarServiceWorker({ onActualizacion: (activar) => { rt.actualizarVersion = activar; if (shellAbierto()) pintarBanners(rt); } });
-  vigilarConexion((off) => { rt.offline = off; if (shellAbierto()) { pintarBanners(rt); rt.menu?.actualizar(); } });
+  registrarServiceWorker({
+    onActualizacion: (activar) => {
+      rt.actualizarVersion = activar;
+      if (shellAbierto()) pintarBanners(rt);
+    },
+  });
+  vigilarConexion((off) => {
+    rt.offline = off;
+    if (shellAbierto()) {
+      pintarBanners(rt);
+      rt.menu?.actualizar();
+    }
+  });
   onLangChange(() => alCambiarIdioma(rt));
   window.addEventListener('hashchange', () => {
     if (shellAbierto() || !rt.sesion) return;
-    if (quiereTutorial()) { if (!rt.auth.isConnected()) tutorialScreen(rt); } else if (rt.redraw?.esTutorial) start(rt);
+    if (quiereTutorial()) {
+      if (!rt.auth.isConnected()) tutorialScreen(rt);
+    } else if (rt.redraw?.esTutorial) start(rt);
   });
   try {
     await cargarNucleo(rt);
@@ -241,7 +334,16 @@ export async function iniciar() {
     await rt.auth.init();
   } catch (e) {
     console.error(e);
-    document.getElementById('app').replaceChildren(h('div', { class: 'card auth-card' }, h('h2', null, t('shell.error-arranque')), h('p', { class: 'form-error' }, e.message || String(e))));
+    document
+      .getElementById('app')
+      .replaceChildren(
+        h(
+          'div',
+          { class: 'card auth-card' },
+          h('h2', null, t('shell.error-arranque')),
+          h('p', { class: 'form-error' }, e.message || String(e)),
+        ),
+      );
     return;
   }
   await start(rt);

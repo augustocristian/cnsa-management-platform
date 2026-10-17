@@ -31,21 +31,32 @@ function montar() {
 
 test('sheet: ARIA roles, title, body and initial focus on the first field', () => {
   const { abrir } = montar();
-  const s = ui.sheet({ title: 'Nuevo nadador', body: ui.h('div', null, ui.h('input', { id: 'nombre' })), actions: [{ label: 'Cancelar' }, { label: 'Guardar', primary: true }] });
+  const s = ui.sheet({
+    title: 'Nuevo nadador',
+    body: ui.h('div', null, ui.h('input', { id: 'nombre' })),
+    actions: [{ label: 'Cancelar' }, { label: 'Guardar', primary: true }],
+  });
   const d = s.dialog;
   assert.equal(d.getAttribute('role'), 'dialog');
   assert.equal(d.getAttribute('aria-modal'), 'true');
   assert.equal(document.getElementById(d.getAttribute('aria-labelledby')).textContent, 'Nuevo nadador');
   assert.ok(document.getElementById(d.getAttribute('aria-describedby')).contains(d.querySelector('#nombre')));
   assert.equal(document.activeElement.id, 'nombre');
-  assert.ok(s.el.classList.contains('modal-overlay') && d.classList.contains('modal'), 'compatibility .modal-overlay / .modal');
+  assert.ok(
+    s.el.classList.contains('modal-overlay') && d.classList.contains('modal'),
+    'compatibility .modal-overlay / .modal',
+  );
   s.close();
   assert.equal(document.activeElement, abrir, 'focus returns to the button that opened the sheet');
 });
 
 test('sheet: focus trapped (Tab and Shift+Tab cycle), #app inert and focus restored', () => {
   const { app, abrir } = montar();
-  const s = ui.sheet({ title: 'T', body: ui.h('input', { id: 'a' }), actions: [{ label: 'Cancelar' }, { label: 'Guardar', primary: true }] });
+  const s = ui.sheet({
+    title: 'T',
+    body: ui.h('input', { id: 'a' }),
+    actions: [{ label: 'Cancelar' }, { label: 'Guardar', primary: true }],
+  });
   assert.ok(app.hasAttribute('inert'), '#app stays inert while the sheet is open');
   const f = [...s.dialog.querySelectorAll('button,input')];
   const primero = f[0];
@@ -82,7 +93,13 @@ test('sheet: Escape closes; body scroll is locked and restored', () => {
 test('sheet: restores scroll and focus even if onClose throws', () => {
   const { abrir } = montar();
   const err = mock.method(console, 'error', () => {});
-  const s = ui.sheet({ title: 'T', body: 'x', onClose: () => { throw new Error('onClose failure'); } });
+  const s = ui.sheet({
+    title: 'T',
+    body: 'x',
+    onClose: () => {
+      throw new Error('onClose failure');
+    },
+  });
   assert.doesNotThrow(() => s.close());
   assert.equal(document.body.style.overflow, '');
   assert.equal(document.getElementById('app').hasAttribute('inert'), false);
@@ -94,18 +111,30 @@ test('sheet: restores scroll and focus even if onClose throws', () => {
 test('sheet: an action returning false does not close; one that throws shows a toast and keeps the sheet open', async () => {
   montar();
   const err = mock.method(console, 'error', () => {});
-  const s = ui.sheet({ title: 'T', body: 'x', actions: [
-    { label: 'No cerrar', onClick: () => false },
-    { label: 'Rompe', onClick: () => { throw new Error('boom'); } },
-    { label: 'Cerrar', onClick: () => {} },
-  ] });
+  const s = ui.sheet({
+    title: 'T',
+    body: 'x',
+    actions: [
+      { label: 'No cerrar', onClick: () => false },
+      {
+        label: 'Rompe',
+        onClick: () => {
+          throw new Error('boom');
+        },
+      },
+      { label: 'Cerrar', onClick: () => {} },
+    ],
+  });
   const [a, b, c] = s.dialog.querySelectorAll('.sheet-actions button');
-  a.click(); await new Promise((r) => setTimeout(r, 0));
+  a.click();
+  await new Promise((r) => setTimeout(r, 0));
   assert.ok(document.querySelector('.sheet-overlay'));
-  b.click(); await new Promise((r) => setTimeout(r, 0));
+  b.click();
+  await new Promise((r) => setTimeout(r, 0));
   assert.ok(document.querySelector('.sheet-overlay'), 'still open');
   assert.equal(document.querySelector('#toasts .toast--error').getAttribute('role'), 'alert');
-  c.click(); await new Promise((r) => setTimeout(r, 0));
+  c.click();
+  await new Promise((r) => setTimeout(r, 0));
   assert.equal(document.querySelector('.sheet-overlay'), null);
   err.mock.restore();
 });
@@ -131,7 +160,10 @@ test('confirmDialog: initial focus on Cancel and destructive action labelled «E
   montar();
   const p = ui.confirmDialog('¿Borrar a Lucía?', { danger: true });
   const botones = [...document.querySelectorAll('.sheet-actions button')];
-  assert.deepEqual(botones.map((b) => b.textContent), ['Cancelar', 'Eliminar']);
+  assert.deepEqual(
+    botones.map((b) => b.textContent),
+    ['Cancelar', 'Eliminar'],
+  );
   assert.equal(document.activeElement, botones[0], 'initial focus is on Cancel');
   assert.ok(botones[1].classList.contains('btn--danger'));
   botones[1].click();
@@ -184,7 +216,9 @@ test('toast: role=status (error: role=alert), 5 s, paused by pointer/focus', () 
     assert.ok(e.el.isConnected, 'errors last 6 s');
     mock.timers.tick(200);
     assert.equal(e.el.isConnected, false);
-  } finally { mock.timers.reset(); }
+  } finally {
+    mock.timers.reset();
+  }
 });
 
 test('toast.undo: the Undo button runs the action once and closes the toast; it expires after 6 s', async () => {
@@ -192,7 +226,9 @@ test('toast.undo: the Undo button runs the action once and closes the toast; it 
   mock.timers.enable({ apis: ['setTimeout', 'Date'] });
   try {
     let deshechos = 0;
-    const t = ui.toast.undo('Nadador eliminado', () => { deshechos++; });
+    const t = ui.toast.undo('Nadador eliminado', () => {
+      deshechos++;
+    });
     const btn = t.el.querySelector('.toast-action');
     assert.equal(btn.textContent, 'Deshacer');
     assert.equal(t.el.getAttribute('role'), 'status');
@@ -202,13 +238,21 @@ test('toast.undo: the Undo button runs the action once and closes the toast; it 
     assert.equal(deshechos, 1);
     assert.equal(t.el.isConnected, false);
 
-    const t2 = ui.toast.undo('Otro', () => { deshechos++; }, { timeout: 6000 });
+    const t2 = ui.toast.undo(
+      'Otro',
+      () => {
+        deshechos++;
+      },
+      { timeout: 6000 },
+    );
     mock.timers.tick(5900);
     assert.ok(t2.el.isConnected);
     mock.timers.tick(200);
     assert.equal(t2.el.isConnected, false);
     assert.equal(deshechos, 1, 'if it expires nothing is undone');
-  } finally { mock.timers.reset(); }
+  } finally {
+    mock.timers.reset();
+  }
 });
 
 test('fieldError: red border (aria-invalid), linked message below, focus and cleanup on edit', () => {
@@ -224,7 +268,10 @@ test('fieldError: red border (aria-invalid), linked message below, focus and cle
   assert.equal(err.textContent, 'Falta el nombre');
   assert.ok(err.querySelector('svg'), 'the error carries an icon (not colour alone)');
   const ids = input.getAttribute('aria-describedby').split(' ');
-  assert.ok(ids.includes(err.id) && ids.some((i) => document.getElementById(i)?.classList.contains('hint')), 'linked to hint and error');
+  assert.ok(
+    ids.includes(err.id) && ids.some((i) => document.getElementById(i)?.classList.contains('hint')),
+    'linked to hint and error',
+  );
 
   ui.fieldError(input, 'Otro mensaje');
   assert.equal(campo.querySelectorAll('.field-error').length, 1, 'does not duplicate the message');
@@ -256,11 +303,14 @@ test('field: the label wraps the control, hint linked, asterisk hidden from scre
 
 test('formFields.validate: inline errors, focus on the first invalid field and no alert()', () => {
   montar();
-  const f = ui.formFields([
-    { name: 'nombre', label: 'Nombre', required: true },
-    { name: 'email', label: 'Correo', type: 'email' },
-    { name: 'ok', label: 'Activo', type: 'checkbox' },
-  ], { email: 'no-es-correo' });
+  const f = ui.formFields(
+    [
+      { name: 'nombre', label: 'Nombre', required: true },
+      { name: 'email', label: 'Correo', type: 'email' },
+      { name: 'ok', label: 'Activo', type: 'checkbox' },
+    ],
+    { email: 'no-es-correo' },
+  );
   document.getElementById('app').appendChild(f.el);
   assert.equal(f.validate(), false);
   const [nombre, email] = [f.inputs.nombre, f.inputs.email];
@@ -269,7 +319,8 @@ test('formFields.validate: inline errors, focus on the first invalid field and n
   assert.equal(document.activeElement, nombre, 'focus on the first invalid field');
   assert.equal(nombre.closest('.field').querySelector('.field-error').textContent, 'Este campo es obligatorio');
   assert.equal(f.el.querySelectorAll('.field-error').length, 2);
-  nombre.value = 'Lucía'; email.value = 'a@b.es';
+  nombre.value = 'Lucía';
+  email.value = 'a@b.es';
   assert.equal(f.validate(), true);
   assert.equal(f.el.querySelectorAll('.field-error').length, 0);
   assert.ok(f.el.querySelector('label.field.check input[type=checkbox]'), 'checkbox inline with its label');
@@ -277,7 +328,12 @@ test('formFields.validate: inline errors, focus on the first invalid field and n
 
 test('empty: icon, title, text and CTA', () => {
   let n = 0;
-  const e = ui.empty({ icon: 'nadadores', title: 'Aún no hay nadadores', text: 'Añade el primero', action: { label: 'Nuevo nadador', onClick: () => n++ } });
+  const e = ui.empty({
+    icon: 'nadadores',
+    title: 'Aún no hay nadadores',
+    text: 'Añade el primero',
+    action: { label: 'Nuevo nadador', onClick: () => n++ },
+  });
   assert.ok(e.classList.contains('empty'));
   assert.ok(e.querySelector('.empty-icon svg'));
   assert.equal(e.querySelector('.empty-title').textContent, 'Aún no hay nadadores');
@@ -309,7 +365,8 @@ test('parseTime with numeric mask: 10245 -> 1:02.45', () => {
   assert.equal(ui.parseTime('1:02.34'), 62340);
   assert.equal(ui.parseTime('62.34'), 62340);
   assert.equal(ui.parseTime('02:05,5'), 125500);
-  for (const mala of ['', 'abc', '1:2:3', '-5', null, undefined, '1234567']) assert.ok(Number.isNaN(ui.parseTime(mala)), String(mala));
+  for (const mala of ['', 'abc', '1:2:3', '-5', null, undefined, '1234567'])
+    assert.ok(Number.isNaN(ui.parseTime(mala)), String(mala));
 });
 
 test('maskTime and timeInput format while typing', () => {
@@ -331,8 +388,18 @@ test('maskTime and timeInput format while typing', () => {
 test('modal/confirmDialog remain compatible with the previous signatures', () => {
   montar();
   let cerrado = false;
-  const m = ui.modal({ title: 'Hola', body: 'cuerpo', onClose: () => { cerrado = true; }, actions: [{ label: 'Aceptar', primary: true, onClick: () => {} }] });
+  const m = ui.modal({
+    title: 'Hola',
+    body: 'cuerpo',
+    onClose: () => {
+      cerrado = true;
+    },
+    actions: [{ label: 'Aceptar', primary: true, onClick: () => {} }],
+  });
   assert.equal(m.el.querySelector('.modal-actions .btn-primary').textContent, 'Aceptar');
   m.el.querySelector('.modal-actions .btn-primary').click();
-  return new Promise((r) => setTimeout(r, 0)).then(() => { assert.equal(cerrado, true); assert.equal(document.querySelector('.modal-overlay'), null); });
+  return new Promise((r) => setTimeout(r, 0)).then(() => {
+    assert.equal(cerrado, true);
+    assert.equal(document.querySelector('.modal-overlay'), null);
+  });
 });

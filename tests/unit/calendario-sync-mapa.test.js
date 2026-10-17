@@ -7,30 +7,77 @@ import { setupEnv, importApp } from '../helpers/env.js';
 setupEnv();
 const { crearCalendarioService } = await importApp('js/application/calendarioService.js');
 
-const fila = (id, fecha) => ({ id, fecha, hora: '17:30', duracionMin: 60, grupoId: 'g1', titulo: 'S' + id, descripcion: '', estado: 'planificado', piscina: '25', volumenMin: '', volumenMax: '', enfoque: '' });
+const fila = (id, fecha) => ({
+  id,
+  fecha,
+  hora: '17:30',
+  duracionMin: 60,
+  grupoId: 'g1',
+  titulo: 'S' + id,
+  descripcion: '',
+  estado: 'planificado',
+  piscina: '25',
+  volumenMin: '',
+  volumenMax: '',
+  enfoque: '',
+});
 
 function montar(filas, clienteExtra = {}) {
-  const db = { Entrenamientos: filas, Grupos: [{ id: 'g1', nombre: 'Promoción', entrenador: '' }], Nadadores: [], Piscinas: [], AsignacionesCalle: [], EventosTemporada: [] };
-  const store = { list: (h) => (db[h] || []).slice(), club: { nombre: 'Club Test' }, clubRef: { id: 'club-1', name: 'Club Test' }, setClub() {} };
+  const db = {
+    Entrenamientos: filas,
+    Grupos: [{ id: 'g1', nombre: 'Promoción', entrenador: '' }],
+    Nadadores: [],
+    Piscinas: [],
+    AsignacionesCalle: [],
+    EventosTemporada: [],
+  };
+  const store = {
+    list: (h) => (db[h] || []).slice(),
+    club: { nombre: 'Club Test' },
+    clubRef: { id: 'club-1', name: 'Club Test' },
+    setClub() {},
+  };
   const mem = new Map();
   const escrituras = [];
-  const storage = { getItem: (k) => (mem.has(k) ? mem.get(k) : null), setItem: (k, v) => { mem.set(k, String(v)); escrituras.push(JSON.parse(v)); } };
+  const storage = {
+    getItem: (k) => (mem.has(k) ? mem.get(k) : null),
+    setItem: (k, v) => {
+      mem.set(k, String(v));
+      escrituras.push(JSON.parse(v));
+    },
+  };
   const cuerpos = [];
   const cliente = {
-    insertar: async (cuerpo) => { cuerpos.push(cuerpo); return { id: cuerpo.id }; },
+    insertar: async (cuerpo) => {
+      cuerpos.push(cuerpo);
+      return { id: cuerpo.id };
+    },
     actualizar: async () => {},
     borrar: async () => {},
     listarGestionados: async () => [],
     ...clienteExtra,
   };
-  const svc = crearCalendarioService({ store, auth: { user: { email: 'yo@club.es' } }, storage, cliente, ahora: () => new Date(2026, 9, 15, 9, 0, 0) });
+  const svc = crearCalendarioService({
+    store,
+    auth: { user: { email: 'yo@club.es' } },
+    storage,
+    cliente,
+    ahora: () => new Date(2026, 9, 15, 9, 0, 0),
+  });
   return { svc, escrituras, cuerpos, mem };
 }
 
 test('P2: if the sync crashes halfway, the events already created stay in the saved map', async () => {
   let n = 0;
   const s = montar([fila('a', '2026-10-20'), fila('b', '2026-10-21'), fila('c', '2026-10-22')], {
-    insertar: async (cuerpo) => { if (++n === 3) { const e = new Error('crash'); e.code = 'auth'; throw e; } return { id: cuerpo.id }; },
+    insertar: async (cuerpo) => {
+      if (++n === 3) {
+        const e = new Error('crash');
+        e.code = 'auth';
+        throw e;
+      }
+      return { id: cuerpo.id };
+    },
   });
   const r = await s.svc.sincronizar({ ventanaDias: 30 });
   assert.equal(r.creados, 2);
@@ -50,8 +97,14 @@ test('P2: Google event ids are deterministic (base32hex) and a 409 is resolved b
 
   const actualizados = [];
   const c = montar([fila('a', '2026-10-20')], {
-    insertar: async () => { const e = new Error('duplicate'); e.status = 409; throw e; },
-    actualizar: async (gid) => { actualizados.push(gid); },
+    insertar: async () => {
+      const e = new Error('duplicate');
+      e.status = 409;
+      throw e;
+    },
+    actualizar: async (gid) => {
+      actualizados.push(gid);
+    },
   });
   const r = await c.svc.sincronizar({ ventanaDias: 30 });
   assert.equal(r.errores.length, 0);

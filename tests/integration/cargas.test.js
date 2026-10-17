@@ -3,13 +3,22 @@ import assert from 'node:assert/strict';
 import { fresh, renderView, tick, fieldByLabel, buttonByText, setValue } from '../helpers/app.js';
 
 let c;
-const test = (name, fn) => base(name, async (t) => { c = await fresh(); return fn(t); });
+const test = (name, fn) =>
+  base(name, async (t) => {
+    c = await fresh();
+    return fn(t);
+  });
 
 const today = () => c.ui.isoDate(new Date());
 const vista = () => renderView('cargas', c.container, [], c);
-const abrirGestor = async () => { buttonByText(c.container, 'Contenidos de entrenamiento').click(); await tick(); };
-const item = (root, nombre) => [...root.querySelectorAll('.tc-item')].find((li) => li.querySelector('.tc-nombre').textContent === nombre);
-const boton = (li, prefijo) => [...li.querySelectorAll('button')].find((b) => (b.getAttribute('aria-label') || b.textContent).startsWith(prefijo));
+const abrirGestor = async () => {
+  buttonByText(c.container, 'Contenidos de entrenamiento').click();
+  await tick();
+};
+const item = (root, nombre) =>
+  [...root.querySelectorAll('.tc-item')].find((li) => li.querySelector('.tc-nombre').textContent === nombre);
+const boton = (li, prefijo) =>
+  [...li.querySelectorAll('button')].find((b) => (b.getAttribute('aria-label') || b.textContent).startsWith(prefijo));
 const modal = () => document.querySelector('.modal');
 const opciones = (sel) => [...sel.options].map((o) => o.textContent);
 
@@ -26,7 +35,13 @@ async function crearContenido(root, datos) {
 }
 
 // Log-load sheet
-const abrirRegistro = async () => { buttonByText(c.container, 'Registrar carga').click(); await tick(); const d = document.querySelector('.sheet'); assert.ok(d, 'the log sheet opens'); return d; };
+const abrirRegistro = async () => {
+  buttonByText(c.container, 'Registrar carga').click();
+  await tick();
+  const d = document.querySelector('.sheet');
+  assert.ok(d, 'the log sheet opens');
+  return d;
+};
 const elegirNadador = (d, texto) => setValue(fieldByLabel(d, 'Nadador'), texto);
 const rellenar = (d, etiqueta, valor) => setValue(fieldByLabel(d, etiqueta), valor);
 const errores = (d) => [...d.querySelectorAll('.field-error')].map((e) => e.textContent.trim());
@@ -46,7 +61,10 @@ test('the form offers the active catalogue grouped by category, with help text a
   await vista();
   const d = await abrirRegistro();
   const sel = d.querySelector('select[name="tipoId"]');
-  assert.deepEqual([...sel.querySelectorAll('optgroup')].map((g) => g.label), ['Intensidad', 'Trabajo específico']);
+  assert.deepEqual(
+    [...sel.querySelectorAll('optgroup')].map((g) => g.label),
+    ['Intensidad', 'Trabajo específico'],
+  );
   const nombres = opciones(sel);
   assert.equal(nombres.length, 11);
   assert.equal(nombres[0], 'Aeróbico ligero');
@@ -119,7 +137,9 @@ test('"Registrar y añadir otra" keeps swimmer, date and content and clears the 
   rellenar(d, 'Metros', '750');
   buttonByText(d, 'Registrar').click();
   await tick(10);
-  const mias = c.store.list('Cargas').filter((x) => x.nadadorId === 'n04' && x.tipo === 'Piernas' && [600, 750].includes(x.metros));
+  const mias = c.store
+    .list('Cargas')
+    .filter((x) => x.nadadorId === 'n04' && x.tipo === 'Piernas' && [600, 750].includes(x.metros));
   assert.equal(mias.length, 2);
   // reopening remembers the last swimmer, date and content
   const d2 = await abrirRegistro();
@@ -151,7 +171,10 @@ test('manager: create a manual content, reject the duplicate name and use it whe
   assert.equal(gestor.querySelectorAll('.tc-item').length, 10);
   await crearContenido(gestor, { nombre: 'Aguas abiertas', descripcion: 'Nado en mar', min: '1000', max: '3000' });
   const t = c.store.list('TiposCarga').find((x) => x.nombre === 'Aguas abiertas');
-  assert.deepEqual([t.categoria, t.predefinido, t.activo, t.minSemanalM, t.maxSemanalM], ['personalizado', 'false', 'true', 1000, 3000]);
+  assert.deepEqual(
+    [t.categoria, t.predefinido, t.activo, t.minSemanalM, t.maxSemanalM],
+    ['personalizado', 'false', 'true', 1000, 3000],
+  );
   assert.ok(item(c.container, 'Aguas abiertas'));
   assert.match(c.container.textContent, /Contenido «Aguas abiertas» creado|Personalizados/);
 
@@ -241,7 +264,10 @@ test('manager: editing a predefined one changes description, colour and targets 
   buttonByText(modal(), 'Guardar').click();
   await tick(10);
   const p = c.store.get('TiposCarga', 'tc-piernas');
-  assert.deepEqual([p.nombre, p.descripcion, p.color, p.minSemanalM, p.maxSemanalM], ['Piernas', 'Patada con aletas', '#112233', 600, 1800]);
+  assert.deepEqual(
+    [p.nombre, p.descripcion, p.color, p.minSemanalM, p.maxSemanalM],
+    ['Piernas', 'Patada con aletas', '#112233', 600, 1800],
+  );
   assert.match(item(c.container, 'Piernas').textContent, /Patada con aletas/);
 });
 
@@ -268,7 +294,10 @@ test('manager: a content with loads is not deleted (deactivate or merge); withou
   await tick();
   buttonByText(document.body.querySelector('.modal'), 'Eliminar').click();
   await tick(10);
-  assert.equal(c.store.list('TiposCarga').find((x) => x.nombre === 'Vacío'), undefined);
+  assert.equal(
+    c.store.list('TiposCarga').find((x) => x.nombre === 'Vacío'),
+    undefined,
+  );
 });
 
 test('manager: deactivate from the "in use" warning and reorder with the arrows', async () => {
@@ -298,17 +327,25 @@ test('targets: ONE single button saves all changes (all or nothing) and the aler
   const [bmn, bmx] = fila('Brazos').querySelectorAll('input');
   const [pmn, pmx] = fila('Piernas').querySelectorAll('input');
   const piernasAntes = c.store.get('TiposCarga', 'tc-piernas').minSemanalM;
-  bmn.value = '5000'; bmx.value = '2000'; pmn.value = '300'; pmx.value = '900';
+  bmn.value = '5000';
+  bmx.value = '2000';
+  pmn.value = '300';
+  pmx.value = '900';
   buttonByText(form, 'Guardar objetivos').click();
   await tick();
   assert.equal(c.store.get('TiposCarga', 'tc-brazos').minSemanalM, '', 'min > max does not save');
-  assert.equal(c.store.get('TiposCarga', 'tc-piernas').minSemanalM, piernasAntes, 'not even the valid rows (all or nothing)');
+  assert.equal(
+    c.store.get('TiposCarga', 'tc-piernas').minSemanalM,
+    piernasAntes,
+    'not even the valid rows (all or nothing)',
+  );
   assert.equal(c.container.querySelector('form.cg-obj [aria-invalid="true"]'), bmx);
   assert.match(c.container.querySelector('form.cg-obj .field-error').textContent, /mínimo no puede superar/);
   const f2 = c.container.querySelector('form.cg-obj');
   const f2fila = (nombre) => [...f2.querySelectorAll('tbody tr')].find((tr) => tr.firstChild.textContent === nombre);
   const [mn, mx] = f2fila('Brazos').querySelectorAll('input');
-  mn.value = '100'; mx.value = '900';
+  mn.value = '100';
+  mx.value = '900';
   buttonByText(f2, 'Guardar objetivos').click();
   await tick();
   const b = c.store.get('TiposCarga', 'tc-brazos');
@@ -316,7 +353,9 @@ test('targets: ONE single button saves all changes (all or nothing) and the aler
   assert.match(document.getElementById('toasts').textContent, /Objetivos guardados/);
 
   // unreachable target: the same shortfall must show in both views
-  const lunes = new Date(); lunes.setHours(0, 0, 0, 0); lunes.setDate(lunes.getDate() - ((lunes.getDay() + 6) % 7));
+  const lunes = new Date();
+  lunes.setHours(0, 0, 0, 0);
+  lunes.setDate(lunes.getDate() - ((lunes.getDay() + 6) % 7));
   const { crearCargasService } = await import('../../js/application/cargasService.js');
   const svc = crearCargasService(c.store, { generarId: () => 'x' });
   const ev = svc.semana(lunes).evaluacion;
@@ -394,7 +433,10 @@ test('old loads with old types remain visible after opening the club (migration)
   c.store.upsert('Cargas', { id: 'old', nadadorId: 'n01', fecha: today(), metros: 4321, tipo: 'Fuerza' });
   c.store.upsert('ObjetivosCarga', { id: 'oo', tipo: 'Fuerza', minSemanalM: 10, maxSemanalM: 5000 });
   const { crearCargasService } = await import('../../js/application/cargasService.js');
-  assert.ok(crearCargasService(c.store, { generarId: () => 'tc-h' + Math.random().toString(36).slice(2) }).asegurarCatalogo() > 0); // same migration that runs when opening the club (see store.test.js)
+  assert.ok(
+    crearCargasService(c.store, { generarId: () => 'tc-h' + Math.random().toString(36).slice(2) }).asegurarCatalogo() >
+      0,
+  ); // same migration that runs when opening the club (see store.test.js)
   await vista();
   assert.ok(c.store.list('TiposCarga').some((x) => x.nombre === 'Fuerza' && x.predefinido === 'false'));
   assert.match(c.container.textContent, /Fuerza/);

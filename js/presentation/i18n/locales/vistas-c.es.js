@@ -1,7 +1,8 @@
 // Textos de Avisos y notas y Configuración (español).
 export default {
   'comu.titulo': 'Avisos y notas',
-  'comu.ayuda': 'Tus avisos y notas del club, guardados en tu Drive. La app no envía nada a nadie: copia el texto para pasarlo por el canal que uses (correo, mensajería...).',
+  'comu.ayuda':
+    'Tus avisos y notas del club, guardados en tu Drive. La app no envía nada a nadie: copia el texto para pasarlo por el canal que uses (correo, mensajería...).',
   'comu.copiar': 'Copiar',
   'comu.errCopiar': 'No se pudo copiar el texto',
   'comu.nuevo': 'Nuevo aviso',
@@ -22,7 +23,8 @@ export default {
   'comu.copiar-aria': 'Copiar el aviso «{titulo}»',
   'comu.eliminar-aria': 'Eliminar el aviso «{titulo}»',
   'comu.vacio-titulo': 'Aún no hay avisos',
-  'comu.vacio-texto': 'Escribe el primero: queda guardado en tu Drive y puedes copiarlo para pasarlo por tu canal habitual.',
+  'comu.vacio-texto':
+    'Escribe el primero: queda guardado en tu Drive y puedes copiarlo para pasarlo por tu canal habitual.',
   'comu.vacio-filtro': 'No hay avisos para este filtro.',
   'comu.crear-primero': 'Escribir un aviso',
   'comu.err.titulo-obligatorio': 'Escribe un título',
@@ -48,7 +50,8 @@ export default {
   'club.colorPrimario': 'Color primario',
   'club.colorSecundario': 'Color secundario',
   'club.datos': 'Datos y Google Drive',
-  'club.demo-nota': 'Estás en la demostración: los datos solo existen en este dispositivo y no se guardan en Drive. Conecta Google Drive para guardar los tuyos.',
+  'club.demo-nota':
+    'Estás en la demostración: los datos solo existen en este dispositivo y no se guardan en Drive. Conecta Google Drive para guardar los tuyos.',
   'club.solo-drive': 'Disponible al conectar Google Drive.',
   'club.sincronizar': 'Sincronizar',
   'club.sincronizado': 'Sincronizado',

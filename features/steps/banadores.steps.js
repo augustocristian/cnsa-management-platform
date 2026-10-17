@@ -6,7 +6,10 @@ import assert from 'node:assert/strict';
 
 const exact = (s) => new RegExp('^' + s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '$');
 const catalogue = (w) => w.page.locator('.modal.bn-catalogo');
-const row = (w, name) => catalogue(w).locator('.bn-item').filter({ has: w.page.locator('.bn-nombre', { hasText: exact(name) }) });
+const row = (w, name) =>
+  catalogue(w)
+    .locator('.bn-item')
+    .filter({ has: w.page.locator('.bn-nombre', { hasText: exact(name) }) });
 
 When('I open the swimsuit catalogue', async function () {
   await this.page.evaluate(async () => {
@@ -37,7 +40,9 @@ When('I undo the last toast', async function () {
 });
 
 When('I try to delete the swimsuit {string}', async function (name) {
-  await row(this, name).getByRole('button', { name: /^Eliminar/ }).click();
+  await row(this, name)
+    .getByRole('button', { name: /^Eliminar/ })
+    .click();
 });
 
 Then('I see the swimsuit {string} in the catalogue', async function (name) {
@@ -58,12 +63,20 @@ Then('the swimsuit {string} appears as active', async function (name) {
 });
 
 Then('the catalogue group {string} includes {string}', async function (group, name) {
-  const section = catalogue(this).locator('.bn-grupo').filter({ has: this.page.getByRole('heading', { name: group }) });
-  await this.expectVisible(section.locator('.bn-nombre', { hasText: exact(name) }), `The group "${group}" does not include "${name}"`);
+  const section = catalogue(this)
+    .locator('.bn-grupo')
+    .filter({ has: this.page.getByRole('heading', { name: group }) });
+  await this.expectVisible(
+    section.locator('.bn-nombre', { hasText: exact(name) }),
+    `The group "${group}" does not include "${name}"`,
+  );
 });
 
 Then('I see the error {string} in the swimsuit form', async function (text) {
-  await this.expectVisible(this.page.locator('.modal').last().locator('.field-error', { hasText: text }), `The error "${text}" does not appear`);
+  await this.expectVisible(
+    this.page.locator('.modal').last().locator('.field-error', { hasText: text }),
+    `The error "${text}" does not appear`,
+  );
 });
 
 Then('the in-use swimsuit dialog offers to deactivate it or merge it with another', async function () {

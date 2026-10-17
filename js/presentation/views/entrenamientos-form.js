@@ -19,9 +19,31 @@ export function abrirFormularioSesion({ svc, fila, alGuardar = () => {} }) {
     { name: 'fecha', label: t('entre.f.fecha'), type: 'date', required: true },
     { name: 'hora', label: t('entre.f.hora'), type: 'time' },
     { name: 'duracionMin', label: t('entre.f.duracion'), type: 'number', min: 0 },
-    { name: 'piscina', label: t('entre.f.piscina'), type: 'select', options: [{ value: '', label: '—' }, { value: '25', label: '25 m' }, { value: '50', label: '50 m' }] },
-    { name: 'grupoId', label: t('entre.f.grupo'), type: 'select', options: [{ value: '', label: t('entre.todos-grupos') }, ...svc.grupos().map((g) => ({ value: g.id, label: g.nombre }))] },
-    { name: 'estado', label: t('entre.f.estado'), type: 'select', options: ['planificado', 'realizado'].map((e) => ({ value: e, label: tEstado(e) })) },
+    {
+      name: 'piscina',
+      label: t('entre.f.piscina'),
+      type: 'select',
+      options: [
+        { value: '', label: '—' },
+        { value: '25', label: '25 m' },
+        { value: '50', label: '50 m' },
+      ],
+    },
+    {
+      name: 'grupoId',
+      label: t('entre.f.grupo'),
+      type: 'select',
+      options: [
+        { value: '', label: t('entre.todos-grupos') },
+        ...svc.grupos().map((g) => ({ value: g.id, label: g.nombre })),
+      ],
+    },
+    {
+      name: 'estado',
+      label: t('entre.f.estado'),
+      type: 'select',
+      options: ['planificado', 'realizado'].map((e) => ({ value: e, label: tEstado(e) })),
+    },
     { name: 'volumenMin', label: t('entre.f.vol-min'), type: 'number', min: 0, step: 100 },
     { name: 'volumenMax', label: t('entre.f.vol-max'), type: 'number', min: 0, step: 100 },
     { name: 'enfoque', label: t('entre.f.enfoque'), full: true },
@@ -37,7 +59,10 @@ export function abrirFormularioSesion({ svc, fila, alGuardar = () => {} }) {
       let primero = null;
       for (const [campo, codigo] of Object.entries(r.errores)) {
         const input = form.inputs[campo];
-        if (!input) { toast.error(t('common.error')); continue; }
+        if (!input) {
+          toast.error(t('common.error'));
+          continue;
+        }
         fieldError(input, (MENSAJES[codigo] || MENSAJES.obligatorio)(), { focus: false });
         primero ||= input;
       }

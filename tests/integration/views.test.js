@@ -4,7 +4,11 @@ import { fresh, renderView, tick, VIEWS } from '../helpers/app.js';
 
 let c;
 // Each test starts with a clean DOM and a seeded store (no hooks: the files share a process via index.js).
-const test = (name, fn) => base(name, async (t) => { c = await fresh(); return fn(t); });
+const test = (name, fn) =>
+  base(name, async (t) => {
+    c = await fresh();
+    return fn(t);
+  });
 
 const EXPECT = {
   inicio: /Nadadores activos/,
@@ -75,7 +79,10 @@ test('club: no users, roles or sharing; explains where the data is stored in Dri
   assert.equal(c.container.querySelector('input[type=email]'), null);
   assert.match(txt, /carpeta «cnl» de tu Google Drive/);
   assert.match(txt, /Test[.]json|[.]json/);
-  assert.equal(c.container.querySelector('#clb-abrir-fichero').href, 'https://drive.google.com/file/d/' + c.ref.id + '/view');
+  assert.equal(
+    c.container.querySelector('#clb-abrir-fichero').href,
+    'https://drive.google.com/file/d/' + c.ref.id + '/view',
+  );
   assert.match(c.container.querySelector('#clb-prefs-estado').textContent, /Estado de las preferencias/);
 });
 
@@ -91,7 +98,10 @@ test('new empty club: home shows the getting-started steps (empty state with act
   await renderView('inicio', c.container, [], c);
   const pp = c.container.querySelector('#primeros-pasos');
   assert.ok(pp, 'getting-started card');
-  assert.deepEqual([...pp.querySelectorAll('a')].map((a) => a.getAttribute('href')), ['#/grupos', '#/nadadores', '#/planificacion/piscina', '#/entrenamientos']);
+  assert.deepEqual(
+    [...pp.querySelectorAll('a')].map((a) => a.getAttribute('href')),
+    ['#/grupos', '#/nadadores', '#/planificacion/piscina', '#/entrenamientos'],
+  );
   assert.equal(c.store.list('Nadadores').length, 0);
   assert.doesNotMatch(c.container.textContent, /undefined|NaN|[[]object/);
 });

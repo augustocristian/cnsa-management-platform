@@ -1,12 +1,15 @@
 // Texts of the full backup (Settings > Backup): download, restore from a file and copies in Drive.
 export default {
   'backup.titulo': 'Backup',
-  'backup.intro': 'A complete copy of the club in a single file: swimmers, groups, training sessions and their plans, attendance, loads, personal bests, pools, seasons, club identity and your preferences. Use it to keep your data safe or to move it to another device.',
+  'backup.intro':
+    'A complete copy of the club in a single file: swimmers, groups, training sessions and their plans, attendance, loads, personal bests, pools, seasons, club identity and your preferences. Use it to keep your data safe or to move it to another device.',
   'backup.privacidad.titulo': 'It contains personal data of minors',
-  'backup.privacidad.texto': 'Keep the file somewhere safe and do not share it. If a swimmer asks for their data to be erased, copies you already downloaded are not changed: delete them yourself.',
+  'backup.privacidad.texto':
+    'Keep the file somewhere safe and do not share it. If a swimmer asks for their data to be erased, copies you already downloaded are not changed: delete them yourself.',
   'backup.descargar.titulo': 'Download a backup',
   'backup.pass.label': 'Passphrase to encrypt the backup (optional)',
-  'backup.pass.hint': 'At least 8 characters. Without a passphrase the backup is saved unencrypted. If you lose it, the backup cannot be recovered.',
+  'backup.pass.hint':
+    'At least 8 characters. Without a passphrase the backup is saved unencrypted. If you lose it, the backup cannot be recovered.',
   'backup.pass2.label': 'Repeat the passphrase',
   'backup.pass.no-coincide': 'The passphrases do not match.',
   'backup.pass.corta': 'The passphrase must have at least 8 characters.',
@@ -26,7 +29,8 @@ export default {
   'backup.ultima.texto': '{fecha} - {filas} rows - {nombre}',
   'backup.ultima.cifrada': 'encrypted',
   'backup.restaurar.titulo': 'Restore from a file',
-  'backup.restaurar.texto': 'Choose a backup you downloaded earlier. You will see what would change before confirming, and an automatic copy of your current data is saved before anything is applied.',
+  'backup.restaurar.texto':
+    'Choose a backup you downloaded earlier. You will see what would change before confirming, and an automatic copy of your current data is saved before anything is applied.',
   'backup.archivo.elegir': 'Choose backup file',
   'backup.archivo.arrastra': 'or drag the .json file here',
   'backup.archivo.suelta': 'Drop the file to read it',
@@ -37,14 +41,18 @@ export default {
   'backup.valida.titulo': 'Valid backup',
   'backup.valida.texto': 'Club "{club}", created {fecha}: {filas} rows, {nadadores} swimmers.',
   'backup.valida.sin-fecha': 'unknown date',
-  'backup.origen.documento-club': 'This file is a copy of the club file (for example a daily copy from Drive): it does not include preferences.',
+  'backup.origen.documento-club':
+    'This file is a copy of the club file (for example a daily copy from Drive): it does not include preferences.',
   'backup.aviso.omitidas': '{n} rows are not valid and will be skipped.',
   'backup.aviso.rgpd': '{n} rows were permanently erased (right to erasure) and will not be brought back.',
-  'backup.aviso.club-distinto': 'The backup belongs to the club "{copia}" and will be restored into "{club}". The club name does not change.',
+  'backup.aviso.club-distinto':
+    'The backup belongs to the club "{copia}" and will be restored into "{club}". The club name does not change.',
   'backup.err.no-es-backup': 'This file is not a CNL Plataforma backup.',
   'backup.err.version-invalida': 'The backup format version is not valid.',
-  'backup.err.version-futura': 'This backup was made by a newer version of the app (format {version}). Update the app to restore it.',
-  'backup.err.documento-futuro': 'This backup holds data from a newer version of the app. Update the app to restore it.',
+  'backup.err.version-futura':
+    'This backup was made by a newer version of the app (format {version}). Update the app to restore it.',
+  'backup.err.documento-futuro':
+    'This backup holds data from a newer version of the app. Update the app to restore it.',
   'backup.err.danado': 'The file is damaged or was modified: the integrity check failed. Nothing was changed.',
   'backup.err.estructura': 'The backup file has an unexpected structure. Nothing was changed.',
   'backup.err.demasiadas-filas': 'The backup has more than 50,000 rows.',
@@ -54,10 +62,12 @@ export default {
   'backup.err.passphrase-incorrecta': 'Wrong passphrase, or the file is damaged.',
   'backup.err.passphrase-corta': 'The passphrase must have at least 8 characters.',
   'backup.err.sin-cifrado': 'This browser cannot encrypt backups.',
-  'backup.err.solo-lectura': 'This club was saved by a newer version of the app and is read-only: it cannot be restored.',
+  'backup.err.solo-lectura':
+    'This club was saved by a newer version of the app and is read-only: it cannot be restored.',
   'backup.err.seguridad-fallida': 'The automatic safety copy could not be saved, so nothing was restored.',
   'backup.err.restauracion-fallida': 'The restore failed and your data was put back as it was.',
-  'backup.err.restauracion-fallida-sin-revertir': 'The restore failed and not everything could be put back as it was. Restore the automatic safety copy.',
+  'backup.err.restauracion-fallida-sin-revertir':
+    'The restore failed and not everything could be put back as it was. Restore the automatic safety copy.',
   'backup.err.sin-drive': 'Backups in Drive are not available in demo mode.',
   'backup.err.sin-seguridad': 'There is no restore to revert.',
   'backup.err.generico': 'The operation could not be completed: {msg}',
@@ -73,13 +83,17 @@ export default {
   'backup.tabla.sin-cambios': 'No differences: your data already matches the backup.',
   'backup.modo.leyenda': 'How to restore',
   'backup.modo.replace': 'Replace',
-  'backup.modo.replace-desc': 'Leaves the data exactly as in the backup. Anything that is not in the backup is removed (recommended).',
+  'backup.modo.replace-desc':
+    'Leaves the data exactly as in the backup. Anything that is not in the backup is removed (recommended).',
   'backup.modo.merge': 'Merge',
-  'backup.modo.merge-desc': 'Adds what is missing and fills in fields. If a value exists in both, the current one is kept. Nothing is removed.',
+  'backup.modo.merge-desc':
+    'Adds what is missing and fills in fields. If a value exists in both, the current one is kept. Nothing is removed.',
   'backup.restaurar.boton': 'Restore...',
   'backup.confirmar.titulo': 'Confirm restore',
-  'backup.confirmar.replace': 'The current data of "{club}" will be replaced by the backup: {nuevas} new, {cambiadas} changed, {eliminadas} removed. An automatic copy is saved first.',
-  'backup.confirmar.merge': 'The backup will be merged with the current data of "{club}": {nuevas} new, {cambiadas} changed. Nothing will be removed. An automatic copy is saved first.',
+  'backup.confirmar.replace':
+    'The current data of "{club}" will be replaced by the backup: {nuevas} new, {cambiadas} changed, {eliminadas} removed. An automatic copy is saved first.',
+  'backup.confirmar.merge':
+    'The backup will be merged with the current data of "{club}": {nuevas} new, {cambiadas} changed. Nothing will be removed. An automatic copy is saved first.',
   'backup.confirmar.escribe': 'To confirm, type the club name ("{club}") or the word {palabra}',
   'backup.confirmar.palabra': 'RESTORE',
   'backup.confirmar.no-coincide': 'It does not match. Type the club name or {palabra}.',
@@ -100,13 +114,16 @@ export default {
   'backup.exito.preferencias': 'Preferences applied: {claves}.',
   'backup.deshecho-aviso': 'Data restored from the backup.',
   'backup.revertir': 'Revert the restore',
-  'backup.revertir.confirmar': 'The data will go back to how it was right before the restore. Changes made since then will be lost.',
+  'backup.revertir.confirmar':
+    'The data will go back to how it was right before the restore. Changes made since then will be lost.',
   'backup.revertir.boton': 'Revert',
   'backup.revertida': 'Restore reverted: your data is back as it was.',
   'backup.seguridad.descargar': 'Download the safety copy',
   'backup.drive.titulo': 'Backups in Drive',
-  'backup.drive.texto': 'The app keeps in your Drive (folder cnl/backups) a daily copy, one before each import and one before each restore. You can restore any of them here.',
-  'backup.drive.demo': 'Demo mode does not use Drive, so there are no backups in Drive. Connect your Drive to use them; downloading and restoring from a file work anyway.',
+  'backup.drive.texto':
+    'The app keeps in your Drive (folder cnl/backups) a daily copy, one before each import and one before each restore. You can restore any of them here.',
+  'backup.drive.demo':
+    'Demo mode does not use Drive, so there are no backups in Drive. Connect your Drive to use them; downloading and restoring from a file work anyway.',
   'backup.drive.actualizar': 'Refresh list',
   'backup.drive.cargando': 'Loading backups from Drive...',
   'backup.drive.vacio': 'There are no backups in Drive yet. The first one is created when changes are saved.',

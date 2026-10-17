@@ -3,11 +3,30 @@ import assert from 'node:assert/strict';
 import { fresh, renderView, tick } from '../helpers/app.js';
 
 let c;
-const test = (name, fn) => base(name, async (t) => { c = await fresh(); return fn(t); });
+const test = (name, fn) =>
+  base(name, async (t) => {
+    c = await fresh();
+    return fn(t);
+  });
 
-const snapshot = (store) => JSON.parse(JSON.stringify(Object.fromEntries(
-  ['Nadadores', 'Grupos', 'Entrenamientos', 'Asistencia', 'Cargas', 'Marcas', 'Comunicaciones', 'ObjetivosCarga', 'Banadores']
-    .map((s) => [s, store.list(s)]))));
+const snapshot = (store) =>
+  JSON.parse(
+    JSON.stringify(
+      Object.fromEntries(
+        [
+          'Nadadores',
+          'Grupos',
+          'Entrenamientos',
+          'Asistencia',
+          'Cargas',
+          'Marcas',
+          'Comunicaciones',
+          'ObjetivosCarga',
+          'Banadores',
+        ].map((s) => [s, store.list(s)]),
+      ),
+    ),
+  );
 
 test('exportXlsx produces a workbook with one sheet per entity and exact headers', async () => {
   const blob = await c.store.exportXlsx();
@@ -36,7 +55,11 @@ test('round-trip export -> clear -> import keeps all the data', async () => {
 
 test('importing a minimal-data xlsx fills in missing columns and discards rows without id', async () => {
   const wb = XLSX.utils.book_new();
-  XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet([{ id: 1, nombre: 'Solo', apellidos: 'Nombre' }, { nombre: 'sin id' }]), 'Nadadores');
+  XLSX.utils.book_append_sheet(
+    wb,
+    XLSX.utils.json_to_sheet([{ id: 1, nombre: 'Solo', apellidos: 'Nombre' }, { nombre: 'sin id' }]),
+    'Nadadores',
+  );
   const buf = XLSX.write(wb, { bookType: 'xlsx', type: 'array' });
   await c.store.importXlsx(new Blob([buf]));
   const l = c.store.list('Nadadores');

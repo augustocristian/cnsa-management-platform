@@ -60,7 +60,8 @@ export default {
   'entreno.av.numero-negativo': 'Negative numbers are not allowed.',
   'entreno.av.salida-invalida': 'The interval "{salida}" is not recognised; use for example C/1\'10" or d/15".',
   'entreno.av.sin-distancia': 'There are reps but the distance is missing.',
-  'entreno.av.distancia-difiere-carga': 'The total distance ({total} m) differs from the recorded load ({registrada} m on average).',
+  'entreno.av.distancia-difiere-carga':
+    'The total distance ({total} m) differs from the recorded load ({registrada} m on average).',
   'entreno.av.fuera-volumen-objetivo': 'The total distance ({total} m) is outside the session target volume.',
   'entreno.av.tiempo-supera-duracion': 'The total time ({total} min) exceeds the session length ({duracion} min).',
   'entreno.av.sesion-inexistente': 'The session no longer exists.',
@@ -113,8 +114,10 @@ export default {
   'entreno.cont.autocompletar': 'Autofill from the text',
   'entreno.cont.autocompletar-aria': 'Autofill from the text ({pos})',
   'entreno.cont.autocompletado': 'Filled in from the text (content: {n}, strokes: {e})',
-  'entreno.cont.nada-texto': 'No content or stroke recognised in the exercise text. Try a format like “4x100 Free. 75 AeL-25 Tope”.',
-  'entreno.cont.varios-bloques': 'The text has several blocks (2x100 … + 3x50 …): split the exercise into one row per block.',
+  'entreno.cont.nada-texto':
+    'No content or stroke recognised in the exercise text. Try a format like “4x100 Free. 75 AeL-25 Tope”.',
+  'entreno.cont.varios-bloques':
+    'The text has several blocks (2x100 … + 3x50 …): split the exercise into one row per block.',
   'entreno.cont.valor-aria': 'Metres per repetition of {nombre} ({pos})',
   'entreno.cont.valor-pct-aria': 'Percentage of {nombre} ({pos})',
   'entreno.cont.unidad-aria': 'Unit of {nombre} ({pos})',
@@ -158,13 +161,15 @@ export default {
   'entreno.res.copiado': 'Summary copied to the clipboard',
   'entreno.res.err-copiar': 'The summary could not be copied',
   'entreno.res.registrar': 'Log loads from the plan',
-  'entreno.res.registrar-confirmar': 'The plan will be saved and one load per content and swimmer will be logged with the metres of the plan (existing ones are not duplicated). Continue?',
+  'entreno.res.registrar-confirmar':
+    'The plan will be saved and one load per content and swimmer will be logged with the metres of the plan (existing ones are not duplicated). Continue?',
   'entreno.res.registrado': 'Loads logged: {n} ({omitidas} already existed)',
   'entreno.res.registrado-ya': 'The loads of this plan were already logged ({omitidas})',
   'entreno.res.registrar-nada': 'There is no assigned content in the plan to log',
   'entreno.res.registrar-sin-nadadores': 'There are no swimmers to log loads for (empty group or no attendance)',
   'entreno.av.reparto-incompleto': 'Content split incomplete: {resto} m per repetition missing (of {distancia} m).',
-  'entreno.av.reparto-excede': 'The content split is {exceso} m per repetition over (distance {distancia} m); totals are scaled proportionally.',
+  'entreno.av.reparto-excede':
+    'The content split is {exceso} m per repetition over (distance {distancia} m); totals are scaled proportionally.',
   'entreno.av.reparto-sin-distancia': 'Content or strokes are split but the distance is missing.',
   'entreno.av.estilo-incompleto': 'Stroke split incomplete: {resto} m per repetition missing (of {distancia} m).',
   'entreno.av.estilo-excede': 'The stroke split is {exceso} m per repetition over (distance {distancia} m).',
@@ -192,7 +197,8 @@ export default {
   'entreno.pdf-descargar': 'Download PDF',
   'entreno.pdf-compartir': 'Share PDF',
   'entreno.pdf-vacio-confirmar': 'The plan has no rows with content, so the PDF will be blank. Generate it anyway?',
-  'entreno.pdf-vacio-semana-confirmar': 'No session this week has a detailed plan, so the PDF will only show the header of each session. Generate it anyway?',
+  'entreno.pdf-vacio-semana-confirmar':
+    'No session this week has a detailed plan, so the PDF will only show the header of each session. Generate it anyway?',
   'entreno.pdf-compartido': 'PDF shared: {n}',
   'entreno.pdf-abierto': 'PDF opened in another tab',
   'entreno.pdf-bloqueado': 'The browser blocked the new tab.',

@@ -19,10 +19,15 @@ export const SIN_BANADOR = 'sin-banador';
 // Words used by etiquetaBanador when the caller does not pass translated ones.
 export const ETIQUETAS_TIPO = Object.freeze({ entrenamiento: 'training', competicion: 'fast skin' });
 
-const texto = (v) => String(v ?? '').trim().replace(/\s+/g, ' ');
+const texto = (v) =>
+  String(v ?? '')
+    .trim()
+    .replace(/\s+/g, ' ');
 const aBool = (v, defecto) => {
   if (v === true || v === false) return v;
-  const s = String(v ?? '').trim().toLowerCase();
+  const s = String(v ?? '')
+    .trim()
+    .toLowerCase();
   if (s === '') return defecto;
   return !['false', 'no', '0', 'n'].includes(s);
 };
@@ -47,7 +52,14 @@ export function normalizarBanador(r) {
 
 // Domain object -> sheet row (simple values).
 export function filaBanador(b) {
-  return { id: b.id, tipo: b.tipo, marca: b.marca, modelo: b.modelo, activo: b.activo ? 'true' : 'false', notas: b.notas || '' };
+  return {
+    id: b.id,
+    tipo: b.tipo,
+    marca: b.marca,
+    modelo: b.modelo,
+    activo: b.activo ? 'true' : 'false',
+    notas: b.notas || '',
+  };
 }
 
 // Uniqueness key: (type, brand, model) without accents, case or repeated spaces.
@@ -73,7 +85,8 @@ export function validarBanador(data, existentes = [], { id = '' } = {}) {
   const errores = reglas.filter(([falla]) => falla).map(([, campo, codigo]) => ({ campo, codigo }));
   if (!errores.length) {
     const k = claveBanador({ tipo, marca, modelo });
-    if ((existentes || []).some((b) => b.id !== String(id) && claveBanador(b) === k)) errores.push({ campo: modelo ? 'modelo' : 'marca', codigo: 'duplicado' });
+    if ((existentes || []).some((b) => b.id !== String(id) && claveBanador(b) === k))
+      errores.push({ campo: modelo ? 'modelo' : 'marca', codigo: 'duplicado' });
   }
   return errores;
 }
@@ -84,16 +97,26 @@ export function etiquetaBanador(b, etiquetasTipo = ETIQUETAS_TIPO) {
   if (!b) return '';
   const nombre = [texto(b.marca), texto(b.modelo)].filter(Boolean).join(' ');
   const tipo = (etiquetasTipo && etiquetasTipo[b.tipo]) || ETIQUETAS_TIPO[b.tipo] || '';
-  return nombre && tipo ? `${nombre} — ${tipo}` : (nombre || tipo);
+  return nombre && tipo ? `${nombre} — ${tipo}` : nombre || tipo;
 }
 
 const comparador = new Intl.Collator('es', { sensitivity: 'base', numeric: true });
-const rangoTipo = (tipo) => { const i = TIPOS_BANADOR.indexOf(tipo); return i < 0 ? TIPOS_BANADOR.length : i; };
+const rangoTipo = (tipo) => {
+  const i = TIPOS_BANADOR.indexOf(tipo);
+  return i < 0 ? TIPOS_BANADOR.length : i;
+};
 
 // Copy sorted by type (training first), active first, brand and model.
 export function ordenarBanadores(banadores) {
-  return (banadores || []).slice().sort((a, b) => rangoTipo(a.tipo) - rangoTipo(b.tipo)
-    || Number(b.activo) - Number(a.activo) || comparador.compare(a.marca, b.marca) || comparador.compare(a.modelo, b.modelo));
+  return (banadores || [])
+    .slice()
+    .sort(
+      (a, b) =>
+        rangoTipo(a.tipo) - rangoTipo(b.tipo) ||
+        Number(b.activo) - Number(a.activo) ||
+        comparador.compare(a.marca, b.marca) ||
+        comparador.compare(a.modelo, b.modelo),
+    );
 }
 
 // [{tipo, banadores}] for BOTH types, in TIPOS_BANADOR order (a group may be empty); suits of an unknown type are left out.
@@ -123,7 +146,10 @@ export const marcasDeBanador = (marcas, id) => (marcas || []).filter((m) => Stri
 // Number of marks per suit id -> Map(id -> n) (every suit appears, with 0 when unused).
 export function conteoMarcasPorBanador(banadores, marcas) {
   const cuenta = new Map((banadores || []).map((b) => [b.id, 0]));
-  (marcas || []).forEach((m) => { const id = String(m.banadorId ?? ''); if (cuenta.has(id)) cuenta.set(id, cuenta.get(id) + 1); });
+  (marcas || []).forEach((m) => {
+    const id = String(m.banadorId ?? '');
+    if (cuenta.has(id)) cuenta.set(id, cuenta.get(id) + 1);
+  });
   return cuenta;
 }
 
@@ -147,9 +173,11 @@ export function filtrarMarcasPorBanador(marcas, banadores, filtro = {}) {
     const b = porId.get(String(m.banadorId ?? '')) || null;
     if (c.tipo === SIN_BANADOR) return !b;
     if (c.tipoInvalido || !b) return false;
-    return (!c.tipo || b.tipo === c.tipo)
-      && (!c.marca || claveBusqueda(b.marca) === c.marca)
-      && (!c.modelo || claveBusqueda(b.modelo) === c.modelo);
+    return (
+      (!c.tipo || b.tipo === c.tipo) &&
+      (!c.marca || claveBusqueda(b.marca) === c.marca) &&
+      (!c.modelo || claveBusqueda(b.modelo) === c.modelo)
+    );
   });
 }
 
@@ -165,8 +193,10 @@ export function opcionesFiltro(banadores, marcas, seleccion = {}, { incluirVacio
   const cuenta = conteoMarcasPorBanador(lista, marcas);
   const conBanador = lista.reduce((s, b) => s + cuenta.get(b.id), 0);
   const total = (marcas || []).length;
-  const tipos = TIPOS_BANADOR.map((valor) => ({ valor, n: lista.filter((b) => b.tipo === valor).reduce((s, b) => s + cuenta.get(b.id), 0) }))
-    .filter((o) => incluirVacios || o.n > 0);
+  const tipos = TIPOS_BANADOR.map((valor) => ({
+    valor,
+    n: lista.filter((b) => b.tipo === valor).reduce((s, b) => s + cuenta.get(b.id), 0),
+  })).filter((o) => incluirVacios || o.n > 0);
 
   const acumular = (suits, clave, extra = () => ({})) => {
     const m = new Map();
@@ -178,11 +208,17 @@ export function opcionesFiltro(banadores, marcas, seleccion = {}, { incluirVacio
       o.n += cuenta.get(b.id);
       m.set(k, o);
     });
-    return [...m.values()].filter((o) => incluirVacios || o.n > 0).sort((a, b) => comparador.compare(a.etiqueta, b.etiqueta));
+    return [...m.values()]
+      .filter((o) => incluirVacios || o.n > 0)
+      .sort((a, b) => comparador.compare(a.etiqueta, b.etiqueta));
   };
   const deTipo = lista.filter((b) => !sel.tipo || sel.tipo === SIN_BANADOR || b.tipo === sel.tipo);
   const marcasOp = acumular(deTipo, (b) => b.marca);
   const deMarca = deTipo.filter((b) => !sel.marca || claveBusqueda(b.marca) === sel.marca);
-  const modelosOp = acumular(deMarca, (b) => b.modelo, (b) => ({ marca: b.marca }));
+  const modelosOp = acumular(
+    deMarca,
+    (b) => b.modelo,
+    (b) => ({ marca: b.marca }),
+  );
   return { tipos, marcas: marcasOp, modelos: modelosOp, sinBanador: total - conBanador, conBanador };
 }

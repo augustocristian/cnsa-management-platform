@@ -8,7 +8,9 @@ const porApellidos = (a, b) => cmp(a.apellidos, b.apellidos) || cmp(a.nombre, b.
 
 // Groups by category order (youngest first), then by name. Returns a new array.
 export function ordenarGrupos(grupos) {
-  return [...grupos].sort((a, b) => ordenCategoria(a.categoria) - ordenCategoria(b.categoria) || cmp(a.nombre, b.nombre));
+  return [...grupos].sort(
+    (a, b) => ordenCategoria(a.categoria) - ordenCategoria(b.categoria) || cmp(a.nombre, b.nombre),
+  );
 }
 
 // Active members of a group, ordered by surname then name.

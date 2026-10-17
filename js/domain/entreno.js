@@ -16,7 +16,9 @@ export const TOLERANCIA_CARGA = 0.1; // 10 % difference between the plan and the
 // Number from text/number; '' -> NaN. Accepts a decimal comma.
 export function num(v) {
   if (typeof v === 'number') return v;
-  const s = String(v ?? '').trim().replace(',', '.');
+  const s = String(v ?? '')
+    .trim()
+    .replace(',', '.');
   if (s === '' || !/^-?\d+(\.\d+)?$/.test(s)) return NaN;
   return Number(s);
 }
@@ -28,7 +30,9 @@ const o0 = (n) => (Number.isFinite(n) ? n : 0);
 export function parsearSalida(raw) {
   const s0 = String(raw ?? '').trim();
   if (!s0) return { valido: true, vacio: true, tipo: '', segundos: 0, texto: '' };
-  const m = /^(?:(cada|c(?:iclo)?|d(?:escanso)?|r(?:est)?)\s*[/:=\s-]?\s*)?(.+)$/i.exec(s0.replace(/[´`’‘]/g, "'").replace(/[“”]/g, '"'));
+  const m = /^(?:(cada|c(?:iclo)?|d(?:escanso)?|r(?:est)?)\s*[/:=\s-]?\s*)?(.+)$/i.exec(
+    s0.replace(/[´`’‘]/g, "'").replace(/[“”]/g, '"'),
+  );
   if (!m) return { valido: false, vacio: false, tipo: '', segundos: NaN, texto: s0 };
   const letra = (m[1] || '').toLowerCase();
   const tipo = !letra ? 'ciclo' : /^d|^r/.test(letra) ? 'descanso' : 'ciclo';
@@ -52,7 +56,8 @@ export function tiempoASegundos(s) {
 
 // (tipo, segundos) -> C/1'10"  |  d/15"
 export function textoSalida(tipo, seg) {
-  const mm = Math.floor(seg / 60), ss = Math.round(seg % 60);
+  const mm = Math.floor(seg / 60),
+    ss = Math.round(seg % 60);
   const t = mm ? `${mm}'${ss ? String(ss).padStart(2, '0') + '"' : ''}` : `${ss}"`;
   return (tipo === 'descanso' ? 'd/' : 'C/') + t;
 }
@@ -61,27 +66,54 @@ export function textoSalida(tipo, seg) {
 // componentes: JSON [{contenido, metrosPorRep, modo: 'auto'|'manual', pct?}]. An 'auto' component without metrosPorRep (null)
 // gets its share of the rest of the distance; a manual one with pct uses that percentage of the per-repetition distance.
 const r2 = (n) => Math.round(n * 100) / 100;
-const numPos = (v) => { const n = num(v); return Number.isFinite(n) && n >= 0 ? r2(n) : null; };
+const numPos = (v) => {
+  const n = num(v);
+  return Number.isFinite(n) && n >= 0 ? r2(n) : null;
+};
 function jsonLista(v) {
   if (Array.isArray(v)) return v;
   const s = String(v ?? '').trim();
   if (!s.startsWith('[')) return null;
-  try { const a = JSON.parse(s); return Array.isArray(a) ? a : null; } catch (e) { return null; }
+  try {
+    const a = JSON.parse(s);
+    return Array.isArray(a) ? a : null;
+  } catch (e) {
+    return null;
+  }
 }
 export function leerComponentes(v) {
-  return (jsonLista(v) || []).filter((c) => c && typeof c === 'object' && String(c.contenido ?? '').trim()).map((c) => {
-    const pct = numPos(c.pct);
-    return { contenido: String(c.contenido).trim(), metrosPorRep: numPos(c.metrosPorRep), modo: c.modo === 'manual' ? 'manual' : 'auto', pct: pct > 0 ? pct : null };
-  });
+  return (jsonLista(v) || [])
+    .filter((c) => c && typeof c === 'object' && String(c.contenido ?? '').trim())
+    .map((c) => {
+      const pct = numPos(c.pct);
+      return {
+        contenido: String(c.contenido).trim(),
+        metrosPorRep: numPos(c.metrosPorRep),
+        modo: c.modo === 'manual' ? 'manual' : 'auto',
+        pct: pct > 0 ? pct : null,
+      };
+    });
 }
 export function escribirComponentes(arr) {
   const l = leerComponentes(arr);
-  return l.length ? JSON.stringify(l.map((c) => ({ contenido: c.contenido, metrosPorRep: c.metrosPorRep, modo: c.modo, ...(c.pct ? { pct: c.pct } : {}) }))) : '';
+  return l.length
+    ? JSON.stringify(
+        l.map((c) => ({
+          contenido: c.contenido,
+          metrosPorRep: c.metrosPorRep,
+          modo: c.modo,
+          ...(c.pct ? { pct: c.pct } : {}),
+        })),
+      )
+    : '';
 }
 // estilo: "Crol" (whole distance) | JSON [{estilo, metrosPorRep}] (per-repetition split among several styles)
 export function leerEstilos(v) {
   const lista = jsonLista(v);
-  if (lista) return lista.filter((e) => e && typeof e === 'object' && String(e.estilo ?? '').trim()).map((e) => ({ estilo: String(e.estilo).trim(), metrosPorRep: numPos(e.metrosPorRep) }));
+  if (lista)
+    return lista
+      .filter((e) => e && typeof e === 'object' && String(e.estilo ?? '').trim())
+      .map((e) => ({ estilo: String(e.estilo).trim(), metrosPorRep: numPos(e.metrosPorRep) }));
   const s = String(v ?? '').trim();
   return s ? [{ estilo: s, metrosPorRep: null }] : [];
 }
@@ -135,20 +167,23 @@ export function filaVacia(l) {
 }
 
 export function ordenarLineas(lineas) {
-  return lineas.slice().sort((a, b) => (num(a.set) - num(b.set)) || (num(a.orden) - num(b.orden)));
+  return lineas.slice().sort((a, b) => num(a.set) - num(b.set) || num(a.orden) - num(b.orden));
 }
 
 // Consecutive sets and orders (1..n, 1..k) keeping the current order (accepts fractional sets/orders as
 // insertion markers). Returns copies.
 export function renumerar(lineas) {
   const crudo = lineas.map((l) => {
-    const set = num(l.set), orden = num(l.orden);
+    const set = num(l.set),
+      orden = num(l.orden);
     return { ...normalizarLinea(l), set: Number.isFinite(set) ? set : 1, orden: Number.isFinite(orden) ? orden : 0 };
   });
-  const orden = crudo.slice().sort((a, b) => (a.set - b.set) || (a.orden - b.orden));
+  const orden = crudo.slice().sort((a, b) => a.set - b.set || a.orden - b.orden);
   const mapa = new Map();
   const cnt = new Map();
-  orden.forEach((l) => { if (!mapa.has(l.set)) mapa.set(l.set, mapa.size + 1); });
+  orden.forEach((l) => {
+    if (!mapa.has(l.set)) mapa.set(l.set, mapa.size + 1);
+  });
   return orden.map((l) => {
     const s = mapa.get(l.set);
     cnt.set(s, (cnt.get(s) || 0) + 1);
@@ -203,7 +238,12 @@ export function totales(lineas) {
 // Summary: totals + distinct goals + breakdown per set (for lists and headers).
 export function resumen(lineas) {
   const tot = totales(lineas);
-  const sets = agruparSets(lineas.filter((l) => !filaVacia(normalizarLinea(l)))).map((s) => ({ set: s.set, metros: s.distSet, tiempoMin: s.tiempoMin, filas: s.lineas.length }));
+  const sets = agruparSets(lineas.filter((l) => !filaVacia(normalizarLinea(l)))).map((s) => ({
+    set: s.set,
+    metros: s.distSet,
+    tiempoMin: s.tiempoMin,
+    filas: s.lineas.length,
+  }));
   const objetivos = [];
   ordenarLineas(lineas.map(normalizarLinea)).forEach((l) => {
     const o = l.objetivo.trim();
@@ -215,7 +255,10 @@ export function resumen(lineas) {
 // ---------- Carga registrada ----------
 // Average metres of the loads recorded for the session (0 if none).
 export function cargaRegistrada(cargas, entrenamientoId) {
-  const m = (cargas || []).filter((c) => String(c.entrenamientoId) === String(entrenamientoId)).map((c) => num(c.metros)).filter((x) => Number.isFinite(x) && x > 0);
+  const m = (cargas || [])
+    .filter((c) => String(c.entrenamientoId) === String(entrenamientoId))
+    .map((c) => num(c.metros))
+    .filter((x) => Number.isFinite(x) && x > 0);
   return m.length ? Math.round(m.reduce((a, b) => a + b, 0) / m.length) : 0;
 }
 
@@ -234,8 +277,10 @@ export function validarLinea(l) {
   numerico('series', 'series-no-numerica', { entero: true });
   numerico('distancia', 'distancia-no-numerica');
   numerico('tiempoMin', 'tiempo-no-numerico');
-  if (!vacio(l.salida) && !parsearSalida(l.salida).valido) out.push({ severidad: 'aviso', codigo: 'salida-invalida', campo: 'salida', params: { salida: l.salida }, ...pos });
-  if (!vacio(l.series) && vacio(l.distancia) && Number.isFinite(num(l.series)) && num(l.series) > 0) out.push({ severidad: 'aviso', codigo: 'sin-distancia', campo: 'distancia', ...pos });
+  if (!vacio(l.salida) && !parsearSalida(l.salida).valido)
+    out.push({ severidad: 'aviso', codigo: 'salida-invalida', campo: 'salida', params: { salida: l.salida }, ...pos });
+  if (!vacio(l.series) && vacio(l.distancia) && Number.isFinite(num(l.series)) && num(l.series) > 0)
+    out.push({ severidad: 'aviso', codigo: 'sin-distancia', campo: 'distancia', ...pos });
   return out;
 }
 
@@ -250,9 +295,18 @@ export function validarSesion({ sesion = {}, lineas = [], cargaMedia = 0, tolera
   if (norm.length && car > 0 && Math.abs(tot.metros - car) > car * tolerancia) {
     out.push({ severidad: 'aviso', codigo: 'distancia-difiere-carga', params: { total: tot.metros, registrada: car } });
   }
-  const min = num(sesion.volumenMin), max = num(sesion.volumenMax);
-  if (norm.length && tot.metros > 0 && ((Number.isFinite(min) && min > 0 && tot.metros < min) || (Number.isFinite(max) && max > 0 && tot.metros > max))) {
-    out.push({ severidad: 'aviso', codigo: 'fuera-volumen-objetivo', params: { total: tot.metros, min: Number.isFinite(min) ? min : '', max: Number.isFinite(max) ? max : '' } });
+  const min = num(sesion.volumenMin),
+    max = num(sesion.volumenMax);
+  if (
+    norm.length &&
+    tot.metros > 0 &&
+    ((Number.isFinite(min) && min > 0 && tot.metros < min) || (Number.isFinite(max) && max > 0 && tot.metros > max))
+  ) {
+    out.push({
+      severidad: 'aviso',
+      codigo: 'fuera-volumen-objetivo',
+      params: { total: tot.metros, min: Number.isFinite(min) ? min : '', max: Number.isFinite(max) ? max : '' },
+    });
   }
   const dur = num(sesion.duracionMin);
   if (norm.length && dur > 0 && tot.tiempoMin > dur * 1.2) {
@@ -294,8 +348,13 @@ export function moverFila(lineas, set, orden, delta) {
   const j = i + delta;
   if (j < 0 || j >= base.length) return base;
   const copia = base.slice();
-  const a = copia[i], b = copia[j];
-  if (a.set === b.set) { copia[i] = { ...b, orden: a.orden }; copia[j] = { ...a, orden: b.orden }; return renumerar(copia); }
+  const a = copia[i],
+    b = copia[j];
+  if (a.set === b.set) {
+    copia[i] = { ...b, orden: a.orden };
+    copia[j] = { ...a, orden: b.orden };
+    return renumerar(copia);
+  }
   // crosses into the adjacent set: the row takes the neighbouring set at the corresponding end
   copia[i] = { ...a, set: b.set, orden: delta < 0 ? b.orden + 0.5 : b.orden - 0.5 };
   return renumerar(copia);
@@ -337,60 +396,123 @@ export const camposPlan = (s = {}) => Object.fromEntries(CAMPOS_PLAN.map((c) => 
 
 // ---------- Plantillas ----------
 // ajusta = row that scales when adapting the template to a target volume (planDemo)
-const L = (set, tiempoMin, objetivo, bloque, series, distancia, salida, ejercicio, material = '', notas = '', ajusta = false) =>
-  ({ set, tiempoMin, objetivo, bloque, series, distancia, salida, ejercicio, material, notas, ajusta });
+const L = (
+  set,
+  tiempoMin,
+  objetivo,
+  bloque,
+  series,
+  distancia,
+  salida,
+  ejercicio,
+  material = '',
+  notas = '',
+  ajusta = false,
+) => ({ set, tiempoMin, objetivo, bloque, series, distancia, salida, ejercicio, material, notas, ajusta });
 
 // Contents (names of the predefined catalogue) and per-repetition split of the template rows.
 const N = Object.fromEntries(CATALOGO_PREDEFINIDO.map((c) => [c.clave, c.nombre]));
 const C = (clave, metrosPorRep = null) => ({ contenido: N[clave], metrosPorRep, modo: 'auto' });
 // con(fila, [componentes], estilo | [{estilo, metrosPorRep}]): adds contents and style to a template row
 const con = (fila, componentes, estilo = '') => ({
-  ...fila, componentes,
+  ...fila,
+  componentes,
   estilos: Array.isArray(estilo) ? estilo : estilo ? [{ estilo, metrosPorRep: null }] : [],
 });
 
 // Built-in templates. The visible name is translated with the key `entreno.pl.<id>`; the content is free text.
 export const PLANTILLAS = [
   {
-    id: 'aerobico', tipoSesion: 'Aer+Ritmo', materialDia: 'Tabla, pull',
+    id: 'aerobico',
+    tipoSesion: 'Aer+Ritmo',
+    materialDia: 'Tabla, pull',
     lineas: [
-      con(L(1, 7, 'Calentamiento', '', 1, 300, '', '100 suave + 100 ligero + 100 progresivo'), [C('aerobico-ligero')], 'Crol'),
+      con(
+        L(1, 7, 'Calentamiento', '', 1, 300, '', '100 suave + 100 ligero + 100 progresivo'),
+        [C('aerobico-ligero')],
+        'Crol',
+      ),
       con(L(1, 6, '', '', 4, 50, '', '25 técnica / 25 normal'), [C('tecnica', 25), C('aerobico-ligero', 25)], 'Crol'),
       con(L(1, 4, '', '', 2, 50, '', 'Pn. 25 flecha crol / 25 Pn'), [C('piernas')], 'Crol'),
-      con(L(2, 12, 'Piernas', '', 8, 50, "C/1'10\"", 'Piernas con tabla', 'Tabla'), [C('piernas')], 'Crol'),
-      con(L(3, 14, 'Aeróbico', '', 6, 100, 'd/15"', 'Ritmo uniforme', '', 'Contar brazadas', true), [C('aerobico-medio')], 'Crol'),
-      con(L(3, 10, '', 'Tec Prueba', 4, 100, '', '4x100 Crol. 75 AeL-25 Tope'), [C('aerobico-ligero', 75), C('alactico', 25)], 'Crol'),
+      con(L(2, 12, 'Piernas', '', 8, 50, 'C/1\'10"', 'Piernas con tabla', 'Tabla'), [C('piernas')], 'Crol'),
+      con(
+        L(3, 14, 'Aeróbico', '', 6, 100, 'd/15"', 'Ritmo uniforme', '', 'Contar brazadas', true),
+        [C('aerobico-medio')],
+        'Crol',
+      ),
+      con(
+        L(3, 10, '', 'Tec Prueba', 4, 100, '', '4x100 Crol. 75 AeL-25 Tope'),
+        [C('aerobico-ligero', 75), C('alactico', 25)],
+        'Crol',
+      ),
       con(L(4, 5, 'Vuelta a la calma', '', 1, 200, '', 'Suave'), [C('aerobico-ligero')], 'Estilos'),
     ],
   },
   {
-    id: 'tecnica', tipoSesion: 'Técnica', materialDia: 'Aletas, tubo',
+    id: 'tecnica',
+    tipoSesion: 'Técnica',
+    materialDia: 'Aletas, tubo',
     lineas: [
       con(L(1, 8, 'Calentamiento', '', 1, 400, '', 'Mixto suave'), [C('aerobico-ligero')], 'Estilos'),
-      con(L(2, 16, 'Técnica', 'Brazada', 8, 100, "C/2'00\"", '25 ejercicio / 75 nadando', 'Aletas', '', true), [C('tecnica', 25), C('aerobico-ligero', 75)], 'Crol'),
-      con(L(2, 12, '', 'Virajes', 6, 50, 'd/20"', 'Virajes y salidas bajo el agua'), [C('virajes', 35), C('salidas', 15)], 'Crol'),
+      con(
+        L(2, 16, 'Técnica', 'Brazada', 8, 100, 'C/2\'00"', '25 ejercicio / 75 nadando', 'Aletas', '', true),
+        [C('tecnica', 25), C('aerobico-ligero', 75)],
+        'Crol',
+      ),
+      con(
+        L(2, 12, '', 'Virajes', 6, 50, 'd/20"', 'Virajes y salidas bajo el agua'),
+        [C('virajes', 35), C('salidas', 15)],
+        'Crol',
+      ),
       con(L(3, 10, 'Aeróbico', '', 4, 100, 'd/15"', 'Ritmo cómodo'), [C('aerobico-medio')], 'Crol'),
       con(L(4, 4, 'Vuelta a la calma', '', 1, 200, '', 'Suave'), [C('aerobico-ligero')], 'Estilos'),
     ],
   },
   {
-    id: 'velocidad', tipoSesion: 'Velocidad', materialDia: 'Aletas',
+    id: 'velocidad',
+    tipoSesion: 'Velocidad',
+    materialDia: 'Aletas',
     lineas: [
       con(L(1, 7, 'Calentamiento', '', 1, 400, '', 'Mixto progresivo'), [C('aerobico-ligero')], 'Estilos'),
-      con(L(2, 6, 'Activación', '', 4, 50, "C/1'00\"", 'Progresivos 1-4'), [C('aerobico-ligero')], 'Crol'),
-      con(L(3, 12, 'Velocidad', 'Series rápidas', 8, 25, 'd/45"', 'Máxima velocidad con salida', '', 'Registrar tiempos'), [C('alactico', 15), C('salidas', 10)], 'Crol'),
-      con(L(3, 6, '', '', 4, 50, "d/1'00\"", 'Ritmo de prueba'), [C('anaerobico')], 'Crol'),
-      con(L(4, 7, 'Aeróbico', '', 4, 100, 'd/15"', 'Suave, respiración cada 3', '', '', true), [C('aerobico-ligero')], 'Crol'),
+      con(L(2, 6, 'Activación', '', 4, 50, 'C/1\'00"', 'Progresivos 1-4'), [C('aerobico-ligero')], 'Crol'),
+      con(
+        L(3, 12, 'Velocidad', 'Series rápidas', 8, 25, 'd/45"', 'Máxima velocidad con salida', '', 'Registrar tiempos'),
+        [C('alactico', 15), C('salidas', 10)],
+        'Crol',
+      ),
+      con(L(3, 6, '', '', 4, 50, 'd/1\'00"', 'Ritmo de prueba'), [C('anaerobico')], 'Crol'),
+      con(
+        L(4, 7, 'Aeróbico', '', 4, 100, 'd/15"', 'Suave, respiración cada 3', '', '', true),
+        [C('aerobico-ligero')],
+        'Crol',
+      ),
       con(L(5, 4, 'Vuelta a la calma', '', 1, 200, '', 'Suave'), [C('aerobico-ligero')], 'Estilos'),
     ],
   },
   {
-    id: 'mixta', tipoSesion: 'Mixta', materialDia: 'Tabla, pull, aletas',
+    id: 'mixta',
+    tipoSesion: 'Mixta',
+    materialDia: 'Tabla, pull, aletas',
     lineas: [
-      con(L(1, 8, 'Calentamiento', '', 1, 400, '', '200 crol + 200 estilos'), [C('aerobico-ligero')], [{ estilo: 'Crol', metrosPorRep: 200 }, { estilo: 'Estilos', metrosPorRep: 200 }]),
-      con(L(2, 18, 'Aeróbico', '', 5, 200, "C/3'30\"", 'Crol, respiración alterna', '', '', true), [C('aerobico-medio')], 'Crol'),
-      con(L(3, 12, 'Piernas', '', 6, 50, "C/1'10\"", 'Batido con tabla', 'Tabla'), [C('piernas')], 'Crol'),
-      con(L(3, 10, 'Velocidad', '', 4, 25, 'd/30"', 'Sprint desde salida'), [C('alactico', 15), C('salidas', 10)], 'Mariposa'),
+      con(
+        L(1, 8, 'Calentamiento', '', 1, 400, '', '200 crol + 200 estilos'),
+        [C('aerobico-ligero')],
+        [
+          { estilo: 'Crol', metrosPorRep: 200 },
+          { estilo: 'Estilos', metrosPorRep: 200 },
+        ],
+      ),
+      con(
+        L(2, 18, 'Aeróbico', '', 5, 200, 'C/3\'30"', 'Crol, respiración alterna', '', '', true),
+        [C('aerobico-medio')],
+        'Crol',
+      ),
+      con(L(3, 12, 'Piernas', '', 6, 50, 'C/1\'10"', 'Batido con tabla', 'Tabla'), [C('piernas')], 'Crol'),
+      con(
+        L(3, 10, 'Velocidad', '', 4, 25, 'd/30"', 'Sprint desde salida'),
+        [C('alactico', 15), C('salidas', 10)],
+        'Mariposa',
+      ),
       con(L(4, 5, 'Vuelta a la calma', '', 1, 200, '', 'Suave'), [C('aerobico-ligero')], 'Estilos'),
     ],
   },
@@ -399,7 +521,12 @@ export const plantilla = (id) => PLANTILLAS.find((p) => p.id === id) || null;
 // Template lines already normalised (no ids).
 export function lineasDePlantilla(id, { entrenamientoId = '', genId = () => '' } = {}) {
   const p = plantilla(id);
-  return p ? clonarLineas(p.lineas.map((l, i) => ({ ...l, orden: i + 1 })), { entrenamientoId, genId }) : [];
+  return p
+    ? clonarLineas(
+        p.lineas.map((l, i) => ({ ...l, orden: i + 1 })),
+        { entrenamientoId, genId },
+      )
+    : [];
 }
 
 // Realistic demo plan (like the club's example). `variante` rotates among templates;
@@ -418,7 +545,8 @@ export function planDemo(variante, objetivoM = 0, duracionMin = 0) {
       const resto = tot() - distanciaBloque(l);
       const series = Math.max(1, Math.round((objetivoM - resto) / l.distancia));
       const otros = lineas.reduce((a, x, i) => a + (i === idx ? 0 : Number(x.tiempoMin) || 0), 0);
-      const tiempo = duracionMin > 0 ? Math.round(duracionMin * 0.95) - otros : Math.round(l.tiempoMin * series / l.series);
+      const tiempo =
+        duracionMin > 0 ? Math.round(duracionMin * 0.95) - otros : Math.round((l.tiempoMin * series) / l.series);
       lineas[idx] = { ...l, series, tiempoMin: Math.max(series, tiempo) };
     }
     const fin = lineas.length - 1;
@@ -441,16 +569,22 @@ export function sugerencias(lineas, campo, { extra = [], limite = 40 } = {}) {
     cuenta.set(k, e);
   });
   const res = [...cuenta.values()].sort((a, b) => b.n - a.n || a.valor.localeCompare(b.valor)).map((e) => e.valor);
-  extra.forEach((v) => { if (v && !cuenta.has(String(v).toLowerCase())) res.push(v); });
+  extra.forEach((v) => {
+    if (v && !cuenta.has(String(v).toLowerCase())) res.push(v);
+  });
   return res.slice(0, limite);
 }
 
 // ---------- File names ----------
 export function slug(s) {
-  return String(s ?? '').normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^A-Za-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
+  return String(s ?? '')
+    .normalize('NFD')
+    .replace(/[̀-ͯ]/g, '')
+    .replace(/[^A-Za-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '');
 }
 // Alevin-2026-10-15-jueves.pdf  (dia = name of the day in the active language; optional)
-export function nombreFichero({ grupo = '', fecha = '', dia = '', hora = '' } = {}) {
+export function nombreFichero({ grupo = '', fecha = '', dia = '' } = {}) {
   const partes = [slug(grupo) || 'Entreno', String(fecha).slice(0, 10), slug(dia).toLowerCase()].filter(Boolean);
   return partes.join('-') + '.pdf';
 }
@@ -460,22 +594,46 @@ export function nombreFicheroSemana({ grupo = '', lunes = '' } = {}) {
 
 // "19:50" | "19:50:00" | 0.826 (Sheets day fraction) -> "19:50"
 export function horaTexto(v) {
-  if (typeof v === 'number' && v >= 0 && v < 1) { const m = Math.round(v * 1440); return String(Math.floor(m / 60)).padStart(2, '0') + ':' + String(m % 60).padStart(2, '0'); }
+  if (typeof v === 'number' && v >= 0 && v < 1) {
+    const m = Math.round(v * 1440);
+    return String(Math.floor(m / 60)).padStart(2, '0') + ':' + String(m % 60).padStart(2, '0');
+  }
   const m = /^(\d{1,2}):(\d{2})/.exec(String(v ?? '').trim());
   return m ? m[1].padStart(2, '0') + ':' + m[2] : String(v ?? '');
 }
 
 // ---------- Draft state (unsaved changes) ----------
-const CAMPOS_FIRMA = ['set', 'orden', 'tiempoMin', 'objetivo', 'bloque', 'series', 'distancia', 'salida', 'ejercicio', 'material', 'notas', 'componentes', 'estilo'];
+const CAMPOS_FIRMA = [
+  'set',
+  'orden',
+  'tiempoMin',
+  'objetivo',
+  'bloque',
+  'series',
+  'distancia',
+  'salida',
+  'ejercicio',
+  'material',
+  'notas',
+  'componentes',
+  'estilo',
+];
 
 // Stable text that identifies the content of a plan: ignores ids, empty rows and format differences (3 vs '3').
 // Two drafts with the same signature are the same plan, so "there are unsaved changes" = the signature differs from the saved one.
 export function firmaPlan({ tipoSesion = '', materialDia = '', notasGenerales = '', lineas = [] } = {}) {
-  const filas = renumerar(lineas).filter((l) => !filaVacia(l)).map((l) => {
-    const s = serializarLinea(l);
-    return CAMPOS_FIRMA.map((c) => s[c]);
-  });
-  return JSON.stringify([String(tipoSesion ?? '').trim(), String(materialDia ?? '').trim(), String(notasGenerales ?? '').trim(), filas]);
+  const filas = renumerar(lineas)
+    .filter((l) => !filaVacia(l))
+    .map((l) => {
+      const s = serializarLinea(l);
+      return CAMPOS_FIRMA.map((c) => s[c]);
+    });
+  return JSON.stringify([
+    String(tipoSesion ?? '').trim(),
+    String(materialDia ?? '').trim(),
+    String(notasGenerales ?? '').trim(),
+    filas,
+  ]);
 }
 export const planCambiado = (guardado, actual) => firmaPlan(guardado) !== firmaPlan(actual);
 
@@ -493,7 +651,11 @@ export function resumenFila(l) {
   const n = normalizarLinea(l);
   const txt = (v) => String(v ?? '').trim();
   return {
-    salida: txt(n.salida), material: txt(n.material), tiempoMin: txt(n.tiempoMin), objetivo: txt(n.objetivo),
-    contenidos: n.componentes.length + n.estilos.length, mas: !!(txt(n.bloque) || txt(n.notas)),
+    salida: txt(n.salida),
+    material: txt(n.material),
+    tiempoMin: txt(n.tiempoMin),
+    objetivo: txt(n.objetivo),
+    contenidos: n.componentes.length + n.estilos.length,
+    mas: !!(txt(n.bloque) || txt(n.notas)),
   };
 }

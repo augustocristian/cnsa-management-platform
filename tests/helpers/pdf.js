@@ -23,14 +23,21 @@ export function infoPdf(bytes) {
   const textos = [];
   let i = 0;
   while ((i = crudo.indexOf('stream', i)) >= 0) {
-    if (crudo.slice(i - 3, i) === 'end') { i += 6; continue; }
+    if (crudo.slice(i - 3, i) === 'end') {
+      i += 6;
+      continue;
+    }
     let ini = i + 6;
     if (crudo[ini] === '\r') ini++;
     if (crudo[ini] === '\n') ini++;
     const fin = crudo.indexOf('endstream', ini);
     if (fin < 0) break;
     let data = buf.subarray(ini, fin);
-    try { data = inflateSync(data); } catch (e) { /* uncompressed */ }
+    try {
+      data = inflateSync(data);
+    } catch (e) {
+      /* uncompressed */
+    }
     const s = latin1(data);
     if (/\bBT\b/.test(s)) {
       // Each page is a content stream: text of the Tj operators in order

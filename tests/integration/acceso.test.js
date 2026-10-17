@@ -4,10 +4,18 @@ import { fresh, tick } from '../helpers/app.js';
 import { importApp } from '../helpers/env.js';
 
 let c;
-const test = (name, fn) => base(name, async (t) => { c = await fresh(); return fn(t); });
+const test = (name, fn) =>
+  base(name, async (t) => {
+    c = await fresh();
+    return fn(t);
+  });
 
-const montar = (nodos) => { c.container.replaceChildren(...nodos.flat().filter(Boolean)); return c.container; };
-const botonPorTexto = (root, texto) => [...root.querySelectorAll('button, a')].find((b) => b.textContent.trim() === texto);
+const montar = (nodos) => {
+  c.container.replaceChildren(...nodos.flat().filter(Boolean));
+  return c.container;
+};
+const botonPorTexto = (root, texto) =>
+  [...root.querySelectorAll('button, a')].find((b) => b.textContent.trim() === texto);
 
 test('start screen (Client ID set): value proposition, privacy and ONLY Connect Google Drive; no demo, no account wording', async () => {
   const acceso = await importApp('js/presentation/views/acceso.js');
@@ -35,7 +43,10 @@ test('start screen: the one-off notice that the demo was closed is announced pol
   assert.ok(caja);
   assert.equal(caja.textContent.trim(), aviso);
   assert.ok(root.querySelector('#btn-google'));
-  assert.equal(montar(acceso.login({ auth: { connect: async () => {} }, onConectar: () => {} })).querySelector('#acc-aviso'), null);
+  assert.equal(
+    montar(acceso.login({ auth: { connect: async () => {} }, onConectar: () => {} })).querySelector('#acc-aviso'),
+    null,
+  );
 });
 
 test('start: the language selector is not the first thing in the card and is a button group, not a select', async () => {
@@ -44,7 +55,10 @@ test('start: the language selector is not the first thing in the card and is a b
   assert.equal(root.querySelector('select'), null);
   const grupo = root.querySelector('[role="radiogroup"].lang-switch');
   assert.ok(grupo);
-  assert.deepEqual([...grupo.querySelectorAll('[role="radio"]')].map((b) => b.dataset.lang), ['es', 'en', 'it']);
+  assert.deepEqual(
+    [...grupo.querySelectorAll('[role="radio"]')].map((b) => b.dataset.lang),
+    ['es', 'en', 'it'],
+  );
   assert.notEqual(root.firstElementChild, grupo.closest('.acc-foot'));
   assert.equal(root.lastElementChild, grupo.closest('.acc-foot'), 'in the card footer');
   assert.ok(root.firstElementChild.matches('img.logo-big'));
@@ -54,8 +68,23 @@ test('connect: success calls onConectar; a Google error is explained with an acc
   const acceso = await importApp('js/presentation/views/acceso.js');
   let ok = 0;
   let fallo = true;
-  const auth = { connect: async () => { if (fallo) { const e = new Error('x'); e.code = 'popup-bloqueado'; throw e; } } };
-  const root = montar(acceso.login({ auth, onConectar: () => { ok++; } }));
+  const auth = {
+    connect: async () => {
+      if (fallo) {
+        const e = new Error('x');
+        e.code = 'popup-bloqueado';
+        throw e;
+      }
+    },
+  };
+  const root = montar(
+    acceso.login({
+      auth,
+      onConectar: () => {
+        ok++;
+      },
+    }),
+  );
   const btn = root.querySelector('#btn-google');
   btn.click();
   await tick(5);
@@ -75,18 +104,30 @@ test('connect: success calls onConectar; a Google error is explained with an acc
 
 test('errorGoogle: the current origin appears next to its Copy button in a single aligned row', async () => {
   const acceso = await importApp('js/presentation/views/acceso.js');
-  const e = new Error('origin'); e.code = 'origen-no-autorizado'; e.origin = 'http://localhost:4500';
+  const e = new Error('origin');
+  e.code = 'origen-no-autorizado';
+  e.origin = 'http://localhost:4500';
   const box = acceso.errorGoogle(e);
   const fila = box.querySelector('.acc-copy');
   assert.ok(fila);
   assert.equal(fila.querySelector('code').textContent, 'http://localhost:4500');
-  assert.deepEqual([...fila.children].map((x) => x.tagName), ['CODE', 'BUTTON']);
+  assert.deepEqual(
+    [...fila.children].map((x) => x.tagName),
+    ['CODE', 'BUTTON'],
+  );
 });
 
 test('configuration needed: connection wording (not session), labelled field and accessible error', async () => {
   const acceso = await importApp('js/presentation/views/acceso.js');
   let listo = 0;
-  const root = montar(acceso.configNecesaria({ auth: { connect: async () => {} }, onListo: () => { listo++; } }));
+  const root = montar(
+    acceso.configNecesaria({
+      auth: { connect: async () => {} },
+      onListo: () => {
+        listo++;
+      },
+    }),
+  );
   assert.equal(root.querySelector('h1').textContent, 'Configuración necesaria');
   assert.doesNotMatch(root.textContent, /iniciar sesi|inicia sesi/i);
   assert.ok(root.querySelector('.acc-copy code'));
@@ -96,7 +137,10 @@ test('configuration needed: connection wording (not session), labelled field and
   root.querySelector('#cfg-probar').click();
   await tick(5);
   assert.equal(campo.getAttribute('aria-invalid'), 'true');
-  assert.match(campo.closest('.field').querySelector('.field-error').textContent, /debe terminar en \.apps\.googleusercontent\.com/);
+  assert.match(
+    campo.closest('.field').querySelector('.field-error').textContent,
+    /debe terminar en \.apps\.googleusercontent\.com/,
+  );
   campo.value = '123456-abc.apps.googleusercontent.com';
   root.querySelector('#cfg-probar').click();
   await tick(5);
@@ -106,15 +150,30 @@ test('configuration needed: connection wording (not session), labelled field and
 test('configuration needed (no Client ID): Try the demo is the first action, the owner setup comes below', async () => {
   const acceso = await importApp('js/presentation/views/acceso.js');
   let demo = 0;
-  const root = montar(acceso.configNecesaria({ auth: { connect: async () => {} }, onListo: () => {}, onDemo: () => { demo++; } }));
+  const root = montar(
+    acceso.configNecesaria({
+      auth: { connect: async () => {} },
+      onListo: () => {},
+      onDemo: () => {
+        demo++;
+      },
+    }),
+  );
   const botones = [...root.querySelectorAll('button, a.btn')];
   assert.equal(botones[0].id, 'btn-demo', 'the demo button is the first action');
   assert.equal(botones[0].textContent.trim(), 'Probar la demo');
   assert.ok(botones[0].classList.contains('btn--primary'));
-  assert.match(root.querySelector('.acc-demo-cta').textContent, /Datos de ejemplo guardados solo en este dispositivo; no se envía nada a Drive\./);
+  assert.match(
+    root.querySelector('.acc-demo-cta').textContent,
+    /Datos de ejemplo guardados solo en este dispositivo; no se envía nada a Drive\./,
+  );
   const setup = root.querySelector('.acc-owner');
-  assert.ok(setup && root.querySelector('.acc-demo-cta').compareDocumentPosition(setup) & 4, 'owner setup after the demo');
-  for (const id of ['cfg-tutorial', 'cfg-tutorial-id', 'cfg-clientid', 'cfg-probar']) assert.ok(setup.querySelector('#' + id), id);
+  assert.ok(
+    setup && root.querySelector('.acc-demo-cta').compareDocumentPosition(setup) & 4,
+    'owner setup after the demo',
+  );
+  for (const id of ['cfg-tutorial', 'cfg-tutorial-id', 'cfg-clientid', 'cfg-probar'])
+    assert.ok(setup.querySelector('#' + id), id);
   assert.equal(root.querySelector('#btn-google'), null, 'no Connect button before a Client ID exists');
   assert.equal(root.querySelector('#cfg-volver-demo'), null);
   root.querySelector('#btn-demo').click();
@@ -125,7 +184,15 @@ test('configuration needed (no Client ID): Try the demo is the first action, the
 test('configuration needed reached from the demo: Back to the demo instead of Try the demo, and a note that connecting closes it', async () => {
   const acceso = await importApp('js/presentation/views/acceso.js');
   let volver = 0;
-  const root = montar(acceso.configNecesaria({ auth: { connect: async () => {} }, onListo: () => {}, onVolverDemo: () => { volver++; } }));
+  const root = montar(
+    acceso.configNecesaria({
+      auth: { connect: async () => {} },
+      onListo: () => {},
+      onVolverDemo: () => {
+        volver++;
+      },
+    }),
+  );
   assert.equal(root.querySelector('#btn-demo'), null);
   const b = root.querySelector('#cfg-volver-demo');
   assert.equal(b.textContent.trim(), 'Volver a la demo');
@@ -139,7 +206,15 @@ test('wizard: accessible inline errors, live colour preview and no jumps when ad
   const acceso = await importApp('js/presentation/views/acceso.js');
   let creado = null;
   let redibujo = null;
-  const p = acceso.asistente({ mount: (n) => montar(n), crear: async (d) => { creado = d; }, redibujar: (fn) => { redibujo = fn; } });
+  const p = acceso.asistente({
+    mount: (n) => montar(n),
+    crear: async (d) => {
+      creado = d;
+    },
+    redibujar: (fn) => {
+      redibujo = fn;
+    },
+  });
   const root = c.container;
   assert.ok(redibujo);
   assert.match(root.textContent, /Paso 1 de 2/);
@@ -177,15 +252,22 @@ test('wizard: if Drive fails when creating the club the Google error is shown as
   let intentos = 0;
   acceso.asistente({
     mount: (n) => montar(n),
-    crear: async () => { intentos++; const e = new Error('Drive off'); e.code = 'api-desactivada'; throw e; },
+    crear: async () => {
+      intentos++;
+      const e = new Error('Drive off');
+      e.code = 'api-desactivada';
+      throw e;
+    },
     redibujar: () => {},
   });
   const root = c.container;
   const nombre = root.querySelector('#as-nombre');
   nombre.value = 'Club';
   nombre.dispatchEvent(new window.Event('input', { bubbles: true }));
-  root.querySelector('#as-siguiente').click(); await tick(5);
-  root.querySelector('#as-siguiente').click(); await tick(10);
+  root.querySelector('#as-siguiente').click();
+  await tick(5);
+  root.querySelector('#as-siguiente').click();
+  await tick(10);
   assert.equal(intentos, 1);
   assert.ok(root.querySelector('.alert.alert--danger[data-codigo="api-desactivada"]'));
   assert.equal(root.querySelector('#as-siguiente').disabled, false);
@@ -194,7 +276,19 @@ test('wizard: if Drive fails when creating the club the Google error is shown as
 test('club selector: uses "Desconectar Drive", no email or account', async () => {
   const acceso = await importApp('js/presentation/views/acceso.js');
   let elegido = null;
-  const root = montar(acceso.selector({ clubes: [{ id: 'a', name: 'Club A' }, { id: 'b', name: 'Club B' }], onElegir: (x) => { elegido = x; }, onCrear: () => {}, onSalir: () => {} }));
+  const root = montar(
+    acceso.selector({
+      clubes: [
+        { id: 'a', name: 'Club A' },
+        { id: 'b', name: 'Club B' },
+      ],
+      onElegir: (x) => {
+        elegido = x;
+      },
+      onCrear: () => {},
+      onSalir: () => {},
+    }),
+  );
   assert.ok(botonPorTexto(root, 'Desconectar Drive'));
   assert.doesNotMatch(root.textContent, /@|sesi[oó]n|cuenta/i);
   root.querySelectorAll('.club-item')[1].click();

@@ -17,13 +17,24 @@ export function parseHex(c) {
   if (typeof c !== 'string') return null;
   const s = c.trim();
   let m = /^#?([0-9a-f]{6})$/i.exec(s);
-  if (m) { const n = parseInt(m[1], 16); return [n >> 16, (n >> 8) & 255, n & 255]; }
+  if (m) {
+    const n = parseInt(m[1], 16);
+    return [n >> 16, (n >> 8) & 255, n & 255];
+  }
   m = /^#?([0-9a-f])([0-9a-f])([0-9a-f])$/i.exec(s);
   if (m) return m.slice(1, 4).map((x) => parseInt(x + x, 16));
   return null;
 }
 
-export const toHex = (a) => '#' + a.map((v) => Math.max(0, Math.min(255, Math.round(v))).toString(16).padStart(2, '0')).join('');
+export const toHex = (a) =>
+  '#' +
+  a
+    .map((v) =>
+      Math.max(0, Math.min(255, Math.round(v)))
+        .toString(16)
+        .padStart(2, '0'),
+    )
+    .join('');
 export const mezclar = (a, b, t) => a.map((v, i) => v + (b[i] - v) * t);
 
 // WCAG 2.x relative luminance (0 black .. 1 white).

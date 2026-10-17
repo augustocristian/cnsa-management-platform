@@ -35,12 +35,15 @@ const SANEADORES = {
   clubes: (v) => {
     if (!Array.isArray(v)) return undefined;
     const vistos = new Set();
-    return v.filter((c) => esObjeto(c) && esTexto(c.id) && !vistos.has(c.id) && vistos.add(c.id))
+    return v
+      .filter((c) => esObjeto(c) && esTexto(c.id) && !vistos.has(c.id) && vistos.add(c.id))
       .map((c) => ({ id: c.id, name: typeof c.name === 'string' ? c.name.slice(0, 200) : '' }));
   },
   tutorial: (v) => {
     if (!esObjeto(v)) return undefined;
-    const done = Array.isArray(v.done) ? [...new Set(v.done.filter((n) => entero(n) && n >= 1 && n <= 50))].sort((a, b) => a - b) : [];
+    const done = Array.isArray(v.done)
+      ? [...new Set(v.done.filter((n) => entero(n) && n >= 1 && n <= 50))].sort((a, b) => a - b)
+      : [];
     return { done, current: entero(v.current) && v.current >= 1 && v.current <= 50 ? v.current : 1 };
   },
   'calendario.vista': (v) => (VISTAS_CALENDARIO.includes(v) ? v : undefined),
@@ -53,11 +56,14 @@ const SANEADORES = {
 export function sanear(clave, valor) {
   if (valor === null) return null; // tombstone
   if (SANEADORES[clave]) return SANEADORES[clave](valor);
-  if (clave.startsWith(CLAVES.calSync)) return esObjeto(valor) && esObjeto(valor.items) ? { items: valor.items, ultima: valor.ultima || null } : undefined;
+  if (clave.startsWith(CLAVES.calSync))
+    return esObjeto(valor) && esObjeto(valor.items) ? { items: valor.items, ultima: valor.ultima || null } : undefined;
   return valor === undefined ? undefined : valor;
 }
 
-export function vacias() { return { version: VERSION, valores: {}, marcas: {} }; }
+export function vacias() {
+  return { version: VERSION, valores: {}, marcas: {} };
+}
 
 // Accepts anything (corrupt file, future version...) and returns well-formed preferences.
 export function normalizar(raw) {

@@ -1,7 +1,8 @@
 // Testi di Avvisi e note e Impostazioni (italiano).
 export default {
   'comu.titulo': 'Avvisi e note',
-  'comu.ayuda': 'I tuoi avvisi e note del club, salvati nel tuo Drive. L\'app non invia nulla a nessuno: copia il testo per inoltrarlo dal canale che usi (email, messaggistica...).',
+  'comu.ayuda':
+    "I tuoi avvisi e note del club, salvati nel tuo Drive. L'app non invia nulla a nessuno: copia il testo per inoltrarlo dal canale che usi (email, messaggistica...).",
   'comu.copiar': 'Copia',
   'comu.errCopiar': 'Impossibile copiare il testo',
   'comu.nuevo': 'Nuovo avviso',
@@ -19,14 +20,15 @@ export default {
   'comu.eliminar': 'Elimina',
   'comu.eliminado': 'Avviso eliminato',
   'comu.restaurado': 'Avviso ripristinato',
-  'comu.copiar-aria': 'Copia l\'avviso «{titulo}»',
-  'comu.eliminar-aria': 'Elimina l\'avviso «{titulo}»',
+  'comu.copiar-aria': "Copia l'avviso «{titulo}»",
+  'comu.eliminar-aria': "Elimina l'avviso «{titulo}»",
   'comu.vacio-titulo': 'Ancora nessun avviso',
-  'comu.vacio-texto': 'Scrivi il primo: resta salvato nel tuo Drive e puoi copiarlo per inoltrarlo dal tuo canale abituale.',
+  'comu.vacio-texto':
+    'Scrivi il primo: resta salvato nel tuo Drive e puoi copiarlo per inoltrarlo dal tuo canale abituale.',
   'comu.vacio-filtro': 'Non ci sono avvisi per questo filtro.',
   'comu.crear-primero': 'Scrivi un avviso',
   'comu.err.titulo-obligatorio': 'Scrivi un titolo',
-  'comu.err.texto-obligatorio': 'Scrivi il testo dell\'avviso',
+  'comu.err.texto-obligatorio': "Scrivi il testo dell'avviso",
   'comu.publicado': 'Avviso salvato',
   'comu.rel.hoy': 'oggi',
   'comu.rel.ayer': 'ieri',
@@ -48,7 +50,8 @@ export default {
   'club.colorPrimario': 'Colore primario',
   'club.colorSecundario': 'Colore secondario',
   'club.datos': 'Dati e Google Drive',
-  'club.demo-nota': 'Sei nella demo: i dati esistono solo su questo dispositivo e non vengono salvati su Drive. Collega Google Drive per salvare i tuoi.',
+  'club.demo-nota':
+    'Sei nella demo: i dati esistono solo su questo dispositivo e non vengono salvati su Drive. Collega Google Drive per salvare i tuoi.',
   'club.solo-drive': 'Disponibile dopo aver collegato Google Drive.',
   'club.sincronizar': 'Sincronizza',
   'club.sincronizado': 'Sincronizzato',

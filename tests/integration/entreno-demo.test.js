@@ -7,11 +7,18 @@ import { infoPdf, libNode } from '../helpers/pdf.js';
 const { newId } = await importApp('js/infrastructure/ids.js');
 
 let c;
-const test = (name, fn) => base(name, async (t) => { c = await fresh(); return fn(t); });
+const test = (name, fn) =>
+  base(name, async (t) => {
+    c = await fresh();
+    return fn(t);
+  });
 const pad = (n) => String(n).padStart(2, '0');
-const hoyIso = () => { const d = new Date(); return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`; };
+const hoyIso = () => {
+  const d = new Date();
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+};
 
-test('seedDemo: today\'s and upcoming sessions come with a detailed plan consistent with their volume; past ones do not', async () => {
+test("seedDemo: today's and upcoming sessions come with a detailed plan consistent with their volume; past ones do not", async () => {
   const D = await importApp('js/domain/entreno.js');
   const hoy = hoyIso();
   const sesiones = c.store.list('Entrenamientos');
@@ -24,14 +31,26 @@ test('seedDemo: today\'s and upcoming sessions come with a detailed plan consist
     assert.ok(ls.length >= 5, `${s.titulo}: ${ls.length} rows`);
     assert.ok(s.tipoSesion && s.materialDia, 'session type and material of the day');
     const tot = D.totales(ls);
-    assert.ok(tot.metros >= Number(s.volumenMin) && tot.metros <= Number(s.volumenMax), `${s.titulo}: ${tot.metros} m outside ${s.volumenMin}-${s.volumenMax}`);
+    assert.ok(
+      tot.metros >= Number(s.volumenMin) && tot.metros <= Number(s.volumenMax),
+      `${s.titulo}: ${tot.metros} m outside ${s.volumenMin}-${s.volumenMax}`,
+    );
     assert.deepEqual(D.validarSesion({ sesion: s, lineas: ls }), [], s.titulo);
     const objetivos = ls.map((l) => String(l.objetivo).toLowerCase());
-    assert.ok(objetivos.some((o) => o.includes('calentamiento')), 'calentamiento');
-    assert.ok(objetivos.some((o) => o.includes('vuelta a la calma')), 'vuelta a la calma');
+    assert.ok(
+      objetivos.some((o) => o.includes('calentamiento')),
+      'calentamiento',
+    );
+    assert.ok(
+      objetivos.some((o) => o.includes('vuelta a la calma')),
+      'vuelta a la calma',
+    );
   }
   for (const s of pasadas) assert.equal(lineas.filter((l) => l.entrenamientoId === s.id).length, 0);
-  assert.ok(lineas.every((l) => sesiones.some((s) => s.id === l.entrenamientoId)), 'no orphan lines');
+  assert.ok(
+    lineas.every((l) => sesiones.some((s) => s.id === l.entrenamientoId)),
+    'no orphan lines',
+  );
   const ids = lineas.map((l) => l.id);
   assert.equal(new Set(ids).size, ids.length, 'unique ids');
 });
@@ -47,7 +66,9 @@ test('today there is a session with a complete plan and its PDF is generated wit
   assert.ok(ficha.sets.length >= 4);
   const { crearEtiquetasPdf } = await importApp('js/application/etiquetasPdf.js');
   const { t, locale } = await importApp('js/presentation/i18n/i18n.js');
-  const r = await P.generar([ficha], crearEtiquetasPdf({ t, locale: locale(), ahora: new Date(2026, 9, 15, 18, 0) }), { lib: libNode() });
+  const r = await P.generar([ficha], crearEtiquetasPdf({ t, locale: locale(), ahora: new Date(2026, 9, 15, 18, 0) }), {
+    lib: libNode(),
+  });
   const info = infoPdf(r.bytes);
   assert.equal(info.paginas, 1);
   assert.ok(info.texto.includes('TOTALES'));
@@ -66,23 +87,60 @@ test('the Entrenamientos view shows the plan summary of the demo sessions', asyn
 test('persistence: the plan travels in the club document and old data (without the new columns) is read', async () => {
   const { dataToDoc, docToData, hashData } = await importApp('js/domain/sheetdata.js');
   const { SHEETS } = await importApp('js/domain/schema.js');
-  assert.deepEqual(SHEETS.EntrenoLineas, ['id', 'entrenamientoId', 'set', 'orden', 'tiempoMin', 'objetivo', 'bloque', 'series', 'distancia', 'salida', 'ejercicio', 'material', 'notas', 'componentes', 'estilo']);
-  for (const col of ['tipoSesion', 'materialDia', 'notasGenerales']) assert.ok(SHEETS.Entrenamientos.includes(col), col);
-  const data = { db: Object.fromEntries(Object.keys(SHEETS).filter((s) => s !== 'Club').map((s) => [s, c.store.list(s)])), club: { ...c.store.club } };
+  assert.deepEqual(SHEETS.EntrenoLineas, [
+    'id',
+    'entrenamientoId',
+    'set',
+    'orden',
+    'tiempoMin',
+    'objetivo',
+    'bloque',
+    'series',
+    'distancia',
+    'salida',
+    'ejercicio',
+    'material',
+    'notas',
+    'componentes',
+    'estilo',
+  ]);
+  for (const col of ['tipoSesion', 'materialDia', 'notasGenerales'])
+    assert.ok(SHEETS.Entrenamientos.includes(col), col);
+  const data = {
+    db: Object.fromEntries(
+      Object.keys(SHEETS)
+        .filter((s) => s !== 'Club')
+        .map((s) => [s, c.store.list(s)]),
+    ),
+    club: { ...c.store.club },
+  };
   const doc = dataToDoc(data);
   assert.ok(doc.hojas.EntrenoLineas.length > 20);
   const vuelta = docToData(JSON.parse(JSON.stringify(doc)));
   assert.deepEqual(vuelta.db.EntrenoLineas, data.db.EntrenoLineas);
   assert.equal(hashData(vuelta), hashData(data));
   // document predating this feature: sessions without the new columns and without the EntrenoLineas sheet
-  const antiguo = { version: 1, club: { nombre: 'Viejo' }, hojas: { Entrenamientos: [{ id: 'e1', fecha: '2026-01-05', hora: '18:00', titulo: 'Antigua', grupoId: '', estado: 'realizado' }] } };
+  const antiguo = {
+    version: 1,
+    club: { nombre: 'Viejo' },
+    hojas: {
+      Entrenamientos: [
+        { id: 'e1', fecha: '2026-01-05', hora: '18:00', titulo: 'Antigua', grupoId: '', estado: 'realizado' },
+      ],
+    },
+  };
   const d = docToData(antiguo);
   assert.equal(d.db.Entrenamientos[0].tipoSesion, '');
   assert.equal(d.db.Entrenamientos[0].materialDia, '');
   assert.equal(d.db.Entrenamientos[0].notasGenerales, '');
   assert.deepEqual(d.db.EntrenoLineas, []);
   const { crearEntrenoService } = await importApp('js/application/entrenoService.js');
-  const repo = { list: (h) => d.db[h] || [], get: (h, id) => (d.db[h] || []).find((r) => r.id === id) || null, upsert: (h, r) => r, remove: () => {} };
+  const repo = {
+    list: (h) => d.db[h] || [],
+    get: (h, id) => (d.db[h] || []).find((r) => r.id === id) || null,
+    upsert: (h, r) => r,
+    remove: () => {},
+  };
   const svc = crearEntrenoService(repo, { genId: newId, club: () => d.club });
   assert.equal(svc.tienePlan('e1'), false);
   assert.deepEqual(svc.ficha('e1').sets, []);

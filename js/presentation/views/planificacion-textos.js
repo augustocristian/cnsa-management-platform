@@ -3,7 +3,8 @@
 import { t } from '../i18n/i18n.js';
 import { nombreDia, fmtCorta } from './formatos-fecha.js';
 
-export const textoCalles = (desde, hasta) => (desde === hasta ? t('plan.calle-una', { n: desde }) : t('plan.calles-rango', { desde, hasta }));
+export const textoCalles = (desde, hasta) =>
+  desde === hasta ? t('plan.calle-una', { n: desde }) : t('plan.calles-rango', { desde, hasta });
 
 // Translated message of a domain conflict.
 export function mensajeConflicto(c) {
@@ -17,10 +18,20 @@ export const nombreGrupoDe = (grupos, gid) => (grupos.find((g) => g.id === gid) 
 
 // Screen-reader description of a grid block / list item.
 export function descripcionBloque(a, grupos) {
-  return t('plan.bloque-aria', { grupo: nombreGrupoDe(grupos, a.grupoId), dia: nombreDia(a.dia), ini: a.horaInicio, fin: a.horaFin, calles: textoCalles(a.calleDesde, a.calleHasta) });
+  return t('plan.bloque-aria', {
+    grupo: nombreGrupoDe(grupos, a.grupoId),
+    dia: nombreDia(a.dia),
+    ini: a.horaInicio,
+    fin: a.horaFin,
+    calles: textoCalles(a.calleDesde, a.calleHasta),
+  });
 }
 
 // Full accessible label: description + severity + one-off date.
 export function etiquetaBloque(a, grupos, sev) {
-  return descripcionBloque(a, grupos) + (sev ? '. ' + t('plan.sev.' + sev) : '') + (a.fecha ? '. ' + t('plan.puntual', { fecha: fmtCorta(a.fecha) }) : '');
+  return (
+    descripcionBloque(a, grupos) +
+    (sev ? '. ' + t('plan.sev.' + sev) : '') +
+    (a.fecha ? '. ' + t('plan.puntual', { fecha: fmtCorta(a.fecha) }) : '')
+  );
 }

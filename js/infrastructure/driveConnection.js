@@ -34,14 +34,40 @@ let tokenInFlight = null; // token request in flight: concurrent ones share a si
 let authorized = false; // the person already authorized the app (mirrors the localStorage flag)
 let connecting = false;
 
-const ls = () => { try { return globalThis.localStorage || null; } catch (e) { return null; } };
-const leerFlag = () => { try { return ls()?.getItem(AUTH_FLAG_KEY) === '1'; } catch (e) { return false; } };
+const ls = () => {
+  try {
+    return globalThis.localStorage || null;
+  } catch (e) {
+    return null;
+  }
+};
+const leerFlag = () => {
+  try {
+    return ls()?.getItem(AUTH_FLAG_KEY) === '1';
+  } catch (e) {
+    return false;
+  }
+};
 function guardarFlag(on) {
-  try { const s = ls(); if (s) { if (on) s.setItem(AUTH_FLAG_KEY, '1'); else s.removeItem(AUTH_FLAG_KEY); } } catch (e) { /* ignore */ }
+  try {
+    const s = ls();
+    if (s) {
+      if (on) s.setItem(AUTH_FLAG_KEY, '1');
+      else s.removeItem(AUTH_FLAG_KEY);
+    }
+  } catch (e) {
+    /* ignore */
+  }
 }
 
 function emit() {
-  listeners.forEach((fn) => { try { fn(driveConnection.state); } catch (e) { console.error(e); } });
+  listeners.forEach((fn) => {
+    try {
+      fn(driveConnection.state);
+    } catch (e) {
+      console.error(e);
+    }
+  });
 }
 
 function loadGis() {
@@ -52,7 +78,10 @@ function loadGis() {
     s.src = 'https://accounts.google.com/gsi/client';
     s.async = true;
     s.onload = () => resolve();
-    s.onerror = () => { gisPromise = null; reject(Object.assign(new Error('Could not load Google Identity Services'), { code: 'sin-gis' })); };
+    s.onerror = () => {
+      gisPromise = null;
+      reject(Object.assign(new Error('Could not load Google Identity Services'), { code: 'sin-gis' }));
+    };
     document.head.appendChild(s);
   });
   return gisPromise;
@@ -60,7 +89,16 @@ function loadGis() {
 
 function saveToken(t) {
   tokenData = t;
-  if (driveConnection.expired) { driveConnection.expired = false; expiredListeners.forEach((fn) => { try { fn(false); } catch (e) { console.error(e); } }); }
+  if (driveConnection.expired) {
+    driveConnection.expired = false;
+    expiredListeners.forEach((fn) => {
+      try {
+        fn(false);
+      } catch (e) {
+        console.error(e);
+      }
+    });
+  }
 }
 
 function validToken() {
@@ -78,7 +116,11 @@ function connectionError(raw) {
 
 async function buildTokenClient(clientId) {
   await loadGis();
-  tokenClient = window.google.accounts.oauth2.initTokenClient({ client_id: clientId, scope: SCOPES, callback: () => {} });
+  tokenClient = window.google.accounts.oauth2.initTokenClient({
+    client_id: clientId,
+    scope: SCOPES,
+    callback: () => {},
+  });
   tokenClientId = clientId;
   return tokenClient;
 }
@@ -90,17 +132,29 @@ function requestToken(prompt) {
   if (tokenInFlight) return tokenInFlight;
   const limite = prompt === 'none' ? tiempos.silencioso : tiempos.interactivo;
   tokenInFlight = new Promise((resolve, reject) => {
-    const timer = setTimeout(() => reject(connectionError({ code: 'timeout', message: 'Google does not answer' })), limite);
-    const fin = (fn, v) => { clearTimeout(timer); fn(v); };
+    const timer = setTimeout(
+      () => reject(connectionError({ code: 'timeout', message: 'Google does not answer' })),
+      limite,
+    );
+    const fin = (fn, v) => {
+      clearTimeout(timer);
+      fn(v);
+    };
     tokenClient.callback = (resp) => {
       if (resp.error) return fin(reject, connectionError(resp));
       saveToken({ access_token: resp.access_token, expires: Date.now() + (Number(resp.expires_in) || 3600) * 1000 });
       fin(resolve, resp.access_token);
     };
     tokenClient.error_callback = (err) => fin(reject, connectionError(err));
-    try { tokenClient.requestAccessToken({ prompt }); } catch (e) { fin(reject, connectionError(e)); }
+    try {
+      tokenClient.requestAccessToken({ prompt });
+    } catch (e) {
+      fin(reject, connectionError(e));
+    }
   });
-  const libera = () => { tokenInFlight = null; };
+  const libera = () => {
+    tokenInFlight = null;
+  };
   tokenInFlight.then(libera, libera);
   return tokenInFlight;
 }
@@ -109,7 +163,9 @@ export const driveConnection = {
   tiempos,
 
   // true when a Client ID is configured (without it the app cannot connect to Drive; it can still run in demo mode).
-  get enabled() { return !!cfg.GOOGLE_CLIENT_ID; },
+  get enabled() {
+    return !!cfg.GOOGLE_CLIENT_ID;
+  },
 
   // disconnected | connecting | connected | expired
   get state() {
@@ -128,15 +184,27 @@ export const driveConnection = {
     try {
       sessionStorage.removeItem(TOKEN_KEY); // earlier versions stored the token here
       ls()?.removeItem(LEGACY_USER_KEY); // earlier versions remembered a profile here
-    } catch (e) { /* ignore */ }
-    if (!cfg.GOOGLE_CLIENT_ID) { authorized = false; loadGis().catch(() => {}); return; }
+    } catch (e) {
+      /* ignore */
+    }
+    if (!cfg.GOOGLE_CLIENT_ID) {
+      authorized = false;
+      loadGis().catch(() => {});
+      return;
+    }
     authorized = leerFlag();
     if (authorized) emit();
-    try { await buildTokenClient(cfg.GOOGLE_CLIENT_ID); } catch (e) { console.warn(e); }
+    try {
+      await buildTokenClient(cfg.GOOGLE_CLIENT_ID);
+    } catch (e) {
+      console.warn(e);
+    }
   },
 
   // Has the person already authorized the app to use their Drive? (A token may still need a silent renewal: see ensureToken.)
-  isConnected() { return authorized; },
+  isConnected() {
+    return authorized;
+  },
 
   // Connects to Google Drive (authorization only).
   //  - interactive true (default): opens Google's consent window (call FROM A CLICK: the browser blocks windows not opened
@@ -154,7 +222,9 @@ export const driveConnection = {
     try {
       try {
         if (!tokenClient || tokenClientId !== id) await buildTokenClient(id);
-      } catch (e) { throw connectionError(e); }
+      } catch (e) {
+        throw connectionError(e);
+      }
       await requestToken(interactive ? (authorized ? '' : 'consent') : 'none');
       if (id !== cfg.GOOGLE_CLIENT_ID) cfg.setClientId(id);
       authorized = true;
@@ -174,33 +244,63 @@ export const driveConnection = {
   disconnect() {
     const tokens = [validToken(), ...[...scopeTokens.values()].map((x) => x.access_token)].filter(Boolean);
     if (window.google && window.google.accounts && window.google.accounts.oauth2) {
-      tokens.forEach((tk) => { try { window.google.accounts.oauth2.revoke(tk, () => {}); } catch (e) { /* ignore */ } });
+      tokens.forEach((tk) => {
+        try {
+          window.google.accounts.oauth2.revoke(tk, () => {});
+        } catch (e) {
+          /* ignore */
+        }
+      });
     }
     scopeTokens.clear();
     tokenData = null;
     authorized = false;
     driveConnection.expired = false;
     guardarFlag(false);
-    try { sessionStorage.removeItem(TOKEN_KEY); ls()?.removeItem(LEGACY_USER_KEY); } catch (e) { /* ignore */ }
+    try {
+      sessionStorage.removeItem(TOKEN_KEY);
+      ls()?.removeItem(LEGACY_USER_KEY);
+    } catch (e) {
+      /* ignore */
+    }
     emit();
   },
 
   // Spanish aliases used by the shell and older tests (same state).
-  get caducada() { return driveConnection.expired; },
-  set caducada(v) { driveConnection.expired = !!v; },
-  marcarCaducada() { driveConnection.markExpired(); },
-  reconectar() { return driveConnection.connect({ interactive: true }); },
+  get caducada() {
+    return driveConnection.expired;
+  },
+  set caducada(v) {
+    driveConnection.expired = !!v;
+  },
+  marcarCaducada() {
+    driveConnection.markExpired();
+  },
+  reconectar() {
+    return driveConnection.connect({ interactive: true });
+  },
 
   markExpired() {
     if (driveConnection.expired) return;
     driveConnection.expired = true;
-    expiredListeners.forEach((fn) => { try { fn(true); } catch (e) { console.error(e); } });
+    expiredListeners.forEach((fn) => {
+      try {
+        fn(true);
+      } catch (e) {
+        console.error(e);
+      }
+    });
     emit();
   },
-  onExpired(fn) { expiredListeners.add(fn); return () => expiredListeners.delete(fn); },
+  onExpired(fn) {
+    expiredListeners.add(fn);
+    return () => expiredListeners.delete(fn);
+  },
 
   // Current token (synchronous) or null.
-  token() { return validToken(); },
+  token() {
+    return validToken();
+  },
 
   // Current token or silent renewal; null if that is not possible (offline, no previous consent...).
   async ensureToken() {
@@ -212,7 +312,9 @@ export const driveConnection = {
       if (!tokenClient) await driveConnection.init();
       if (!tokenClient) return null;
       return await requestToken('none');
-    } catch (e) { return null; }
+    } catch (e) {
+      return null;
+    }
   },
 
   // Token for an additional scope (e.g. calendar.events). interactive = true opens Google's consent window (call it from a
@@ -226,23 +328,36 @@ export const driveConnection = {
       await loadGis();
       return await new Promise((resolve, reject) => {
         const tc = window.google.accounts.oauth2.initTokenClient({
-          client_id: cfg.GOOGLE_CLIENT_ID, scope, include_granted_scopes: true,
+          client_id: cfg.GOOGLE_CLIENT_ID,
+          scope,
+          include_granted_scopes: true,
           callback: (resp) => {
             if (resp.error) return reject(connectionError(resp));
-            scopeTokens.set(scope, { access_token: resp.access_token, expires: Date.now() + (Number(resp.expires_in) || 3600) * 1000 });
+            scopeTokens.set(scope, {
+              access_token: resp.access_token,
+              expires: Date.now() + (Number(resp.expires_in) || 3600) * 1000,
+            });
             resolve(resp.access_token);
           },
           error_callback: (err) => reject(connectionError(err)),
         });
         tc.requestAccessToken({ prompt: interactive ? (hit ? '' : 'consent') : 'none' });
       });
-    } catch (e) { if (interactive) throw e; return null; }
+    } catch (e) {
+      if (interactive) throw e;
+      return null;
+    }
   },
 
-  invalidate() { tokenData = null; },
+  invalidate() {
+    tokenData = null;
+  },
 
   // Listener of connection state changes: fn(state). -> unsubscribe
-  onChange(fn) { listeners.add(fn); return () => listeners.delete(fn); },
+  onChange(fn) {
+    listeners.add(fn);
+    return () => listeners.delete(fn);
+  },
 };
 
 export default driveConnection;

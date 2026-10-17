@@ -8,7 +8,11 @@ export const INICIO = 'inicio';
 
 export const GRUPOS = [
   { id: 'personas', titulo: 'nav.grupo.personas', rutas: ['nadadores', 'grupos'] },
-  { id: 'entrenamiento', titulo: 'nav.grupo.entrenamiento', rutas: ['entrenamientos', 'asistencia', 'calendario', 'planificacion', 'cargas', 'marcas'] },
+  {
+    id: 'entrenamiento',
+    titulo: 'nav.grupo.entrenamiento',
+    rutas: ['entrenamientos', 'asistencia', 'calendario', 'planificacion', 'cargas', 'marcas'],
+  },
   { id: 'club', titulo: 'nav.grupo.club', rutas: ['comunicaciones', 'club', 'tutorial'] },
 ];
 
@@ -30,9 +34,9 @@ export const resolverRuta = (name) => REDIRECCIONES[name] || name;
 
 // Groups shown in the "More" sheet (items already in the bottom bar removed; empty groups dropped).
 export function gruposMas() {
-  return GRUPOS
-    .map((g) => ({ ...g, rutas: g.rutas.filter((r) => !BARRA_MOVIL.includes(r)) }))
-    .filter((g) => g.rutas.length);
+  return GRUPOS.map((g) => ({ ...g, rutas: g.rutas.filter((r) => !BARRA_MOVIL.includes(r)) })).filter(
+    (g) => g.rutas.length,
+  );
 }
 
 // Is `name` reachable only through "More" on mobile?

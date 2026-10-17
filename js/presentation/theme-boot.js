@@ -3,7 +3,9 @@
 // The source of truth is preferencias.json in the user's Drive (see js/presentation/theme.js).
 (function () {
   try {
-    var t = localStorage.getItem('cnl:tema');
+    const t = localStorage.getItem('cnl:tema');
     if (t === 'light' || t === 'dark') document.documentElement.setAttribute('data-theme', t);
-  } catch (e) { /* storage blocked: automatic mode */ }
+  } catch (e) {
+    /* storage blocked: automatic mode */
+  }
 })();

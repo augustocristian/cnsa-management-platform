@@ -8,8 +8,10 @@ export const HOJA = 'Asistencia';
 export function crearAsistenciaService(repo, { ahora } = {}) {
   const hoy = () => fechaDeDate(ahora());
   // Bulk operations use ONE write when the repository offers it (the store does: a single sync/emit).
-  const guardarVarias = (filas) => (repo.upsertMany ? repo.upsertMany(HOJA, filas) : filas.map((f) => repo.upsert(HOJA, f)));
-  const quitarVarias = (ids) => (repo.removeMany ? repo.removeMany(HOJA, ids) : ids.forEach((id) => repo.remove(HOJA, id)));
+  const guardarVarias = (filas) =>
+    repo.upsertMany ? repo.upsertMany(HOJA, filas) : filas.map((f) => repo.upsert(HOJA, f));
+  const quitarVarias = (ids) =>
+    repo.removeMany ? repo.removeMany(HOJA, ids) : ids.forEach((id) => repo.remove(HOJA, id));
   const registrosDe = (sesionId) => repo.list(HOJA).filter((a) => a.entrenamientoId === sesionId);
 
   const svc = {
@@ -40,7 +42,11 @@ export function crearAsistenciaService(repo, { ahora } = {}) {
         return { previo, actual: null };
       }
       if (!D.esEstado(estado)) throw new Error('invalid attendance state: ' + estado);
-      const fila = { ...(previo || { entrenamientoId: sesionId, nadadorId }), estado, nota: nota ?? (previo ? previo.nota : '') ?? '' };
+      const fila = {
+        ...(previo || { entrenamientoId: sesionId, nadadorId }),
+        estado,
+        nota: nota ?? (previo ? previo.nota : '') ?? '',
+      };
       return { previo, actual: repo.upsert(HOJA, fila) };
     },
     // One tap on a state button: first tap sets it, tapping the same state again clears it.
@@ -58,13 +64,26 @@ export function crearAsistenciaService(repo, { ahora } = {}) {
     marcarTodos(sesionId, estado = 'presente', locale = 'es') {
       const m = svc.lista(sesionId, locale);
       if (!m) return [];
-      const nuevas = D.planMarcarTodos(m.filas.map((f) => f.nadador), registrosDe(sesionId), sesionId, estado);
+      const nuevas = D.planMarcarTodos(
+        m.filas.map((f) => f.nadador),
+        registrosDe(sesionId),
+        sesionId,
+        estado,
+      );
       return nuevas.length ? guardarVarias(nuevas) : [];
     },
-    deshacerVarias(registros) { if (registros.length) quitarVarias(registros.map((r) => r.id)); },
+    deshacerVarias(registros) {
+      if (registros.length) quitarVarias(registros.map((r) => r.id));
+    },
 
     historial({ grupoId = '', locale = 'es' } = {}) {
-      return D.historial({ nadadores: repo.list('Nadadores'), sesiones: repo.list('Entrenamientos'), registros: repo.list(HOJA), grupoId, locale });
+      return D.historial({
+        nadadores: repo.list('Nadadores'),
+        sesiones: repo.list('Entrenamientos'),
+        registros: repo.list(HOJA),
+        grupoId,
+        locale,
+      });
     },
   };
   return svc;

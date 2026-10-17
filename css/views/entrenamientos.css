@@ -1,27 +1,118 @@
 /* Training sessions view (js/presentation/views/entrenamientos*.js). Tokens only; works in light and dark. */
-.ent-bar { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--sp-2) var(--sp-3); margin-bottom: var(--sp-2); }
-.ent-nav { display: flex; align-items: center; gap: var(--sp-1); min-width: 0; }
-.ent-week { min-width: 0; padding: 0 var(--sp-2); font-weight: 650; text-align: center; white-space: nowrap; }
-.ent-filtros { display: flex; flex: 1 1 260px; align-items: center; justify-content: flex-end; gap: var(--sp-2); min-width: 0; }
-.ent-filtros select { flex: 1 1 140px; max-width: 280px; min-width: 0; }
-.ent-filtros .btn { flex: none; }
-.ent-total { margin: 0 0 var(--sp-3); color: var(--muted); font-size: var(--fs-sm); }
-.ent-dias { display: grid; gap: var(--sp-3); }
-.ent-day { padding-block: var(--sp-3); }
-.ent-day-titulo { margin: 0 0 var(--sp-2); font-size: var(--fs-h3); text-transform: capitalize; }
-.ent-today .ent-day-titulo { color: var(--c-accent); }
-.ent-empty { margin: 0; color: var(--muted); font-size: var(--fs-sm); }
-.ent-sess { display: grid; grid-template-columns: 3.2rem minmax(0, 1fr) auto; align-items: start; gap: var(--sp-2) var(--sp-3); padding: var(--sp-3) 0; border-top: 1px solid var(--border); }
-.ent-time { font-weight: 700; padding-top: 2px; }
-.ent-main { min-width: 0; }
-.ent-title { font-weight: 650; overflow-wrap: anywhere; }
-.ent-meta { display: flex; flex-wrap: wrap; align-items: center; gap: var(--sp-1) var(--sp-2); margin-top: var(--sp-1); color: var(--muted); font-size: var(--fs-sm); }
-.ent-desc { display: block; }
-.ent-act { display: flex; align-items: center; gap: var(--sp-1); }
+.ent-bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--sp-2) var(--sp-3);
+  margin-bottom: var(--sp-2);
+}
+.ent-nav {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-1);
+  min-width: 0;
+}
+.ent-week {
+  min-width: 0;
+  padding: 0 var(--sp-2);
+  font-weight: 650;
+  text-align: center;
+  white-space: nowrap;
+}
+.ent-filtros {
+  display: flex;
+  flex: 1 1 260px;
+  align-items: center;
+  justify-content: flex-end;
+  gap: var(--sp-2);
+  min-width: 0;
+}
+.ent-filtros select {
+  flex: 1 1 140px;
+  max-width: 280px;
+  min-width: 0;
+}
+.ent-filtros .btn {
+  flex: none;
+}
+.ent-total {
+  margin: 0 0 var(--sp-3);
+  color: var(--muted);
+  font-size: var(--fs-sm);
+}
+.ent-dias {
+  display: grid;
+  gap: var(--sp-3);
+}
+.ent-day {
+  padding-block: var(--sp-3);
+}
+.ent-day-titulo {
+  margin: 0 0 var(--sp-2);
+  font-size: var(--fs-h3);
+  text-transform: capitalize;
+}
+.ent-today .ent-day-titulo {
+  color: var(--c-accent);
+}
+.ent-empty {
+  margin: 0;
+  color: var(--muted);
+  font-size: var(--fs-sm);
+}
+.ent-sess {
+  display: grid;
+  grid-template-columns: 3.2rem minmax(0, 1fr) auto;
+  align-items: start;
+  gap: var(--sp-2) var(--sp-3);
+  padding: var(--sp-3) 0;
+  border-top: 1px solid var(--border);
+}
+.ent-time {
+  font-weight: 700;
+  padding-top: 2px;
+}
+.ent-main {
+  min-width: 0;
+}
+.ent-title {
+  font-weight: 650;
+  overflow-wrap: anywhere;
+}
+.ent-meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--sp-1) var(--sp-2);
+  margin-top: var(--sp-1);
+  color: var(--muted);
+  font-size: var(--fs-sm);
+}
+.ent-desc {
+  display: block;
+}
+.ent-act {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-1);
+}
 @media (max-width: 560px) {
-  .ent-sess { grid-template-columns: 3rem minmax(0, 1fr); }
-  .ent-act { grid-column: 1 / -1; }
-  .ent-act .btn--primary { flex: 1 1 auto; min-height: var(--touch); }
-  .ent-filtros { flex-basis: 100%; justify-content: stretch; }
-  .ent-filtros select { max-width: none; }
+  .ent-sess {
+    grid-template-columns: 3rem minmax(0, 1fr);
+  }
+  .ent-act {
+    grid-column: 1 / -1;
+  }
+  .ent-act .btn--primary {
+    flex: 1 1 auto;
+    min-height: var(--touch);
+  }
+  .ent-filtros {
+    flex-basis: 100%;
+    justify-content: stretch;
+  }
+  .ent-filtros select {
+    max-width: none;
+  }
 }

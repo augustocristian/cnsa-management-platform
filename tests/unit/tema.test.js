@@ -1,10 +1,33 @@
 // Contrast and derivation of the club colour (js/domain/tema.js): the chosen colour must never make text unreadable.
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { parseHex, toHex, luminancia, contraste, colorSobrePrimario, variablesTema, ajustarContraste, SUPERFICIES, BLANCO, NEGRO_TEXTO, DEFECTO } from '../../js/domain/tema.js';
+import {
+  parseHex,
+  toHex,
+  luminancia,
+  contraste,
+  colorSobrePrimario,
+  variablesTema,
+  ajustarContraste,
+  SUPERFICIES,
+  BLANCO,
+  NEGRO_TEXTO,
+  DEFECTO,
+} from '../../js/domain/tema.js';
 
 const HEX = /^#[0-9a-f]{6}$/;
-const PROBLEMATICOS = ['#ffd600', '#4fc3f7', '#2ecc71', '#000000', '#ffffff', '#777777', '#e91e63', '#ff9800', '#9e9e9e', '#00bcd4'];
+const PROBLEMATICOS = [
+  '#ffd600',
+  '#4fc3f7',
+  '#2ecc71',
+  '#000000',
+  '#ffffff',
+  '#777777',
+  '#e91e63',
+  '#ff9800',
+  '#9e9e9e',
+  '#00bcd4',
+];
 
 test('WCAG luminance and contrast ratio', () => {
   assert.equal(luminancia([255, 255, 255]), 1);
@@ -12,7 +35,10 @@ test('WCAG luminance and contrast ratio', () => {
   assert.equal(Math.round(contraste([0, 0, 0], BLANCO) * 100) / 100, 21);
   assert.equal(contraste([10, 20, 30], [10, 20, 30]), 1);
   assert.ok(Math.abs(contraste(parseHex('#777777'), BLANCO) - 4.48) < 0.02, '#777 on white ~4.48');
-  assert.ok(Math.abs(contraste(BLANCO, parseHex('#777777')) - contraste(parseHex('#777777'), BLANCO)) < 1e-9, 'symmetric');
+  assert.ok(
+    Math.abs(contraste(BLANCO, parseHex('#777777')) - contraste(parseHex('#777777'), BLANCO)) < 1e-9,
+    'symmetric',
+  );
 });
 
 test('text tokens meet the required contrasts (light and dark)', () => {
@@ -28,8 +54,25 @@ test('parseHex accepts #rgb and #rrggbb and rejects anything else', () => {
   assert.deepEqual(parseHex('#fff'), [255, 255, 255]);
   assert.deepEqual(parseHex('1A73E8'), [26, 115, 232]);
   assert.deepEqual(parseHex('  #0b3d91 '), [11, 61, 145]);
-  const malas = ['', null, undefined, 42, {}, 'red', 'rgb(0,0,0)', '#12', '#12345', '#1234567', '#gggggg', 'url(javascript:alert(1))',
-    '#ffd600;background:url(//evil)', '#fff</style><script>', 'var(--x)', '#fff !important', 'expression(alert(1))'];
+  const malas = [
+    '',
+    null,
+    undefined,
+    42,
+    {},
+    'red',
+    'rgb(0,0,0)',
+    '#12',
+    '#12345',
+    '#1234567',
+    '#gggggg',
+    'url(javascript:alert(1))',
+    '#ffd600;background:url(//evil)',
+    '#fff</style><script>',
+    'var(--x)',
+    '#fff !important',
+    'expression(alert(1))',
+  ];
   for (const mala of malas) assert.equal(parseHex(mala), null, String(mala));
 });
 
@@ -39,7 +82,13 @@ test('toHex rounds and clamps', () => {
 });
 
 test('colorSobrePrimario: white or #111 with contrast >= 4.5 for problematic colours', () => {
-  const casos = { '#ffd600': NEGRO_TEXTO, '#4fc3f7': NEGRO_TEXTO, '#2ecc71': NEGRO_TEXTO, '#000000': BLANCO, '#1a73e8': BLANCO };
+  const casos = {
+    '#ffd600': NEGRO_TEXTO,
+    '#4fc3f7': NEGRO_TEXTO,
+    '#2ecc71': NEGRO_TEXTO,
+    '#000000': BLANCO,
+    '#1a73e8': BLANCO,
+  };
   for (const [hex, on] of Object.entries(casos)) {
     const r = colorSobrePrimario(parseHex(hex));
     assert.deepEqual(r.on, on, hex);
@@ -47,7 +96,10 @@ test('colorSobrePrimario: white or #111 with contrast >= 4.5 for problematic col
   }
   for (const hex of PROBLEMATICOS) {
     const { action, on } = colorSobrePrimario(parseHex(hex));
-    assert.ok(contraste(action, on) >= 4.5, `${hex} -> ${toHex(action)} / ${toHex(on)} = ${contraste(action, on).toFixed(2)}`);
+    assert.ok(
+      contraste(action, on) >= 4.5,
+      `${hex} -> ${toHex(action)} / ${toHex(on)} = ${contraste(action, on).toFixed(2)}`,
+    );
   }
 });
 
@@ -59,7 +111,10 @@ test('colorSobrePrimario darkens the primary when neither white nor #111 passes'
   assert.deepEqual(on, BLANCO);
   assert.ok(luminancia(action) < luminancia(orig), 'darker than the original');
   assert.ok(contraste(action, BLANCO) >= 4.5);
-  assert.ok(action.every((v, i) => v <= orig[i] + 1), 'it only darkens, the hue does not change');
+  assert.ok(
+    action.every((v, i) => v <= orig[i] + 1),
+    'it only darkens, the hue does not change',
+  );
 });
 
 test('ajustarContraste: keeps what already passes and converges to the target', () => {
@@ -100,13 +155,28 @@ test('variablesTema: invalid or malicious input falls back to the default colour
   const defecto = variablesTema({}, 'light');
   assert.equal(defecto['--c-primary'], DEFECTO.primario);
   assert.equal(defecto['--c-secondary'], DEFECTO.secundario);
-  for (const mala of ['red', '#12', 'url(x)', '#fff;}body{display:none', 'javascript:alert(1)', null, undefined, 123, {}, ['#fff']]) {
+  for (const mala of [
+    'red',
+    '#12',
+    'url(x)',
+    '#fff;}body{display:none',
+    'javascript:alert(1)',
+    null,
+    undefined,
+    123,
+    {},
+    ['#fff'],
+  ]) {
     const v = variablesTema({ primario: mala, secundario: mala }, 'dark');
     assert.deepEqual(v, variablesTema({}, 'dark'), String(mala));
     for (const val of Object.values(v)) assert.match(val, HEX);
   }
   assert.deepEqual(variablesTema(undefined, 'light'), defecto);
-  assert.deepEqual(variablesTema({ primario: '#ffd600' }, 'banana'), variablesTema({ primario: '#ffd600' }, 'light'), 'unknown mode = light');
+  assert.deepEqual(
+    variablesTema({ primario: '#ffd600' }, 'banana'),
+    variablesTema({ primario: '#ffd600' }, 'light'),
+    'unknown mode = light',
+  );
 });
 
 test('variablesTema: a sweep of 600 colours always passes', () => {

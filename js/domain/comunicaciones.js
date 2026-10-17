@@ -7,7 +7,8 @@ export const DIAS_RELATIVOS = 7;
 
 // Newest first (notices of the same day keep the most recently added first). Returns a new array.
 export function ordenarAvisos(avisos) {
-  return avisos.map((a, i) => [a, i])
+  return avisos
+    .map((a, i) => [a, i])
     .sort(([a, i], [b, j]) => String(b.fecha || '').localeCompare(String(a.fecha || '')) || j - i)
     .map(([a]) => a);
 }
@@ -37,7 +38,8 @@ export const textoParaCopiar = (aviso) => `${aviso.titulo}\n\n${aviso.texto}`;
 
 // Whole days from `fecha` to `hoyIso` (null when a date is invalid).
 export function diasDesde(fecha, hoyIso) {
-  const a = parseFecha(fecha), b = parseFecha(hoyIso);
+  const a = parseFecha(fecha),
+    b = parseFecha(hoyIso);
   if (!a || !b) return null;
   return Math.round((Date.UTC(b.y, b.m - 1, b.d) - Date.UTC(a.y, a.m - 1, a.d)) / 86400000);
 }

@@ -20,7 +20,10 @@ export function crearClubService(repo, { cargarDrive = null } = {}) {
     // Club file in Drive: {nombre, ficheroUrl|null}. Without a Drive reference (demo mode) there is no link.
     ubicacion() {
       const ref = repo.clubRef;
-      return { nombre: club().nombre || (ref && ref.name) || '', ficheroUrl: ref && ref.id ? urlFicheroDrive(ref.id) : null };
+      return {
+        nombre: club().nombre || (ref && ref.name) || '',
+        ficheroUrl: ref && ref.id ? urlFicheroDrive(ref.id) : null,
+      };
     },
 
     // URL of the `cnl` folder in Drive (it is resolved, and created if missing, on demand).

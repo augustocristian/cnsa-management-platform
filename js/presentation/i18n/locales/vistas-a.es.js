@@ -1,8 +1,13 @@
 // Textos de las vistas Inicio, Nadadores, Grupos (español).
 export default {
   'inicio.bienvenida': '¡Bienvenido, Entrenador!',
-  'inicio.dia.0': 'Lun', 'inicio.dia.1': 'Mar', 'inicio.dia.2': 'Mié', 'inicio.dia.3': 'Jue',
-  'inicio.dia.4': 'Vie', 'inicio.dia.5': 'Sáb', 'inicio.dia.6': 'Dom',
+  'inicio.dia.0': 'Lun',
+  'inicio.dia.1': 'Mar',
+  'inicio.dia.2': 'Mié',
+  'inicio.dia.3': 'Jue',
+  'inicio.dia.4': 'Vie',
+  'inicio.dia.5': 'Sáb',
+  'inicio.dia.6': 'Dom',
   'inicio.acceso-rapido': 'Acceso rápido',
   'inicio.grafico-titulo': 'Control de cargas semanal del club',
   'inicio.grafico-aria': 'Control de cargas semanal',
@@ -86,7 +91,8 @@ export default {
   'nadadores.d-notas': 'Notas',
   'nadadores.ficha-datos': 'Datos',
   'nadadores.privacidad': 'Privacidad (RGPD)',
-  'nadadores.privacidad-texto': 'Exporta todos los datos de este nadador o bórralo de forma definitiva, también de Drive.',
+  'nadadores.privacidad-texto':
+    'Exporta todos los datos de este nadador o bórralo de forma definitiva, también de Drive.',
   'nadadores.asistencia': 'Asistencia',
   'nadadores.sin-asistencia': 'Sin registros de asistencia.',
   'nadadores.st-presente': 'Presente',
@@ -134,5 +140,4 @@ export default {
   'grupos.sin-grupo': 'Sin grupo',
   'grupos.sin-grupo-texto': 'Nadadores activos sin grupo asignado.',
   'grupos.miembros-aria': 'Nadadores del grupo {nombre}',
-
 };

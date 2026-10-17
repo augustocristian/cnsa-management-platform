@@ -6,15 +6,25 @@ import { chooseInMenu, sessionForm } from './entrenamientos.steps.js';
 
 // Fields of a plan row (keys are the UI labels). `chip` is the chip that opens the inline pane holding the input (none = visible in the first line).
 const FIELDS = {
-  'Tiempo': { field: 'tiempoMin', chip: 'tiempoMin' }, 'Objetivo': { field: 'objetivo', chip: 'objetivo' }, 'Bloques': { field: 'bloque', chip: 'mas' },
-  'Series': { field: 'series' }, 'Distancia': { field: 'distancia' }, 'Salida': { field: 'salida', chip: 'salida' },
-  'Ejercicio': { field: 'ejercicio' }, 'Material': { field: 'material', chip: 'material' }, 'Notas': { field: 'notas', chip: 'mas' },
+  Tiempo: { field: 'tiempoMin', chip: 'tiempoMin' },
+  Objetivo: { field: 'objetivo', chip: 'objetivo' },
+  Bloques: { field: 'bloque', chip: 'mas' },
+  Series: { field: 'series' },
+  Distancia: { field: 'distancia' },
+  Salida: { field: 'salida', chip: 'salida' },
+  Ejercicio: { field: 'ejercicio' },
+  Material: { field: 'material', chip: 'material' },
+  Notas: { field: 'notas', chip: 'mas' },
 };
 const SUMMARY = /\d+ m · \d+ min/;
 const stripAccents = (s) => s.normalize('NFD').replace(/[̀-ͯ]/g, '');
 const pad = (n) => String(n).padStart(2, '0');
 const isoLocal = (d) => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
-const thisMonday = () => { const d = new Date(); d.setDate(d.getDate() - ((d.getDay() + 6) % 7)); return isoLocal(d); };
+const thisMonday = () => {
+  const d = new Date();
+  d.setDate(d.getDate() - ((d.getDay() + 6) % 7));
+  return isoLocal(d);
+};
 const esc = (s) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 const compact = (s) => String(s).replace(/\s+/g, '');
 const PDF_ACTION = 'pdf';
@@ -31,14 +41,21 @@ const rowField = (world, set, order, label) => {
 async function visibleField(world, set, order, label) {
   const field = rowField(world, set, order, label);
   const def = FIELDS[label];
-  if (def.chip && !(await field.isVisible())) await planRow(world, set, order).locator(`[data-chip="${def.chip}"]`).click();
+  if (def.chip && !(await field.isVisible()))
+    await planRow(world, set, order).locator(`[data-chip="${def.chip}"]`).click();
   return field;
 }
 async function openDetails(world, selector) {
-  await editor(world).locator(selector).evaluate((d) => { d.open = true; });
+  await editor(world)
+    .locator(selector)
+    .evaluate((d) => {
+      d.open = true;
+    });
 }
 async function lastSet(world) {
-  const sets = await editor(world).locator('.enp-set').evaluateAll((els) => els.map((e) => Number(e.dataset.set)));
+  const sets = await editor(world)
+    .locator('.enp-set')
+    .evaluateAll((els) => els.map((e) => Number(e.dataset.set)));
   assert.ok(sets.length, 'The plan has no sets');
   return Math.max(...sets);
 }
@@ -57,7 +74,8 @@ const editorMenu = async (world, id) => {
 // First session of the group with a plan (today or later) in the visible week or the next ones.
 async function findSession(world, group) {
   for (let attempt = 0; attempt < 3; attempt++) {
-    const rows = world.view.locator('.ent-day .ent-sess')
+    const rows = world.view
+      .locator('.ent-day .ent-sess')
       .filter({ has: world.page.locator('.ent-meta .badge:first-child', { hasText: new RegExp(`^${esc(group)}$`) }) })
       .filter({ hasText: SUMMARY });
     if (await rows.count()) {
@@ -74,8 +92,12 @@ async function findSession(world, group) {
 }
 async function referenceRow(world) {
   assert.ok(world.ref, 'There is no reference session');
-  return world.view.locator('.ent-day').filter({ has: world.page.locator('h2', { hasText: world.ref.dayText }) })
-    .locator('.ent-sess').filter({ hasText: world.ref.title }).first();
+  return world.view
+    .locator('.ent-day')
+    .filter({ has: world.page.locator('h2', { hasText: world.ref.dayText }) })
+    .locator('.ent-sess')
+    .filter({ hasText: world.ref.title })
+    .first();
 }
 async function openPlan(world, row) {
   await row.locator('[data-accion="abrir-plan"]').click();
@@ -97,7 +119,10 @@ When('I open the plan of the reference session', async function () {
   await openPlan(this, await referenceRow(this));
 });
 When('I open the plan of the session {string}', async function (title) {
-  const row = this.view.locator('.ent-sess').filter({ has: this.page.locator('.ent-title', { hasText: title }) }).first();
+  const row = this.view
+    .locator('.ent-sess')
+    .filter({ has: this.page.locator('.ent-title', { hasText: title }) })
+    .first();
   await openPlan(this, row);
 });
 When('I generate the PDF of the next session of the group {string}', async function (group) {
@@ -109,7 +134,13 @@ When('I generate the PDF of the week', async function () {
   await capture(this, async () => {
     await this.view.locator('[data-accion="pdf-semana"]').click();
     const warning = this.page.locator('.modal').getByRole('button', { name: 'Aceptar' });
-    if (await warning.waitFor({ state: 'visible', timeout: 1500 }).then(() => true, () => false)) await warning.click();
+    if (
+      await warning.waitFor({ state: 'visible', timeout: 1500 }).then(
+        () => true,
+        () => false,
+      )
+    )
+      await warning.click();
   });
 });
 When('I duplicate the next session of the group {string}', async function (group) {
@@ -121,7 +152,9 @@ When('I duplicate the next session of the group {string}', async function (group
 
 // ---------- Editor ----------
 Then('the plan has at least {int} sets', async function (n) {
-  await this.eventually(async () => assert.ok((await editor(this).locator('.enp-set').count()) >= n, `Sets: fewer than ${n}`));
+  await this.eventually(async () =>
+    assert.ok((await editor(this).locator('.enp-set').count()) >= n, `Sets: fewer than ${n}`),
+  );
 });
 Then('the plan total matches the sum of the sets', async function () {
   await this.eventually(async () => {
@@ -132,7 +165,9 @@ Then('the plan total matches the sum of the sets', async function () {
     assert.ok(total > 0);
   });
 });
-When('I note the current plan total', async function () { this.previousTotal = await totalMetres(this); });
+When('I note the current plan total', async function () {
+  this.previousTotal = await totalMetres(this);
+});
 Then('the plan total has changed', async function () {
   await this.eventually(async () => assert.notEqual(await totalMetres(this), this.previousTotal));
 });
@@ -148,24 +183,34 @@ When('I put {string} in {string} of the plan', async function (value, label) {
 });
 Then('the plan field {string} is {string}', async function (label, value) {
   await openDetails(this, 'details.enp-datos');
-  await this.eventually(async () => assert.equal(await editor(this).locator('.enp-meta').getByLabel(label).inputValue(), value));
+  await this.eventually(async () =>
+    assert.equal(await editor(this).locator('.enp-meta').getByLabel(label).inputValue(), value),
+  );
 });
 Then('row {int} of set {int} has {string} in {string}', async function (row, set, value, label) {
   await this.eventually(async () => assert.equal(await rowField(this, set, row, label).inputValue(), value));
 });
 Then('the block distance of row {int} of set {int} is {string}', async function (row, set, value) {
-  await this.eventually(async () => assert.equal((await planRow(this, set, row).locator('output').innerText()).trim(), value));
+  await this.eventually(async () =>
+    assert.equal((await planRow(this, set, row).locator('output').innerText()).trim(), value),
+  );
 });
 Then('the block distance of row {int} of the last set is {string}', async function (row, value) {
   const set = await lastSet(this);
-  await this.eventually(async () => assert.equal((await planRow(this, set, row).locator('output').innerText()).trim(), value));
+  await this.eventually(async () =>
+    assert.equal((await planRow(this, set, row).locator('output').innerText()).trim(), value),
+  );
 });
 Then('set {int} adds up to {string}', async function (set, text) {
-  await this.eventually(async () => assert.ok((await editor(this).locator(`.enp-set[data-set="${set}"] .enp-set-tot`).innerText()).includes(text)));
+  await this.eventually(async () =>
+    assert.ok((await editor(this).locator(`.enp-set[data-set="${set}"] .enp-set-tot`).innerText()).includes(text)),
+  );
 });
 Then('the last set adds up to {string}', async function (text) {
   const set = await lastSet(this);
-  await this.eventually(async () => assert.ok((await editor(this).locator(`.enp-set[data-set="${set}"] .enp-set-tot`).innerText()).includes(text)));
+  await this.eventually(async () =>
+    assert.ok((await editor(this).locator(`.enp-set[data-set="${set}"] .enp-set-tot`).innerText()).includes(text)),
+  );
 });
 When('I add a set to the plan', async function () {
   const before = await editor(this).locator('.enp-set').count();
@@ -173,21 +218,30 @@ When('I add a set to the plan', async function () {
   await this.eventually(async () => assert.equal(await editor(this).locator('.enp-set').count(), before + 1));
 });
 When('I duplicate set {int} of the plan', async function (set) {
-  await editor(this).getByRole('button', { name: `Acciones del set ${set}`, exact: true }).click();
+  await editor(this)
+    .getByRole('button', { name: `Acciones del set ${set}`, exact: true })
+    .click();
   await this.page.getByRole('menuitem', { name: `Duplicar el set ${set}`, exact: true }).click();
 });
 When('I remove row {int} of set {int}', async function (row, set) {
-  await planRow(this, set, row).getByRole('button', { name: `Acciones de la fila (Set ${set}, fila ${row})`, exact: true }).click();
+  await planRow(this, set, row)
+    .getByRole('button', { name: `Acciones de la fila (Set ${set}, fila ${row})`, exact: true })
+    .click();
   await this.page.getByRole('menuitem', { name: `Quitar fila (Set ${set}, fila ${row})`, exact: true }).click();
 });
 When('I leave the field {string} of row {int} of set {int}', async function (label, row, set) {
   await (await visibleField(this, set, row, label)).evaluate((el) => el.blur());
 });
 Then('row {int} of set {int} flags an error in {string}', async function (row, set, label) {
-  await this.eventually(async () => assert.equal(await rowField(this, set, row, label).getAttribute('aria-invalid'), 'true'));
+  await this.eventually(async () =>
+    assert.equal(await rowField(this, set, row, label).getAttribute('aria-invalid'), 'true'),
+  );
 });
 Then('I see the plan notice {string}', async function (text) {
-  await this.expectVisible(editor(this).locator('.enp-avisos li', { hasText: text }), `There is no plan notice "${text}"`);
+  await this.expectVisible(
+    editor(this).locator('.enp-avisos li', { hasText: text }),
+    `There is no plan notice "${text}"`,
+  );
 });
 When('I save the plan', async function () {
   await editor(this).getByRole('button', { name: 'Guardar', exact: true }).click();
@@ -200,8 +254,12 @@ When('I close the plan and discard the changes', async function () {
   await editor(this).locator('.enp-head .icon-btn').click();
   await this.page.locator('.modal').getByRole('button', { name: 'Aceptar' }).click();
 });
-Then('the plan is still open', async function () { await this.expectVisible(editor(this).locator('.enp-panel')); });
-Then('the plan is closed', async function () { await this.expectHidden(editor(this).locator('.enp-panel')); });
+Then('the plan is still open', async function () {
+  await this.expectVisible(editor(this).locator('.enp-panel'));
+});
+Then('the plan is closed', async function () {
+  await this.expectHidden(editor(this).locator('.enp-panel'));
+});
 Then('I see the confirmation dialog {string}', async function (text) {
   await this.expectVisible(this.page.locator('.modal', { hasText: text }), `There is no dialog with "${text}"`);
 });
@@ -226,22 +284,34 @@ When('I copy the plan of the first available session', async function () {
   await editor(this).getByRole('button', { name: 'Copiar plan', exact: true }).click();
 });
 Then('the session {string} shows its metres and minutes summary', async function (title) {
-  const row = this.view.locator('.ent-sess').filter({ has: this.page.locator('.ent-title', { hasText: title }) }).first();
+  const row = this.view
+    .locator('.ent-sess')
+    .filter({ has: this.page.locator('.ent-title', { hasText: title }) })
+    .first();
   await this.eventually(async () => assert.match(await row.innerText(), SUMMARY));
 });
 Then('there are {int} sessions equal to the reference one with a plan summary', async function (n) {
   await this.eventually(async () => {
-    const rows = this.view.locator('.ent-day').filter({ has: this.page.locator('h2', { hasText: this.ref.dayText }) })
-      .locator('.ent-sess').filter({ hasText: this.ref.title }).filter({ hasText: SUMMARY });
+    const rows = this.view
+      .locator('.ent-day')
+      .filter({ has: this.page.locator('h2', { hasText: this.ref.dayText }) })
+      .locator('.ent-sess')
+      .filter({ hasText: this.ref.title })
+      .filter({ hasText: SUMMARY });
     assert.equal(await rows.count(), n);
   });
 });
 
 // ---------- Compact rows, bottom bar, unsaved changes ----------
 Then('no plan row is taller than {int} px', async function (max) {
-  const heights = await editor(this).locator('.enp-row').evaluateAll((els) => els.map((e) => Math.round(e.getBoundingClientRect().height)));
+  const heights = await editor(this)
+    .locator('.enp-row')
+    .evaluateAll((els) => els.map((e) => Math.round(e.getBoundingClientRect().height)));
   assert.ok(heights.length > 0);
-  assert.ok(heights.every((a) => a <= max), `Row heights: ${heights}`);
+  assert.ok(
+    heights.every((a) => a <= max),
+    `Row heights: ${heights}`,
+  );
 });
 Then('when the plan opens no field has the focus', async function () {
   const role = await this.page.evaluate(() => document.activeElement && document.activeElement.getAttribute('role'));
@@ -288,7 +358,9 @@ When('I generate the PDF of the open plan', async function () {
 });
 When('I try to generate the PDF of the open plan', async function () {
   this.hasDownload = false;
-  this.page.once('download', () => { this.hasDownload = true; });
+  this.page.once('download', () => {
+    this.hasDownload = true;
+  });
   await editorMenu(this, PDF_ACTION);
 });
 Then('no PDF is downloaded', async function () {
@@ -302,7 +374,9 @@ Then('the PDF {string} is downloaded', async function (name) {
 });
 Then('the PDF of the reference session is downloaded with the name {string}', async function (pattern) {
   assert.ok(this.download, 'Nothing has been downloaded');
-  const re = new RegExp('^' + esc(pattern).replace('YYYY-MM-DD', '\\d{4}-\\d{2}-\\d{2}').replace('weekday', esc(this.ref.day)) + '$');
+  const re = new RegExp(
+    '^' + esc(pattern).replace('YYYY-MM-DD', '\\d{4}-\\d{2}-\\d{2}').replace('weekday', esc(this.ref.day)) + '$',
+  );
   assert.match(this.download.name, re);
 });
 Then('the PDF is valid and has {int} page(s)', async function (n) {
@@ -313,7 +387,10 @@ Then('the PDF contains {string}', async function (text) {
   assert.ok(compact(this.download.info.texto).includes(compact(text)), `The PDF does not contain «${text}»`);
 });
 Then('the PDF has as many pages as sessions shown in the week', async function () {
-  const txt = await this.view.getByText(/\d+ sesiones esta semana/).first().innerText();
+  const txt = await this.view
+    .getByText(/\d+ sesiones esta semana/)
+    .first()
+    .innerText();
   const n = Number(/(\d+) sesiones/.exec(txt)[1]);
   assert.ok(n > 0);
   assert.equal(this.download.info.paginas, n);
@@ -334,7 +411,9 @@ When('I generate the PDF of the open plan confirming the warning', async functio
 });
 When('I try to generate the PDF of the open plan and cancel the warning', async function () {
   this.hasDownload = false;
-  this.page.once('download', () => { this.hasDownload = true; });
+  this.page.once('download', () => {
+    this.hasDownload = true;
+  });
   await editorMenu(this, PDF_ACTION);
   await this.page.locator('.modal').getByRole('button', { name: 'Cancelar' }).click();
 });
@@ -344,14 +423,32 @@ When('I try to generate the PDF of the open plan and cancel the warning', async 
 Given('I use a touch device', async function () {
   await this.page.evaluate(() => {
     const original = window.matchMedia.bind(window);
-    window.matchMedia = (q) => (/pointer:\s*coarse/.test(q) ? { matches: true, media: q, addEventListener() {}, removeEventListener() {}, addListener() {}, removeListener() {} } : original(q));
+    window.matchMedia = (q) =>
+      /pointer:\s*coarse/.test(q)
+        ? {
+            matches: true,
+            media: q,
+            addEventListener() {},
+            removeEventListener() {},
+            addListener() {},
+            removeListener() {},
+          }
+        : original(q);
   });
 });
 When('my device can share files', async function () {
   await this.page.evaluate(() => {
     window.__shared = [];
-    Object.defineProperty(navigator, 'canShare', { value: (d) => !!(d && d.files && d.files.length), configurable: true });
-    Object.defineProperty(navigator, 'share', { value: async (d) => { window.__shared.push({ name: d.files[0].name, type: d.files[0].type, bytes: d.files[0].size }); }, configurable: true });
+    Object.defineProperty(navigator, 'canShare', {
+      value: (d) => !!(d && d.files && d.files.length),
+      configurable: true,
+    });
+    Object.defineProperty(navigator, 'share', {
+      value: async (d) => {
+        window.__shared.push({ name: d.files[0].name, type: d.files[0].type, bytes: d.files[0].size });
+      },
+      configurable: true,
+    });
   });
 });
 Then('the menu offers {string} and not {string}', async function (yes, no) {
@@ -369,7 +466,10 @@ Then('a PDF file whose name starts with {string} is shared', async function (pat
     assert.equal(c.length, 1);
     assert.equal(c[0].type, 'application/pdf');
     assert.ok(c[0].bytes > 1000);
-    assert.match(c[0].name, new RegExp('^' + esc(pattern).replace('YYYY-MM-DD', '\\d{4}-\\d{2}-\\d{2}') + '-.+\\.pdf$'));
+    assert.match(
+      c[0].name,
+      new RegExp('^' + esc(pattern).replace('YYYY-MM-DD', '\\d{4}-\\d{2}-\\d{2}') + '-.+\\.pdf$'),
+    );
   });
 });
 When('I open the PDF preview', async function () {
@@ -388,7 +488,13 @@ Then('I do not see the PDF preview', async function () {
 });
 // Opening a tab is observed through window.open (a PDF in a headless browser tab cannot be inspected)
 When('I open the PDF preview on the phone', async function () {
-  await this.page.evaluate(() => { window.__opened = []; window.open = (u) => { window.__opened.push(String(u)); return {}; }; });
+  await this.page.evaluate(() => {
+    window.__opened = [];
+    window.open = (u) => {
+      window.__opened.push(String(u));
+      return {};
+    };
+  });
   await editorMenu(this, 'previa');
 });
 Then('the PDF opens in another tab and not in a frame of the page', async function () {
@@ -409,9 +515,13 @@ When('I save the PDF to Drive', async function () {
   await editorMenu(this, 'drive');
 });
 async function driveFiles(world) {
-  return world.page.evaluate(() => ({ files: window.__CNL_FAKE__.archivos(), folders: window.__CNL_FAKE__.estado().carpetas }));
+  return world.page.evaluate(() => ({
+    files: window.__CNL_FAKE__.archivos(),
+    folders: window.__CNL_FAKE__.estado().carpetas,
+  }));
 }
-const refName = (world) => new RegExp(`^${esc(stripAccents(world.ref.group))}-\\d{4}-\\d{2}-\\d{2}-${esc(world.ref.day)}\\.pdf$`);
+const refName = (world) =>
+  new RegExp(`^${esc(stripAccents(world.ref.group))}-\\d{4}-\\d{2}-\\d{2}-${esc(world.ref.day)}\\.pdf$`);
 Then('Drive contains the PDF of the reference session in the folder {string}', async function (path) {
   assert.equal(path, 'cnl/entrenos');
   await this.eventually(async () => {

@@ -1,19 +1,68 @@
 /* Overflow menu (js/presentation/views/entreno-menu.js): button + fixed-position list. Tokens only (light and dark). */
-.enp-mn-caja { position: relative; display: inline-flex; flex: none; }
-.enp-mn-btn { gap: var(--sp-2); }
+.enp-mn-caja {
+  position: relative;
+  display: inline-flex;
+  flex: none;
+}
+.enp-mn-btn {
+  gap: var(--sp-2);
+}
 .enp-mn {
-  position: fixed; z-index: 120; min-width: 220px; max-width: calc(100vw - 16px); margin: 0; padding: var(--sp-1); list-style: none;
-  background: var(--surface); color: var(--text); border: 1px solid var(--border); border-radius: var(--r-md); box-shadow: var(--shadow-3);
+  position: fixed;
+  z-index: 120;
+  min-width: 220px;
+  max-width: calc(100vw - 16px);
+  margin: 0;
+  padding: var(--sp-1);
+  list-style: none;
+  background: var(--surface);
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: var(--r-md);
+  box-shadow: var(--shadow-3);
 }
-.enp-mn li { display: block; }
+.enp-mn li {
+  display: block;
+}
 .enp-mn-item {
-  display: flex; align-items: center; gap: var(--sp-3); width: 100%; min-height: var(--touch); padding: 0 var(--sp-3);
-  border: 0; border-radius: var(--r-sm); background: transparent; color: var(--text); font: inherit; text-align: left; cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: var(--sp-3);
+  width: 100%;
+  min-height: var(--touch);
+  padding: 0 var(--sp-3);
+  border: 0;
+  border-radius: var(--r-sm);
+  background: transparent;
+  color: var(--text);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
 }
-.enp-mn-item:hover, .enp-mn-item:focus-visible { background: var(--c-primary-soft); }
-.enp-mn-item .icon { color: var(--c-accent); }
-.enp-mn-item--peligro, .enp-mn-item--peligro .icon { color: var(--danger); }
-.enp-mn-item[aria-disabled="true"] { color: var(--muted); cursor: not-allowed; }
-.enp-mn-item[aria-disabled="true"] .icon { color: var(--muted); }
-.enp-mn-item[aria-disabled="true"]:hover { background: transparent; }
-.enp-mn-ayuda { display: block; padding: 0 var(--sp-3) var(--sp-2) calc(var(--sp-3) + 18px + var(--sp-3)); color: var(--muted); font-size: var(--fs-xs); }
+.enp-mn-item:hover,
+.enp-mn-item:focus-visible {
+  background: var(--c-primary-soft);
+}
+.enp-mn-item .icon {
+  color: var(--c-accent);
+}
+.enp-mn-item--peligro,
+.enp-mn-item--peligro .icon {
+  color: var(--danger);
+}
+.enp-mn-item[aria-disabled='true'] {
+  color: var(--muted);
+  cursor: not-allowed;
+}
+.enp-mn-item[aria-disabled='true'] .icon {
+  color: var(--muted);
+}
+.enp-mn-item[aria-disabled='true']:hover {
+  background: transparent;
+}
+.enp-mn-ayuda {
+  display: block;
+  padding: 0 var(--sp-3) var(--sp-2) calc(var(--sp-3) + 18px + var(--sp-3));
+  color: var(--muted);
+  font-size: var(--fs-xs);
+}

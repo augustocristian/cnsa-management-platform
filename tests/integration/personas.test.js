@@ -3,7 +3,11 @@ import assert from 'node:assert/strict';
 import { fresh, renderView, tick, fieldByLabel, buttonByText, setValue } from '../helpers/app.js';
 
 let c;
-const test = (name, fn) => base(name, async (t) => { c = await fresh(); return fn(t); });
+const test = (name, fn) =>
+  base(name, async (t) => {
+    c = await fresh();
+    return fn(t);
+  });
 const hoja = (n) => c.store.list(n);
 
 // ---------- Swimmers ----------
@@ -11,7 +15,10 @@ test('swimmer list: filter bar, cards-ready table, avatar initials, right-aligne
   await renderView('nadadores', c.container, [], c);
   assert.equal(c.container.querySelectorAll('h1').length, 1);
   assert.ok(c.container.querySelector('.page-head h1'));
-  assert.ok(c.container.querySelector('.filters.nad-filters label.check input[type=checkbox]'), 'inline checkbox for inactive swimmers');
+  assert.ok(
+    c.container.querySelector('.filters.nad-filters label.check input[type=checkbox]'),
+    'inline checkbox for inactive swimmers',
+  );
   assert.equal(c.container.querySelectorAll('.filters select').length, 2);
   assert.ok(c.container.querySelector('table.table--cards'));
   const fila = c.container.querySelector('tr.nad-row');
@@ -36,7 +43,17 @@ test('swimmer list: inactive swimmers are hidden unless the checkbox is ticked',
 });
 
 test('swimmer list: long lists show 25 rows and "Mostrar más" reveals the rest', async () => {
-  c.store.upsertMany('Nadadores', Array.from({ length: 20 }, (_, i) => ({ nombre: 'Extra' + String(i).padStart(2, '0'), apellidos: 'Zeta', fechaNacimiento: '2010-01-01', sexo: 'F', categoria: 'Absoluto', activo: 'true' })));
+  c.store.upsertMany(
+    'Nadadores',
+    Array.from({ length: 20 }, (_, i) => ({
+      nombre: 'Extra' + String(i).padStart(2, '0'),
+      apellidos: 'Zeta',
+      fechaNacimiento: '2010-01-01',
+      sexo: 'F',
+      categoria: 'Absoluto',
+      activo: 'true',
+    })),
+  );
   await renderView('nadadores', c.container, [], c);
   assert.equal(c.container.querySelectorAll('tbody tr.nad-row').length, 25);
   const mas = buttonByText(c.container, 'Mostrar más (7 restantes)');
@@ -100,7 +117,10 @@ test('swimmer form: "Guardar y añadir otro" saves, keeps the sheet open and cle
   buttonByText(ov, 'Guardar').click();
   await tick();
   assert.equal(document.querySelector('.sheet-overlay'), null);
-  assert.deepEqual(['Ana', 'Berta'].map((n) => hoja('Nadadores').some((x) => x.nombre === n && x.grupoId === 'g2')), [true, true]);
+  assert.deepEqual(
+    ['Ana', 'Berta'].map((n) => hoja('Nadadores').some((x) => x.nombre === n && x.grupoId === 'g2')),
+    [true, true],
+  );
 });
 
 test('swimmer file: sections are cards, best marks come from the domain, delete asks no dialog and can be undone', async () => {
@@ -110,7 +130,11 @@ test('swimmer file: sections are cards, best marks come from the domain, delete 
   assert.ok(c.container.querySelector('.nad-stat .stat-value'));
   assert.ok(c.container.querySelector('.nad-chartbox .badge'), 'PB badge');
   assert.ok(c.container.querySelector('svg.nad-chart[role=img][aria-label]'));
-  assert.equal(c.container.querySelector('svg [stroke="#1a73e8"], svg [fill="#1a73e8"]'), null, 'chart colours come from CSS tokens');
+  assert.equal(
+    c.container.querySelector('svg [stroke="#1a73e8"], svg [fill="#1a73e8"]'),
+    null,
+    'chart colours come from CSS tokens',
+  );
   assert.ok(c.container.querySelector('#nad-purgar'), 'the GDPR erase button stays');
   assert.ok(c.container.querySelector('a[href^="mailto:"], a[href^="tel:"], dd'));
 });
@@ -129,10 +153,14 @@ test('groups: no stray "null", no repeated category name, and swimmers listed ar
 
 test('groups: deleting leaves the swimmers without group and Undo brings the group and members back', async () => {
   const g = hoja('Grupos')[0];
-  const miembros = hoja('Nadadores').filter((n) => n.grupoId === g.id).map((n) => n.id);
+  const miembros = hoja('Nadadores')
+    .filter((n) => n.grupoId === g.id)
+    .map((n) => n.id);
   assert.ok(miembros.length > 0);
   await renderView('grupos', c.container, [], c);
-  const tarjeta = [...c.container.querySelectorAll('.grp-card')].find((x) => x.querySelector('h2').textContent === g.nombre);
+  const tarjeta = [...c.container.querySelectorAll('.grp-card')].find(
+    (x) => x.querySelector('h2').textContent === g.nombre,
+  );
   buttonByText(tarjeta, 'Eliminar').click();
   await tick();
   assert.equal(c.store.get('Grupos', g.id), null);
@@ -181,10 +209,20 @@ test('notices: relative date, group filter with a visible label, validation inli
   assert.ok(item);
   assert.match(item.querySelector('time').textContent, /^hoy$/);
   assert.equal(form.elements.titulo.value, '', 'the form is cleared after saving');
-  assert.ok(c.container.querySelector('label[for="cm-filtro"], label .field-label, .field-label'), 'filter has a visible label');
+  assert.ok(
+    c.container.querySelector('label[for="cm-filtro"], label .field-label, .field-label'),
+    'filter has a visible label',
+  );
 
   let copiado = '';
-  Object.defineProperty(window.navigator, 'clipboard', { value: { writeText: async (x) => { copiado = x; } }, configurable: true });
+  Object.defineProperty(window.navigator, 'clipboard', {
+    value: {
+      writeText: async (x) => {
+        copiado = x;
+      },
+    },
+    configurable: true,
+  });
   buttonByText(item, 'Copiar').click();
   await tick();
   assert.equal(copiado, 'Piscina cerrada\n\nEl lunes no hay entreno');
@@ -212,7 +250,9 @@ test('notices: filtering by a group hides the others; an empty club shows an emp
 test('settings: one h1, section cards, placeholder logo, translated file button, one content manager, no identity', async () => {
   await renderView('club', c.container, [], c);
   assert.equal(c.container.querySelectorAll('h1').length, 1);
-  const h2 = [...c.container.querySelectorAll('section.card > h2, section.card .card-head h2')].map((x) => x.textContent);
+  const h2 = [...c.container.querySelectorAll('section.card > h2, section.card .card-head h2')].map(
+    (x) => x.textContent,
+  );
   assert.ok(h2.length >= 8, h2.join(' | '));
   const logo = c.container.querySelector('img.clb-logo');
   assert.ok(logo.getAttribute('src'), 'placeholder logo, never a broken image');

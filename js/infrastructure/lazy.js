@@ -9,10 +9,16 @@ async function cargarScript(src) {
   return new Promise((resolve, reject) => {
     const s = document.createElement('script');
     s.src = src;
-    if (sri) { s.integrity = sri; s.crossOrigin = 'anonymous'; }
+    if (sri) {
+      s.integrity = sri;
+      s.crossOrigin = 'anonymous';
+    }
     s.async = true;
     s.onload = () => resolve();
-    s.onerror = () => { s.remove(); reject(new Error('No se pudo cargar la librería de Excel (' + src + ').')); };
+    s.onerror = () => {
+      s.remove();
+      reject(new Error('No se pudo cargar la librería de Excel (' + src + ').'));
+    };
     document.head.appendChild(s);
   });
 }
@@ -25,7 +31,10 @@ export function loadXLSX() {
       if (!globalThis.XLSX) throw new Error('La librería de Excel no se inicializó.');
       return globalThis.XLSX;
     })
-    .catch((e) => { xlsxPromise = null; throw e; });
+    .catch((e) => {
+      xlsxPromise = null;
+      throw e;
+    });
   return xlsxPromise;
 }
 

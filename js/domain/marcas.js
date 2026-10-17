@@ -10,23 +10,52 @@ import { parseTiempo } from './tiempos.js';
 import { filtrarMarcasPorBanador, opcionesFiltro } from './banadores.js';
 
 export const ESTILOS = Object.freeze(['libre', 'espalda', 'braza', 'mariposa', 'estilos']);
-const SINONIMOS = { libre: 'libre', crol: 'libre', crawl: 'libre', espalda: 'espalda', dorso: 'espalda', braza: 'braza', pecho: 'braza',
-  mariposa: 'mariposa', mari: 'mariposa', estilos: 'estilos', estilo: 'estilos', combinado: 'estilos', combinados: 'estilos' };
+const SINONIMOS = {
+  libre: 'libre',
+  crol: 'libre',
+  crawl: 'libre',
+  espalda: 'espalda',
+  dorso: 'espalda',
+  braza: 'braza',
+  pecho: 'braza',
+  mariposa: 'mariposa',
+  mari: 'mariposa',
+  estilos: 'estilos',
+  estilo: 'estilos',
+  combinado: 'estilos',
+  combinados: 'estilos',
+};
 const NOMBRE_ESTILO = { libre: 'Libre', espalda: 'Espalda', braza: 'Braza', mariposa: 'Mariposa', estilos: 'Estilos' };
 
 // Events offered when registering a time (canonical names).
 export const PRUEBAS = Object.freeze([
-  '50 Libre', '100 Libre', '200 Libre', '400 Libre', '800 Libre', '1500 Libre',
-  '50 Espalda', '100 Espalda', '200 Espalda',
-  '50 Braza', '100 Braza', '200 Braza',
-  '50 Mariposa', '100 Mariposa', '200 Mariposa',
-  '100 Estilos', '200 Estilos', '400 Estilos',
+  '50 Libre',
+  '100 Libre',
+  '200 Libre',
+  '400 Libre',
+  '800 Libre',
+  '1500 Libre',
+  '50 Espalda',
+  '100 Espalda',
+  '200 Espalda',
+  '50 Braza',
+  '100 Braza',
+  '200 Braza',
+  '50 Mariposa',
+  '100 Mariposa',
+  '200 Mariposa',
+  '100 Estilos',
+  '200 Estilos',
+  '400 Estilos',
 ]);
 
 export const TAM_PAGINA = 50;
 export const PISCINAS = Object.freeze(['25', '50']);
 
-const colapsar = (s) => String(s ?? '').trim().replace(/\s+/g, ' ');
+const colapsar = (s) =>
+  String(s ?? '')
+    .trim()
+    .replace(/\s+/g, ' ');
 const mayuscula = (s) => (s ? s[0].toUpperCase() + s.slice(1) : s);
 
 // "100 libre" | "100m  LIBRE" | "100 Libre" -> { clave: '100-libre', nombre: '100 Libre', distancia: 100, estilo: 'libre' }
@@ -58,9 +87,16 @@ export function opcionesPruebas(marcas, { conPredefinidas = false } = {}) {
   const fuente = (conPredefinidas ? PRUEBAS : []).concat(marcas.map((m) => m.prueba));
   for (const p of fuente) {
     const d = descomponerPrueba(p);
-    if (d.clave && !mapa.has(d.clave)) mapa.set(d.clave, { valor: d.nombre, clave: d.clave, distancia: d.distancia, estilo: d.estilo, nombre: d.nombre });
+    if (d.clave && !mapa.has(d.clave))
+      mapa.set(d.clave, {
+        valor: d.nombre,
+        clave: d.clave,
+        distancia: d.distancia,
+        estilo: d.estilo,
+        nombre: d.nombre,
+      });
   }
-  return [...mapa.values()].sort(compararPruebas).map(({ nombre, ...o }) => o);
+  return [...mapa.values()].sort(compararPruebas).map(({ nombre: _nombre, ...o }) => o);
 }
 
 export const piscinaDe = (m) => (PISCINAS.includes(String(m.piscina)) ? String(m.piscina) : '');
@@ -69,10 +105,13 @@ const tiempo = (m) => Number(m.tiempoMs);
 // Marks with a valid time that match the filters. Filters: nadadorId, prueba (any spelling), piscina ('25' | '50').
 export function filtrarMarcas(marcas, { nadadorId = '', prueba = '', piscina = '' } = {}) {
   const clave = prueba ? clavePrueba(prueba) : '';
-  return marcas.filter((m) => tiempo(m) > 0
-    && (!nadadorId || m.nadadorId === nadadorId)
-    && (!clave || clavePrueba(m.prueba) === clave)
-    && (!piscina || piscinaDe(m) === String(piscina)));
+  return marcas.filter(
+    (m) =>
+      tiempo(m) > 0 &&
+      (!nadadorId || m.nadadorId === nadadorId) &&
+      (!clave || clavePrueba(m.prueba) === clave) &&
+      (!piscina || piscinaDe(m) === String(piscina)),
+  );
 }
 
 // ---------- Swimsuit filter (type / brand / model) combined with the other filters ----------
@@ -91,7 +130,11 @@ export function filtrarMarcasCompleto(marcas, filtros = {}, banadores = []) {
 export function ajustarFiltroBanador(filtro, banadores, marcas) {
   const f = { tipo: filtro.tipo || '', marca: filtro.marca || '', modelo: filtro.modelo || '' };
   let op = opcionesFiltro(banadores, marcas, f);
-  if (f.marca && !op.marcas.some((o) => o.valor === f.marca)) { f.marca = ''; f.modelo = ''; op = opcionesFiltro(banadores, marcas, f); }
+  if (f.marca && !op.marcas.some((o) => o.valor === f.marca)) {
+    f.marca = '';
+    f.modelo = '';
+    op = opcionesFiltro(banadores, marcas, f);
+  }
   if (f.modelo && !op.modelos.some((o) => o.valor === f.modelo)) f.modelo = '';
   return { filtro: f, opciones: op };
 }
@@ -114,8 +157,12 @@ export function mejoresMarcas(marcas, nombreDe = () => '') {
     const cur = mejores.get(k);
     if (!cur || mejorQue(m, cur)) mejores.set(k, m);
   }
-  return [...mejores.values()].sort((a, b) => compararPruebas(descomponerPrueba(a.prueba), descomponerPrueba(b.prueba))
-    || piscinaDe(a).localeCompare(piscinaDe(b)) || String(nombreDe(a.nadadorId)).localeCompare(String(nombreDe(b.nadadorId)), 'es'));
+  return [...mejores.values()].sort(
+    (a, b) =>
+      compararPruebas(descomponerPrueba(a.prueba), descomponerPrueba(b.prueba)) ||
+      piscinaDe(a).localeCompare(piscinaDe(b)) ||
+      String(nombreDe(a.nadadorId)).localeCompare(String(nombreDe(b.nadadorId)), 'es'),
+  );
 }
 
 // Ids of the marks that are a personal best (PB) for their swimmer + event + pool.
@@ -125,7 +172,12 @@ export const idsMejorMarca = (marcas) => new Set(mejoresMarcas(marcas).map((m) =
 export function visibles(lista, pagina = 1, tam = TAM_PAGINA) {
   const n = Math.max(1, Math.floor(pagina)) * tam;
   const items = lista.slice(0, n);
-  return { items, total: lista.length, restantes: Math.max(0, lista.length - items.length), hayMas: lista.length > items.length };
+  return {
+    items,
+    total: lista.length,
+    restantes: Math.max(0, lista.length - items.length),
+    hayMas: lista.length > items.length,
+  };
 }
 
 // ---------- Which series to chart by default ----------
@@ -139,7 +191,10 @@ function masFrecuente(marcas, clave) {
     cuenta.set(k, e);
   }
   // most marks; ties: most recent activity, then key (deterministic)
-  return [...cuenta.values()].sort((a, b) => b.n - a.n || b.ultima.localeCompare(a.ultima) || a.k.localeCompare(b.k))[0]?.k ?? '';
+  return (
+    [...cuenta.values()].sort((a, b) => b.n - a.n || b.ultima.localeCompare(a.ultima) || a.k.localeCompare(b.k))[0]
+      ?.k ?? ''
+  );
 }
 
 // Series for the evolution chart. Whatever the user did not choose is picked automatically: the swimmer with most marks,
@@ -154,22 +209,33 @@ export function elegirSerie(marcas, { nadadorId = '', prueba = '', piscina = '' 
   cand = cand.filter((m) => clavePrueba(m.prueba) === clave);
   const pis = piscina ? String(piscina) : masFrecuente(cand, piscinaDe);
   cand = cand.filter((m) => piscinaDe(m) === pis);
-  const serie = cand.slice().sort((a, b) => String(a.fecha).localeCompare(String(b.fecha)) || String(a.id).localeCompare(String(b.id)));
+  const serie = cand
+    .slice()
+    .sort((a, b) => String(a.fecha).localeCompare(String(b.fecha)) || String(a.id).localeCompare(String(b.id)));
   return { nadadorId: nid, prueba: descomponerPrueba(serie[0].prueba).nombre, clave, piscina: pis, marcas: serie };
 }
 
 // ---------- Chart scales ----------
 // Pure geometry for the SVG line chart (time axis: faster = higher). Points are placed proportionally to their date.
 // -> { ancho, alto, area:{x0,x1,y0,y1}, puntos:[{x,y,marca,mejor}], ejeY:[{y,ms}], ejeX:[{x,fecha}], lo, hi }
-export function escalaEvolucion(serie, { ancho = 640, alto = 260, margen = { t: 16, r: 18, b: 40, l: 70 }, divisionesY = 4, maxEtiquetasX = 5 } = {}) {
-  const x0 = margen.l, x1 = ancho - margen.r, y0 = margen.t, y1 = alto - margen.b;
+export function escalaEvolucion(
+  serie,
+  { ancho = 640, alto = 260, margen = { t: 16, r: 18, b: 40, l: 70 }, divisionesY = 4, maxEtiquetasX = 5 } = {},
+) {
+  const x0 = margen.l,
+    x1 = ancho - margen.r,
+    y0 = margen.t,
+    y1 = alto - margen.b;
   const tiempos = serie.map(tiempo);
-  const lo = Math.min(...tiempos), hi = Math.max(...tiempos);
+  const lo = Math.min(...tiempos),
+    hi = Math.max(...tiempos);
   const holgura = Math.max((hi - lo) * 0.15, 500);
-  const a = lo - holgura, b = hi + holgura;
+  const a = lo - holgura,
+    b = hi + holgura;
   const dias = serie.map((m) => aDias(m.fecha));
   const validas = dias.every(Number.isFinite);
-  const d0 = Math.min(...dias), d1 = Math.max(...dias);
+  const d0 = Math.min(...dias),
+    d1 = Math.max(...dias);
   const posX = (i) => {
     if (serie.length === 1) return (x0 + x1) / 2;
     if (validas && d1 > d0) return x0 + ((dias[i] - d0) / (d1 - d0)) * (x1 - x0);
@@ -178,7 +244,10 @@ export function escalaEvolucion(serie, { ancho = 640, alto = 260, margen = { t: 
   const posY = (v) => y0 + ((v - a) / (b - a)) * (y1 - y0);
   const iMejor = tiempos.indexOf(lo);
   const puntos = serie.map((marca, i) => ({ x: posX(i), y: posY(tiempos[i]), marca, mejor: i === iMejor }));
-  const ejeY = Array.from({ length: divisionesY + 1 }, (_, i) => { const ms = a + ((b - a) / divisionesY) * i; return { y: posY(ms), ms }; });
+  const ejeY = Array.from({ length: divisionesY + 1 }, (_, i) => {
+    const ms = a + ((b - a) / divisionesY) * i;
+    return { y: posY(ms), ms };
+  });
   // x labels spread over the points (first and last always), never closer than ~64 units
   const ejeX = [];
   let ultimoX = -Infinity;
@@ -202,7 +271,8 @@ export function validarMarca(data, { nadadorExiste = () => true } = {}) {
   if (!data.nadadorId || !nadadorExiste(data.nadadorId)) errores.push({ campo: 'nadadorId', codigo: 'nadador' });
   if (!fechaValida(data.fecha)) errores.push({ campo: 'fecha', codigo: 'fecha' });
   if (!colapsar(data.prueba)) errores.push({ campo: 'prueba', codigo: 'prueba' });
-  if (data.piscina !== '' && data.piscina != null && !PISCINAS.includes(String(data.piscina))) errores.push({ campo: 'piscina', codigo: 'piscina' });
+  if (data.piscina !== '' && data.piscina != null && !PISCINAS.includes(String(data.piscina)))
+    errores.push({ campo: 'piscina', codigo: 'piscina' });
   const bruto = data.tiempoMs != null && data.tiempoMs !== '' ? Number(data.tiempoMs) : parseTiempo(data.tiempo);
   const texto = String(data.tiempo ?? '').trim();
   if (data.tiempoMs == null && !texto) errores.push({ campo: 'tiempo', codigo: 'tiempo-vacio' });

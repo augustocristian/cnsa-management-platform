@@ -7,5 +7,8 @@ export function vigilarConexion(fn) {
   const alOffline = () => fn(true);
   window.addEventListener('online', alOnline);
   window.addEventListener('offline', alOffline);
-  return () => { window.removeEventListener('online', alOnline); window.removeEventListener('offline', alOffline); };
+  return () => {
+    window.removeEventListener('online', alOnline);
+    window.removeEventListener('offline', alOffline);
+  };
 }

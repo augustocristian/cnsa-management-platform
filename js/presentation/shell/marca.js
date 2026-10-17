@@ -11,7 +11,17 @@ export function logoEl(store, size = 44) {
   const src = store?.club?.logo;
   if (src && /^data:image\//.test(src)) {
     // corrupt data: URL -> fall back to the default icon instead of showing a broken image
-    return h('img', { class: 'logo', src, alt: '', width: size, height: size, onerror: (e) => { e.target.onerror = null; e.target.src = './icons/icon.svg'; } });
+    return h('img', {
+      class: 'logo',
+      src,
+      alt: '',
+      width: size,
+      height: size,
+      onerror: (e) => {
+        e.target.onerror = null;
+        e.target.src = './icons/icon.svg';
+      },
+    });
   }
   return h('img', { class: 'logo', src: './icons/icon.svg', alt: '', width: size, height: size });
 }

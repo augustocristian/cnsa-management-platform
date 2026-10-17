@@ -1,7 +1,8 @@
 // Notices & notes and Settings texts (English).
 export default {
   'comu.titulo': 'Notices & notes',
-  'comu.ayuda': 'Your club notices and notes, saved in your Drive. The app sends nothing to anyone: copy the text to pass it on through the channel you use (email, messaging...).',
+  'comu.ayuda':
+    'Your club notices and notes, saved in your Drive. The app sends nothing to anyone: copy the text to pass it on through the channel you use (email, messaging...).',
   'comu.copiar': 'Copy',
   'comu.errCopiar': 'Could not copy the text',
   'comu.nuevo': 'New notice',
@@ -22,7 +23,8 @@ export default {
   'comu.copiar-aria': 'Copy the notice "{titulo}"',
   'comu.eliminar-aria': 'Delete the notice "{titulo}"',
   'comu.vacio-titulo': 'No notices yet',
-  'comu.vacio-texto': 'Write the first one: it is saved in your Drive and you can copy it to pass it on through your usual channel.',
+  'comu.vacio-texto':
+    'Write the first one: it is saved in your Drive and you can copy it to pass it on through your usual channel.',
   'comu.vacio-filtro': 'There are no notices for this filter.',
   'comu.crear-primero': 'Write a notice',
   'comu.err.titulo-obligatorio': 'Enter a title',
@@ -48,7 +50,8 @@ export default {
   'club.colorPrimario': 'Primary colour',
   'club.colorSecundario': 'Secondary colour',
   'club.datos': 'Data and Google Drive',
-  'club.demo-nota': 'You are in the demo: the data only exists on this device and is not saved to Drive. Connect Google Drive to keep your own.',
+  'club.demo-nota':
+    'You are in the demo: the data only exists on this device and is not saved to Drive. Connect Google Drive to keep your own.',
   'club.solo-drive': 'Available once Google Drive is connected.',
   'club.sincronizar': 'Sync',
   'club.sincronizado': 'Synced',

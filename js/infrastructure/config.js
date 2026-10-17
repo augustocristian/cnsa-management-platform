@@ -10,17 +10,24 @@ const BUILTIN_CLIENT_ID = '';
 export { CLIENT_ID_KEY, CLIENT_ID_SUFFIX, isValidClientId };
 
 function readClientId() {
-  try { return (localStorage.getItem(CLIENT_ID_KEY) || '').trim() || BUILTIN_CLIENT_ID; }
-  catch (e) { return BUILTIN_CLIENT_ID; }
+  try {
+    return (localStorage.getItem(CLIENT_ID_KEY) || '').trim() || BUILTIN_CLIENT_ID;
+  } catch (e) {
+    return BUILTIN_CLIENT_ID;
+  }
 }
 // Live binding: updated by setClientId() without reloading.
 export let GOOGLE_CLIENT_ID = readClientId();
 
-
 // Saves (or clears with '') the Client ID of this browser. Returns the effective ID.
 export function setClientId(value) {
   const v = String(value || '').trim();
-  try { if (v) localStorage.setItem(CLIENT_ID_KEY, v); else localStorage.removeItem(CLIENT_ID_KEY); } catch (e) { /* ignorar */ }
+  try {
+    if (v) localStorage.setItem(CLIENT_ID_KEY, v);
+    else localStorage.removeItem(CLIENT_ID_KEY);
+  } catch (e) {
+    /* ignorar */
+  }
   GOOGLE_CLIENT_ID = readClientId();
   return GOOGLE_CLIENT_ID;
 }

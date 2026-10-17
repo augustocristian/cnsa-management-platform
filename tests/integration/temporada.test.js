@@ -10,22 +10,43 @@ function fieldByLabel(root, texto) {
   if (!l) throw new Error('No label: ' + texto);
   return l.control || l.querySelector('input,select,textarea');
 }
-const test = (name, fn) => base(name, async (t) => { c = await fresh(); return fn(t); });
+const test = (name, fn) =>
+  base(name, async (t) => {
+    c = await fresh();
+    return fn(t);
+  });
 const modal = () => document.querySelector('.modal');
-const click = async (el) => { el.click(); await tick(); await tick(); };
-const abrir = async (params = []) => { await renderView('planificacion', c.container, params, c); await tick(); };
+const click = async (el) => {
+  el.click();
+  await tick();
+  await tick();
+};
+const abrir = async (params = []) => {
+  await renderView('planificacion', c.container, params, c);
+  await tick();
+};
 const filas = () => [...c.container.querySelectorAll('table[data-tabla=semanas] tbody tr')];
 const fila = (n) => c.container.querySelector(`table[data-tabla=semanas] tbody tr[data-n="${n}"]`);
 const verSemana = async (n) => click(fila(n).querySelector('.tp-sem-btn'));
 const temporada = () => c.store.list('Temporadas')[0];
-const addD = (f, n) => { const d = new Date(f + 'T00:00:00Z'); d.setUTCDate(d.getUTCDate() + n); return d.toISOString().slice(0, 10); };
+const addD = (f, n) => {
+  const d = new Date(f + 'T00:00:00Z');
+  d.setUTCDate(d.getUTCDate() + n);
+  return d.toISOString().slice(0, 10);
+};
 const lunesN = (n) => addD(temporada().fechaInicio, (n - 1) * 7);
-const hoy = () => { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`; };
+const hoy = () => {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+};
 
 test('Planificación opens on Temporada and offers the Temporada and Piscina sections (the lane allocation still works)', async () => {
   await abrir();
   const tabs = [...c.container.querySelectorAll('[role=tablist] > [role=tab]')];
-  assert.deepEqual(tabs.map((x) => x.textContent.trim()), ['Temporada', 'Piscina']);
+  assert.deepEqual(
+    tabs.map((x) => x.textContent.trim()),
+    ['Temporada', 'Piscina'],
+  );
   assert.equal(tabs[0].getAttribute('aria-selected'), 'true');
   assert.equal(c.container.querySelector('[role=tabpanel]').getAttribute('aria-labelledby'), 'pl-tab-temporada');
   assert.match(c.container.textContent, /Resumen semana a semana/);
@@ -35,7 +56,8 @@ test('Planificación opens on Temporada and offers the Temporada and Piscina sec
   assert.ok(c.container.querySelector('.pl-gridwrap'), 'pool grid');
   assert.match(c.container.textContent, /Planificación de la piscina/);
   tabs[1].dispatchEvent(new window.KeyboardEvent('keydown', { key: 'ArrowLeft', bubbles: true }));
-  await tick(); await tick();
+  await tick();
+  await tick();
   assert.equal(c.container.querySelector('#pl-tab-temporada').getAttribute('aria-selected'), 'true');
   await abrir(['piscina']);
   assert.ok(c.container.querySelector('.pl-gridwrap'), 'the route #/planificacion/piscina opens that section');
@@ -53,16 +75,31 @@ test('demo season: phases with dates, weeks, summary and A/B/C events', async ()
   assert.match(lunes[0], /^Ver semana 1,/);
   assert.ok(c.container.querySelectorAll('.tp-cards .tp-card').length >= 5);
   const marcas = [...c.container.querySelectorAll('svg.tp-svg .tp-evento')].map((g) => g.getAttribute('aria-label'));
-  assert.ok(marcas.some((x) => /Prioridad A/.test(x)) && marcas.some((x) => /Prioridad B/.test(x)) && marcas.some((x) => /Prioridad C/.test(x)));
+  assert.ok(
+    marcas.some((x) => /Prioridad A/.test(x)) &&
+      marcas.some((x) => /Prioridad B/.test(x)) &&
+      marcas.some((x) => /Prioridad C/.test(x)),
+  );
   const textos = [...c.container.querySelectorAll('svg.tp-svg .tp-evento .tp-marca-t')].map((x) => x.textContent);
-  assert.ok(['A', 'B', 'C'].every((l) => textos.includes(l)), 'priority shown with text, not only colour');
-  const formas = new Set([...c.container.querySelectorAll('svg.tp-svg .tp-evento .tp-marca > *:first-child')].map((x) => x.tagName.toLowerCase()));
+  assert.ok(
+    ['A', 'B', 'C'].every((l) => textos.includes(l)),
+    'priority shown with text, not only colour',
+  );
+  const formas = new Set(
+    [...c.container.querySelectorAll('svg.tp-svg .tp-evento .tp-marca > *:first-child')].map((x) =>
+      x.tagName.toLowerCase(),
+    ),
+  );
   assert.ok(formas.has('polygon') && formas.has('rect') && formas.has('circle'), 'A diamond, B square, C circle');
   assert.ok(c.container.querySelector('svg.tp-svg-tl'), 'timeline');
   assert.ok(c.container.querySelectorAll('svg.tp-svg-tl .tp-tl-fase').length === 5);
   assert.ok(c.container.querySelectorAll('ul.tp-ley li').length > 8, 'legend');
   const dentro = hoy() >= t.fechaInicio && hoy() <= t.fechaFin;
-  assert.equal(!!c.container.querySelector('table[data-tabla=semanas] tr.tp-act'), dentro, 'the current week is highlighted');
+  assert.equal(
+    !!c.container.querySelector('table[data-tabla=semanas] tr.tp-act'),
+    dentro,
+    'the current week is highlighted',
+  );
   assert.equal(!!c.container.querySelector('svg.tp-svg .tp-hoy'), dentro);
 });
 
@@ -70,7 +107,9 @@ test('accessible chart: named columns, focus and keyboard selection', async () =
   await abrir();
   const cols = [...c.container.querySelectorAll('svg.tp-svg g.tp-col')];
   assert.equal(cols.length, 38);
-  assert.ok(cols.every((g) => /^Semana \d+, /.test(g.getAttribute('aria-label')) && g.getAttribute('role') === 'button'));
+  assert.ok(
+    cols.every((g) => /^Semana \d+, /.test(g.getAttribute('aria-label')) && g.getAttribute('role') === 'button'),
+  );
   assert.equal(cols.filter((g) => g.getAttribute('tabindex') === '0').length, 1, 'single tab stop (roving tabindex)');
   const sel = c.container.querySelector('g.tp-col[tabindex="0"]');
   const n = Number(sel.dataset.n);
@@ -78,7 +117,8 @@ test('accessible chart: named columns, focus and keyboard selection', async () =
   const sig = c.container.querySelector(`g.tp-col[data-n="${n + 1}"]`);
   assert.equal(sig.getAttribute('tabindex'), '0');
   sig.dispatchEvent(new window.KeyboardEvent('keydown', { key: 'Enter', bubbles: true }));
-  await tick(); await tick();
+  await tick();
+  await tick();
   assert.match(c.container.querySelector('#tp-h-det').textContent, new RegExp(`Semana ${n + 1} ·`));
   assert.equal(c.container.querySelector('g.tp-col-sel').dataset.n, String(n + 1));
   assert.ok(c.container.querySelector('svg.tp-svg').getAttribute('aria-label'));
@@ -88,7 +128,9 @@ test('accessible chart: named columns, focus and keyboard selection', async () =
 test('planned vs actual: the past week brings loads per content, the deviation and the status', async () => {
   await abrir();
   const t = temporada();
-  const m = (await importApp('js/application/temporadaService.js')).crearTemporadaService(c.store, { ahora: () => new Date() }).resumen(t.id);
+  const m = (await importApp('js/application/temporadaService.js'))
+    .crearTemporadaService(c.store, { ahora: () => new Date() })
+    .resumen(t.id);
   const pasada = [...m.semanas].reverse().find((s) => s.tiempo === 'pasada' && s.real.fuente === 'cargas');
   if (!pasada) return; // the demo has no loads inside the season (summer)
   await verSemana(pasada.n);
@@ -139,14 +181,27 @@ test('add a competition from the week detail: it appears marked, in the Calendar
   const det = c.container.querySelector('#tp-detalle');
   assert.match(det.querySelector('[data-lista=eventos-semana]').textContent, /Open de Asturias/);
   assert.ok(fila(3).querySelector('.tp-evchip'), 'the week is marked in the table');
-  assert.ok([...c.container.querySelectorAll('svg.tp-svg .tp-evento')].some((g) => /Open de Asturias/.test(g.getAttribute('aria-label'))));
+  assert.ok(
+    [...c.container.querySelectorAll('svg.tp-svg .tp-evento')].some((g) =>
+      /Open de Asturias/.test(g.getAttribute('aria-label')),
+    ),
+  );
   // Calendar: same source as the .ics
   const { crearCalendarioService } = await importApp('js/application/calendarioService.js');
   const { etiquetas } = await importApp('js/presentation/views/calendario.js');
-  const svc = crearCalendarioService({ store: c.store, auth: c.auth, etq: etiquetas, storage: null, ahora: () => new Date() });
+  const svc = crearCalendarioService({
+    store: c.store,
+    auth: c.auth,
+    etq: etiquetas,
+    storage: null,
+    ahora: () => new Date(),
+  });
   const evs = svc.eventos({ desde: lunesN(3), hasta: addD(lunesN(3), 9) });
   const delOpen = evs.filter((e) => e.origen === 'temporada' && /Open de Asturias/.test(e.titulo));
-  assert.deepEqual(delOpen.map((e) => e.fecha), [addD(lunesN(3), 5), addD(lunesN(3), 6)]);
+  assert.deepEqual(
+    delOpen.map((e) => e.fecha),
+    [addD(lunesN(3), 5), addD(lunesN(3), 6)],
+  );
   assert.match(delOpen[0].descripcion, /Competición · Prioridad A · Día 1 de 2/);
   const { ics } = svc.exportar({ rango: { desde: lunesN(3), hasta: addD(lunesN(3), 9) } });
   assert.match(ics, /SUMMARY:Open de Asturias \(A\)/);
@@ -165,7 +220,9 @@ test('edit and delete an event from the season list', async () => {
   setValue(fieldByLabel(modal(), 'Lugar'), 'Gijón');
   await click(buttonByText(modal(), 'Guardar'));
   assert.equal(c.store.get('EventosTemporada', ev.id).lugar, 'Gijón');
-  const btn = [...c.container.querySelectorAll(`[data-evento="${ev.id}"] button`)].find((b) => b.getAttribute('aria-label')?.startsWith('Eliminar'));
+  const btn = [...c.container.querySelectorAll(`[data-evento="${ev.id}"] button`)].find((b) =>
+    b.getAttribute('aria-label')?.startsWith('Eliminar'),
+  );
   await click(btn);
   assert.equal(c.store.get('EventosTemporada', ev.id), null, 'deleted instantly');
   const deshacer = [...document.querySelectorAll('#toasts .toast-action')].find((b) => b.textContent === 'Deshacer');
@@ -195,7 +252,8 @@ test('adjust the planned volume of a week by hand', async () => {
 test('tools: ± % adjustment of several weeks with preview, copy week and phase template', async () => {
   await abrir();
   const antes = (n) => Number(c.store.list('SemanasPlan').find((s) => s.lunes === lunesN(n)).volumenPrevisto);
-  const a1 = antes(1), a2 = antes(2);
+  const a1 = antes(1),
+    a2 = antes(2);
   await verSemana(1);
   await click(buttonByText(c.container.querySelector('#tp-detalle'), 'Ajustar volumen de varias semanas'));
   setValue(fieldByLabel(modal(), 'Hasta la semana'), '2');
@@ -226,10 +284,19 @@ test('suggestions: shown with their explanation and can be applied', async () =>
   assert.ok(previa, 'week before competition A, or tapering');
   assert.match(previa.textContent, /reduce el volumen|debería bajar/);
   const n0 = c.store.list('SemanasPlan').length;
-  const vols = c.store.list('SemanasPlan').map((s) => s.volumenPrevisto).join();
+  const vols = c.store
+    .list('SemanasPlan')
+    .map((s) => s.volumenPrevisto)
+    .join();
   await click(buttonByText(previa, 'Aplicar'));
   assert.equal(c.store.list('SemanasPlan').length, n0);
-  assert.notEqual(c.store.list('SemanasPlan').map((s) => s.volumenPrevisto).join(), vols);
+  assert.notEqual(
+    c.store
+      .list('SemanasPlan')
+      .map((s) => s.volumenPrevisto)
+      .join(),
+    vols,
+  );
   assert.match(document.getElementById('toasts').textContent, /Sugerencia aplicada/);
 });
 
@@ -267,7 +334,9 @@ test('inconsistent dates are rejected with a message', async () => {
 
 test('several seasons: switch between them and only one is active', async () => {
   await abrir();
-  const svc = (await importApp('js/application/temporadaService.js')).crearTemporadaService(c.store, { ahora: () => new Date() });
+  const svc = (await importApp('js/application/temporadaService.js')).crearTemporadaService(c.store, {
+    ahora: () => new Date(),
+  });
   svc.guardarTemporada({ nombre: 'Temporada futura', inicio: '2027-09-06', fin: '2027-11-28', activa: false });
   await tick();
   const sel = c.container.querySelector('.tp-bar select');
@@ -275,9 +344,15 @@ test('several seasons: switch between them and only one is active', async () => 
   setValue(sel, [...sel.options].find((o) => /futura/.test(o.textContent)).value);
   await tick();
   assert.equal(filas().length, 12);
-  assert.match(c.container.querySelector('.tp-bar').textContent, /No es la temporada activa/, 'explains why it is not the active one');
+  assert.match(
+    c.container.querySelector('.tp-bar').textContent,
+    /No es la temporada activa/,
+    'explains why it is not the active one',
+  );
   await click(c.container.querySelector('.page-head-actions .enp-mn-btn'));
-  await click([...document.querySelectorAll('[role=menuitem]')].find((b) => b.textContent.trim() === 'Marcar como activa'));
+  await click(
+    [...document.querySelectorAll('[role=menuitem]')].find((b) => b.textContent.trim() === 'Marcar como activa'),
+  );
   assert.equal(c.store.list('Temporadas').filter((t) => t.activa === 'true').length, 1);
   assert.equal(svc.activa().nombre, 'Temporada futura');
 });
@@ -288,7 +363,10 @@ test('languages: Phase/Week in English and Fase/Settimana in Italian', async () 
   await abrir();
   assert.match(c.container.textContent, /Phases/);
   assert.match(c.container.textContent, /Week-by-week summary/);
-  assert.deepEqual([...c.container.querySelectorAll('[role=tablist] > [role=tab]')].map((x) => x.textContent.trim()), ['Season', 'Pool']);
+  assert.deepEqual(
+    [...c.container.querySelectorAll('[role=tablist] > [role=tab]')].map((x) => x.textContent.trim()),
+    ['Season', 'Pool'],
+  );
   assert.match(fila(1).querySelector('.tp-sem-btn').getAttribute('aria-label'), /^Open week 1/);
   setLang('it', { persist: false });
   await abrir();
@@ -298,7 +376,12 @@ test('languages: Phase/Week in English and Fase/Settimana in Italian', async () 
 });
 
 test('on mobile the week list with mini-bars is shown instead of the wide chart', async () => {
-  window.matchMedia = (q) => ({ matches: /max-width:\s*700px/.test(q), media: q, addEventListener() {}, removeEventListener() {} });
+  window.matchMedia = (q) => ({
+    matches: /max-width:\s*700px/.test(q),
+    media: q,
+    addEventListener() {},
+    removeEventListener() {},
+  });
   try {
     await abrir();
     assert.ok(!c.container.querySelector('svg.tp-svg'));
@@ -309,7 +392,9 @@ test('on mobile the week list with mini-bars is shown instead of the wide chart'
     assert.match(items[0].getAttribute('aria-label'), /^Semana 1,/);
     await click(items[5]);
     assert.match(c.container.querySelector('#tp-h-det').textContent, /Semana 6/);
-  } finally { delete window.matchMedia; }
+  } finally {
+    delete window.matchMedia;
+  }
 });
 
 test('structure: one h1, h2 sections, no injected styles and no fixed colours in the chart', async () => {
@@ -320,7 +405,10 @@ test('structure: one h1, h2 sections, no injected styles and no fixed colours in
   const svg = c.container.querySelector('svg.tp-svg');
   // Phase and content colours are STORED data (inline per record); the event markers take their tone from CSS classes
   const marcas = [...svg.querySelectorAll('.tp-marca')].map((g) => g.getAttribute('class'));
-  assert.ok(marcas.length >= 3 && marcas.every((cl) => /tp-t-(danger|warn|info|ok|neutral|accent)/.test(cl)), 'events with a semantic tone');
+  assert.ok(
+    marcas.length >= 3 && marcas.every((cl) => /tp-t-(danger|warn|info|ok|neutral|accent)/.test(cl)),
+    'events with a semantic tone',
+  );
   const textos = [...svg.querySelectorAll('.tp-evento .tp-marca-t')].map((x) => x.textContent);
   assert.ok(['A', 'B', 'C'].every((l) => textos.includes(l)));
 });

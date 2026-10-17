@@ -1,12 +1,15 @@
 // Textos de la copia de seguridad completa (Configuración > Copia de seguridad): descargar, restaurar desde archivo y copias en Drive.
 export default {
   'backup.titulo': 'Copia de seguridad',
-  'backup.intro': 'Una copia completa del club en un solo archivo: nadadores, grupos, entrenamientos y sus planes, asistencia, cargas, marcas, piscinas, temporadas, identidad del club y tus preferencias. Úsala para guardar tus datos o pasarlos a otro dispositivo.',
+  'backup.intro':
+    'Una copia completa del club en un solo archivo: nadadores, grupos, entrenamientos y sus planes, asistencia, cargas, marcas, piscinas, temporadas, identidad del club y tus preferencias. Úsala para guardar tus datos o pasarlos a otro dispositivo.',
   'backup.privacidad.titulo': 'Contiene datos personales de menores',
-  'backup.privacidad.texto': 'Guarda el archivo en un lugar seguro y no lo compartas. Si un nadador pide que se borren sus datos, las copias que ya descargaste no se modifican: bórralas tú.',
+  'backup.privacidad.texto':
+    'Guarda el archivo en un lugar seguro y no lo compartas. Si un nadador pide que se borren sus datos, las copias que ya descargaste no se modifican: bórralas tú.',
   'backup.descargar.titulo': 'Descargar copia',
   'backup.pass.label': 'Contraseña para cifrar la copia (opcional)',
-  'backup.pass.hint': 'Mínimo 8 caracteres. Sin contraseña la copia se guarda sin cifrar. Si la pierdes, la copia no se puede recuperar.',
+  'backup.pass.hint':
+    'Mínimo 8 caracteres. Sin contraseña la copia se guarda sin cifrar. Si la pierdes, la copia no se puede recuperar.',
   'backup.pass2.label': 'Repite la contraseña',
   'backup.pass.no-coincide': 'Las contraseñas no coinciden.',
   'backup.pass.corta': 'La contraseña debe tener al menos 8 caracteres.',
@@ -20,13 +23,15 @@ export default {
   'backup.descargando': 'Preparando la copia...',
   'backup.descargada': 'Copia descargada: {nombre} ({filas} filas).',
   'backup.descargada-cifrada': 'Copia cifrada descargada: {nombre} ({filas} filas). Guarda bien la contraseña.',
-  'backup.supera-limite': 'Esta copia supera los límites de importación (20 MB o 50.000 filas) y podría no poder restaurarse.',
+  'backup.supera-limite':
+    'Esta copia supera los límites de importación (20 MB o 50.000 filas) y podría no poder restaurarse.',
   'backup.ultima.titulo': 'Última copia descargada',
   'backup.ultima.ninguna': 'Todavía no has descargado ninguna copia.',
   'backup.ultima.texto': '{fecha} - {filas} filas - {nombre}',
   'backup.ultima.cifrada': 'cifrada',
   'backup.restaurar.titulo': 'Restaurar desde un archivo',
-  'backup.restaurar.texto': 'Elige una copia descargada antes. Verás qué cambiaría antes de confirmar y, antes de aplicar nada, se guarda una copia automática de tus datos actuales.',
+  'backup.restaurar.texto':
+    'Elige una copia descargada antes. Verás qué cambiaría antes de confirmar y, antes de aplicar nada, se guarda una copia automática de tus datos actuales.',
   'backup.archivo.elegir': 'Elegir archivo de copia',
   'backup.archivo.arrastra': 'o arrastra aquí el archivo .json',
   'backup.archivo.suelta': 'Suelta el archivo para leerlo',
@@ -37,15 +42,20 @@ export default {
   'backup.valida.titulo': 'Copia válida',
   'backup.valida.texto': 'Club «{club}», creada {fecha}: {filas} filas, {nadadores} nadadores.',
   'backup.valida.sin-fecha': 'fecha desconocida',
-  'backup.origen.documento-club': 'Este archivo es una copia del fichero del club (por ejemplo una copia diaria de Drive): no incluye preferencias.',
+  'backup.origen.documento-club':
+    'Este archivo es una copia del fichero del club (por ejemplo una copia diaria de Drive): no incluye preferencias.',
   'backup.aviso.omitidas': '{n} filas no son válidas y se omitirán.',
   'backup.aviso.rgpd': '{n} filas se borraron definitivamente (derecho de supresión) y no se recuperarán.',
-  'backup.aviso.club-distinto': 'La copia es del club «{copia}» y se restaurará en «{club}». El nombre del club no cambia.',
+  'backup.aviso.club-distinto':
+    'La copia es del club «{copia}» y se restaurará en «{club}». El nombre del club no cambia.',
   'backup.err.no-es-backup': 'Este archivo no es una copia de seguridad de CNL Plataforma.',
   'backup.err.version-invalida': 'La versión del formato de la copia no es válida.',
-  'backup.err.version-futura': 'Esta copia la hizo una versión más nueva de la aplicación (formato {version}). Actualiza la aplicación para restaurarla.',
-  'backup.err.documento-futuro': 'Esta copia contiene datos de una versión más nueva de la aplicación. Actualiza la aplicación para restaurarla.',
-  'backup.err.danado': 'El archivo está dañado o fue modificado: la comprobación de integridad ha fallado. No se ha cambiado nada.',
+  'backup.err.version-futura':
+    'Esta copia la hizo una versión más nueva de la aplicación (formato {version}). Actualiza la aplicación para restaurarla.',
+  'backup.err.documento-futuro':
+    'Esta copia contiene datos de una versión más nueva de la aplicación. Actualiza la aplicación para restaurarla.',
+  'backup.err.danado':
+    'El archivo está dañado o fue modificado: la comprobación de integridad ha fallado. No se ha cambiado nada.',
   'backup.err.estructura': 'El archivo de copia tiene una estructura inesperada. No se ha cambiado nada.',
   'backup.err.demasiadas-filas': 'La copia tiene más de 50.000 filas.',
   'backup.err.demasiado-grande': 'El archivo supera los 20 MB.',
@@ -54,10 +64,12 @@ export default {
   'backup.err.passphrase-incorrecta': 'Contraseña incorrecta o archivo dañado.',
   'backup.err.passphrase-corta': 'La contraseña debe tener al menos 8 caracteres.',
   'backup.err.sin-cifrado': 'Este navegador no permite cifrar copias.',
-  'backup.err.solo-lectura': 'Este club lo guardó una versión más nueva de la aplicación y está en solo lectura: no se puede restaurar.',
+  'backup.err.solo-lectura':
+    'Este club lo guardó una versión más nueva de la aplicación y está en solo lectura: no se puede restaurar.',
   'backup.err.seguridad-fallida': 'No se pudo guardar la copia previa automática, así que no se ha restaurado nada.',
   'backup.err.restauracion-fallida': 'La restauración falló y se devolvieron los datos a su estado anterior.',
-  'backup.err.restauracion-fallida-sin-revertir': 'La restauración falló y no se pudo devolver todo a su estado anterior. Restaura la copia previa automática.',
+  'backup.err.restauracion-fallida-sin-revertir':
+    'La restauración falló y no se pudo devolver todo a su estado anterior. Restaura la copia previa automática.',
   'backup.err.sin-drive': 'Las copias en Drive no están disponibles en modo demostración.',
   'backup.err.sin-seguridad': 'No hay ninguna restauración que revertir.',
   'backup.err.generico': 'No se pudo completar la operación: {msg}',
@@ -73,13 +85,17 @@ export default {
   'backup.tabla.sin-cambios': 'No hay diferencias: tus datos ya coinciden con la copia.',
   'backup.modo.leyenda': 'Cómo restaurar',
   'backup.modo.replace': 'Reemplazar',
-  'backup.modo.replace-desc': 'Deja los datos exactamente como en la copia. Lo que no esté en la copia se elimina (recomendado).',
+  'backup.modo.replace-desc':
+    'Deja los datos exactamente como en la copia. Lo que no esté en la copia se elimina (recomendado).',
   'backup.modo.merge': 'Combinar',
-  'backup.modo.merge-desc': 'Añade lo que falta y completa campos. Si un dato existe en los dos sitios, se mantiene el actual. No elimina nada.',
+  'backup.modo.merge-desc':
+    'Añade lo que falta y completa campos. Si un dato existe en los dos sitios, se mantiene el actual. No elimina nada.',
   'backup.restaurar.boton': 'Restaurar...',
   'backup.confirmar.titulo': 'Confirmar restauración',
-  'backup.confirmar.replace': 'Se reemplazarán los datos actuales de «{club}» por los de la copia: {nuevas} nuevas, {cambiadas} modificadas, {eliminadas} eliminadas. Antes se guardará una copia automática.',
-  'backup.confirmar.merge': 'Se combinará la copia con los datos actuales de «{club}»: {nuevas} nuevas, {cambiadas} modificadas. No se eliminará nada. Antes se guardará una copia automática.',
+  'backup.confirmar.replace':
+    'Se reemplazarán los datos actuales de «{club}» por los de la copia: {nuevas} nuevas, {cambiadas} modificadas, {eliminadas} eliminadas. Antes se guardará una copia automática.',
+  'backup.confirmar.merge':
+    'Se combinará la copia con los datos actuales de «{club}»: {nuevas} nuevas, {cambiadas} modificadas. No se eliminará nada. Antes se guardará una copia automática.',
   'backup.confirmar.escribe': 'Para confirmar escribe el nombre del club («{club}») o la palabra {palabra}',
   'backup.confirmar.palabra': 'RESTAURAR',
   'backup.confirmar.no-coincide': 'No coincide. Escribe el nombre del club o {palabra}.',
@@ -93,20 +109,24 @@ export default {
   'backup.exito.texto': '{nuevas} filas nuevas, {cambiadas} modificadas, {eliminadas} eliminadas.',
   'backup.exito.sin-cambios': 'Tus datos ya coincidían con la copia: no se cambió nada.',
   'backup.exito.seguridad-drive': 'Copia previa guardada en Drive (cnl/backups): {nombre}.',
-  'backup.exito.seguridad-sesion': 'Copia previa guardada solo mientras dure esta sesión. Descárgala si quieres conservarla.',
+  'backup.exito.seguridad-sesion':
+    'Copia previa guardada solo mientras dure esta sesión. Descárgala si quieres conservarla.',
   'backup.exito.sin-sincronizar': 'Los cambios están en este dispositivo y se subirán cuando haya conexión.',
   'backup.exito.omitidas': '{n} filas no válidas se omitieron.',
   'backup.exito.rgpd': '{n} filas borradas definitivamente no se recuperaron.',
   'backup.exito.preferencias': 'Preferencias aplicadas: {claves}.',
   'backup.deshecho-aviso': 'Datos restaurados desde la copia.',
   'backup.revertir': 'Revertir la restauración',
-  'backup.revertir.confirmar': 'Se devolverán los datos al estado que tenían justo antes de restaurar. Los cambios hechos después se perderán.',
+  'backup.revertir.confirmar':
+    'Se devolverán los datos al estado que tenían justo antes de restaurar. Los cambios hechos después se perderán.',
   'backup.revertir.boton': 'Revertir',
   'backup.revertida': 'Restauración revertida: los datos vuelven a estar como antes.',
   'backup.seguridad.descargar': 'Descargar la copia previa',
   'backup.drive.titulo': 'Copias en Drive',
-  'backup.drive.texto': 'La aplicación guarda en tu Drive (carpeta cnl/backups) una copia diaria, otra antes de cada importación y otra antes de cada restauración. Aquí puedes restaurar una de ellas.',
-  'backup.drive.demo': 'En el modo demostración no se usa Drive, así que no hay copias en Drive. Conecta tu Drive para usarlas; la descarga y la restauración desde archivo funcionan igualmente.',
+  'backup.drive.texto':
+    'La aplicación guarda en tu Drive (carpeta cnl/backups) una copia diaria, otra antes de cada importación y otra antes de cada restauración. Aquí puedes restaurar una de ellas.',
+  'backup.drive.demo':
+    'En el modo demostración no se usa Drive, así que no hay copias en Drive. Conecta tu Drive para usarlas; la descarga y la restauración desde archivo funcionan igualmente.',
   'backup.drive.actualizar': 'Actualizar lista',
   'backup.drive.cargando': 'Cargando copias de Drive...',
   'backup.drive.vacio': 'Todavía no hay copias en Drive. La primera se crea al guardar cambios.',

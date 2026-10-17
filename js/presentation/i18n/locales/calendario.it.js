@@ -46,7 +46,8 @@ export default {
   'cal.exp.anadir': 'Aggiungi al mio calendario',
   'cal.exp.ok': 'Calendario esportato: {n} eventi.',
   'cal.exp.vacio': 'Non ci sono eventi da esportare in quel periodo.',
-  'cal.exp.nota': "Il file .ics è un'istantanea di oggi. Un abbonamento via link in tempo reale non è possibile senza un server: riesportalo per aggiornare le modifiche (reimportandolo, gli eventi esistenti vengono aggiornati, non duplicati).",
+  'cal.exp.nota':
+    "Il file .ics è un'istantanea di oggi. Un abbonamento via link in tempo reale non è possibile senza un server: riesportalo per aggiornare le modifiche (reimportandolo, gli eventi esistenti vengono aggiornati, non duplicati).",
   'cal.exp.zona': 'Fuso orario del club',
   'cal.exp.zona-ayuda': 'Salvato nel foglio Club (chiave zonaHoraria). Predefinito Europe/Madrid.',
   'cal.exp.zona-guardar': 'Salva fuso orario',
@@ -54,7 +55,8 @@ export default {
   'cal.exp.zona-ok': 'Fuso orario salvato: {zona}.',
   'cal.exp.alcance': "L'esportazione rispetta i filtri visibili a schermo.",
   'cal.sync.titulo': 'Sincronizza con Google Calendar',
-  'cal.sync.desc': "Crea e mantiene le tue sessioni nel tuo calendario principale di Google (con un contrassegno interno per aggiornarle e cancellarle senza toccare gli altri eventi). Il permesso per Calendar viene chiesto solo all'attivazione. Si sincronizzano le tue sessioni.",
+  'cal.sync.desc':
+    "Crea e mantiene le tue sessioni nel tuo calendario principale di Google (con un contrassegno interno per aggiornarle e cancellarle senza toccare gli altri eventi). Il permesso per Calendar viene chiesto solo all'attivazione. Si sincronizzano le tue sessioni.",
   'cal.sync.ventana': 'Finestra di sincronizzazione',
   'cal.sync.ventana.30': 'Prossimi 30 giorni',
   'cal.sync.ventana.90': 'Prossimi 90 giorni',
@@ -68,18 +70,24 @@ export default {
   'cal.sync.resumen': 'Creati {c}, aggiornati {a}, eliminati {b}, invariati {i}, errori {e}.',
   'cal.sync.parado': '{n} eventi eliminati dal tuo Google Calendar.',
   'cal.sync.parado-errores': '{n} eventi eliminati; {e} non è stato possibile eliminarli (riprova).',
-  'cal.sync.err.auth': 'Impossibile ottenere il permesso di Google Calendar. Premi di nuovo il pulsante e accetta il permesso.',
-  'cal.sync.err.permisos': "Google ha rifiutato il permesso per Calendar. Accetta l'accesso a «visualizzare e modificare eventi» quando Google lo chiede.",
-  'cal.sync.err.api-desactivada': "L'API di Google Calendar non è attivata nel progetto Google Cloud di questa app (vedi il tutorial).",
-  'cal.sync.err.limite': 'Google sta limitando le richieste in questo momento. Attendi un minuto e sincronizza di nuovo: quanto già creato non verrà duplicato.',
+  'cal.sync.err.auth':
+    'Impossibile ottenere il permesso di Google Calendar. Premi di nuovo il pulsante e accetta il permesso.',
+  'cal.sync.err.permisos':
+    "Google ha rifiutato il permesso per Calendar. Accetta l'accesso a «visualizzare e modificare eventi» quando Google lo chiede.",
+  'cal.sync.err.api-desactivada':
+    "L'API di Google Calendar non è attivata nel progetto Google Cloud di questa app (vedi il tutorial).",
+  'cal.sync.err.limite':
+    'Google sta limitando le richieste in questo momento. Attendi un minuto e sincronizza di nuovo: quanto già creato non verrà duplicato.',
   'cal.sync.err.red': 'Nessuna connessione a Google Calendar.',
   'cal.sync.err.servidor': 'Google Calendar non risponde correttamente. Riprova più tardi.',
   'cal.sync.err.http': 'Errore di Google Calendar: {msg}',
   'cal.vacio-agenda': 'Nessun evento nei prossimi 30 giorni.',
   'cal.exp.menu': 'Esporta',
   'cal.exp.opciones': 'Opzioni di esportazione',
-  'cal.sync.motivo.demo': 'La modalità demo conserva i dati solo in questo browser e non si collega a Google, quindi non può sincronizzare. Collega Google Drive per attivarla.',
-  'cal.sync.motivo.sin-conexion': 'Collega Google Drive per sincronizzare con Google Calendar. La sincronizzazione chiede un permesso aggiuntivo solo quando la attivi.',
+  'cal.sync.motivo.demo':
+    'La modalità demo conserva i dati solo in questo browser e non si collega a Google, quindi non può sincronizzare. Collega Google Drive per attivarla.',
+  'cal.sync.motivo.sin-conexion':
+    'Collega Google Drive per sincronizzare con Google Calendar. La sincronizzazione chiede un permesso aggiuntivo solo quando la attivi.',
   'cal.sync.motivo.sin-cliente': 'La sincronizzazione con Google Calendar non è disponibile in questa copia dell’app.',
   'cal.sync.err.demo': 'La modalità demo non si collega a Google.',
   'cal.sync.err.sin-cliente': 'La sincronizzazione con Google Calendar non è disponibile in questa copia dell’app.',

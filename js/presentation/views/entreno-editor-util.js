@@ -14,11 +14,33 @@ export const estiloTxt = (e) => {
   return hasKey(k) ? t(k) : e;
 };
 // 'a|b|c' dictionary value -> ['a','b','c']
-export const lista = (clave) => t(clave).split('|').map((x) => x.trim()).filter(Boolean);
+export const lista = (clave) =>
+  t(clave)
+    .split('|')
+    .map((x) => x.trim())
+    .filter(Boolean);
 
 // Icon button (44 px) with an accessible name.
 export const ib = (iconName, label, onclick, { danger = false, disabled = false } = {}) =>
-  h('button', { type: 'button', class: 'enp-ib' + (danger ? ' enp-del' : ''), 'aria-label': label, title: label, onclick, disabled }, icon(iconName, { size: 18 }));
+  h(
+    'button',
+    {
+      type: 'button',
+      class: 'enp-ib' + (danger ? ' enp-del' : ''),
+      'aria-label': label,
+      title: label,
+      onclick,
+      disabled,
+    },
+    icon(iconName, { size: 18 }),
+  );
 
 // Which pane of a row holds each field (fields not listed live in the first line of the row).
-export const PANEL_DE = { salida: 'salida', tiempoMin: 'tiempoMin', material: 'material', objetivo: 'objetivo', bloque: 'mas', notas: 'mas' };
+export const PANEL_DE = {
+  salida: 'salida',
+  tiempoMin: 'tiempoMin',
+  material: 'material',
+  objetivo: 'objetivo',
+  bloque: 'mas',
+  notas: 'mas',
+};

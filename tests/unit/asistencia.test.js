@@ -8,18 +8,31 @@ function repoMem(datos = {}) {
   const db = { Entrenamientos: [], Nadadores: [], Grupos: [], Asistencia: [], ...datos };
   let n = 0;
   return {
-    db, escrituras: 0,
+    db,
+    escrituras: 0,
     list: (s) => (db[s] || []).map((r) => ({ ...r })),
-    get(s, id) { const r = (db[s] || []).find((x) => x.id === String(id)); return r ? { ...r } : null; },
+    get(s, id) {
+      const r = (db[s] || []).find((x) => x.id === String(id));
+      return r ? { ...r } : null;
+    },
     upsert(s, row) {
-      const fila = { ...row, id: row.id ? String(row.id) : 'g' + (++n) };
+      const fila = { ...row, id: row.id ? String(row.id) : 'g' + ++n };
       const i = db[s].findIndex((x) => x.id === fila.id);
-      if (i >= 0) db[s][i] = fila; else db[s].push(fila);
+      if (i >= 0) db[s][i] = fila;
+      else db[s].push(fila);
       return { ...fila };
     },
-    upsertMany(s, rows) { this.escrituras += 1; return rows.map((r) => this.upsert(s, r)); },
-    remove(s, id) { db[s] = db[s].filter((x) => x.id !== String(id)); },
-    removeMany(s, ids) { this.escrituras += 1; ids.forEach((id) => this.remove(s, id)); },
+    upsertMany(s, rows) {
+      this.escrituras += 1;
+      return rows.map((r) => this.upsert(s, r));
+    },
+    remove(s, id) {
+      db[s] = db[s].filter((x) => x.id !== String(id));
+    },
+    removeMany(s, ids) {
+      this.escrituras += 1;
+      ids.forEach((id) => this.remove(s, id));
+    },
   };
 }
 const NADADORES = [
@@ -34,7 +47,14 @@ const SESIONES = [
   { id: 's3', fecha: '2026-10-16', hora: '09:00', titulo: 'Viernes', grupoId: 'g2' },
 ];
 const hoy = new Date(2026, 9, 14, 10, 0);
-const nuevo = (extra = {}) => { const repo = repoMem({ Nadadores: NADADORES.map((n) => ({ ...n })), Entrenamientos: SESIONES.map((s) => ({ ...s })), ...extra }); return { repo, svc: crearAsistenciaService(repo, { ahora: () => hoy }) }; };
+const nuevo = (extra = {}) => {
+  const repo = repoMem({
+    Nadadores: NADADORES.map((n) => ({ ...n })),
+    Entrenamientos: SESIONES.map((s) => ({ ...s })),
+    ...extra,
+  });
+  return { repo, svc: crearAsistenciaService(repo, { ahora: () => hoy }) };
+};
 
 test('estadoTrasToque: first tap sets the state, tapping it again clears it; no cycling through the other states', () => {
   assert.equal(D.estadoTrasToque('', 'presente'), 'presente');
@@ -46,15 +66,28 @@ test('estadoTrasToque: first tap sets the state, tapping it again clears it; no 
 });
 
 test('nadadoresDeSesion: active swimmers of the session group sorted by surname (esActivo is the only rule)', () => {
-  assert.deepEqual(D.nadadoresDeSesion(SESIONES[0], NADADORES).map((n) => n.id), ['n1', 'n2']);
-  assert.deepEqual(D.nadadoresDeSesion({ id: 'x' }, NADADORES).map((n) => n.id), ['n4', 'n1', 'n2']);
+  assert.deepEqual(
+    D.nadadoresDeSesion(SESIONES[0], NADADORES).map((n) => n.id),
+    ['n1', 'n2'],
+  );
+  assert.deepEqual(
+    D.nadadoresDeSesion({ id: 'x' }, NADADORES).map((n) => n.id),
+    ['n4', 'n1', 'n2'],
+  );
   assert.deepEqual(D.nadadoresDeSesion(null, NADADORES), []);
 });
 
 test('resumenSesion counts only the swimmers of the list and reports the unmarked ones', () => {
-  const regs = [{ nadadorId: 'n1', estado: 'presente' }, { nadadorId: 'n2', estado: 'justificado' }, { nadadorId: 'n9', estado: 'ausente' }];
+  const regs = [
+    { nadadorId: 'n1', estado: 'presente' },
+    { nadadorId: 'n2', estado: 'justificado' },
+    { nadadorId: 'n9', estado: 'ausente' },
+  ];
   const r = D.resumenSesion(NADADORES.slice(0, 2), regs);
-  assert.deepEqual([r.total, r.marcados, r.sinMarcar, r.presente, r.ausente, r.justificado, r.porcentajeMarcado], [2, 2, 0, 1, 0, 1, 100]);
+  assert.deepEqual(
+    [r.total, r.marcados, r.sinMarcar, r.presente, r.ausente, r.justificado, r.porcentajeMarcado],
+    [2, 2, 0, 1, 0, 1, 100],
+  );
   assert.equal(D.resumenSesion([], []).porcentajeMarcado, 0);
 });
 
@@ -75,15 +108,27 @@ test('sesionPorDefecto: today, else the latest past session, else the next one; 
 
 test('filtrarSesiones: accent/case insensitive search that never drops the selected session', () => {
   const etq = (s) => `${s.fecha} ${s.titulo}`;
-  assert.deepEqual(D.filtrarSesiones(SESIONES, 'MIERCOLES', etq).map((s) => s.id), ['s2']);
-  assert.deepEqual(D.filtrarSesiones(SESIONES, 'miercoles', etq, 's1').map((s) => s.id), ['s2', 's1']);
+  assert.deepEqual(
+    D.filtrarSesiones(SESIONES, 'MIERCOLES', etq).map((s) => s.id),
+    ['s2'],
+  );
+  assert.deepEqual(
+    D.filtrarSesiones(SESIONES, 'miercoles', etq, 's1').map((s) => s.id),
+    ['s2', 's1'],
+  );
   assert.equal(D.filtrarSesiones(SESIONES, '', etq).length, 3);
 });
 
 test('service.lista: swimmers of the group with their state; marcar/tocar/deshacer', () => {
   const { svc, repo } = nuevo();
-  let m = svc.lista('s1');
-  assert.deepEqual(m.filas.map((f) => [f.nadador.id, f.estado]), [['n1', ''], ['n2', '']]);
+  const m = svc.lista('s1');
+  assert.deepEqual(
+    m.filas.map((f) => [f.nadador.id, f.estado]),
+    [
+      ['n1', ''],
+      ['n2', ''],
+    ],
+  );
   assert.equal(m.resumen.sinMarcar, 2);
 
   const r1 = svc.tocar('s1', 'n1', 'presente');
@@ -113,16 +158,23 @@ test('service.marcarTodos marks only the unmarked swimmers with ONE write and is
   const creadas = svc.marcarTodos('s1');
   assert.equal(creadas.length, 1);
   assert.equal(repo.escrituras, antes + 1, 'a single upsertMany');
-  assert.deepEqual(repo.db.Asistencia.map((a) => [a.nadadorId, a.estado]).sort(), [['n1', 'presente'], ['n2', 'ausente']]);
+  assert.deepEqual(repo.db.Asistencia.map((a) => [a.nadadorId, a.estado]).sort(), [
+    ['n1', 'presente'],
+    ['n2', 'ausente'],
+  ]);
   svc.deshacerVarias(creadas);
-  assert.deepEqual(repo.db.Asistencia.map((a) => a.nadadorId), ['n2']);
+  assert.deepEqual(
+    repo.db.Asistencia.map((a) => a.nadadorId),
+    ['n2'],
+  );
   assert.deepEqual(svc.marcarTodos('s1').length, 1);
   assert.deepEqual(svc.marcarTodos('s1'), [], 'nothing left to mark');
 });
 
 test('service works with a repository without bulk operations', () => {
   const repo = repoMem({ Nadadores: NADADORES, Entrenamientos: SESIONES });
-  delete repo.upsertMany; delete repo.removeMany;
+  delete repo.upsertMany;
+  delete repo.removeMany;
   const svc = crearAsistenciaService(repo, { ahora: () => hoy });
   const creadas = svc.marcarTodos('s1');
   assert.equal(creadas.length, 2);
@@ -143,10 +195,19 @@ test('historial: one row per active swimmer with counts, percentage and detail n
   svc.tocar('s2', 'n1', 'ausente');
   svc.marcar('s2', 'n2', 'justificado', 'x');
   const h = svc.historial();
-  assert.deepEqual(h.map((f) => f.nadador.id), ['n4', 'n1', 'n2']);
+  assert.deepEqual(
+    h.map((f) => f.nadador.id),
+    ['n4', 'n1', 'n2'],
+  );
   const n1 = h.find((f) => f.nadador.id === 'n1');
   assert.deepEqual([n1.presente, n1.ausente, n1.total, n1.pct], [1, 1, 2, 50]);
-  assert.deepEqual(n1.detalle.map((d) => d.sesion.id), ['s2', 's1']);
+  assert.deepEqual(
+    n1.detalle.map((d) => d.sesion.id),
+    ['s2', 's1'],
+  );
   assert.equal(h.find((f) => f.nadador.id === 'n4').pct, null);
-  assert.deepEqual(svc.historial({ grupoId: 'g2' }).map((f) => f.nadador.id), ['n4']);
+  assert.deepEqual(
+    svc.historial({ grupoId: 'g2' }).map((f) => f.nadador.id),
+    ['n4'],
+  );
 });

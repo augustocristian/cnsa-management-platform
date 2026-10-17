@@ -14,7 +14,8 @@ export function crearBackupsDrive({ drive, nombreBackup }) {
     async listar(club) {
       const p = prefijo(club);
       const fid = await drive.ensureFolderPath(['backups']);
-      const archivos = (await drive.listFiles(fid)).filter((f) => String(f.name).startsWith(p))
+      const archivos = (await drive.listFiles(fid))
+        .filter((f) => String(f.name).startsWith(p))
         .map((f) => ({ id: f.id, name: f.name, modified: f.modifiedTime || '' }));
       return { prefijo: p, archivos };
     },

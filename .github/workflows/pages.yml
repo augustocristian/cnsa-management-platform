@@ -18,7 +18,8 @@ jobs:
       - uses: actions/setup-node@v7
         with: { node-version: 22, cache: npm }
       - run: npm ci
-      - run: npm run check
+      - name: Static checks, formatting (Prettier) and lint (ESLint)
+        run: npm run verify
       - name: Architecture rules (layers, cycles, forbidden globals)
         run: npm run check:arch
       - name: Dependency audit

@@ -29,14 +29,22 @@ export function crearModoService({ store, demo, conexion, bandera, ahora } = {})
   const flag = bandera || sinBandera;
 
   // Can the demo be offered / opened right now? (`conexion.enabled` = a Client ID exists, `conexion.isConnected()` = Drive authorised)
-  const demoDisponibleAhora = () => demoDisponible({ clientId: !!conexion.enabled, driveAuth: !!conexion.isConnected() });
+  const demoDisponibleAhora = () =>
+    demoDisponible({ clientId: !!conexion.enabled, driveAuth: !!conexion.isConnected() });
 
   // Opens the demo club. The first time it creates it and fills it with sample data (dates relative to the clock); afterwards it
   // reopens what the person had (their edits are kept until they exit the demo). -> { ref, nuevo }
   // Throws code 'demo-con-drive' (Drive already authorised) or 'demo-con-cliente' (a Google Client ID is configured).
   async function enterDemo() {
-    if (conexion.isConnected()) throw Object.assign(new Error('Drive is connected: the demo is only for people who have not connected Drive.'), { code: 'demo-con-drive' });
-    if (!demoDisponibleAhora()) throw Object.assign(new Error('A Google Client ID is configured: the demo is only available while there is none.'), { code: 'demo-con-cliente' });
+    if (conexion.isConnected())
+      throw Object.assign(new Error('Drive is connected: the demo is only for people who have not connected Drive.'), {
+        code: 'demo-con-drive',
+      });
+    if (!demoDisponibleAhora())
+      throw Object.assign(
+        new Error('A Google Client ID is configured: the demo is only available while there is none.'),
+        { code: 'demo-con-cliente' },
+      );
     const nuevo = !demo.existe();
     flag.escribir(MODO_DEMO);
     await store.initDemo({ demo, hoy: ahora() });

@@ -19,7 +19,11 @@ const clon = (x) => (x === undefined ? undefined : JSON.parse(JSON.stringify(x))
 const sinDrive = () => Object.assign(new Error('Demo mode does not use Google Drive.'), { code: 'demo-sin-drive' });
 
 function almacenPorDefecto() {
-  try { return globalThis.localStorage || null; } catch (e) { return null; }
+  try {
+    return globalThis.localStorage || null;
+  } catch (e) {
+    return null;
+  }
 }
 
 // opciones: { almacen?: Storage-like, ahora?: () => Date }
@@ -29,18 +33,28 @@ export function crearDemoStorage({ almacen, ahora = () => new Date() } = {}) {
 
   function leer() {
     if (ls) {
-      try { const f = JSON.parse(ls.getItem(FILE_KEY) || 'null'); if (f && typeof f === 'object') return f; } catch (e) { /* fall back to memory */ }
+      try {
+        const f = JSON.parse(ls.getItem(FILE_KEY) || 'null');
+        if (f && typeof f === 'object') return f;
+      } catch (e) {
+        /* fall back to memory */
+      }
     }
     return memoria;
   }
   function guardar(f) {
     memoria = f;
     if (!ls) return;
-    try { ls.setItem(FILE_KEY, JSON.stringify(f)); } catch (e) { /* too big / blocked: memory only */ }
+    try {
+      ls.setItem(FILE_KEY, JSON.stringify(f));
+    } catch (e) {
+      /* too big / blocked: memory only */
+    }
   }
   const archivo = (id) => {
     const f = leer();
-    if (!f || (id && f.id !== id)) throw Object.assign(new Error('The demo club does not exist.'), { status: 404, code: 'no-encontrado' });
+    if (!f || (id && f.id !== id))
+      throw Object.assign(new Error('The demo club does not exist.'), { status: 404, code: 'no-encontrado' });
     return f;
   };
   const metaDe = (f) => ({ rev: 'd' + f.rev, modifiedTime: f.modified, name: f.name, version: f.version });
@@ -49,14 +63,26 @@ export function crearDemoStorage({ almacen, ahora = () => new Date() } = {}) {
     modo: 'demo',
 
     // ---- Lifecycle (used by application/modoService.js) ----
-    existe() { return !!leer(); },
-    ref() { const f = leer(); return f ? { id: f.id, name: f.name } : null; },
+    existe() {
+      return !!leer();
+    },
+    ref() {
+      const f = leer();
+      return f ? { id: f.id, name: f.name } : null;
+    },
 
     // Creates the (empty) demo club file if it does not exist yet. -> { ref, nuevo }
     asegurar(nombre = 'Demo') {
       const f = leer();
       if (f) return { ref: { id: f.id, name: f.name }, nuevo: false };
-      const nuevoF = { id: DEMO_ID, name: String(nombre), doc: { version: 1, club: {}, hojas: {} }, rev: 1, version: 1, modified: ahora().toISOString() };
+      const nuevoF = {
+        id: DEMO_ID,
+        name: String(nombre),
+        doc: { version: 1, club: {}, hojas: {} },
+        rev: 1,
+        version: 1,
+        modified: ahora().toISOString(),
+      };
       guardar(nuevoF);
       return { ref: { id: nuevoF.id, name: nuevoF.name }, nuevo: true };
     },
@@ -68,8 +94,14 @@ export function crearDemoStorage({ almacen, ahora = () => new Date() } = {}) {
       if (ls) {
         try {
           for (const k of Object.keys(ls)) if (k.startsWith(DEMO_PREFIX)) ls.removeItem(k);
-        } catch (e) { /* ignore */ }
-        try { ls.removeItem(DEMO_MODE_KEY); } catch (e) { /* ignore */ }
+        } catch (e) {
+          /* ignore */
+        }
+        try {
+          ls.removeItem(DEMO_MODE_KEY);
+        } catch (e) {
+          /* ignore */
+        }
       }
       await cache.eliminar(DEMO_CACHE_PREFIX + (f ? f.id : DEMO_ID));
     },
@@ -77,7 +109,9 @@ export function crearDemoStorage({ almacen, ahora = () => new Date() } = {}) {
     // ---- "Club file" port (same shape as js/infrastructure/drive.js) ----
     fileUrl: () => '',
     folderUrl: () => '',
-    async meta(id) { return metaDe(archivo(id)); },
+    async meta(id) {
+      return metaDe(archivo(id));
+    },
     async read(id) {
       const f = archivo(id);
       return { doc: clon(f.doc), rev: 'd' + f.rev, version: f.version, name: f.name };
@@ -101,17 +135,39 @@ export function crearDemoStorage({ almacen, ahora = () => new Date() } = {}) {
     },
 
     // ---- Disabled in demo: no backups, no history, no folders, no uploads ----
-    async backupClub() { return { id: '', name: '', creado: false, omitido: true }; },
-    async listarBackups() { return []; },
-    async revisionPrevia() { return null; },
-    async borrarRevisionesAntiguas() { return 0; },
-    async leerFichero() { throw sinDrive(); },
-    async ensureFolder() { throw sinDrive(); },
-    async ensureFolderPath() { throw sinDrive(); },
-    async findFile() { throw sinDrive(); },
-    async upload() { throw sinDrive(); },
-    async eliminarDefinitivo() { throw sinDrive(); },
-    reset() { /* nothing cached */ },
+    async backupClub() {
+      return { id: '', name: '', creado: false, omitido: true };
+    },
+    async listarBackups() {
+      return [];
+    },
+    async revisionPrevia() {
+      return null;
+    },
+    async borrarRevisionesAntiguas() {
+      return 0;
+    },
+    async leerFichero() {
+      throw sinDrive();
+    },
+    async ensureFolder() {
+      throw sinDrive();
+    },
+    async ensureFolderPath() {
+      throw sinDrive();
+    },
+    async findFile() {
+      throw sinDrive();
+    },
+    async upload() {
+      throw sinDrive();
+    },
+    async eliminarDefinitivo() {
+      throw sinDrive();
+    },
+    reset() {
+      /* nothing cached */
+    },
   };
   return demo;
 }

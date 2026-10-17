@@ -4,7 +4,8 @@ import assert from 'node:assert/strict';
 import { crearClienteGoogleCalendar, GoogleCalendarError } from '../../js/infrastructure/googleCalendar.js';
 
 const resp = (status, body, headers = {}) => ({
-  ok: status >= 200 && status < 300, status,
+  ok: status >= 200 && status < 300,
+  status,
   headers: { get: (k) => headers[k] ?? null },
   json: async () => body,
 });
@@ -15,9 +16,19 @@ function montar(respuestas, extra = {}) {
   const tokens = [];
   const cola = [...respuestas];
   const cliente = crearClienteGoogleCalendar({
-    fetch: async (url, opts) => { llamadas.push({ url, ...opts }); const r = cola.shift(); if (r instanceof Error) throw r; return r; },
-    getToken: async ({ force } = {}) => { tokens.push(!!force); return force ? 'nuevo' : 'viejo'; },
-    sleep: async (ms) => { esperas.push(ms); },
+    fetch: async (url, opts) => {
+      llamadas.push({ url, ...opts });
+      const r = cola.shift();
+      if (r instanceof Error) throw r;
+      return r;
+    },
+    getToken: async ({ force } = {}) => {
+      tokens.push(!!force);
+      return force ? 'nuevo' : 'viejo';
+    },
+    sleep: async (ms) => {
+      esperas.push(ms);
+    },
     ...extra,
   });
   return { cliente, llamadas, esperas, tokens };
@@ -47,7 +58,10 @@ test('borrar: DELETE 204 and an already missing event (404/410) counts as delete
   await cliente.borrar('a');
   await cliente.borrar('b');
   await cliente.borrar('c');
-  assert.deepEqual(llamadas.map((l) => l.method), ['DELETE', 'DELETE', 'DELETE']);
+  assert.deepEqual(
+    llamadas.map((l) => l.method),
+    ['DELETE', 'DELETE', 'DELETE'],
+  );
 });
 
 test('401: refreshes the token once and retries; if it fails again => code auth', async () => {
@@ -67,25 +81,44 @@ test('no token => code auth without calling the API', async () => {
 });
 
 test('429: retries honouring Retry-After and then succeeds', async () => {
-  const { cliente, llamadas, esperas } = montar([resp(429, { error: { message: 'slow' } }, { 'Retry-After': '3' }), resp(429, {}), resp(200, { id: 'z' })]);
+  const { cliente, llamadas, esperas } = montar([
+    resp(429, { error: { message: 'slow' } }, { 'Retry-After': '3' }),
+    resp(429, {}),
+    resp(200, { id: 'z' }),
+  ]);
   assert.equal((await cliente.insertar({})).id, 'z');
   assert.equal(llamadas.length, 3);
   assert.deepEqual(esperas, [3000, 1000]); // Retry-After, then exponential backoff (500 * 2^1)
 });
 
 test('persistent 429: exhausts retries and fails with code limite', async () => {
-  const { cliente, llamadas } = montar(Array.from({ length: 10 }, () => resp(429, { error: { message: 'slow' } })), { maxReintentos: 2 });
+  const { cliente, llamadas } = montar(
+    Array.from({ length: 10 }, () => resp(429, { error: { message: 'slow' } })),
+    { maxReintentos: 2 },
+  );
   await assert.rejects(cliente.insertar({}), (e) => e.code === 'limite' && e.status === 429);
   assert.equal(llamadas.length, 3);
 });
 
 test('403: user rate limit is retried; permissions and disabled API are not', async () => {
-  const lim = montar([resp(403, { error: { message: 'rate', errors: [{ reason: 'userRateLimitExceeded' }] } }), resp(200, { id: 'k' })]);
+  const lim = montar([
+    resp(403, { error: { message: 'rate', errors: [{ reason: 'userRateLimitExceeded' }] } }),
+    resp(200, { id: 'k' }),
+  ]);
   assert.equal((await lim.cliente.insertar({})).id, 'k');
-  const perm = montar([resp(403, { error: { message: 'Insufficient Permission', errors: [{ reason: 'insufficientPermissions' }] } })]);
+  const perm = montar([
+    resp(403, { error: { message: 'Insufficient Permission', errors: [{ reason: 'insufficientPermissions' }] } }),
+  ]);
   await assert.rejects(perm.cliente.insertar({}), (e) => e.code === 'permisos');
   assert.equal(perm.llamadas.length, 1);
-  const off = montar([resp(403, { error: { message: 'Google Calendar API has not been used in project 1 before or it is disabled.', errors: [{ reason: 'accessNotConfigured' }] } })]);
+  const off = montar([
+    resp(403, {
+      error: {
+        message: 'Google Calendar API has not been used in project 1 before or it is disabled.',
+        errors: [{ reason: 'accessNotConfigured' }],
+      },
+    }),
+  ]);
   await assert.rejects(off.cliente.insertar({}), (e) => e.code === 'api-desactivada');
 });
 
@@ -101,13 +134,24 @@ test('5xx and network failures are retried; in the end => servidor / red', async
 });
 
 test('listarGestionados: filters by cnlClub, paginates and discards cancelled events', async () => {
-  const item = (id, cnl, f, status = 'confirmed') => ({ id, status, start: { dateTime: f + 'T10:00:00+02:00' }, extendedProperties: { private: { cnlId: cnl, cnlClub: 'c1' } } });
+  const item = (id, cnl, f, status = 'confirmed') => ({
+    id,
+    status,
+    start: { dateTime: f + 'T10:00:00+02:00' },
+    extendedProperties: { private: { cnlId: cnl, cnlClub: 'c1' } },
+  });
   const { cliente, llamadas } = montar([
-    resp(200, { items: [item('g1', 'a', '2026-10-20'), item('g2', 'b', '2026-10-21', 'cancelled')], nextPageToken: 'T2' }),
+    resp(200, {
+      items: [item('g1', 'a', '2026-10-20'), item('g2', 'b', '2026-10-21', 'cancelled')],
+      nextPageToken: 'T2',
+    }),
     resp(200, { items: [item('g3', 'c', '2026-10-22'), { id: 'ajeno', start: { date: '2026-10-22' } }] }),
   ]);
   const r = await cliente.listarGestionados({ clubId: 'c1', timeMin: '2026-10-01T00:00:00Z' });
-  assert.deepEqual(r, [{ gid: 'g1', cnlId: 'a', fecha: '2026-10-20' }, { gid: 'g3', cnlId: 'c', fecha: '2026-10-22' }]);
+  assert.deepEqual(r, [
+    { gid: 'g1', cnlId: 'a', fecha: '2026-10-20' },
+    { gid: 'g3', cnlId: 'c', fecha: '2026-10-22' },
+  ]);
   assert.match(llamadas[0].url, /privateExtendedProperty=cnlClub%3Dc1/);
   assert.match(llamadas[1].url, /pageToken=T2/);
 });

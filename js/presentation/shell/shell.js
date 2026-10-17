@@ -15,7 +15,11 @@ let tokenVista = 0;
 export const shellAbierto = () => !!document.getElementById('slot-header');
 
 function pie(rt) {
-  return h('footer', { class: 'footer' }, t('shell.pie', { anio: rt.ahora().getFullYear(), club: nombreClub(rt.store), lema: lemaClub(rt.store) }));
+  return h(
+    'footer',
+    { class: 'footer' },
+    t('shell.pie', { anio: rt.ahora().getFullYear(), club: nombreClub(rt.store), lema: lemaClub(rt.store) }),
+  );
 }
 
 // The footer only appears at the end of the Settings page.
@@ -23,8 +27,12 @@ function actualizarPie(rt, name) {
   const shell = document.querySelector('.shell');
   if (!shell) return;
   const actual = shell.querySelector(':scope > .footer');
-  if (name !== 'club') { actual?.remove(); return; }
-  if (actual) actual.replaceWith(pie(rt)); else shell.appendChild(pie(rt));
+  if (name !== 'club') {
+    actual?.remove();
+    return;
+  }
+  if (actual) actual.replaceWith(pie(rt));
+  else shell.appendChild(pie(rt));
 }
 
 // Old route names (e.g. #/banador) keep working: the URL is rewritten to their new home.
@@ -40,13 +48,19 @@ export function renderShell(rt) {
   const actual = router.current();
   const main = h('main', { id: 'view', class: 'view', tabindex: '-1' });
   const raiz = document.getElementById('app');
-  raiz.replaceChildren(h('div', { class: 'shell' },
-    h('div', { id: 'slot-header' }, construirHeader(rt)),
-    h('div', { id: 'cnl-avisos', class: 'banners', hidden: true }),
-    construirNav(rt, resolverRuta(actual.name)),
-    main));
+  raiz.replaceChildren(
+    h(
+      'div',
+      { class: 'shell' },
+      h('div', { id: 'slot-header' }, construirHeader(rt)),
+      h('div', { id: 'cnl-avisos', class: 'banners', hidden: true }),
+      construirNav(rt, resolverRuta(actual.name)),
+      main,
+    ),
+  );
   pintarBanners(rt, { forzar: true });
-  if (!actual.name || !(esRuta(actual.name) || resolverRuta(actual.name) !== actual.name)) history.replaceState(null, '', '#/inicio');
+  if (!actual.name || !(esRuta(actual.name) || resolverRuta(actual.name) !== actual.name))
+    history.replaceState(null, '', '#/inicio');
   return mostrarVista(rt, router.current(), { primera: true });
 }
 
@@ -63,7 +77,10 @@ export async function mostrarVista(rt, ruta, { primera = false } = {}) {
   const main = document.getElementById('view');
   if (!main) return;
   const { name, params } = normalizarRuta(ruta);
-  if (!esRuta(name)) { router.navigate('inicio'); return; }
+  if (!esRuta(name)) {
+    router.navigate('inicio');
+    return;
+  }
   marcarActivo(name);
   actualizarPie(rt, name);
   const clave = `${name}/${params.join('/')}`;
@@ -76,8 +93,12 @@ export async function mostrarVista(rt, ruta, { primera = false } = {}) {
     mod = await (router.getRoute(name)?.() ?? import(`../views/${name}.js`));
   } catch (e) {
     if (token !== tokenVista) return;
-    let missing = false;
-    try { missing = !(await fetch(`./js/presentation/views/${name}.js`, { method: 'HEAD' })).ok; } catch (e2) { missing = false; }
+    let missing;
+    try {
+      missing = !(await fetch(`./js/presentation/views/${name}.js`, { method: 'HEAD' })).ok;
+    } catch (e2) {
+      missing = false;
+    }
     main.replaceChildren(missing ? proximamente(name) : tarjetaError(e));
     finalizarRuta(rt, main, name, { cambio, primera });
     return;
@@ -99,13 +120,29 @@ export async function mostrarVista(rt, ruta, { primera = false } = {}) {
 function finalizarRuta(rt, main, name, { cambio, primera }) {
   const titulo = main.querySelector('h1')?.textContent.trim() || tNav(name);
   ponerTitulo(titulo, nombreClub(rt.store));
-  if (name === 'comunicaciones') { rt.avisos.marcarVistos(); actualizarHeader(rt); }
-  if (cambio && !primera) { anunciar(titulo); moverFoco(main); }
+  if (name === 'comunicaciones') {
+    rt.avisos.marcarVistos();
+    actualizarHeader(rt);
+  }
+  if (cambio && !primera) {
+    anunciar(titulo);
+    moverFoco(main);
+  }
 }
 
 function proximamente(name) {
-  return h('div', { class: 'card soon' }, h('h2', null, tNav(name)), h('p', null, t('common.proximamente')), h('p', { class: 'muted' }, t('shell.proximamente-desc')));
+  return h(
+    'div',
+    { class: 'card soon' },
+    h('h2', null, tNav(name)),
+    h('p', null, t('common.proximamente')),
+    h('p', { class: 'muted' }, t('shell.proximamente-desc')),
+  );
 }
 export function tarjetaError(e) {
-  return h('div', { class: 'alert alert--danger', role: 'alert' }, h('div', null, h('p', { class: 'alert-title' }, t('shell.error-vista')), h('p', null, e?.message || String(e))));
+  return h(
+    'div',
+    { class: 'alert alert--danger', role: 'alert' },
+    h('div', null, h('p', { class: 'alert-title' }, t('shell.error-vista')), h('p', null, e?.message || String(e))),
+  );
 }

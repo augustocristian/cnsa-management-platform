@@ -1,7 +1,8 @@
 // Testi del catalogo dei costumi (allenamento / tecnico da gara) e del filtro dei tempi per costume.
 export default {
   'bn.titulo': 'Costumi',
-  'bn.intro': 'I costumi del club con cui si registrano i tempi, per poterli filtrare per tipo (allenamento o tecnico da gara), marca e modello.',
+  'bn.intro':
+    'I costumi del club con cui si registrano i tempi, per poterli filtrare per tipo (allenamento o tecnico da gara), marca e modello.',
   'bn.nuevo': 'Nuovo costume',
   'bn.nuevo-titulo': 'Nuovo costume',
   'bn.editar-titulo': 'Modifica costume',
@@ -43,11 +44,12 @@ export default {
   'bn.fusionado': 'Costume «{nombre}» unito a «{destino}» ({n} tempi riassegnati)',
   'bn.borrar.confirmar': 'Eliminare il costume «{nombre}»?',
   'bn.borrar.en-uso-titulo': 'Costume in uso',
-  'bn.borrar.en-uso': 'Il costume «{nombre}» compare in {n} tempi, quindi non si può eliminare. Puoi disattivarlo (non viene più proposto quando registri i tempi) o unirlo a un altro costume.',
+  'bn.borrar.en-uso':
+    'Il costume «{nombre}» compare in {n} tempi, quindi non si può eliminare. Puoi disattivarlo (non viene più proposto quando registri i tempi) o unirlo a un altro costume.',
   'bn.borrar.desactivar': 'Disattiva',
   'bn.borrar.fusionar': 'Unisci ed elimina',
   'bn.borrar.fusionar-con': 'Unisci a',
-  'bn.borrar.sin-destino': 'Non c\'è un altro costume a cui unirlo.',
+  'bn.borrar.sin-destino': "Non c'è un altro costume a cui unirlo.",
   'bn.err.tipo-invalido': 'Scegli il tipo di costume.',
   'bn.err.marca-vacia': 'La marca è obbligatoria per un costume tecnico.',
   'bn.err.modelo-vacio': 'Il modello è obbligatorio per un costume tecnico.',

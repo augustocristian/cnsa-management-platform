@@ -1,0 +1,11 @@
+node_modules/
+vendor/
+docs/screenshots/
+package-lock.json
+reports/
+playwright-report/
+test-results/
+# Generated block (scripts/generate-sw.mjs) lives in sw.js; the generator owns its formatting.
+sw.js
+# Templates are not valid JS/Markdown until instantiated.
+**/*.tpl

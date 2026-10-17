@@ -14,7 +14,14 @@ test('aIso/desdeIso: local dates and the 7-day window', () => {
 });
 
 test('contarNoLeidos: window and last-seen marker', () => {
-  const lista = [{ fecha: '2026-10-14' }, { fecha: '2026-10-10' }, { fecha: '2026-10-07' }, { fecha: '2026-10-06' }, { fecha: '' }, null];
+  const lista = [
+    { fecha: '2026-10-14' },
+    { fecha: '2026-10-10' },
+    { fecha: '2026-10-07' },
+    { fecha: '2026-10-06' },
+    { fecha: '' },
+    null,
+  ];
   assert.equal(contarNoLeidos(lista, { desde: '2026-10-07' }), 3);
   assert.equal(contarNoLeidos(lista, { desde: '2026-10-07', visto: '2026-10-10' }), 1);
   assert.equal(contarNoLeidos(lista, { desde: '2026-10-07', visto: '2026-10-14' }), 0);
@@ -24,7 +31,16 @@ test('contarNoLeidos: window and last-seen marker', () => {
 test('service: counts, marks as seen and never throws', () => {
   let visto = null;
   let filas = [{ fecha: '2026-10-13' }, { fecha: '2026-10-01' }];
-  const s = crearAvisosService({ listar: () => filas, ahora: () => AHORA, visto: { leer: () => visto, escribir: (d) => { visto = d; } } });
+  const s = crearAvisosService({
+    listar: () => filas,
+    ahora: () => AHORA,
+    visto: {
+      leer: () => visto,
+      escribir: (d) => {
+        visto = d;
+      },
+    },
+  });
   assert.equal(s.contarNoLeidos(), 1);
   s.marcarVistos();
   assert.equal(visto, '2026-10-14');
@@ -33,8 +49,18 @@ test('service: counts, marks as seen and never throws', () => {
   assert.equal(s.contarNoLeidos(), 1);
 
   const roto = crearAvisosService({
-    listar: () => { throw new Error('boom'); }, ahora: () => AHORA,
-    visto: { leer: () => { throw new Error('x'); }, escribir: () => { throw new Error('y'); } },
+    listar: () => {
+      throw new Error('boom');
+    },
+    ahora: () => AHORA,
+    visto: {
+      leer: () => {
+        throw new Error('x');
+      },
+      escribir: () => {
+        throw new Error('y');
+      },
+    },
   });
   assert.equal(roto.contarNoLeidos(), 0);
   assert.doesNotThrow(() => roto.marcarVistos());

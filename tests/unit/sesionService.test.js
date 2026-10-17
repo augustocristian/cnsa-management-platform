@@ -7,36 +7,76 @@ import { crearSesionService } from '../../js/application/sesionService.js';
 const CLAVES = { clubes: 'clubes', ultimoClub: 'ultimoClub' };
 const sinLog = { warn() {} };
 
-function entorno({ conectado = true, enabled = true, demo = false, clubes = [], listError = null, ultimo = null, forzar = false, pendiente = false, soloLectura = false, modo = 'drive', syncLento = false } = {}) {
+function entorno({
+  conectado = true,
+  enabled = true,
+  demo = false,
+  clubes = [],
+  listError = null,
+  ultimo = null,
+  forzar = false,
+  pendiente = false,
+  soloLectura = false,
+  modo = 'drive',
+  syncLento = false,
+} = {}) {
   const log = [];
   const valores = new Map([[CLAVES.ultimoClub, ultimo]]);
   const estado = { forzar, demo, falla: false };
   const auth = {
-    enabled, isConnected: () => conectado,
-    connect: async ({ interactive }) => { log.push('connect:' + interactive); if (estado.falla) throw new Error('denied'); },
+    enabled,
+    isConnected: () => conectado,
+    connect: async ({ interactive }) => {
+      log.push('connect:' + interactive);
+      if (estado.falla) throw new Error('denied');
+    },
     disconnect: () => log.push('disconnect'),
   };
   const drive = {
-    preferencias: { id: 'p' }, reset: () => log.push('drive.reset'),
-    listClubs: async () => { if (listError) throw listError; return clubes; },
+    preferencias: { id: 'p' },
+    reset: () => log.push('drive.reset'),
+    listClubs: async () => {
+      if (listError) throw listError;
+      return clubes;
+    },
   };
   const prefs = {
-    conectar: async (o) => { log.push('prefs.conectar:' + JSON.stringify(Object.keys(o))); },
-    get: (k, def) => (valores.has(k) && valores.get(k) != null ? valores.get(k) : def), set: (k, v) => valores.set(k, v),
-    flush: async () => log.push('prefs.flush'), desconectar: () => log.push('prefs.desconectar'),
+    conectar: async (o) => {
+      log.push('prefs.conectar:' + JSON.stringify(Object.keys(o)));
+    },
+    get: (k, def) => (valores.has(k) && valores.get(k) != null ? valores.get(k) : def),
+    set: (k, v) => valores.set(k, v),
+    flush: async () => log.push('prefs.flush'),
+    desconectar: () => log.push('prefs.desconectar'),
   };
   const store = {
-    mode: modo, clubRef: { id: 'c1' }, soloLectura, pendiente,
-    sync: () => { log.push('sync'); return syncLento ? new Promise(() => {}) : Promise.resolve(); },
+    mode: modo,
+    clubRef: { id: 'c1' },
+    soloLectura,
+    pendiente,
+    sync: () => {
+      log.push('sync');
+      return syncLento ? new Promise(() => {}) : Promise.resolve();
+    },
     cerrar: () => log.push('store.cerrar'),
   };
   const banderas = {
-    selectorForzado: () => estado.forzar, limpiarSelectorForzado: () => { estado.forzar = false; },
+    selectorForzado: () => estado.forzar,
+    limpiarSelectorForzado: () => {
+      estado.forzar = false;
+    },
     demoGuardada: () => estado.demo,
   };
   const svc = crearSesionService({
-    auth, drive, prefs, CLAVES, store, banderas, limpiarDatosLocales: async () => log.push('limpiar'),
-    espera: (ms) => new Promise((r) => setTimeout(r, Math.min(ms, 5))), log: sinLog,
+    auth,
+    drive,
+    prefs,
+    CLAVES,
+    store,
+    banderas,
+    limpiarDatosLocales: async () => log.push('limpiar'),
+    espera: (ms) => new Promise((r) => setTimeout(r, Math.min(ms, 5))),
+    log: sinLog,
   });
   return { svc, log, valores, estado };
 }
@@ -55,12 +95,12 @@ test('decidirArranque: drive, demo left open, config, start screen and tutorial'
 test('start mode matrix: client ID x Drive authorisation x demo flag', () => {
   const casos = [
     // conectado, enabled (Client ID), demo flag -> resolveStartMode / decidirArranque
-    [false, false, false, 'start', 'config'],        // no Client ID: Configuration needed (offers the demo)
-    [false, false, true, 'demo', 'demo'],            // demo left open and still allowed: straight into the demo
-    [false, true, false, 'start', 'inicio'],         // Client ID set: only "Connect Google Drive"
+    [false, false, false, 'start', 'config'], // no Client ID: Configuration needed (offers the demo)
+    [false, false, true, 'demo', 'demo'], // demo left open and still allowed: straight into the demo
+    [false, true, false, 'start', 'inicio'], // Client ID set: only "Connect Google Drive"
     [false, true, true, 'demo-cerrada', 'demo-cerrada'], // a Client ID appeared while the demo was open: it is closed
     [true, true, false, 'drive', 'drive'],
-    [true, true, true, 'drive', 'drive'],            // Drive wins over a stale demo flag
+    [true, true, true, 'drive', 'drive'], // Drive wins over a stale demo flag
     [true, false, false, 'drive', 'drive'],
     [true, false, true, 'drive', 'drive'],
   ];
@@ -71,7 +111,10 @@ test('start mode matrix: client ID x Drive authorisation x demo flag', () => {
     assert.equal(svc.decidirArranque(), arranque, 'decidirArranque ' + quien);
   }
   // the tutorial is still reachable before connecting, but a demo that must be closed is closed first
-  assert.equal(entorno({ conectado: false, enabled: true, demo: true }).svc.decidirArranque({ tutorial: true }), 'demo-cerrada');
+  assert.equal(
+    entorno({ conectado: false, enabled: true, demo: true }).svc.decidirArranque({ tutorial: true }),
+    'demo-cerrada',
+  );
 });
 
 test('resolverClub: no clubs -> wizard; one club or the last one -> open; several -> picker', async () => {
@@ -80,7 +123,10 @@ test('resolverClub: no clubs -> wizard; one club or the last one -> open; severa
   const b = { id: 'b', name: 'B' };
   assert.deepEqual(await entorno({ clubes: [a] }).svc.resolverClub(), { accion: 'abrir', ref: a });
   assert.deepEqual(await entorno({ clubes: [a, b], ultimo: 'b' }).svc.resolverClub(), { accion: 'abrir', ref: b });
-  assert.deepEqual(await entorno({ clubes: [a, b], ultimo: 'zzz' }).svc.resolverClub(), { accion: 'elegir', clubes: [a, b] });
+  assert.deepEqual(await entorno({ clubes: [a, b], ultimo: 'zzz' }).svc.resolverClub(), {
+    accion: 'elegir',
+    clubes: [a, b],
+  });
 });
 
 test('resolverClub: connects the preferences without any identity and mirrors the club list', async () => {
@@ -100,7 +146,10 @@ test('resolverClub: the forced picker flag is consumed once', async () => {
 
 test('resolverClub: offline or expired -> mirrored clubs; other errors -> error', async () => {
   const espejo = [{ id: 'a', name: 'A' }];
-  for (const err of [Object.assign(new Error('x'), { offline: true }), Object.assign(new Error('x'), { code: 'sesion-caducada' })]) {
+  for (const err of [
+    Object.assign(new Error('x'), { offline: true }),
+    Object.assign(new Error('x'), { code: 'sesion-caducada' }),
+  ]) {
     const e = entorno({ listError: err });
     e.valores.set(CLAVES.clubes, espejo);
     const r = await e.svc.resolverClub();
@@ -128,7 +177,8 @@ test('reconectar: interactive connect, then sync; failure is reported', async ()
 test('cerrarSesion: syncs, disconnects Drive and erases the local copies', async () => {
   const e = entorno();
   assert.deepEqual(await e.svc.cerrarSesion(), { salio: true });
-  for (const paso of ['sync', 'prefs.desconectar', 'disconnect', 'drive.reset', 'store.cerrar', 'limpiar']) assert.ok(e.log.includes(paso), 'missing ' + paso + ': ' + e.log);
+  for (const paso of ['sync', 'prefs.desconectar', 'disconnect', 'drive.reset', 'store.cerrar', 'limpiar'])
+    assert.ok(e.log.includes(paso), 'missing ' + paso + ': ' + e.log);
   assert.ok(e.log.indexOf('sync') < e.log.indexOf('disconnect'), 'upload before revoking');
   assert.ok(e.log.indexOf('disconnect') < e.log.indexOf('limpiar'));
 });
@@ -136,7 +186,15 @@ test('cerrarSesion: syncs, disconnects Drive and erases the local copies', async
 test('cerrarSesion: unsynced changes ask first; cancelling keeps everything', async () => {
   const e = entorno({ pendiente: true });
   let preguntas = 0;
-  assert.deepEqual(await e.svc.cerrarSesion({ preguntarPendientes: async () => { preguntas++; return 'cancelar'; } }), { salio: false });
+  assert.deepEqual(
+    await e.svc.cerrarSesion({
+      preguntarPendientes: async () => {
+        preguntas++;
+        return 'cancelar';
+      },
+    }),
+    { salio: false },
+  );
   assert.equal(preguntas, 1);
   assert.ok(!e.log.includes('disconnect') && !e.log.includes('limpiar'));
   // no handler = cancel (never discards silently)

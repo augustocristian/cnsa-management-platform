@@ -15,30 +15,61 @@ function repoMem(datos = {}) {
     list: (h) => (db[h] || []).slice(),
     get: (h, id) => (db[h] || []).find((r) => r.id === String(id)) || null,
     upsert(h, row) {
-      const fila = { ...row, id: row.id ? String(row.id) : 'auto' + (++n) };
+      const fila = { ...row, id: row.id ? String(row.id) : 'auto' + ++n };
       const i = db[h].findIndex((r) => r.id === fila.id);
-      if (i >= 0) db[h][i] = fila; else db[h].push(fila);
+      if (i >= 0) db[h][i] = fila;
+      else db[h].push(fila);
       return fila;
     },
-    remove(h, id) { db[h] = db[h].filter((r) => r.id !== String(id)); },
+    remove(h, id) {
+      db[h] = db[h].filter((r) => r.id !== String(id));
+    },
   };
 }
-const s = (id, fecha, extra = {}) => ({ id, fecha, hora: '19:00', titulo: 'S' + id, grupoId: 'g1', estado: 'planificado', ...extra });
-const lin = (idS, set, orden, extra = {}) => ({ id: `${idS}-${set}-${orden}`, entrenamientoId: idS, set, orden, ...extra });
+const s = (id, fecha, extra = {}) => ({
+  id,
+  fecha,
+  hora: '19:00',
+  titulo: 'S' + id,
+  grupoId: 'g1',
+  estado: 'planificado',
+  ...extra,
+});
+const lin = (idS, set, orden, extra = {}) => ({
+  id: `${idS}-${set}-${orden}`,
+  entrenamientoId: idS,
+  set,
+  orden,
+  ...extra,
+});
 const AHORA = new Date(2026, 9, 14, 10, 30); // Wed 14 Oct 2026, local time
 
 function montar({ drive = null, pdf = null, datos = {} } = {}) {
   const repo = repoMem({
-    Grupos: [{ id: 'g1', nombre: 'Alevín' }, { id: 'g2', nombre: 'Promo' }],
+    Grupos: [
+      { id: 'g1', nombre: 'Alevín' },
+      { id: 'g2', nombre: 'Promo' },
+    ],
     Entrenamientos: [s('a', '2026-10-12'), s('b', '2026-10-14', { grupoId: 'g2' }), s('c', '2026-10-21')],
     EntrenoLineas: [lin('a', 1, 1, { series: 4, distancia: 100, tiempoMin: 10, ejercicio: 'Crol' })],
     ...datos,
   });
   let n = 0;
-  const entreno = crearEntrenoService(repo, { genId: () => 'N' + (++n), club: () => ({ nombre: 'Club' }) });
+  const entreno = crearEntrenoService(repo, { genId: () => 'N' + ++n, club: () => ({ nombre: 'Club' }) });
   const llamadas = [];
-  const pdfFalso = pdf || { generar: async (fichas, etiquetas) => { llamadas.push({ fichas, etiquetas }); return { blob: new Blob(['%PDF']), paginas: fichas.length }; } };
-  const svc = crearEntrenamientosService(repo, { entreno, ahora: () => AHORA, pdf: pdfFalso, drive, nombreDia: () => 'miercoles' });
+  const pdfFalso = pdf || {
+    generar: async (fichas, etiquetas) => {
+      llamadas.push({ fichas, etiquetas });
+      return { blob: new Blob(['%PDF']), paginas: fichas.length };
+    },
+  };
+  const svc = crearEntrenamientosService(repo, {
+    entreno,
+    ahora: () => AHORA,
+    pdf: pdfFalso,
+    drive,
+    nombreDia: () => 'miercoles',
+  });
   return { repo, svc, entreno, llamadas };
 }
 
@@ -100,7 +131,10 @@ test('eliminar returns a snapshot and restaurar puts back session and plan with 
   assert.equal(repo.db.EntrenoLineas.length, 0);
   svc.restaurar(snap);
   assert.equal(repo.get('Entrenamientos', 'a').titulo, 'Sa');
-  assert.deepEqual(repo.db.EntrenoLineas.map((l) => l.id), ['a-1-1']);
+  assert.deepEqual(
+    repo.db.EntrenoLineas.map((l) => l.id),
+    ['a-1-1'],
+  );
   assert.equal(svc.eliminar('nope'), null);
 });
 
@@ -122,7 +156,9 @@ test('pdfSesion: empty plan needs permission, names the file Group-date-day.pdf 
 
 test('pdfSesion with a draft uses the draft, not the saved plan', async () => {
   const { svc, llamadas } = montar();
-  const borrador = crearBorradorPlan({ lineas: [{ set: 1, orden: 1, series: 2, distancia: 50, ejercicio: 'Draft' }] }).estado;
+  const borrador = crearBorradorPlan({
+    lineas: [{ set: 1, orden: 1, series: 2, distancia: 50, ejercicio: 'Draft' }],
+  }).estado;
   await svc.pdfSesion('b', { borrador, etiquetas: {} });
   assert.equal(llamadas.at(-1).fichas[0].totales.metros, 100);
   assert.equal(svc.planVacio('b'), true);
@@ -151,14 +187,19 @@ test('without a PDF port the service says so; Drive is only available when injec
   await assert.rejects(() => svc.guardarEnDrive({ blob: new Blob(['x']), nombre: 'a.pdf' }), /drive-no-disponible/);
   const { svc: conDrive } = montar({ drive: { guardar: async ({ nombre }) => ({ actualizado: false, nombre }) } });
   assert.equal(conDrive.driveDisponible(), true);
-  assert.deepEqual(await conDrive.guardarEnDrive({ blob: new Blob(['x']), nombre: 'a.pdf' }), { actualizado: false, nombre: 'a.pdf' });
+  assert.deepEqual(await conDrive.guardarEnDrive({ blob: new Blob(['x']), nombre: 'a.pdf' }), {
+    actualizado: false,
+    nombre: 'a.pdf',
+  });
 });
 
 // ---------- draft ----------
 test('borradorPlan: starts clean, a change makes it dirty, undoing the change makes it clean, saving resets', () => {
   const b = crearBorradorPlan({ tipoSesion: 'A', lineas: [{ set: 1, orden: 1, series: 2, distancia: 50 }] });
   let avisos = 0;
-  b.alCambiar(() => { avisos++; });
+  b.alCambiar(() => {
+    avisos++;
+  });
   assert.equal(b.sucio(), false);
   b.estado.lineas[0].series = 3;
   b.cambio();

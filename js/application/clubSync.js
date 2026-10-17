@@ -1,7 +1,14 @@
 // Synchronisation cycle of the club store (part of application/clubStore.js): opening from the remote file, one sync cycle with
 // 3-way merge and concurrency control, polling refresh, daily backup and merging with another tab. It works on the state `s`
 // and the helpers `h` that clubStore.js hands over; it holds no state of its own.
-import { dataToDoc, docToData, mergeData, isEmptyData, pareceDocumentoClub, purgarLapidas } from '../domain/sheetdata.js';
+import {
+  dataToDoc,
+  docToData,
+  mergeData,
+  isEmptyData,
+  pareceDocumentoClub,
+  purgarLapidas,
+} from '../domain/sheetdata.js';
 import { hayDatosReales, docVacio, diaCompacto, errProblema } from '../domain/filas.js';
 
 const MAX_VUELTAS = 5; // merge+write retries when another device writes in between
@@ -34,18 +41,29 @@ export function crearSincronizacion({ s, h, deps }) {
       const r = await s.puerto.renameClub(s.ref.id, nombre);
       s.ref.name = nombre;
       if (r && r.version) s.lastVersion = r.version; // renaming also bumps the file's `version`
-    } catch (e) { log.warn('Could not rename the club file', e); }
+    } catch (e) {
+      log.warn('Could not rename the club file', e);
+    }
   }
 
   // Rotating daily backup cnl/backups/<club>-YYYYMMDD.json (last 14): made from the content in Drive BEFORE
   // the first write of the day. Best effort: a failure here never prevents saving.
   async function respaldoDiario(docPrevio) {
     if (s.omitirRespaldo || !s.ref || docVacio(docPrevio) || s.respaldos.get(s.ref.id) === diaHoy()) return;
-    try { await s.puerto.backupClub(s.ref.name, docPrevio); s.respaldos.set(s.ref.id, diaHoy()); } catch (e) { log.warn('Daily backup not made', e); }
+    try {
+      await s.puerto.backupClub(s.ref.name, docPrevio);
+      s.respaldos.set(s.ref.id, diaHoy());
+    } catch (e) {
+      log.warn('Daily backup not made', e);
+    }
   }
 
   async function hayRespaldos() {
-    try { return (await s.puerto.listarBackups(s.ref.name)).length > 0; } catch (e) { return false; }
+    try {
+      return (await s.puerto.listarBackups(s.ref.name)).length > 0;
+    } catch (e) {
+      return false;
+    }
   }
 
   // Two tabs of the same browser share the local cache: if the other one saved changes they are merged with our own
@@ -68,30 +86,45 @@ export function crearSincronizacion({ s, h, deps }) {
 
   // One sync cycle: meta -> (read + merge) -> write -> check that nobody wrote in between.
   async function sincronizar(gen) {
-    const vivo = () => { if (gen !== s.syncGen) throw Object.assign(new Error('Stale synchronisation'), { obsoleta: true }); };
+    const vivo = () => {
+      if (gen !== s.syncGen) throw Object.assign(new Error('Stale synchronisation'), { obsoleta: true });
+    };
     const actual = () => ({ db: s.db, club: s.club, meta: s.meta, extra: s.extra });
     let merged = false;
     for (let vuelta = 0; ; vuelta++) {
       const m = await s.puerto.meta(s.ref.id);
       vivo();
       let remote = null;
-      let docPrevio = null;
+      let docPrevio;
       let vBase = m.version;
       h.reconciliarMeta();
       if (m.rev !== s.lastRev) {
         remote = await readRemote();
         vivo();
-        if (remote.data.versionFutura) { adoptarVersionFutura(remote); return; }
-        if ((remote.empty || !remote.esClub) && s.base && !isEmptyData(s.base)) { h.ponerProblema('vacio'); throw errProblema(); } // someone emptied the file
+        if (remote.data.versionFutura) {
+          adoptarVersionFutura(remote);
+          return;
+        }
+        if ((remote.empty || !remote.esClub) && s.base && !isEmptyData(s.base)) {
+          h.ponerProblema('vacio');
+          throw errProblema();
+        } // someone emptied the file
         if (s.dirty) h.applyData(mergeData(remote.empty ? null : s.base, actual(), remote.data, { dispositivo }));
         else h.applyData(remote.data);
         merged = true;
         vBase = remote.version == null ? m.version : remote.version;
         docPrevio = remote.doc;
-        if (h.ensureCatalog()) { s.dirty = true; s.rev++; }
+        if (h.ensureCatalog()) {
+          s.dirty = true;
+          s.rev++;
+        }
       } else docPrevio = s.base ? dataToDoc(s.base) : null;
       if (!s.dirty) {
-        if (remote) { s.base = h.snapshot(); s.lastRev = remote.rev; s.lastVersion = vBase; }
+        if (remote) {
+          s.base = h.snapshot();
+          s.lastRev = remote.rev;
+          s.lastVersion = vBase;
+        }
         break;
       }
       // Upload
@@ -138,7 +171,9 @@ export function crearSincronizacion({ s, h, deps }) {
     if (!red.enLinea()) throw Object.assign(new Error('offline'), { offline: true });
     if (!s.dirty) {
       let remote = null;
-      try { remote = await readRemote(); } catch (e) {
+      try {
+        remote = await readRemote();
+      } catch (e) {
         if (e.code !== 'fichero-danado') throw e;
         h.ponerProblema('danado', e); // unreadable JSON: nothing is overwritten
       }
@@ -146,13 +181,16 @@ export function crearSincronizacion({ s, h, deps }) {
         if (remote.data.versionFutura) {
           adoptarVersionFutura(remote);
         } else if ((remote.empty || !remote.esClub) && tenia) {
-          s.lastRev = remote.rev; s.lastVersion = remote.version;
+          s.lastRev = remote.rev;
+          s.lastVersion = remote.version;
           h.ponerProblema('vacio'); // {} / null / no data while a local copy has data: this is not a new club
-        } else if (remote.empty && !remote.esClub && await hayRespaldos()) {
-          s.lastRev = remote.rev; s.lastVersion = remote.version;
+        } else if (remote.empty && !remote.esClub && (await hayRespaldos())) {
+          s.lastRev = remote.rev;
+          s.lastVersion = remote.version;
           h.ponerProblema('vacio');
         } else {
-          if (remote.empty) { // freshly created file
+          if (remote.empty) {
+            // freshly created file
             if (!s.club.nombre) s.club.nombre = s.ref.name;
             s.dirty = true;
           } else h.applyData(remote.data);
@@ -180,18 +218,33 @@ export function crearSincronizacion({ s, h, deps }) {
     const m = await s.puerto.meta(s.ref.id);
     if (m.rev === s.lastRev || s.dirty || s.syncing) return false;
     let remote;
-    try { remote = await readRemote(); } catch (e) {
+    try {
+      remote = await readRemote();
+    } catch (e) {
       if (e.code === 'fichero-danado') h.ponerProblema('danado', e);
       throw e;
     }
     if (s.dirty || s.syncing) return false;
-    if (remote.data.versionFutura) { adoptarVersionFutura(remote); h.emit({ type: 'remote' }); return true; }
-    if ((remote.empty || !remote.esClub) && hayDatosReales(s.db, s.club)) { s.lastRev = remote.rev; s.lastVersion = remote.version; h.ponerProblema('vacio'); return false; }
+    if (remote.data.versionFutura) {
+      adoptarVersionFutura(remote);
+      h.emit({ type: 'remote' });
+      return true;
+    }
+    if ((remote.empty || !remote.esClub) && hayDatosReales(s.db, s.club)) {
+      s.lastRev = remote.rev;
+      s.lastVersion = remote.version;
+      h.ponerProblema('vacio');
+      return false;
+    }
     h.applyData(remote.data);
     s.base = h.snapshot();
     s.lastRev = remote.rev;
     s.lastVersion = remote.version;
-    if (!s.soloLectura && h.ensureCatalog()) h.markDirty(); else { h.saveCache(); h.setStatus('sincronizado'); }
+    if (!s.soloLectura && h.ensureCatalog()) h.markDirty();
+    else {
+      h.saveCache();
+      h.setStatus('sincronizado');
+    }
     h.emit({ type: 'remote' });
     return true;
   }

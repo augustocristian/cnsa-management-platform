@@ -2,34 +2,44 @@
 export default {
   'shell.sync.sincronizado': 'Sincronizzato',
   'acceso.login.google': 'Collega Google Drive',
-  'acceso.login.nota': 'L\'app chiede il permesso solo sui file che crea da sola nella cartella «cnl» del tuo Drive. Nessun server, nessun database.',
+  'acceso.login.nota':
+    "L'app chiede il permesso solo sui file che crea da sola nella cartella «cnl» del tuo Drive. Nessun server, nessun database.",
   'acceso.tutorial': 'Come configurare Google (tutorial)',
 
   'cfgreq.titulo': 'Configurazione necessaria',
-  'cfgreq.texto': 'Questa copia dell\'app non ha ancora un ID client di Google. Senza di esso non puoi collegare Google Drive né salvare i tuoi dati.',
-  'cfgreq.quien': 'Lo imposta una sola volta chi pubblica l\'app (costante in js/infrastructure/config.js). Gli altri vedranno solo «Collega Google Drive».',
+  'cfgreq.texto':
+    "Questa copia dell'app non ha ancora un ID client di Google. Senza di esso non puoi collegare Google Drive né salvare i tuoi dati.",
+  'cfgreq.quien':
+    "Lo imposta una sola volta chi pubblica l'app (costante in js/infrastructure/config.js). Gli altri vedranno solo «Collega Google Drive».",
   'cfgreq.tutorial': 'Apri il tutorial (5 minuti)',
-  'cfgreq.tutorial-id': 'Vai direttamente al passo dell\'ID client',
-  'cfgreq.ayuda-titulo': 'Aiuto per chi configura l\'app',
+  'cfgreq.tutorial-id': "Vai direttamente al passo dell'ID client",
+  'cfgreq.ayuda-titulo': "Aiuto per chi configura l'app",
   'cfgreq.origen': 'Origine di questa pagina (aggiungila in «Origini JavaScript autorizzate»)',
   'cfgreq.campo': 'ID client di Google',
-  'cfgreq.demo-titulo': 'Vuoi dare un\'occhiata prima?',
+  'cfgreq.demo-titulo': "Vuoi dare un'occhiata prima?",
   'cfgreq.demo-activa-titulo': 'La tua demo è ancora aperta',
-  'cfgreq.demo-activa': 'Puoi tornarci quando vuoi. Se colleghi Google Drive, la demo viene chiusa e i suoi dati di esempio vengono cancellati.',
+  'cfgreq.demo-activa':
+    'Puoi tornarci quando vuoi. Se colleghi Google Drive, la demo viene chiusa e i suoi dati di esempio vengono cancellati.',
   'cfgreq.demo-volver': 'Torna alla demo',
-  'cfgreq.cierra-demo': 'Collegando Google Drive la demo viene chiusa e i suoi dati di esempio vengono cancellati da questo browser.',
+  'cfgreq.cierra-demo':
+    'Collegando Google Drive la demo viene chiusa e i suoi dati di esempio vengono cancellati da questo browser.',
   'cfgreq.probar': 'Prova e salva',
   'cfgreq.probando': 'Apertura di Google…',
-  'cfgreq.invalido': 'L\'ID non sembra valido: deve terminare con .apps.googleusercontent.com',
-  'cfgreq.nota-guardado': 'Se il collegamento funziona, l\'ID viene salvato solo in questo browser finché non lo imposti in js/infrastructure/config.js.',
+  'cfgreq.invalido': "L'ID non sembra valido: deve terminare con .apps.googleusercontent.com",
+  'cfgreq.nota-guardado':
+    "Se il collegamento funziona, l'ID viene salvato solo in questo browser finché non lo imposti in js/infrastructure/config.js.",
   'gerr.popup-bloqueado': 'Il browser ha bloccato la finestra di Google. Consenti i pop-up per questo sito e riprova.',
-  'gerr.popup-cerrado': 'La finestra di Google è stata chiusa prima di terminare. Se hai visto «Accesso bloccato» o «app non verificata», devi aggiungere la tua email come utente di test; se hai visto «origin_mismatch», autorizza l\'origine di questa pagina.',
-  'gerr.acceso-denegado': 'Google ha negato l\'accesso. Finché l\'app è in modalità «Test», la tua email deve essere tra gli utenti di test della schermata di consenso.',
-  'gerr.origen-no-autorizado': 'Questa origine non è autorizzata per l\'ID client. Aggiungila in «Origini JavaScript autorizzate» nelle credenziali.',
-  'gerr.sin-gis': 'Impossibile caricare Google (offline o bloccato da un\'estensione?).',
+  'gerr.popup-cerrado':
+    "La finestra di Google è stata chiusa prima di terminare. Se hai visto «Accesso bloccato» o «app non verificata», devi aggiungere la tua email come utente di test; se hai visto «origin_mismatch», autorizza l'origine di questa pagina.",
+  'gerr.acceso-denegado':
+    "Google ha negato l'accesso. Finché l'app è in modalità «Test», la tua email deve essere tra gli utenti di test della schermata di consenso.",
+  'gerr.origen-no-autorizado':
+    "Questa origine non è autorizzata per l'ID client. Aggiungila in «Origini JavaScript autorizzate» nelle credenziali.",
+  'gerr.sin-gis': "Impossibile caricare Google (offline o bloccato da un'estensione?).",
   'gerr.sin-conexion': 'Nessuna connessione a Google. Controlla la rete; i dati in cache restano disponibili.',
-  'gerr.api-desactivada': 'L\'API di Google Drive non è attivata nel progetto Google Cloud.',
-  'gerr.sin-permiso': 'Google ha negato l\'accesso al tuo Drive. Scollega Drive, ricollegalo e accetta il permesso sui file.',
+  'gerr.api-desactivada': "L'API di Google Drive non è attivata nel progetto Google Cloud.",
+  'gerr.sin-permiso':
+    "Google ha negato l'accesso al tuo Drive. Scollega Drive, ricollegalo e accetta il permesso sui file.",
   'gerr.sesion-caducada': 'Il collegamento con Google Drive è scaduto. Ricollegalo.',
   'gerr.limite': 'Google limita le richieste: attendi un momento e riprova.',
   'gerr.no-encontrado': 'File non trovato nel tuo Drive (eliminato o nel cestino?).',
@@ -37,11 +47,12 @@ export default {
   'gerr.origen-etiqueta': 'Origine di questa pagina',
   'gerr.usuario-prueba': 'Aggiungi la tua email in «Utenti di test» nella schermata di consenso.',
   'gerr.abrir-consentimiento': 'Apri la schermata di consenso',
-  'gerr.activar-api': 'Attiva l\'API di Google Drive',
+  'gerr.activar-api': "Attiva l'API di Google Drive",
   'gerr.detalle': 'Dettaglio tecnico: {msg}',
 
   'asistente.titulo': 'Crea il tuo club',
-  'asistente.bienvenida': 'Benvenuto. Creeremo il tuo club in due passi; i dati saranno salvati in un file nella cartella «cnl» del tuo Google Drive.',
+  'asistente.bienvenida':
+    'Benvenuto. Creeremo il tuo club in due passi; i dati saranno salvati in un file nella cartella «cnl» del tuo Google Drive.',
   'asistente.paso': 'Passo {n} di {total}',
   'asistente.nombre': 'Nome del club',
   'asistente.nombre-ph': 'Circolo Nuoto…',
@@ -53,8 +64,10 @@ export default {
   'asistente.atras': 'Indietro',
   'asistente.crear': 'Crea il mio club',
   'asistente.creando': 'Creazione del club su Drive…',
-  'asistente.nota-carpeta': 'L\'app crea (o riutilizza) la propria cartella «cnl» nel tuo Drive. Se avevi già una cartella «cnl» creata a mano, l\'app non può vederla (accede solo a ciò che crea lei): ne creerà una sua e potrai spostare la tua da Drive.',
-  'asistente.nota-vacio': 'Il club parte vuoto, senza dati di esempio. Poi potrai aggiungere gruppi, nuotatori e sessioni.',
+  'asistente.nota-carpeta':
+    "L'app crea (o riutilizza) la propria cartella «cnl» nel tuo Drive. Se avevi già una cartella «cnl» creata a mano, l'app non può vederla (accede solo a ciò che crea lei): ne creerà una sua e potrai spostare la tua da Drive.",
+  'asistente.nota-vacio':
+    'Il club parte vuoto, senza dati di esempio. Poi potrai aggiungere gruppi, nuotatori e sessioni.',
   'asistente.err.nombre-vacio': 'Scrivi il nome del club.',
   'asistente.err.nombre-corto': 'Il nome è troppo corto.',
   'asistente.err.nombre-largo': 'Il nome è troppo lungo (massimo 60 caratteri).',
@@ -71,13 +84,15 @@ export default {
   'primeros.sesion': 'Programma la tua prima sessione',
 
   'club.dondeTitulo': 'Dove sono salvati i tuoi dati',
-  'club.dondeTexto': 'Tutto è nella cartella «cnl» del tuo Google Drive: il file del club ({nombre}.json), le preferenze (preferencias.json), i PDF degli allenamenti (entrenos/) e le copie Excel. Non c\'è nessun server né database.',
+  'club.dondeTexto':
+    "Tutto è nella cartella «cnl» del tuo Google Drive: il file del club ({nombre}.json), le preferenze (preferencias.json), i PDF degli allenamenti (entrenos/) e le copie Excel. Non c'è nessun server né database.",
   'club.abrirFichero': 'Apri il file del club su Drive',
   'club.abrirCarpeta': 'Apri la cartella cnl',
   'club.guardarXlsx': 'Salva una copia Excel su Drive',
   'club.xlsxGuardado': 'Copia salvata in cnl/{nombre}',
   'club.prefsTitulo': 'Le tue preferenze',
-  'club.prefsTexto': 'Lingua, avanzamento del tutorial, vista del calendario e sincronizzazione con Google Calendar sono salvati in cnl/preferencias.json e ti seguono su qualsiasi dispositivo.',
+  'club.prefsTexto':
+    'Lingua, avanzamento del tutorial, vista del calendario e sincronizzazione con Google Calendar sono salvati in cnl/preferencias.json e ti seguono su qualsiasi dispositivo.',
   'club.prefsEstado': 'Stato delle preferenze: {estado}',
   'club.prefsSincronizar': 'Sincronizza le preferenze',
   'club.prefsSincronizadas': 'Preferenze sincronizzate',
@@ -91,7 +106,8 @@ export default {
   'prefs.estado.sin-sesion': 'sessione chiusa',
 
   'tutorial.titulo': 'Configurare Google in 5 minuti',
-  'tutorial.intro': 'Lo fa una sola volta chi pubblica l\'app; chi la usa dopo collega solo il proprio Google Drive. Ogni persona ha i propri dati nel proprio Drive (per averli su tutti i suoi dispositivi) e l\'app non condivide dati con nessuno. Sono {total} passi: l\'app chiede solo il permesso «drive.file» (file che crea da sola nel tuo Drive), che non è sensibile e non richiede la verifica di Google.',
+  'tutorial.intro':
+    "Lo fa una sola volta chi pubblica l'app; chi la usa dopo collega solo il proprio Google Drive. Ogni persona ha i propri dati nel proprio Drive (per averli su tutti i suoi dispositivi) e l'app non condivide dati con nessuno. Sono {total} passi: l'app chiede solo il permesso «drive.file» (file che crea da sola nel tuo Drive), che non è sensibile e non richiede la verifica di Google.",
   'tutorial.progreso': '{hecho} di {total} passi completati',
   'tutorial.paso-n': 'Passo {n} di {total}',
   'tutorial.marcar': 'Segna come fatto',
@@ -106,55 +122,70 @@ export default {
   'tutorial.enlaces': 'Link utili',
   'tutorial.valores': 'Valori da copiare',
   'tutorial.aviso.titulo': 'App non verificata e utenti di test',
-  'tutorial.aviso.texto': 'Finché la schermata di consenso è in modalità «Test», possono accedere solo gli account aggiunti come utenti di test (massimo 100). Se la tua email manca, Google mostra «Accesso bloccato» o «app non verificata». Con il permesso drive.file puoi premere «Pubblica app» senza passare dalla verifica di Google.',
-  'tutorial.aviso.caducidad': 'In modalità Test la sessione di Google può scadere dopo 7 giorni e dovrai accedere di nuovo.',
+  'tutorial.aviso.texto':
+    'Finché la schermata di consenso è in modalità «Test», possono accedere solo gli account aggiunti come utenti di test (massimo 100). Se la tua email manca, Google mostra «Accesso bloccato» o «app non verificata». Con il permesso drive.file puoi premere «Pubblica app» senza passare dalla verifica di Google.',
+  'tutorial.aviso.caducidad':
+    'In modalità Test la sessione di Google può scadere dopo 7 giorni e dovrai accedere di nuovo.',
 
   'tutorial.paso1.titulo': 'Creare un progetto in Google Cloud Console',
-  'tutorial.paso1.intro': 'Un progetto raggruppa le API e le credenziali dell\'app. È gratuito per questo uso.',
+  'tutorial.paso1.intro': "Un progetto raggruppa le API e le credenziali dell'app. È gratuito per questo uso.",
   'tutorial.paso1.i1': 'Accedi a Google Cloud Console con il tuo account Google.',
   'tutorial.paso1.i2': 'Premi il selettore dei progetti nella barra superiore e scegli «Nuovo progetto».',
   'tutorial.paso1.i3': 'Dagli un nome (ad esempio «CNL Piattaforma»), premi «Crea» e selezionalo.',
 
-  'tutorial.paso2.titulo': 'Attivare l\'API di Google Drive',
-  'tutorial.paso2.intro': 'L\'app salva i dati in file nel tuo Drive. Serve solo l\'API di Drive (non Google Sheets).',
+  'tutorial.paso2.titulo': "Attivare l'API di Google Drive",
+  'tutorial.paso2.intro': "L'app salva i dati in file nel tuo Drive. Serve solo l'API di Drive (non Google Sheets).",
   'tutorial.paso2.i1': 'Apri la scheda di Google Drive API e premi «Abilita».',
-  'tutorial.paso2.i2': '(Facoltativo) Se sincronizzerai il calendario con Google Calendar, abilita anche Google Calendar API.',
+  'tutorial.paso2.i2':
+    '(Facoltativo) Se sincronizzerai il calendario con Google Calendar, abilita anche Google Calendar API.',
   'tutorial.paso2.i3': 'Verifica che compaia in «API e servizi abilitati» del progetto.',
 
   'tutorial.paso3.titulo': 'Configurare la schermata di consenso',
-  'tutorial.paso3.intro': 'È la schermata che vedrai quando autorizzi l\'app.',
+  'tutorial.paso3.intro': "È la schermata che vedrai quando autorizzi l'app.",
   'tutorial.paso3.i1': 'Apri la schermata di consenso e scegli il tipo di utente «Esterno».',
-  'tutorial.paso3.i2': 'Compila il nome dell\'app, la tua email di assistenza e l\'email di contatto.',
-  'tutorial.paso3.i3': 'In «Ambiti» aggiungi solo drive.file (valore qui sotto). Non aggiungere openid, email né profile: l\'app non chiede alcuna identità.',
-  'tutorial.paso3.i4': 'In «Utenti di test» aggiungi la tua email Google. Senza questo, Google bloccherà l\'accesso.',
-  'tutorial.paso3.i5': 'Salva. Puoi lasciarla in «Test» oppure premere «Pubblica app» (con questo permesso non serve la verifica).',
+  'tutorial.paso3.i2': "Compila il nome dell'app, la tua email di assistenza e l'email di contatto.",
+  'tutorial.paso3.i3':
+    "In «Ambiti» aggiungi solo drive.file (valore qui sotto). Non aggiungere openid, email né profile: l'app non chiede alcuna identità.",
+  'tutorial.paso3.i4': "In «Utenti di test» aggiungi la tua email Google. Senza questo, Google bloccherà l'accesso.",
+  'tutorial.paso3.i5':
+    'Salva. Puoi lasciarla in «Test» oppure premere «Pubblica app» (con questo permesso non serve la verifica).',
 
-  'tutorial.paso4.titulo': 'Creare l\'ID client OAuth (Applicazione web)',
-  'tutorial.paso4.intro': 'L\'ID client identifica la tua app presso Google. Non è segreto, ma funziona solo dalle origini autorizzate.',
+  'tutorial.paso4.titulo': "Creare l'ID client OAuth (Applicazione web)",
+  'tutorial.paso4.intro':
+    "L'ID client identifica la tua app presso Google. Non è segreto, ma funziona solo dalle origini autorizzate.",
   'tutorial.paso4.i1': 'Apri «Credenziali» e premi «Crea credenziali» > «ID client OAuth».',
-  'tutorial.paso4.i2': 'Tipo di applicazione: «Applicazione web». Non serve l\'«URI di reindirizzamento».',
-  'tutorial.paso4.i3': 'In «Origini JavaScript autorizzate» aggiungi quella di GitHub Pages (valore qui sotto) e, se sviluppi, quella locale. Qui sotto compare anche l\'origine della pagina in cui ti trovi.',
-  'tutorial.paso4.i4': 'Premi «Crea» e copia l\'ID client (termina con .apps.googleusercontent.com).',
+  'tutorial.paso4.i2': "Tipo di applicazione: «Applicazione web». Non serve l'«URI di reindirizzamento».",
+  'tutorial.paso4.i3':
+    "In «Origini JavaScript autorizzate» aggiungi quella di GitHub Pages (valore qui sotto) e, se sviluppi, quella locale. Qui sotto compare anche l'origine della pagina in cui ti trovi.",
+  'tutorial.paso4.i4': "Premi «Crea» e copia l'ID client (termina con .apps.googleusercontent.com).",
 
-  'tutorial.paso5.titulo': 'Incollare l\'ID client nell\'app',
-  'tutorial.paso5.intro': 'È l\'unica modifica al codice e si fa una volta.',
-  'tutorial.paso5.i1': 'Apri js/infrastructure/config.js, incolla l\'ID tra le virgolette di BUILTIN_CLIENT_ID e carica la modifica nel repository. Da quel momento gli utenti vedono solo «Collega Google Drive».',
-  'tutorial.paso5.i2': 'Per provarlo prima di pubblicare, incollalo nel campo qui sotto: viene salvato solo in questo browser.',
+  'tutorial.paso5.titulo': "Incollare l'ID client nell'app",
+  'tutorial.paso5.intro': "È l'unica modifica al codice e si fa una volta.",
+  'tutorial.paso5.i1':
+    "Apri js/infrastructure/config.js, incolla l'ID tra le virgolette di BUILTIN_CLIENT_ID e carica la modifica nel repository. Da quel momento gli utenti vedono solo «Collega Google Drive».",
+  'tutorial.paso5.i2':
+    'Per provarlo prima di pubblicare, incollalo nel campo qui sotto: viene salvato solo in questo browser.',
   'tutorial.paso5.campo': 'ID client di Google',
   'tutorial.paso5.guardar': 'Salva in questo browser',
   'tutorial.paso5.guardado': 'ID client salvato. Ricarica la pagina per applicarlo.',
   'tutorial.paso5.borrado': 'ID client rimosso da questo browser.',
-  'tutorial.paso5.invalido': 'L\'ID non sembra valido: deve terminare con .apps.googleusercontent.com',
+  'tutorial.paso5.invalido': "L'ID non sembra valido: deve terminare con .apps.googleusercontent.com",
   'tutorial.paso5.borrar': 'Elimina',
   'tutorial.paso5.recargar': 'Ricarica',
 
   'tutorial.paso6.titulo': 'Collegare Drive e uso di base',
-  'tutorial.paso6.intro': 'Così si usa l\'app ogni giorno. È un\'app a uso individuale: niente ruoli, altri utenti o condivisione dei dati.',
-  'tutorial.paso6.i1': 'Premi «Collega Google Drive» e accetta il permesso sui file creati dall\'app (se Google avvisa «app non verificata», premi «Avanzate» e «Continua»). Prima di configurare Google puoi provare l\'app con dati di esempio da «Prova la demo» (viene offerta solo finché non c\'è un ID client).',
-  'tutorial.paso6.i2': 'La prima volta, una procedura in due passi crea il tuo club vuoto (nome, colori e fuso orario).',
-  'tutorial.paso6.i3': 'Tutto resta nella cartella «cnl» del tuo Drive: <Club>.json, preferencias.json, entrenos/ e le copie Excel. Se avevi già una cartella «cnl» creata a mano, l\'app ne crea una sua (vede solo ciò che crea). I tuoi dati sono salvati nel tuo Drive per averli su tutti i tuoi dispositivi (computer e telefono); l\'app non condivide dati con nessuno.',
-  'tutorial.paso6.i4': 'Aggiungi gruppi, nuotatori e sessioni: le modifiche si salvano da sole (indicatore «Sincronizzato») e funzionano offline.',
-  'tutorial.paso6.i5': 'In Configurazione puoi esportare o importare Excel come copia di sicurezza. «Scollega Drive» revoca il permesso e cancella i dati locali di questo dispositivo.',
+  'tutorial.paso6.intro':
+    "Così si usa l'app ogni giorno. È un'app a uso individuale: niente ruoli, altri utenti o condivisione dei dati.",
+  'tutorial.paso6.i1':
+    "Premi «Collega Google Drive» e accetta il permesso sui file creati dall'app (se Google avvisa «app non verificata», premi «Avanzate» e «Continua»). Prima di configurare Google puoi provare l'app con dati di esempio da «Prova la demo» (viene offerta solo finché non c'è un ID client).",
+  'tutorial.paso6.i2':
+    'La prima volta, una procedura in due passi crea il tuo club vuoto (nome, colori e fuso orario).',
+  'tutorial.paso6.i3':
+    "Tutto resta nella cartella «cnl» del tuo Drive: <Club>.json, preferencias.json, entrenos/ e le copie Excel. Se avevi già una cartella «cnl» creata a mano, l'app ne crea una sua (vede solo ciò che crea). I tuoi dati sono salvati nel tuo Drive per averli su tutti i tuoi dispositivi (computer e telefono); l'app non condivide dati con nessuno.",
+  'tutorial.paso6.i4':
+    'Aggiungi gruppi, nuotatori e sessioni: le modifiche si salvano da sole (indicatore «Sincronizzato») e funzionano offline.',
+  'tutorial.paso6.i5':
+    'In Configurazione puoi esportare o importare Excel come copia di sicurezza. «Scollega Drive» revoca il permesso e cancella i dati locali di questo dispositivo.',
 
   'tutorial.link.crear-proyecto': 'Crea progetto',
   'tutorial.link.drive-api': 'Google Drive API',
@@ -165,14 +196,16 @@ export default {
   'tutorial.copy.origen-prod': 'Origine di produzione (GitHub Pages)',
   'tutorial.copy.origen-dev': 'Origine di sviluppo',
   'tutorial.copy.origen-actual': 'Origine di questa pagina',
-  'tutorial.copy.scope-drive': 'Permesso: file creati dall\'app (drive.file)',
+  'tutorial.copy.scope-drive': "Permesso: file creati dall'app (drive.file)",
   'tutorial.copy.config': 'Riga di js/infrastructure/config.js',
 
-  'acceso.propuesta': 'Pianifica gli allenamenti, fai l\'appello e controlla i carichi del tuo club, da telefono o computer.',
+  'acceso.propuesta':
+    "Pianifica gli allenamenti, fai l'appello e controlla i carichi del tuo club, da telefono o computer.",
   'acceso.privacidad': 'I tuoi dati restano nel tuo Google Drive; nulla viene condiviso con nessuno.',
   'acceso.demo': 'Prova la demo',
   'acceso.demo-nota': 'Dati di esempio salvati solo su questo dispositivo; nulla viene inviato a Drive.',
-  'acceso.demo-cerrada': 'Ora è configurato un ID client di Google: la demo è stata chiusa. Collega Google Drive per continuare.',
+  'acceso.demo-cerrada':
+    'Ora è configurato un ID client di Google: la demo è stata chiusa. Collega Google Drive per continuare.',
   'acceso.demo-no-disponible': 'La demo è disponibile solo finché non è configurato un ID client di Google.',
   'acceso.conectando': 'Apertura di Google…',
   'primeros.ocultar': 'Nascondi i primi passi',

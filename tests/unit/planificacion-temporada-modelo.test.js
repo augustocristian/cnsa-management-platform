@@ -12,9 +12,21 @@ function memoria(inicial = {}) {
   let n = 0;
   return {
     list: (h) => (db[h] || []).map((x) => ({ ...x })),
-    get: (h, id) => { const r = (db[h] || []).find((x) => x.id === String(id)); return r ? { ...r } : null; },
-    upsert: (h, row) => { (db[h] ||= []); const r = { ...row, id: row.id || `n${++n}` }; const i = db[h].findIndex((x) => x.id === r.id); if (i >= 0) db[h][i] = r; else db[h].push(r); return { ...r }; },
-    remove: (h, id) => { db[h] = (db[h] || []).filter((x) => x.id !== String(id)); },
+    get: (h, id) => {
+      const r = (db[h] || []).find((x) => x.id === String(id));
+      return r ? { ...r } : null;
+    },
+    upsert: (h, row) => {
+      db[h] ||= [];
+      const r = { ...row, id: row.id || `n${++n}` };
+      const i = db[h].findIndex((x) => x.id === r.id);
+      if (i >= 0) db[h][i] = r;
+      else db[h].push(r);
+      return { ...r };
+    },
+    remove: (h, id) => {
+      db[h] = (db[h] || []).filter((x) => x.id !== String(id));
+    },
   };
 }
 
@@ -32,16 +44,36 @@ test('date helpers delegate to the calendar domain and keep their contract', () 
 
 test('preferenciasHora: the most frequent start time of each group (ties: the earliest)', () => {
   const ses = [
-    { grupoId: 'g1', hora: '17:30' }, { grupoId: 'g1', hora: '17:30' }, { grupoId: 'g1', hora: '19:00' },
-    { grupoId: 'g2', hora: '19:00' }, { grupoId: 'g2', hora: '18:00' }, { grupoId: '', hora: '10:00' }, { grupoId: 'g3', hora: 'bad' },
+    { grupoId: 'g1', hora: '17:30' },
+    { grupoId: 'g1', hora: '17:30' },
+    { grupoId: 'g1', hora: '19:00' },
+    { grupoId: 'g2', hora: '19:00' },
+    { grupoId: 'g2', hora: '18:00' },
+    { grupoId: '', hora: '10:00' },
+    { grupoId: 'g3', hora: 'bad' },
   ];
   assert.deepEqual(P.preferenciasHora(ses), { g1: '17:30', g2: '18:00' });
   assert.deepEqual(P.preferenciasHora(), {});
 });
 
 test('grid helpers: block position, open slots and lanes outside the pool', () => {
-  const pool = P.normalizarPiscina({ id: 'p', nombre: 'P', numCalles: 4, intervaloMin: 30, horario: { 1: { abre: '08:00', cierra: '10:00' }, 7: null } });
-  const a = P.normalizarAsignacion({ id: 'a', piscinaId: 'p', dia: 1, horaInicio: '09:00', horaFin: '10:00', calleDesde: 1, calleHasta: 2, grupoId: 'g' });
+  const pool = P.normalizarPiscina({
+    id: 'p',
+    nombre: 'P',
+    numCalles: 4,
+    intervaloMin: 30,
+    horario: { 1: { abre: '08:00', cierra: '10:00' }, 7: null },
+  });
+  const a = P.normalizarAsignacion({
+    id: 'a',
+    piscinaId: 'p',
+    dia: 1,
+    horaInicio: '09:00',
+    horaFin: '10:00',
+    calleDesde: 1,
+    calleHasta: 2,
+    grupoId: 'g',
+  });
   assert.deepEqual(P.posicionBloque(a, 8 * 60, 30), { fila: 2, filas: 2 });
   assert.equal(P.franjaAbierta(pool, 1, 9 * 60 + 30), true);
   assert.equal(P.franjaAbierta(pool, 1, 10 * 60), false);
@@ -50,7 +82,12 @@ test('grid helpers: block position, open slots and lanes outside the pool', () =
   assert.equal(P.fueraDeCalles({ ...a, calleHasta: 5 }, pool), true);
   assert.equal(P.finPorDefecto(9 * 60, 12 * 60, 30), 10 * 60);
   assert.equal(P.finPorDefecto(11 * 60 + 30, 12 * 60, 30), 12 * 60);
-  const g = P.agruparConflictos([{ severidad: 'error' }, { severidad: 'aviso' }, { severidad: 'info' }, { severidad: 'error' }]);
+  const g = P.agruparConflictos([
+    { severidad: 'error' },
+    { severidad: 'aviso' },
+    { severidad: 'info' },
+    { severidad: 'error' },
+  ]);
   assert.deepEqual([g.errores.length, g.avisos.length, g.infos.length], [2, 1, 1]);
 });
 
@@ -58,7 +95,21 @@ test('grid helpers: block position, open slots and lanes outside the pool', () =
 test('planning service: deleting an assignment or a pool returns a snapshot that restores everything', () => {
   const repo = memoria({
     Piscinas: [{ id: 'p1', nombre: 'P', longitudM: 25, numCalles: 6, intervaloMin: 30, maxPorCalle: 8, horario: '' }],
-    AsignacionesCalle: [{ id: 'a1', piscinaId: 'p1', dia: 1, fecha: '', horaInicio: '17:00', horaFin: '18:00', calleDesde: 1, calleHasta: 1, grupoId: 'g1', entrenadorId: 'X', notas: '' }],
+    AsignacionesCalle: [
+      {
+        id: 'a1',
+        piscinaId: 'p1',
+        dia: 1,
+        fecha: '',
+        horaInicio: '17:00',
+        horaFin: '18:00',
+        calleDesde: 1,
+        calleHasta: 1,
+        grupoId: 'g1',
+        entrenadorId: 'X',
+        notas: '',
+      },
+    ],
     Grupos: [{ id: 'g1', nombre: 'G', entrenador: 'X' }],
   });
   const svc = crearPlanificacionService(repo);
@@ -78,8 +129,17 @@ test('planning service: deleting an assignment or a pool returns a snapshot that
 test('season service: deleting a season, phase or event can be undone', () => {
   const repo = memoria({ Grupos: [], TiposCarga: [] });
   const svc = crearTemporadaService(repo, { ahora: () => new Date(2026, 9, 16), nombreFase: (x) => x });
-  const { temporada } = svc.guardarTemporada({ nombre: 'T1', inicio: '2026-09-07', fin: '2027-05-30', activa: true }, { conFases: true });
-  const e = svc.guardarEvento({ tipo: 'competicion', nombre: 'Open', inicio: '2026-11-07', prioridad: 'A', temporadaId: temporada.id }).evento;
+  const { temporada } = svc.guardarTemporada(
+    { nombre: 'T1', inicio: '2026-09-07', fin: '2027-05-30', activa: true },
+    { conFases: true },
+  );
+  const e = svc.guardarEvento({
+    tipo: 'competicion',
+    nombre: 'Open',
+    inicio: '2026-11-07',
+    prioridad: 'A',
+    temporadaId: temporada.id,
+  }).evento;
   svc.guardarSemana(temporada.id, '2026-09-07', { volumen: 9000 });
   const nFases = svc.fases(temporada.id).length;
   assert.ok(nFases >= 4);
@@ -136,8 +196,16 @@ test('event tones are semantic names, never colours', () => {
 });
 
 test('bandasDeFase and filaLibre', () => {
-  const f1 = { id: 'a' }, f2 = { id: 'b' };
-  assert.deepEqual(T.bandasDeFase([{ fase: f1 }, { fase: f1 }, { fase: f2 }, { fase: null }]).map((b) => [b.ini, b.fin]), [[0, 1], [2, 2], [3, 3]]);
+  const f1 = { id: 'a' },
+    f2 = { id: 'b' };
+  assert.deepEqual(
+    T.bandasDeFase([{ fase: f1 }, { fase: f1 }, { fase: f2 }, { fase: null }]).map((b) => [b.ini, b.fin]),
+    [
+      [0, 1],
+      [2, 2],
+      [3, 3],
+    ],
+  );
   const filas = [[], []];
   assert.equal(T.filaLibre(filas, 100, 21), 0);
   assert.equal(T.filaLibre(filas, 110, 21), 1);
@@ -146,10 +214,19 @@ test('bandasDeFase and filaLibre', () => {
 
 // ---------- Locale parity of this area ----------
 test('locale files of planning, season, calendar and tutorial have the same keys and variables in es/en/it', async () => {
-  const vars = (s) => [...String(s).matchAll(/\{(\w+)\}/g)].map((m) => m[1]).sort().join(',');
+  const vars = (s) =>
+    [...String(s).matchAll(/\{(\w+)\}/g)]
+      .map((m) => m[1])
+      .sort()
+      .join(',');
   for (const area of ['planificacion', 'temporada', 'calendario', 'tutorial']) {
-    const [es, en, it] = await Promise.all(['es', 'en', 'it'].map(async (l) => (await import(`../../js/presentation/i18n/locales/${area}.${l}.js`)).default));
-    for (const [nombre, d] of [['en', en], ['it', it]]) {
+    const [es, en, it] = await Promise.all(
+      ['es', 'en', 'it'].map(async (l) => (await import(`../../js/presentation/i18n/locales/${area}.${l}.js`)).default),
+    );
+    for (const [nombre, d] of [
+      ['en', en],
+      ['it', it],
+    ]) {
       assert.deepEqual(Object.keys(d).sort(), Object.keys(es).sort(), `${area}.${nombre} keys`);
       Object.keys(es).forEach((k) => {
         assert.ok(String(d[k]).trim(), `${area}.${nombre} ${k} is empty`);

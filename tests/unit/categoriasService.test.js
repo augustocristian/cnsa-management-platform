@@ -9,21 +9,37 @@ function repoMem(nadadores = [], club = {}) {
   const repo = {
     club: { ...club },
     escrituras: 0,
-    setClub(c) { repo.club = { ...c }; },
+    setClub(c) {
+      repo.club = { ...c };
+    },
     list: (hoja) => (hoja === 'Nadadores' ? filas.map((f) => ({ ...f })) : []),
     upsert(hoja, row) {
       repo.escrituras++;
       const i = filas.findIndex((f) => f.id === row.id);
       const fila = { ...row, id: row.id || 'n' + (filas.length + 1) };
-      if (i >= 0) filas[i] = fila; else filas.push(fila);
+      if (i >= 0) filas[i] = fila;
+      else filas.push(fila);
       return fila;
     },
     get: (id) => filas.find((f) => f.id === id),
   };
   return repo;
 }
-const reloj = (iso) => () => { const [y, m, d] = iso.split('-').map(Number); return new Date(y, m - 1, d, 12); };
-const N = (id, fecha, extra = {}) => ({ id, nombre: 'N' + id, apellidos: 'A' + id, fechaNacimiento: fecha, sexo: 'F', categoria: '', licenciaMaster: 'false', categoriaManual: '', ...extra });
+const reloj = (iso) => () => {
+  const [y, m, d] = iso.split('-').map(Number);
+  return new Date(y, m - 1, d, 12);
+};
+const N = (id, fecha, extra = {}) => ({
+  id,
+  nombre: 'N' + id,
+  apellidos: 'A' + id,
+  fechaNacimiento: fecha,
+  sexo: 'F',
+  categoria: '',
+  licenciaMaster: 'false',
+  categoriaManual: '',
+  ...extra,
+});
 
 test('current season: derived from the clock or pinned on the club', () => {
   const r = repoMem();
@@ -36,12 +52,19 @@ test('current season: derived from the clock or pinned on the club', () => {
   assert.equal(fijada.esAutomatica(), false);
   assert.equal(fijada.etiqueta(), '2028-2029');
   // invalid value -> automatic
-  assert.equal(crearCategoriasService(repoMem([], { temporadaActual: 'basura' }), { ahora: reloj('2026-10-15') }).temporadaActual(), 2026);
+  assert.equal(
+    crearCategoriasService(repoMem([], { temporadaActual: 'basura' }), {
+      ahora: reloj('2026-10-15'),
+    }).temporadaActual(),
+    2026,
+  );
 });
 
 test('recalcular updates the category of non-manual swimmers and returns the summary', () => {
   const r = repoMem([
-    N('1', '2018-03-01'), N('2', '2013-05-05', { categoria: 'Alevín' }), N('3', '2008-01-01', { categoria: 'Absoluto' }), // 3 already correct
+    N('1', '2018-03-01'),
+    N('2', '2013-05-05', { categoria: 'Alevín' }),
+    N('3', '2008-01-01', { categoria: 'Absoluto' }), // 3 already correct
     N('4', '2013-05-05', { categoria: 'Junior', categoriaManual: 'Junior' }), // manual: unchanged
     N('5', '', { categoria: 'Benjamín' }), // no date: kept as is
     N('6', '1980-01-01', { licenciaMaster: 'true' }),
@@ -49,7 +72,14 @@ test('recalcular updates the category of non-manual swimmers and returns the sum
   const s = crearCategoriasService(r, { ahora: reloj('2026-10-15') });
   const res = s.recalcular();
   assert.equal(res.etiqueta, '2026-2027');
-  assert.deepEqual(res.cambios.map((c) => [c.id, c.de, c.a]), [['1', '', 'Pre-Benjamín'], ['2', 'Alevín', 'Infantil'], ['6', '', 'Master']]);
+  assert.deepEqual(
+    res.cambios.map((c) => [c.id, c.de, c.a]),
+    [
+      ['1', '', 'Pre-Benjamín'],
+      ['2', 'Alevín', 'Infantil'],
+      ['6', '', 'Master'],
+    ],
+  );
   assert.equal(res.manuales, 1);
   assert.equal(res.sinFecha, 1);
   assert.equal(r.get('4').categoria, 'Junior');
@@ -78,7 +108,10 @@ test('alAbrirClub recalculates only if the current season is not the last applie
   assert.equal(r.get('1').categoria, 'Alevín');
   // new season (1 Sep 2027): recalculates and saves temporadaAplicada
   const res = crearCategoriasService(r, { ahora: reloj('2027-09-01') }).alAbrirClub();
-  assert.deepEqual(res.cambios.map((c) => [c.id, c.de, c.a]), [['1', 'Alevín', 'Infantil']]);
+  assert.deepEqual(
+    res.cambios.map((c) => [c.id, c.de, c.a]),
+    [['1', 'Alevín', 'Infantil']],
+  );
   assert.equal(r.club.temporadaAplicada, '2027-2028');
   assert.equal(r.get('1').categoria, 'Infantil');
   // a second opening no longer recalculates
@@ -92,11 +125,18 @@ test('alAbrirClub on an old club (without temporadaAplicada) computes the catego
   assert.equal(r.get('1').categoria, 'Benjamín');
 });
 
-test('changing season: previews, applies and leaves the season pinned (or automatic if it is today\'s)', () => {
-  const r = repoMem([N('1', '2014-05-05', { categoria: 'Alevín' }), N('2', '2013-05-05', { categoria: 'Infantil' }), N('3', '2014-05-05', { categoria: 'Alevín', categoriaManual: 'Alevín' })]);
+test("changing season: previews, applies and leaves the season pinned (or automatic if it is today's)", () => {
+  const r = repoMem([
+    N('1', '2014-05-05', { categoria: 'Alevín' }),
+    N('2', '2013-05-05', { categoria: 'Infantil' }),
+    N('3', '2014-05-05', { categoria: 'Alevín', categoriaManual: 'Alevín' }),
+  ]);
   const s = crearCategoriasService(r, { ahora: reloj('2026-10-15') });
   s.recalcular();
-  assert.deepEqual(s.previsualizarCambio('2027-2028').map((c) => [c.id, c.de, c.a, c.sube]), [['1', 'Alevín', 'Infantil', true]]);
+  assert.deepEqual(
+    s.previsualizarCambio('2027-2028').map((c) => [c.id, c.de, c.a, c.sube]),
+    [['1', 'Alevín', 'Infantil', true]],
+  );
   assert.equal(r.get('1').categoria, 'Alevín', 'previewing does not write');
   const res = s.cambiarTemporada(2027);
   assert.equal(r.club.temporadaActual, '2027-2028');
@@ -151,7 +191,10 @@ test('rules: guardarConfig validates, saves and recalculates; restablecerConfig 
   const ok = s.guardarConfig(cfg);
   assert.equal(ok.ok, true);
   assert.equal(r.get('1').categoria, 'Junior');
-  assert.deepEqual(ok.resumen.cambios.map((c) => c.a), ['Junior']);
+  assert.deepEqual(
+    ok.resumen.cambios.map((c) => c.a),
+    ['Junior'],
+  );
   assert.equal(s.config().edades.F.Junior[1], 18);
   assert.equal(s.tabla(2026, 'F').find((f) => f.categoria === 'Junior').desde, 2008);
 

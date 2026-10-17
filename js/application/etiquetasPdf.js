@@ -12,7 +12,19 @@
 // }
 import { claveEstilo } from '../domain/desglose.js';
 
-const COLUMNAS = ['tiempo', 'objetivo', 'bloques', 'series', 'distancia', 'salida', 'ejercicio', 'dist-bloque', 'dist-set', 'material', 'notas'];
+const COLUMNAS = [
+  'tiempo',
+  'objetivo',
+  'bloques',
+  'series',
+  'distancia',
+  'salida',
+  'ejercicio',
+  'dist-bloque',
+  'dist-set',
+  'material',
+  'notas',
+];
 
 // opciones: { t, locale ('es-ES'), ahora (Date), nombreContenido?(item), nombreEstilo?(estilo) }
 export function crearEtiquetasPdf({ t, locale = 'es-ES', ahora, nombreContenido = null, nombreEstilo = null }) {
@@ -28,11 +40,23 @@ export function crearEtiquetasPdf({ t, locale = 'es-ES', ahora, nombreContenido 
     ahora,
     tituloSemana: k('semana'),
     tituloDoc: k('titulo-doc'),
-    dia: k('dia'), fecha: k('fecha'), hora: k('hora'), grupo: k('grupo'), tipo: k('tipo-sesion'), piscina: k('piscina'),
-    materialDia: k('material-dia'), notasGenerales: k('notas-generales'),
+    dia: k('dia'),
+    fecha: k('fecha'),
+    hora: k('hora'),
+    grupo: k('grupo'),
+    tipo: k('tipo-sesion'),
+    piscina: k('piscina'),
+    materialDia: k('material-dia'),
+    notasGenerales: k('notas-generales'),
     cols: COLUMNAS.map(k),
-    resumen: k('resumen'), resTotal: k('res-total'), resContenidos: k('res-contenidos'), resEstilos: k('res-estilos'),
-    sinContenido: k('sin-contenido'), sinEstilo: k('sin-estilo'), totales: k('totales'), sinPlan: k('sin-plan'),
+    resumen: k('resumen'),
+    resTotal: k('res-total'),
+    resContenidos: k('res-contenidos'),
+    resEstilos: k('res-estilos'),
+    sinContenido: k('sin-contenido'),
+    sinEstilo: k('sin-estilo'),
+    totales: k('totales'),
+    sinPlan: k('sin-plan'),
     sets: (n) => t('entreno.pdf.n-sets', { n }),
     filas: (n) => t('entreno.pdf.n-filas', { n }),
     generado: (fecha) => t('entreno.pdf.generado', { fecha }),

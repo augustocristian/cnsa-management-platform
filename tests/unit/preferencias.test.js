@@ -7,7 +7,12 @@ import { crearPreferencias } from '../../js/application/preferenciasService.js';
 // ---------- utilities ----------
 function memoria() {
   const m = new Map();
-  return { getItem: (k) => (m.has(k) ? m.get(k) : null), setItem: (k, v) => m.set(k, String(v)), removeItem: (k) => m.delete(k), _m: m };
+  return {
+    getItem: (k) => (m.has(k) ? m.get(k) : null),
+    setItem: (k, v) => m.set(k, String(v)),
+    removeItem: (k) => m.delete(k),
+    _m: m,
+  };
 }
 // Manual timer: nothing runs until avanza() is called.
 function reloj() {
@@ -16,17 +21,38 @@ function reloj() {
   let id = 0;
   return {
     ahora: () => (t += 10), // each call advances: the stamps are strictly increasing
-    temporizador: { set: (fn, ms) => { cola.push({ id: ++id, fn, ms }); return id; }, clear: (i) => { const k = cola.findIndex((x) => x.id === i); if (k >= 0) cola.splice(k, 1); } },
+    temporizador: {
+      set: (fn, ms) => {
+        cola.push({ id: ++id, fn, ms });
+        return id;
+      },
+      clear: (i) => {
+        const k = cola.findIndex((x) => x.id === i);
+        if (k >= 0) cola.splice(k, 1);
+      },
+    },
     pendientes: () => cola.map((x) => x.ms),
-    async avanza() { const todos = cola.splice(0); for (const x of todos) await x.fn(); await Promise.resolve(); },
+    async avanza() {
+      const todos = cola.splice(0);
+      for (const x of todos) await x.fn();
+      await Promise.resolve();
+    },
   };
 }
 // Simulated remote Drive with a call counter.
 function remotoSim(inicial = null) {
   const r = { dato: inicial, lecturas: 0, escrituras: 0, fallo: null };
   r.puerto = {
-    async leer() { r.lecturas++; if (r.fallo) throw r.fallo; return r.dato === null ? null : JSON.parse(JSON.stringify(r.dato)); },
-    async escribir(o) { if (r.fallo) throw r.fallo; r.escrituras++; r.dato = JSON.parse(JSON.stringify(o)); },
+    async leer() {
+      r.lecturas++;
+      if (r.fallo) throw r.fallo;
+      return r.dato === null ? null : JSON.parse(JSON.stringify(r.dato));
+    },
+    async escribir(o) {
+      if (r.fallo) throw r.fallo;
+      r.escrituras++;
+      r.dato = JSON.parse(JSON.stringify(o));
+    },
   };
   return r;
 }
@@ -34,7 +60,15 @@ const nuevo = (extra = {}) => {
   const rj = reloj();
   const almacen = memoria();
   const rem = remotoSim(extra.remoto === undefined ? null : extra.remoto);
-  const svc = crearPreferencias({ almacen, ahora: rj.ahora, temporizador: rj.temporizador, debounceMs: 2000, reintentoMs: 30000, legado: extra.legado, enLinea: extra.enLinea });
+  const svc = crearPreferencias({
+    almacen,
+    ahora: rj.ahora,
+    temporizador: rj.temporizador,
+    debounceMs: 2000,
+    reintentoMs: 30000,
+    legado: extra.legado,
+    enLinea: extra.enLinea,
+  });
   return { rj, almacen, rem, svc };
 };
 const offline = () => Object.assign(new Error('Offline'), { offline: true });
@@ -57,7 +91,16 @@ test('domain: normalizar tolerates garbage and keeps future versions and unknown
   assert.deepEqual(P.normalizar(null), P.vacias());
   assert.deepEqual(P.normalizar('texto'), P.vacias());
   assert.deepEqual(P.normalizar([1, 2]), P.vacias());
-  const n = P.normalizar({ version: 3, valores: { idioma: 'it', tutorial: { done: [2, 2, 99, 'x', 1], current: 'x' }, futuro: { a: 1 }, 'calendario.vista': 'raro' }, marcas: { idioma: 5 } });
+  const n = P.normalizar({
+    version: 3,
+    valores: {
+      idioma: 'it',
+      tutorial: { done: [2, 2, 99, 'x', 1], current: 'x' },
+      futuro: { a: 1 },
+      'calendario.vista': 'raro',
+    },
+    marcas: { idioma: 5 },
+  });
   assert.equal(n.version, 3, 'the version is not downgraded');
   assert.equal(n.valores.idioma, 'it');
   assert.deepEqual(n.valores.tutorial, { done: [1, 2], current: 1 });
@@ -68,8 +111,16 @@ test('domain: normalizar tolerates garbage and keeps future versions and unknown
 });
 
 test('domain: fusionar picks the most recent stamp per key; on a tie the remote wins', () => {
-  const local = { version: 1, valores: { idioma: 'es', ultimoClub: 'A', 'calendario.vista': 'mes' }, marcas: { idioma: 50, ultimoClub: 100, 'calendario.vista': 70 } };
-  const remoto = { version: 2, valores: { idioma: 'en', ultimoClub: 'B', tutorial: { done: [1], current: 2 } }, marcas: { idioma: 80, ultimoClub: 100, tutorial: 10 } };
+  const local = {
+    version: 1,
+    valores: { idioma: 'es', ultimoClub: 'A', 'calendario.vista': 'mes' },
+    marcas: { idioma: 50, ultimoClub: 100, 'calendario.vista': 70 },
+  };
+  const remoto = {
+    version: 2,
+    valores: { idioma: 'en', ultimoClub: 'B', tutorial: { done: [1], current: 2 } },
+    marcas: { idioma: 80, ultimoClub: 100, tutorial: 10 },
+  };
   const { resultado, deLocal, deRemoto } = P.fusionar(local, remoto);
   assert.equal(resultado.version, 2);
   assert.equal(resultado.valores.idioma, 'en', 'remote is more recent');
@@ -159,16 +210,25 @@ test('service: without a session nothing is uploaded; on connecting, what was ch
 
 // ---------- service: safe merge ----------
 test('service: the more recent remote wins, is applied and notified; the more recent local is uploaded', async () => {
-  const remoto = { version: 1, valores: { idioma: 'en', ultimoClub: 'REM' }, marcas: { idioma: 900000, ultimoClub: 1 } };
+  const remoto = {
+    version: 1,
+    valores: { idioma: 'en', ultimoClub: 'REM' },
+    marcas: { idioma: 900000, ultimoClub: 1 },
+  };
   const { svc, rem } = nuevo({ remoto });
   svc.set('idioma', 'it'); // stamp ~1010: older than the remote one
   svc.set('ultimoClub', 'LOC'); // more recent than the remote one (1)
   const evts = [];
-  svc.on((e) => { if (e.tipo === 'cambio') evts.push(e); });
+  svc.on((e) => {
+    if (e.tipo === 'cambio') evts.push(e);
+  });
   await svc.conectar({ remoto: rem.puerto });
   assert.equal(svc.get('idioma'), 'en', 'remote is more recent');
   assert.equal(svc.get('ultimoClub'), 'LOC', 'local is more recent');
-  assert.deepEqual(evts.map((e) => [e.origen, e.claves]), [['remoto', ['idioma']]]);
+  assert.deepEqual(
+    evts.map((e) => [e.origen, e.claves]),
+    [['remoto', ['idioma']]],
+  );
   assert.equal(rem.dato.valores.ultimoClub, 'LOC');
   assert.equal(rem.dato.valores.idioma, 'en');
 });
@@ -178,7 +238,11 @@ test('service: two devices changing different keys do not overwrite each other',
   const { svc, rem, rj } = nuevo({ remoto });
   await svc.conectar({ remoto: rem.puerto });
   // another device changes the calendar view
-  rem.dato = { version: 1, valores: { idioma: 'en', 'calendario.vista': 'agenda' }, marcas: { idioma: 1, 'calendario.vista': 99999999 } };
+  rem.dato = {
+    version: 1,
+    valores: { idioma: 'en', 'calendario.vista': 'agenda' },
+    marcas: { idioma: 1, 'calendario.vista': 99999999 },
+  };
   svc.set('ultimoClub', 'X');
   await rj.avanza();
   assert.equal(rem.dato.valores['calendario.vista'], 'agenda', "the other device's change is kept (read-merge-write)");
@@ -216,7 +280,12 @@ test('service: it stores no identity (neither e-mail nor name) in the local cach
 });
 
 test('service: migrates the old localStorage keys only if Drive does not have them', async () => {
-  const legado = () => ({ idioma: 'it', 'calendario.vista': 'semana', tutorial: { done: [1], current: 2 }, 'calSync.cnl:cal-sync:c1': { items: { e1: { gid: 'g' } }, ultima: null } });
+  const legado = () => ({
+    idioma: 'it',
+    'calendario.vista': 'semana',
+    tutorial: { done: [1], current: 2 },
+    'calSync.cnl:cal-sync:c1': { items: { e1: { gid: 'g' } }, ultima: null },
+  });
   const remoto = { version: 1, valores: { idioma: 'en' }, marcas: { idioma: 5 } };
   const { svc, rem } = nuevo({ remoto, legado });
   await svc.conectar({ remoto: rem.puerto });
@@ -237,7 +306,11 @@ test('service: network failure -> offline state, changes stay in the queue and a
   assert.equal(svc.estado, 'offline');
   assert.deepEqual(svc.pendientes, ['idioma'], 'still in the queue');
   assert.deepEqual(rj.pendientes(), [30000], 'retry scheduled');
-  assert.deepEqual(JSON.parse(almacen.getItem('cnl:prefs')).pendientes, ['idioma'], 'the queue survives closing the tab');
+  assert.deepEqual(
+    JSON.parse(almacen.getItem('cnl:prefs')).pendientes,
+    ['idioma'],
+    'the queue survives closing the tab',
+  );
   assert.equal(rem.dato, null);
   rem.fallo = null;
   await rj.avanza();
@@ -281,7 +354,10 @@ test('service: a change made while uploading stays pending', async () => {
   const { svc, rem } = nuevo();
   await svc.conectar({ remoto: rem.puerto });
   const escribir = rem.puerto.escribir;
-  rem.puerto.escribir = async (o) => { svc.set('ultimoClub', 'durante'); await escribir(o); };
+  rem.puerto.escribir = async (o) => {
+    svc.set('ultimoClub', 'durante');
+    await escribir(o);
+  };
   svc.set('idioma', 'en');
   await svc.flush();
   assert.deepEqual(svc.pendientes, ['ultimoClub']);

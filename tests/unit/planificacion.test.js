@@ -8,17 +8,39 @@ const es = (await importApp('js/presentation/i18n/locales/planificacion.es.js'))
 const en = (await importApp('js/presentation/i18n/locales/planificacion.en.js')).default;
 const it = (await importApp('js/presentation/i18n/locales/planificacion.it.js')).default;
 
-const piscina = (o = {}) => ({ id: 'p1', nombre: 'Lugones', longitudM: 25, numCalles: 6, intervaloMin: 30, maxPorCalle: 8, horario: D.horarioPorDefecto(), ...o });
+const piscina = (o = {}) => ({
+  id: 'p1',
+  nombre: 'Lugones',
+  longitudM: 25,
+  numCalles: 6,
+  intervaloMin: 30,
+  maxPorCalle: 8,
+  horario: D.horarioPorDefecto(),
+  ...o,
+});
 const grupos = [
   { id: 'g1', nombre: 'Promoción', entrenador: 'Ana' },
   { id: 'g2', nombre: 'Alevín', entrenador: 'Bruno' },
   { id: 'g3', nombre: 'Infantil', entrenador: 'Ana' },
 ];
-const nad = (grupoId, n, activo = 'true') => Array.from({ length: n }, (_, i) => ({ id: grupoId + i, grupoId, activo }));
-const asig = (o) => ({ id: 'a' + Math.random().toString(36).slice(2, 7), piscinaId: 'p1', dia: 1, fecha: '', horaInicio: '17:00', horaFin: '18:00', calleDesde: 1, calleHasta: 2, grupoId: 'g1', entrenadorId: 'Ana', notas: '', ...o });
+const nad = (grupoId, n, activo = 'true') =>
+  Array.from({ length: n }, (_, i) => ({ id: grupoId + i, grupoId, activo }));
+const asig = (o) => ({
+  id: 'a' + Math.random().toString(36).slice(2, 7),
+  piscinaId: 'p1',
+  dia: 1,
+  fecha: '',
+  horaInicio: '17:00',
+  horaFin: '18:00',
+  calleDesde: 1,
+  calleHasta: 2,
+  grupoId: 'g1',
+  entrenadorId: 'Ana',
+  notas: '',
+  ...o,
+});
 const datos = (asignaciones, extra = {}) => ({ piscinas: [piscina()], asignaciones, grupos, nadadores: [], ...extra });
 const tipos = (cs) => cs.map((c) => c.tipo).sort();
-const sin = (cs, ...t) => cs.filter((c) => !t.includes(c.tipo));
 
 test('aMin/deMin: valid times, edges and fractions of a day', () => {
   assert.equal(D.aMin('00:00'), 0);
@@ -73,7 +95,15 @@ test('time overlap: [start, end) allows consecutive assignments', () => {
 
 test('overlapping lane: error; adjacent lanes or consecutive hours are not', () => {
   const a = asig({ id: 'a', calleDesde: 1, calleHasta: 3, grupoId: 'g1', entrenadorId: 'Ana' });
-  const b = asig({ id: 'b', calleDesde: 3, calleHasta: 4, grupoId: 'g2', entrenadorId: 'Bruno', horaInicio: '17:30', horaFin: '18:30' });
+  const b = asig({
+    id: 'b',
+    calleDesde: 3,
+    calleHasta: 4,
+    grupoId: 'g2',
+    entrenadorId: 'Bruno',
+    horaInicio: '17:30',
+    horaFin: '18:30',
+  });
   const c = detect([a, b]);
   assert.deepEqual(tipos(c), ['calle-solapada']);
   assert.equal(c[0].severidad, 'error');
@@ -84,7 +114,9 @@ test('overlapping lane: error; adjacent lanes or consecutive hours are not', () 
   assert.deepEqual(detect([a, { ...b, horaInicio: '18:00', horaFin: '19:00' }]), []);
   assert.deepEqual(detect([a, { ...b, dia: 2 }]), []);
 });
-function detect(as, extra, opts) { return D.detectarConflictos(datos(as, extra), opts); }
+function detect(as, extra, opts) {
+  return D.detectarConflictos(datos(as, extra), opts);
+}
 
 test('same lane in another pool does not clash, but the same group/coach does', () => {
   const ps = [piscina(), piscina({ id: 'p2', nombre: 'Otra' })];
@@ -95,23 +127,37 @@ test('same lane in another pool does not clash, but the same group/coach does', 
 });
 
 test('group in two places at once: error', () => {
-  const c = detect([asig({ id: 'a', calleDesde: 1, calleHasta: 1 }), asig({ id: 'b', calleDesde: 4, calleHasta: 4, entrenadorId: 'Bruno' })]);
+  const c = detect([
+    asig({ id: 'a', calleDesde: 1, calleHasta: 1 }),
+    asig({ id: 'b', calleDesde: 4, calleHasta: 4, entrenadorId: 'Bruno' }),
+  ]);
   assert.deepEqual(tipos(c), ['grupo-doble']);
 });
 
 test('same coach at the same time (case-insensitive): error', () => {
-  const c = detect([asig({ id: 'a', calleDesde: 1, calleHasta: 1 }), asig({ id: 'b', calleDesde: 4, calleHasta: 4, grupoId: 'g2', entrenadorId: ' ana ' })]);
+  const c = detect([
+    asig({ id: 'a', calleDesde: 1, calleHasta: 1 }),
+    asig({ id: 'b', calleDesde: 4, calleHasta: 4, grupoId: 'g2', entrenadorId: ' ana ' }),
+  ]);
   assert.deepEqual(tipos(c), ['entrenador-doble']);
   assert.equal(c[0].params.entrenador, 'Ana');
 });
 
 test('empty coach in two assignments does not count as entrenador-doble', () => {
-  const c = detect([asig({ id: 'a', entrenadorId: '' }), asig({ id: 'b', calleDesde: 4, calleHasta: 4, grupoId: 'g2', entrenadorId: '' })]);
+  const c = detect([
+    asig({ id: 'a', entrenadorId: '' }),
+    asig({ id: 'b', calleDesde: 4, calleHasta: 4, grupoId: 'g2', entrenadorId: '' }),
+  ]);
   assert.deepEqual(tipos(c), ['sin-entrenador', 'sin-entrenador']);
 });
 
 test('lane out of range: beyond numCalles, zero, inverted and non-numeric', () => {
-  for (const [d, h] of [[5, 7], [0, 2], [3, 2], ['x', 'y']]) {
+  for (const [d, h] of [
+    [5, 7],
+    [0, 2],
+    [3, 2],
+    ['x', 'y'],
+  ]) {
     const c = detect([asig({ id: 'a', calleDesde: d, calleHasta: h })]);
     assert.deepEqual(tipos(c), ['calle-fuera-rango'], `${d}-${h}`);
   }
@@ -130,7 +176,12 @@ test('opening hours: exact edges valid, outside and closed day are errors', () =
 });
 
 test('end time <= start and unreadable times: hora-invalida (without duplicating fuera-horario)', () => {
-  for (const [i, f] of [['18:00', '18:00'], ['18:00', '17:00'], ['', '18:00'], ['17:00', '25:00']]) {
+  for (const [i, f] of [
+    ['18:00', '18:00'],
+    ['18:00', '17:00'],
+    ['', '18:00'],
+    ['17:00', '25:00'],
+  ]) {
     assert.deepEqual(tipos(detect([asig({ horaInicio: i, horaFin: f })])), ['hora-invalida'], `${i}-${f}`);
   }
 });
@@ -142,7 +193,8 @@ test('invalid day and non-existent pool', () => {
 });
 
 test('capacity per lane: warning only if the maximum is exceeded; uses active swimmers', () => {
-  const dos = (n, extra = {}) => detect([asig({ calleDesde: 1, calleHasta: 2 })], { nadadores: nad('g1', n), ...extra });
+  const dos = (n, extra = {}) =>
+    detect([asig({ calleDesde: 1, calleHasta: 2 })], { nadadores: nad('g1', n), ...extra });
   assert.deepEqual(dos(16), []); // 8 per lane = maximum
   const c = dos(17);
   assert.deepEqual(tipos(c), ['capacidad']);
@@ -151,9 +203,16 @@ test('capacity per lane: warning only if the maximum is exceeded; uses active sw
   assert.equal(c[0].params.calles, 2);
   assert.equal(c[0].params.max, 8);
   // inactive ones do not count
-  assert.deepEqual(detect([asig({})], { nadadores: [...nad('g1', 16), ...nad('g1', 5, 'false').map((x) => ({ ...x, id: x.id + 'i' }))] }), []);
+  assert.deepEqual(
+    detect([asig({})], {
+      nadadores: [...nad('g1', 16), ...nad('g1', 5, 'false').map((x) => ({ ...x, id: x.id + 'i' }))],
+    }),
+    [],
+  );
   // configurable maxPorCalle
-  assert.deepEqual(tipos(detect([asig({})], { piscinas: [piscina({ maxPorCalle: 3 })], nadadores: nad('g1', 7) })), ['capacidad']);
+  assert.deepEqual(tipos(detect([asig({})], { piscinas: [piscina({ maxPorCalle: 3 })], nadadores: nad('g1', 7) })), [
+    'capacidad',
+  ]);
 });
 
 test('assignment without coach: warning; without group: error; non-existent group: warning', () => {
@@ -177,11 +236,21 @@ test('one-off exceptions: they only clash with recurring ones on the same real d
 });
 
 test('severities and order: errors before warnings and before info', () => {
-  const as = [asig({ id: 'a', entrenadorId: '' }), asig({ id: 'b', grupoId: 'g2', entrenadorId: 'Bruno', horaInicio: '17:30', horaFin: '18:30' })];
+  const as = [
+    asig({ id: 'a', entrenadorId: '' }),
+    asig({ id: 'b', grupoId: 'g2', entrenadorId: 'Bruno', horaInicio: '17:30', horaFin: '18:30' }),
+  ];
   const c = detect(as, {}, { huecos: true });
   const sev = c.map((x) => x.severidad);
-  assert.deepEqual(sev, [...sev].sort((x, y) => ({ error: 0, aviso: 1, info: 2 }[x] - { error: 0, aviso: 1, info: 2 }[y])));
-  assert.deepEqual(D.resumenConflictos(c), { error: 1, aviso: 1, info: c.filter((x) => x.severidad === 'info').length });
+  assert.deepEqual(
+    sev,
+    [...sev].sort((x, y) => ({ error: 0, aviso: 1, info: 2 })[x] - { error: 0, aviso: 1, info: 2 }[y]),
+  );
+  assert.deepEqual(D.resumenConflictos(c), {
+    error: 1,
+    aviso: 1,
+    info: c.filter((x) => x.severidad === 'info').length,
+  });
   const m = D.severidadPorAsignacion(c);
   assert.equal(m.get('a'), 'error');
   assert.equal(m.get('b'), 'error');
@@ -189,11 +258,15 @@ test('severities and order: errors before warnings and before info', () => {
 
 test('free gaps: contiguous lanes are grouped and the minimum interval is respected', () => {
   const ps = [piscina({ numCalles: 3, horario: { 1: { abre: '08:00', cierra: '10:00' } } })];
-  const h = (as) => D.detectarConflictos(datos(as, { piscinas: ps }), { huecos: true }).filter((c) => c.tipo === 'hueco-libre');
+  const h = (as) =>
+    D.detectarConflictos(datos(as, { piscinas: ps }), { huecos: true }).filter((c) => c.tipo === 'hueco-libre');
   // empty: a single gap for the 3 lanes
   let r = h([]);
   assert.equal(r.length, 1);
-  assert.deepEqual([r[0].params.desde, r[0].params.hasta, r[0].params.horaInicio, r[0].params.horaFin], [1, 3, '08:00', '10:00']);
+  assert.deepEqual(
+    [r[0].params.desde, r[0].params.hasta, r[0].params.horaInicio, r[0].params.horaFin],
+    [1, 3, '08:00', '10:00'],
+  );
   assert.equal(r[0].severidad, 'info');
   // one assignment in lane 2 from 08:30 to 09:30
   r = h([asig({ calleDesde: 2, calleHasta: 2, horaInicio: '08:30', horaFin: '09:30', entrenadorId: 'Ana' })]);
@@ -201,7 +274,10 @@ test('free gaps: contiguous lanes are grouped and the minimum interval is respec
   assert.deepEqual(txt, ['1-1 08:00-10:00', '2-2 08:00-08:30', '2-2 09:30-10:00', '3-3 08:00-10:00']);
   // assignment in lane 3: free lanes 1 and 2 share a gap and are grouped
   r = h([asig({ calleDesde: 3, calleHasta: 3, horaInicio: '08:00', horaFin: '09:00' })]);
-  assert.deepEqual(r.map((c) => `${c.params.desde}-${c.params.hasta} ${c.params.horaInicio}-${c.params.horaFin}`).sort(), ['1-2 08:00-10:00', '3-3 09:00-10:00']);
+  assert.deepEqual(
+    r.map((c) => `${c.params.desde}-${c.params.hasta} ${c.params.horaInicio}-${c.params.horaFin}`).sort(),
+    ['1-2 08:00-10:00', '3-3 09:00-10:00'],
+  );
   // the 15 min gap does not count with a 30 interval
   r = h([asig({ calleDesde: 1, calleHasta: 3, horaInicio: '08:15', horaFin: '10:00' })]);
   assert.equal(r.length, 0);
@@ -218,7 +294,12 @@ test('conflictosDe: evaluates a candidate against the rest, ignoring its own ver
   // editing itself does not clash with itself
   assert.deepEqual(D.conflictosDe({ ...existentes[0] }, datos(existentes)), []);
   assert.equal(D.bloqueante(c), true);
-  assert.equal(D.soloAvisos(D.conflictosDe(asig({ id: 'n', entrenadorId: '', horaInicio: '19:00', horaFin: '20:00' }), datos(existentes))), true);
+  assert.equal(
+    D.soloAvisos(
+      D.conflictosDe(asig({ id: 'n', entrenadorId: '', horaInicio: '19:00', horaFin: '20:00' }), datos(existentes)),
+    ),
+    true,
+  );
 });
 
 test('grid: rangoDia, franjas, niveles and occupancy', () => {
@@ -228,39 +309,87 @@ test('grid: rangoDia, franjas, niveles and occupancy', () => {
   const fuera = D.normalizarAsignacion(asig({ horaInicio: '07:00', horaFin: '08:00' }));
   assert.deepEqual(D.rangoDia(p, 1, [fuera]), { desde: 420, hasta: 600 });
   assert.deepEqual(D.franjas(480, 600, 30), [480, 510, 540, 570]);
-  const a = D.normalizarAsignacion(asig({ id: 'a', horaInicio: '08:00', horaFin: '09:00', calleDesde: 1, calleHasta: 2 }));
-  const b = D.normalizarAsignacion(asig({ id: 'b', horaInicio: '08:30', horaFin: '09:30', calleDesde: 2, calleHasta: 3 }));
-  const c = D.normalizarAsignacion(asig({ id: 'c', horaInicio: '09:00', horaFin: '10:00', calleDesde: 1, calleHasta: 1 }));
+  const a = D.normalizarAsignacion(
+    asig({ id: 'a', horaInicio: '08:00', horaFin: '09:00', calleDesde: 1, calleHasta: 2 }),
+  );
+  const b = D.normalizarAsignacion(
+    asig({ id: 'b', horaInicio: '08:30', horaFin: '09:30', calleDesde: 2, calleHasta: 3 }),
+  );
+  const c = D.normalizarAsignacion(
+    asig({ id: 'c', horaInicio: '09:00', horaFin: '10:00', calleDesde: 1, calleHasta: 1 }),
+  );
   const n = D.niveles([a, b, c]);
   assert.equal(n.get('a'), 0);
   assert.equal(n.get('b'), 1);
   assert.equal(n.get('c'), 0);
   const p2 = piscina({ numCalles: 2 });
-  const o = D.ocupacion(p2, [D.normalizarAsignacion(asig({ calleDesde: 1, calleHasta: 1, horaInicio: '08:00', horaFin: '09:00' }))], 480, 600);
+  const o = D.ocupacion(
+    p2,
+    [D.normalizarAsignacion(asig({ calleDesde: 1, calleHasta: 1, horaInicio: '08:00', horaFin: '09:00' }))],
+    480,
+    600,
+  );
   assert.deepEqual(o, { total: 240, ocupado: 60, pct: 25 });
   // double overlap does not count twice
-  const dup = [a, D.normalizarAsignacion(asig({ id: 'a2', horaInicio: '08:00', horaFin: '09:00', calleDesde: 1, calleHasta: 2 }))];
+  const dup = [
+    a,
+    D.normalizarAsignacion(asig({ id: 'a2', horaInicio: '08:00', horaFin: '09:00', calleDesde: 1, calleHasta: 2 })),
+  ];
   assert.equal(D.ocupacion(p2, dup, 480, 600).ocupado, 120);
   assert.equal(D.ocupacion(p2, [], NaN, 600).pct, 0);
 });
 
 test('delDia: recurring ones of the day + one-off ones of that date', () => {
-  const as = [asig({ id: 'r', dia: 3 }), asig({ id: 'p', fecha: '2026-10-14' }), asig({ id: 'q', fecha: '2026-10-21' }), asig({ id: 'o', dia: 4 }), asig({ id: 'x', piscinaId: 'p9', dia: 3 })];
-  assert.deepEqual(D.delDia(as, { piscinaId: 'p1', dia: 3, fecha: '2026-10-14' }).map((a) => a.id).sort(), ['p', 'r']);
-  assert.deepEqual(D.delDia(as, { piscinaId: 'p1', dia: 3 }).map((a) => a.id), ['r']);
+  const as = [
+    asig({ id: 'r', dia: 3 }),
+    asig({ id: 'p', fecha: '2026-10-14' }),
+    asig({ id: 'q', fecha: '2026-10-21' }),
+    asig({ id: 'o', dia: 4 }),
+    asig({ id: 'x', piscinaId: 'p9', dia: 3 }),
+  ];
+  assert.deepEqual(
+    D.delDia(as, { piscinaId: 'p1', dia: 3, fecha: '2026-10-14' })
+      .map((a) => a.id)
+      .sort(),
+    ['p', 'r'],
+  );
+  assert.deepEqual(
+    D.delDia(as, { piscinaId: 'p1', dia: 3 }).map((a) => a.id),
+    ['r'],
+  );
 });
 
 test('ajustarAlReducir: trims those that overhang and flags those entirely outside', () => {
-  const as = [asig({ id: 'a', calleDesde: 1, calleHasta: 2 }), asig({ id: 'b', calleDesde: 3, calleHasta: 5 }), asig({ id: 'c', calleDesde: 5, calleHasta: 6 }), asig({ id: 'd', piscinaId: 'p2', calleDesde: 5, calleHasta: 6 })];
+  const as = [
+    asig({ id: 'a', calleDesde: 1, calleHasta: 2 }),
+    asig({ id: 'b', calleDesde: 3, calleHasta: 5 }),
+    asig({ id: 'c', calleDesde: 5, calleHasta: 6 }),
+    asig({ id: 'd', piscinaId: 'p2', calleDesde: 5, calleHasta: 6 }),
+  ];
   const r = D.ajustarAlReducir(as, 'p1', 4);
-  assert.deepEqual(r.recortadas.map((x) => [x.id, x.calleHasta]), [['b', 4]]);
-  assert.deepEqual(r.fuera.map((x) => x.id), ['c']);
+  assert.deepEqual(
+    r.recortadas.map((x) => [x.id, x.calleHasta]),
+    [['b', 4]],
+  );
+  assert.deepEqual(
+    r.fuera.map((x) => x.id),
+    ['c'],
+  );
   assert.deepEqual(D.ajustarAlReducir(as, 'p1', 6).fuera, []);
 });
 
 test('sugerirDistribucion: distributes without error conflicts and is deterministic', () => {
   const nadadores = [...nad('g1', 10), ...nad('g2', 20), ...nad('g3', 4)];
-  const entrada = { piscina: piscina(), dia: 2, grupos, nadadores, asignaciones: [], duracionMin: 60, desde: '17:00', hasta: '20:00' };
+  const entrada = {
+    piscina: piscina(),
+    dia: 2,
+    grupos,
+    nadadores,
+    asignaciones: [],
+    duracionMin: 60,
+    desde: '17:00',
+    hasta: '20:00',
+  };
   const r = D.sugerirDistribucion(entrada);
   assert.deepEqual(r.sinHueco, []);
   assert.equal(r.propuestas.length, 3);
@@ -278,32 +407,87 @@ test('sugerirDistribucion: distributes without error conflicts and is determinis
 
 test('sugerirDistribucion: respects existing ones, closed day, lack of gap and preferences', () => {
   const nadadores = [...nad('g1', 6), ...nad('g2', 6)];
-  const base = { piscina: piscina({ numCalles: 2 }), dia: 1, grupos: grupos.slice(0, 2), nadadores, duracionMin: 60, desde: '17:00', hasta: '19:00' };
+  const base = {
+    piscina: piscina({ numCalles: 2 }),
+    dia: 1,
+    grupos: grupos.slice(0, 2),
+    nadadores,
+    duracionMin: 60,
+    desde: '17:00',
+    hasta: '19:00',
+  };
   // g1 already assigned: only g2 is placed (no repeats)
-  const existente = asig({ id: 'e', grupoId: 'g1', calleDesde: 1, calleHasta: 1, horaInicio: '17:00', horaFin: '18:00' });
+  const existente = asig({
+    id: 'e',
+    grupoId: 'g1',
+    calleDesde: 1,
+    calleHasta: 1,
+    horaInicio: '17:00',
+    horaFin: '18:00',
+  });
   const r = D.sugerirDistribucion({ ...base, asignaciones: [existente] });
-  assert.deepEqual(r.propuestas.map((p) => p.grupoId), ['g2']);
-  assert.ok(!D.bloqueante(D.conflictosDe(r.propuestas[0], datos([existente], { piscinas: [base.piscina], nadadores }))));
+  assert.deepEqual(
+    r.propuestas.map((p) => p.grupoId),
+    ['g2'],
+  );
+  assert.ok(
+    !D.bloqueante(D.conflictosDe(r.propuestas[0], datos([existente], { piscinas: [base.piscina], nadadores }))),
+  );
   // closed day
-  assert.deepEqual(D.sugerirDistribucion({ ...base, dia: 7, asignaciones: [] }).sinHueco.map((s) => s.motivo), ['cerrado', 'cerrado']);
+  assert.deepEqual(
+    D.sugerirDistribucion({ ...base, dia: 7, asignaciones: [] }).sinHueco.map((s) => s.motivo),
+    ['cerrado', 'cerrado'],
+  );
   // one-hour window, two lanes, two groups with different coaches: they fit (one lane each); a third does not
-  const tres = [{ id: 'g1', nombre: 'A', entrenador: 'X' }, { id: 'g2', nombre: 'B', entrenador: 'Y' }, { id: 'g3', nombre: 'C', entrenador: 'Z' }];
-  const apretado = D.sugerirDistribucion({ ...base, grupos: tres, nadadores: [...nad('g1', 6), ...nad('g2', 6), ...nad('g3', 6)], hasta: '18:00', asignaciones: [] });
+  const tres = [
+    { id: 'g1', nombre: 'A', entrenador: 'X' },
+    { id: 'g2', nombre: 'B', entrenador: 'Y' },
+    { id: 'g3', nombre: 'C', entrenador: 'Z' },
+  ];
+  const apretado = D.sugerirDistribucion({
+    ...base,
+    grupos: tres,
+    nadadores: [...nad('g1', 6), ...nad('g2', 6), ...nad('g3', 6)],
+    hasta: '18:00',
+    asignaciones: [],
+  });
   assert.equal(apretado.propuestas.length, 2);
   assert.deepEqual(apretado.sinHueco, [{ grupoId: 'g3', motivo: 'sin-hueco' }]);
   // preferences: g2 prefers 18:00
   const pref = D.sugerirDistribucion({ ...base, asignaciones: [], soloGrupos: ['g2'], preferencias: { g2: '18:00' } });
   assert.equal(pref.propuestas[0].horaInicio, '18:00');
   // no room for the recommended number of lanes: uses fewer and flags it
-  const reducida = D.sugerirDistribucion({ ...base, piscina: piscina({ numCalles: 2, maxPorCalle: 1 }), grupos: [grupos[0]], nadadores: nad('g1', 5), asignaciones: [], soloGrupos: ['g1'] });
+  const reducida = D.sugerirDistribucion({
+    ...base,
+    piscina: piscina({ numCalles: 2, maxPorCalle: 1 }),
+    grupos: [grupos[0]],
+    nadadores: nad('g1', 5),
+    asignaciones: [],
+    soloGrupos: ['g1'],
+  });
   assert.equal(reducida.propuestas[0].calleHasta - reducida.propuestas[0].calleDesde + 1, 2);
 });
 
 test('planning i18n parity: same keys and variables in es/en/it', () => {
-  const vars = (s) => [...s.matchAll(/\{(\w+)\}/g)].map((m) => m[1]).sort().join(',');
-  for (const [name, d] of [['en', en], ['it', it]]) {
-    assert.deepEqual(Object.keys(es).filter((k) => !(k in d)), [], 'missing in ' + name);
-    assert.deepEqual(Object.keys(d).filter((k) => !(k in es)), [], 'orphans in ' + name);
+  const vars = (s) =>
+    [...s.matchAll(/\{(\w+)\}/g)]
+      .map((m) => m[1])
+      .sort()
+      .join(',');
+  for (const [name, d] of [
+    ['en', en],
+    ['it', it],
+  ]) {
+    assert.deepEqual(
+      Object.keys(es).filter((k) => !(k in d)),
+      [],
+      'missing in ' + name,
+    );
+    assert.deepEqual(
+      Object.keys(d).filter((k) => !(k in es)),
+      [],
+      'orphans in ' + name,
+    );
     for (const k of Object.keys(es)) assert.equal(vars(d[k]), vars(es[k]), `${name}:${k}`);
   }
   for (const d of [es, en, it]) for (const [k, v] of Object.entries(d)) assert.ok(typeof v === 'string' && v.trim(), k);
@@ -312,7 +496,8 @@ test('planning i18n parity: same keys and variables in es/en/it', () => {
 test('every conflict type and pool error has a translated message', () => {
   for (const tipo of Object.keys(D.TIPOS_CONFLICTO)) assert.ok(es['plan.c.' + tipo], tipo);
   assert.ok(es['plan.c.fuera-horario-cerrado']);
-  for (const e of ['nombre-vacio', 'longitud', 'calles', 'intervalo', 'max-por-calle', 'horario', 'sin-dias']) assert.ok(es['plan.err.' + e], e);
+  for (const e of ['nombre-vacio', 'longitud', 'calles', 'intervalo', 'max-por-calle', 'horario', 'sin-dias'])
+    assert.ok(es['plan.err.' + e], e);
   for (const s of ['error', 'aviso', 'info']) assert.ok(es['plan.sev.' + s]);
 });
 
@@ -327,10 +512,13 @@ function repoMemoria() {
     upsert(s, row) {
       const r = { ...row, id: row.id ? String(row.id) : 'id' + ++n };
       const i = db[s].findIndex((x) => x.id === r.id);
-      if (i >= 0) db[s][i] = r; else db[s].push(r);
+      if (i >= 0) db[s][i] = r;
+      else db[s].push(r);
       return r;
     },
-    remove(s, id) { db[s] = db[s].filter((r) => r.id !== String(id)); },
+    remove(s, id) {
+      db[s] = db[s].filter((r) => r.id !== String(id));
+    },
   };
 }
 
@@ -348,17 +536,35 @@ test('service: saving an assignment blocks errors and requires forcing warnings'
   const repo = repoMemoria();
   const svc = crearPlanificacionService(repo);
   svc.guardarPiscina(piscina());
-  const base = { piscinaId: 'p1', dia: 1, horaInicio: '17:00', horaFin: '18:00', calleDesde: 1, calleHasta: 2, grupoId: 'g1', entrenadorId: 'Ana' };
+  const base = {
+    piscinaId: 'p1',
+    dia: 1,
+    horaInicio: '17:00',
+    horaFin: '18:00',
+    calleDesde: 1,
+    calleHasta: 2,
+    grupoId: 'g1',
+    entrenadorId: 'Ana',
+  };
   assert.ok(svc.guardarAsignacion(base).ok);
   const choque = svc.guardarAsignacion({ ...base, grupoId: 'g2', entrenadorId: 'Bruno', calleDesde: 2, calleHasta: 3 });
   assert.equal(choque.ok, false);
   assert.equal(choque.bloqueado, true);
   assert.equal(repo.db.AsignacionesCalle.length, 1);
-  const aviso = svc.guardarAsignacion({ ...base, grupoId: 'g2', entrenadorId: '', horaInicio: '19:00', horaFin: '20:00' });
+  const aviso = svc.guardarAsignacion({
+    ...base,
+    grupoId: 'g2',
+    entrenadorId: '',
+    horaInicio: '19:00',
+    horaFin: '20:00',
+  });
   assert.equal(aviso.ok, false);
   assert.equal(aviso.requiereForzar, true);
   assert.equal(repo.db.AsignacionesCalle.length, 1);
-  const forzada = svc.guardarAsignacion({ ...base, grupoId: 'g2', entrenadorId: '', horaInicio: '19:00', horaFin: '20:00' }, { forzar: true });
+  const forzada = svc.guardarAsignacion(
+    { ...base, grupoId: 'g2', entrenadorId: '', horaInicio: '19:00', horaFin: '20:00' },
+    { forzar: true },
+  );
   assert.ok(forzada.ok);
   assert.equal(repo.db.AsignacionesCalle.length, 2);
   // forcing never skips an error
@@ -369,8 +575,19 @@ test('service: reducing lanes trims and flags those left outside', () => {
   const repo = repoMemoria();
   const svc = crearPlanificacionService(repo);
   svc.guardarPiscina(piscina());
-  const mk = (grupoId, d, h, ent, ini = '17:00', fin = '18:00') => svc.guardarAsignacion({ piscinaId: 'p1', dia: 1, horaInicio: ini, horaFin: fin, calleDesde: d, calleHasta: h, grupoId, entrenadorId: ent });
-  mk('g1', 1, 2, 'Ana'); mk('g2', 3, 5, 'Bruno');
+  const mk = (grupoId, d, h, ent, ini = '17:00', fin = '18:00') =>
+    svc.guardarAsignacion({
+      piscinaId: 'p1',
+      dia: 1,
+      horaInicio: ini,
+      horaFin: fin,
+      calleDesde: d,
+      calleHasta: h,
+      grupoId,
+      entrenadorId: ent,
+    });
+  mk('g1', 1, 2, 'Ana');
+  mk('g2', 3, 5, 'Bruno');
   repo.upsert('Grupos', { id: 'g9', nombre: 'Z', entrenador: 'Zoe' });
   assert.ok(mk('g9', 5, 6, 'Zoe', '18:00', '19:00').ok);
   const r = svc.guardarPiscina({ ...piscina(), numCalles: 4 });
@@ -386,7 +603,16 @@ test('service: move, duplicate, delete and cascade-delete a pool', () => {
   const repo = repoMemoria();
   const svc = crearPlanificacionService(repo);
   svc.guardarPiscina(piscina());
-  const a = svc.guardarAsignacion({ piscinaId: 'p1', dia: 1, horaInicio: '17:00', horaFin: '18:00', calleDesde: 1, calleHasta: 2, grupoId: 'g1', entrenadorId: 'Ana' }).asignacion;
+  const a = svc.guardarAsignacion({
+    piscinaId: 'p1',
+    dia: 1,
+    horaInicio: '17:00',
+    horaFin: '18:00',
+    calleDesde: 1,
+    calleHasta: 2,
+    grupoId: 'g1',
+    entrenadorId: 'Ana',
+  }).asignacion;
   assert.ok(svc.mover(a.id, { dia: 2 }).ok);
   assert.equal(svc.asignaciones()[0].dia, 2);
   assert.equal(svc.duplicar(a.id).ok, false); // same slot: clashes with itself

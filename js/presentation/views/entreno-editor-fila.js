@@ -13,9 +13,22 @@ import { fmt, PANEL_DE } from './entreno-editor-util.js';
 // campo -> [column key in the dictionary, input attributes]
 const ATRIBUTOS = {
   series: { inputmode: 'numeric', pattern: '[0-9]*', autocomplete: 'off', placeholder: '1' },
-  distancia: { inputmode: 'numeric', pattern: '[0-9]*', list: 'enp-dl-distancia', autocomplete: 'off', placeholder: '100' },
+  distancia: {
+    inputmode: 'numeric',
+    pattern: '[0-9]*',
+    list: 'enp-dl-distancia',
+    autocomplete: 'off',
+    placeholder: '100',
+  },
   ejercicio: { list: 'enp-dl-ejercicio', enterkeyhint: 'next' },
-  salida: { inputmode: 'text', list: 'enp-dl-salida', placeholder: "C/1'10\"", autocapitalize: 'off', autocomplete: 'off', enterkeyhint: 'done' },
+  salida: {
+    inputmode: 'text',
+    list: 'enp-dl-salida',
+    placeholder: 'C/1\'10"',
+    autocapitalize: 'off',
+    autocomplete: 'off',
+    enterkeyhint: 'done',
+  },
   tiempoMin: { inputmode: 'numeric', pattern: '[0-9]*', autocomplete: 'off', enterkeyhint: 'done' },
   material: { list: 'enp-dl-material', enterkeyhint: 'done' },
   objetivo: { list: 'enp-dl-objetivo', enterkeyhint: 'done' },
@@ -31,10 +44,19 @@ export function crearFila(env, l, { ultimoSet, nFilas }) {
   const idPane = `${env.uid}-p-${l.set}-${l.orden}`;
 
   const campo = (nombre, { textarea = false } = {}) => {
-    const attrs = { 'data-campo': nombre, 'aria-label': `${t('entreno.col.' + (CLAVE[nombre] || nombre))} (${pos})`, ...ATRIBUTOS[nombre] };
+    const attrs = {
+      'data-campo': nombre,
+      'aria-label': `${t('entreno.col.' + (CLAVE[nombre] || nombre))} (${pos})`,
+      ...ATRIBUTOS[nombre],
+    };
     const valor = l[nombre] === undefined || l[nombre] === null ? '' : String(l[nombre]);
-    const el = textarea ? h('textarea', { rows: 2, ...attrs }, valor) : h('input', { type: 'text', value: valor, ...attrs });
-    el.addEventListener('input', () => { l[nombre] = el.value; env.cambio(); });
+    const el = textarea
+      ? h('textarea', { rows: 2, ...attrs }, valor)
+      : h('input', { type: 'text', value: valor, ...attrs });
+    el.addEventListener('input', () => {
+      l[nombre] = el.value;
+      env.cambio();
+    });
     el.addEventListener('keydown', (e) => {
       if (e.key !== 'Enter' || e.isComposing || textarea) return;
       e.preventDefault();
@@ -43,13 +65,23 @@ export function crearFila(env, l, { ultimoSet, nFilas }) {
       else env.op((ls) => D.anadirFila(ls, l.set), { set: l.set, orden: l.orden + 1, campo: nombre });
     });
     if (nombre === 'salida') {
-      el.addEventListener('blur', () => { // normalises C/1'10" when it is valid
+      el.addEventListener('blur', () => {
+        // normalises C/1'10" when it is valid
         const p = D.parsearSalida(el.value);
-        if (p.valido && !p.vacio && p.texto !== el.value) { el.value = p.texto; l.salida = p.texto; env.cambio(); }
+        if (p.valido && !p.vacio && p.texto !== el.value) {
+          el.value = p.texto;
+          l.salida = p.texto;
+          env.cambio();
+        }
       });
     }
     inputs[nombre] = el;
-    return h('label', { class: 'enp-f enp-f-' + nombre }, h('span', { class: 'enp-lbl' }, t('entreno.col.' + (CLAVE[nombre] || nombre))), el);
+    return h(
+      'label',
+      { class: 'enp-f enp-f-' + nombre },
+      h('span', { class: 'enp-lbl' }, t('entreno.col.' + (CLAVE[nombre] || nombre))),
+      el,
+    );
   };
 
   const out = h('output', { class: 'enp-dist', 'aria-label': `${t('entreno.col.dist-bloque')} (${pos})` });
@@ -64,32 +96,56 @@ export function crearFila(env, l, { ultimoSet, nFilas }) {
     contenidos: h('div', { class: 'enp-sec enp-sec-cont', 'data-pane': 'contenidos' }, cont.el),
     mas: h('div', { class: 'enp-sec', 'data-pane': 'mas' }, campo('bloque'), campo('notas', { textarea: false })),
   };
-  Object.values(secciones).forEach((s) => { s.hidden = true; });
+  Object.values(secciones).forEach((s) => {
+    s.hidden = true;
+  });
   const pane = h('div', { class: 'enp-pane', id: idPane }, Object.values(secciones));
 
   let abierto = null;
   function mostrar(k) {
     abierto = k;
-    Object.entries(secciones).forEach(([clave, el]) => { el.hidden = clave !== k; });
-    Object.entries(chips).forEach(([clave, c]) => { c.btn.setAttribute('aria-expanded', clave === k ? 'true' : 'false'); });
+    Object.entries(secciones).forEach(([clave, el]) => {
+      el.hidden = clave !== k;
+    });
+    Object.entries(chips).forEach(([clave, c]) => {
+      c.btn.setAttribute('aria-expanded', clave === k ? 'true' : 'false');
+    });
     pane.classList.toggle('enp-pane--abierto', !!k);
   }
   const alternar = (k) => {
     mostrar(abierto === k ? null : k);
-    if (abierto === k && k !== 'contenidos') (secciones[k].querySelector('input,textarea'))?.focus();
+    if (abierto === k && k !== 'contenidos') secciones[k].querySelector('input,textarea')?.focus();
   };
 
   const chips = {};
   const chip = (k, etiqueta) => {
     const txt = h('span', { class: 'enp-chip-txt' });
-    const btn = h('button', { type: 'button', class: 'enp-chip', 'data-chip': k, 'aria-expanded': 'false', 'aria-controls': idPane, onclick: () => alternar(k) }, txt);
+    const btn = h(
+      'button',
+      {
+        type: 'button',
+        class: 'enp-chip',
+        'data-chip': k,
+        'aria-expanded': 'false',
+        'aria-controls': idPane,
+        onclick: () => alternar(k),
+      },
+      txt,
+    );
     chips[k] = { btn, txt, etiqueta };
     return btn;
   };
-  const filaChips = h('div', { class: 'enp-l2' },
-    chip('salida', t('entreno.col.salida')), chip('tiempoMin', t('entreno.col.tiempo')), chip('material', t('entreno.col.material')),
-    chip('objetivo', t('entreno.col.objetivo')), chip('contenidos', t('entreno.col.contenidos')), chip('mas', t('entreno.fila.mas')),
-    h('span', { class: 'enp-dist-caja' }, out, ' m'));
+  const filaChips = h(
+    'div',
+    { class: 'enp-l2' },
+    chip('salida', t('entreno.col.salida')),
+    chip('tiempoMin', t('entreno.col.tiempo')),
+    chip('material', t('entreno.col.material')),
+    chip('objetivo', t('entreno.col.objetivo')),
+    chip('contenidos', t('entreno.col.contenidos')),
+    chip('mas', t('entreno.fila.mas')),
+    h('span', { class: 'enp-dist-caja' }, out, ' m'),
+  );
 
   function actualizarChips() {
     const r = D.resumenFila(l);
@@ -112,26 +168,75 @@ export function crearFila(env, l, { ultimoSet, nFilas }) {
   const acciones = menuAcciones({
     etiqueta: t('entreno.fila.acciones', { pos }),
     items: () => [
-      { label: t('entreno.fila-subir', { pos }), icono: 'fila-arriba', deshabilitado: l.set === 1 && l.orden === 1, onClick: () => env.op((ls) => D.moverFila(ls, l.set, l.orden, -1), { set: l.set, orden: Math.max(1, l.orden - 1) }) },
-      { label: t('entreno.fila-bajar', { pos }), icono: 'fila-abajo', deshabilitado: ultimoSet && l.orden === nFilas, onClick: () => env.op((ls) => D.moverFila(ls, l.set, l.orden, 1), { set: l.set, orden: l.orden + 1 }) },
-      { label: t('entreno.fila-duplicar', { pos }), icono: 'copiar', onClick: () => env.op((ls) => D.duplicarFila(ls, l.set, l.orden), { set: l.set, orden: l.orden + 1 }) },
-      { label: t('entreno.fila-quitar', { pos }), icono: 'borrar', danger: true, onClick: () => env.op((ls) => D.quitarFila(ls, l.set, l.orden)) },
+      {
+        label: t('entreno.fila-subir', { pos }),
+        icono: 'fila-arriba',
+        deshabilitado: l.set === 1 && l.orden === 1,
+        onClick: () =>
+          env.op((ls) => D.moverFila(ls, l.set, l.orden, -1), { set: l.set, orden: Math.max(1, l.orden - 1) }),
+      },
+      {
+        label: t('entreno.fila-bajar', { pos }),
+        icono: 'fila-abajo',
+        deshabilitado: ultimoSet && l.orden === nFilas,
+        onClick: () => env.op((ls) => D.moverFila(ls, l.set, l.orden, 1), { set: l.set, orden: l.orden + 1 }),
+      },
+      {
+        label: t('entreno.fila-duplicar', { pos }),
+        icono: 'copiar',
+        onClick: () => env.op((ls) => D.duplicarFila(ls, l.set, l.orden), { set: l.set, orden: l.orden + 1 }),
+      },
+      {
+        label: t('entreno.fila-quitar', { pos }),
+        icono: 'borrar',
+        danger: true,
+        onClick: () => env.op((ls) => D.quitarFila(ls, l.set, l.orden)),
+      },
     ],
   });
 
-  const fila = h('div', { class: 'enp-row', role: 'group', 'aria-label': pos, 'data-set': l.set, 'data-orden': l.orden },
-    h('div', { class: 'enp-l1' }, campo('series'), h('span', { class: 'enp-x', 'aria-hidden': 'true' }, '×'), campo('distancia'), campo('ejercicio'), acciones),
-    filaChips, pane);
+  const fila = h(
+    'div',
+    { class: 'enp-row', role: 'group', 'aria-label': pos, 'data-set': l.set, 'data-orden': l.orden },
+    h(
+      'div',
+      { class: 'enp-l1' },
+      campo('series'),
+      h('span', { class: 'enp-x', 'aria-hidden': 'true' }, '×'),
+      campo('distancia'),
+      campo('ejercicio'),
+      acciones,
+    ),
+    filaChips,
+    pane,
+  );
 
   const ref = {
-    fila: l, out, inputs, cont,
+    fila: l,
+    out,
+    inputs,
+    cont,
     // Shows the pane that holds `nombre` (used when focus is moved programmatically)
-    abrir(nombre) { const k = PANEL_DE[nombre]; if (k && abierto !== k) mostrar(k); },
-    actualizar() { out.textContent = fmt(D.distanciaBloque(l)); actualizarChips(); cont.actualizar(); },
+    abrir(nombre) {
+      const k = PANEL_DE[nombre];
+      if (k && abierto !== k) mostrar(k);
+    },
+    actualizar() {
+      out.textContent = fmt(D.distanciaBloque(l));
+      actualizarChips();
+      cont.actualizar();
+    },
     // Marks the fields with an error (aria-invalid) and the chips whose hidden pane contains them
     marcar(malos) {
-      Object.entries(inputs).forEach(([c, el]) => (malos.has(c) ? el.setAttribute('aria-invalid', 'true') : el.removeAttribute('aria-invalid')));
-      Object.entries(chips).forEach(([k, c]) => c.btn.classList.toggle('enp-chip--error', [...malos].some((campo) => PANEL_DE[campo] === k)));
+      Object.entries(inputs).forEach(([c, el]) =>
+        malos.has(c) ? el.setAttribute('aria-invalid', 'true') : el.removeAttribute('aria-invalid'),
+      );
+      Object.entries(chips).forEach(([k, c]) =>
+        c.btn.classList.toggle(
+          'enp-chip--error',
+          [...malos].some((m) => PANEL_DE[m] === k),
+        ),
+      );
     },
   };
   actualizarChips();

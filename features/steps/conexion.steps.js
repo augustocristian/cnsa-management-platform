@@ -41,7 +41,10 @@ Then('the demo notice is not visible', async function () {
 Then('the demo data only exists in this browser', async function () {
   await this.eventually(async () => {
     const k = await keys(this.page);
-    assert.ok(k.includes('cnl:mode') && k.some((x) => x.startsWith('cnl:demo:')), `The local demo data is missing: ${k.join(', ')}`);
+    assert.ok(
+      k.includes('cnl:mode') && k.some((x) => x.startsWith('cnl:demo:')),
+      `The local demo data is missing: ${k.join(', ')}`,
+    );
     assert.ok(!k.some((x) => x.startsWith('cnl:club:')), 'The demo must not use the mirror of a real club');
   });
 });
@@ -61,7 +64,9 @@ Then('Drive contains no club', async function () {
 });
 
 Then('Drive is connected', async function () {
-  await this.eventually(async () => assert.equal(await this.page.evaluate(() => localStorage.getItem('cnl:drive-auth')), '1'));
+  await this.eventually(async () =>
+    assert.equal(await this.page.evaluate(() => localStorage.getItem('cnl:drive-auth')), '1'),
+  );
 });
 
 When('I reload the start screen', async function () {
@@ -70,9 +75,12 @@ When('I reload the start screen', async function () {
 });
 
 // ---- The demo is only offered while there is no Google Client ID ----
-Given('the app is open without a Google Client ID and Google rejects the connection with {string}', async function (code) {
-  await this.openApp({ noClientId: true, connectionError: code });
-});
+Given(
+  'the app is open without a Google Client ID and Google rejects the connection with {string}',
+  async function (code) {
+    await this.openApp({ noClientId: true, connectionError: code });
+  },
+);
 
 When('a Google client ID is configured and I reload the app', async function () {
   // The fake adapter reads its options from localStorage on every load: this is what pasting a Client ID (or setting
@@ -94,11 +102,17 @@ Then('the demo is the first action of the screen', async function () {
 });
 
 Then('the demo notice offers {string}', async function (text) {
-  await this.expectVisible(this.page.locator('#cnl-avisos [data-aviso="demo"]').getByRole('button', { name: text }), `The demo notice does not offer "${text}"`);
+  await this.expectVisible(
+    this.page.locator('#cnl-avisos [data-aviso="demo"]').getByRole('button', { name: text }),
+    `The demo notice does not offer "${text}"`,
+  );
 });
 
 Then('the demo notice does not offer {string}', async function (text) {
-  assert.equal(await this.page.locator('#cnl-avisos [data-aviso="demo"]').getByRole('button', { name: text }).count(), 0);
+  assert.equal(
+    await this.page.locator('#cnl-avisos [data-aviso="demo"]').getByRole('button', { name: text }).count(),
+    0,
+  );
 });
 
 Then('the start screen does not mention the demo', async function () {

@@ -8,7 +8,9 @@ export function cargarIntegridades() {
     try {
       const r = await fetch(new URL('../../vendor/integrity.json', import.meta.url).href);
       return r.ok ? await r.json() : {};
-    } catch (e) { return {}; }
+    } catch (e) {
+      return {};
+    }
   })();
   return promesa;
 }

@@ -13,7 +13,9 @@ export const HOJA_NADADORES = 'Nadadores';
 
 export function crearCategoriasService(repo, { ahora } = {}) {
   const club = () => (repo.club && typeof repo.club === 'object' ? repo.club : {});
-  const guardarClub = (cambios) => { repo.setClub({ ...club(), ...cambios }); };
+  const guardarClub = (cambios) => {
+    repo.setClub({ ...club(), ...cambios });
+  };
   const nombre = (n) => `${n.nombre || ''} ${n.apellidos || ''}`.trim();
 
   const svc = {
@@ -45,14 +47,17 @@ export function crearCategoriasService(repo, { ahora } = {}) {
     },
 
     // ----- Consultas -----
-    tabla: (temporada = svc.temporadaActual(), sexo = 'F') => D.tablaCategorias(temporada, { sexo, config: svc.config() }),
+    tabla: (temporada = svc.temporadaActual(), sexo = 'F') =>
+      D.tablaCategorias(temporada, { sexo, config: svc.config() }),
     // Current category of a swimmer (manual if set) in the current season
     vigente: (n, temporada = svc.temporadaActual()) => D.categoriaVigente(n, temporada, svc.config()),
     // Live preview of the form: {categoria, manual, origen, avisos, rango:{desde,hasta,...}|null, temporada}
     previsualizar(datos, temporada = svc.temporadaActual()) {
       const v = svc.vigente(datos || {}, temporada);
       const calc = D.categoriaDe(datos || {}, temporada, svc.config());
-      const rango = calc.categoria ? D.rangoAnios(calc.categoria, temporada, { sexo: calc.sexo, config: svc.config() }) : null;
+      const rango = calc.categoria
+        ? D.rangoAnios(calc.categoria, temporada, { sexo: calc.sexo, config: svc.config() })
+        : null;
       return { ...v, rango, temporada, calculadaRango: rango };
     },
 
@@ -61,7 +66,10 @@ export function crearCategoriasService(repo, { ahora } = {}) {
     // the category it already had is kept.
     conCategoria(fila, temporada = svc.temporadaActual()) {
       const v = svc.vigente(fila, temporada);
-      return { ...fila, categoria: v.categoria || (v.origen === 'sin-fecha' || v.origen === 'sin-sexo' ? (fila.categoria || '') : '') };
+      return {
+        ...fila,
+        categoria: v.categoria || (v.origen === 'sin-fecha' || v.origen === 'sin-sexo' ? fila.categoria || '' : ''),
+      };
     },
     // Creates or edits a swimmer (category included). -> saved row
     guardarNadador(fila) {
@@ -72,7 +80,8 @@ export function crearCategoriasService(repo, { ahora } = {}) {
     recalcular(temporada = svc.temporadaActual()) {
       const cfg = svc.config();
       const cambios = [];
-      let manuales = 0, sinFecha = 0;
+      let manuales = 0,
+        sinFecha = 0;
       const todos = repo.list(HOJA_NADADORES);
       todos.forEach((n) => {
         const v = D.categoriaVigente(n, temporada, cfg);
@@ -81,7 +90,10 @@ export function crearCategoriasService(repo, { ahora } = {}) {
           if (n.categoria !== v.categoria) repo.upsert(HOJA_NADADORES, { ...n, categoria: v.categoria });
           return;
         }
-        if (!v.categoria) { sinFecha++; return; }
+        if (!v.categoria) {
+          sinFecha++;
+          return;
+        }
         if (n.categoria !== v.categoria) {
           cambios.push({ id: n.id, nombre: nombre(n), de: n.categoria || '', a: v.categoria });
           repo.upsert(HOJA_NADADORES, { ...n, categoria: v.categoria });

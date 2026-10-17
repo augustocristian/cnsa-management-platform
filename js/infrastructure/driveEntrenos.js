@@ -7,6 +7,12 @@ export async function guardarPdfEnDrive({ drive, blob, nombre }) {
   if (!drive || !blob || !nombre) throw new Error('datos-incompletos');
   const carpeta = await drive.ensureFolderPath([SUBCARPETA_ENTRENOS]);
   const previo = await drive.findFile(nombre, carpeta);
-  const r = await drive.upload({ name: nombre, mimeType: 'application/pdf', body: blob, parentId: carpeta, id: previo ? previo.id : undefined });
+  const r = await drive.upload({
+    name: nombre,
+    mimeType: 'application/pdf',
+    body: blob,
+    parentId: carpeta,
+    id: previo ? previo.id : undefined,
+  });
   return { id: r.id, name: r.name || nombre, actualizado: !!previo, url: drive.fileUrl ? drive.fileUrl(r.id) : '' };
 }

@@ -33,7 +33,9 @@ export function anunciar(msg) {
   const el = anunciador();
   el.textContent = '';
   // A change of content (not only of text) is what screen readers announce: clear first, write on the next tick.
-  setTimeout(() => { el.textContent = msg; }, 50);
+  setTimeout(() => {
+    el.textContent = msg;
+  }, 50);
 }
 
 // After a route change: focus the page heading (or #view). Leaves focus alone if the view already focused one of its own controls.
@@ -44,15 +46,24 @@ export function moverFoco(main) {
   const h1 = main.querySelector('h1');
   const destino = h1 || main;
   if (h1 && !h1.hasAttribute('tabindex')) h1.setAttribute('tabindex', '-1');
-  try { destino.focus({ preventScroll: true }); } catch (e) { /* ignore */ }
+  try {
+    destino.focus({ preventScroll: true });
+  } catch (e) {
+    /* ignore */
+  }
 }
 
 // Skip link (index.html): moves focus to #view without touching the hash (the router uses the hash for routes).
 export function enlazarSaltar() {
   const a = document.querySelector('.skip-link');
   if (!a) return;
-  const pintar = () => { a.textContent = t('ui.saltar'); };
+  const pintar = () => {
+    a.textContent = t('ui.saltar');
+  };
   pintar();
   onLangChange(pintar);
-  a.addEventListener('click', (e) => { e.preventDefault(); document.getElementById('view')?.focus(); });
+  a.addEventListener('click', (e) => {
+    e.preventDefault();
+    document.getElementById('view')?.focus();
+  });
 }

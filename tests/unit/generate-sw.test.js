@@ -6,7 +6,16 @@ import { mkdtempSync, mkdirSync, writeFileSync, readFileSync, rmSync } from 'nod
 import { join } from 'node:path';
 import { tmpdir } from 'node:os';
 import {
-  listarArchivos, calcularVersion, bloqueGenerado, aplicarBloque, comprobar, generar, verificar, MARCA_INICIO, MARCA_FIN, EXCLUIDOS,
+  listarArchivos,
+  calcularVersion,
+  bloqueGenerado,
+  aplicarBloque,
+  comprobar,
+  generar,
+  verificar,
+  MARCA_INICIO,
+  MARCA_FIN,
+  EXCLUIDOS,
 } from '../../scripts/generate-sw.mjs';
 import { ROOT } from '../helpers/env.js';
 
@@ -15,7 +24,8 @@ const PLANTILLA = `// header\n${MARCA_INICIO}\nconst VERSION = 'x';\nconst SHELL
 function app(extra = {}) {
   const raiz = mkdtempSync(join(tmpdir(), 'cnl-sw-'));
   const files = {
-    'index.html': '<!doctype html><link rel="stylesheet" href="./css/app.css"><script type="module" src="./js/main.js"></script>',
+    'index.html':
+      '<!doctype html><link rel="stylesheet" href="./css/app.css"><script type="module" src="./js/main.js"></script>',
     'manifest.webmanifest': '{}',
     'css/app.css': 'body{margin:0}',
     'css/views/grupos.css': '.g{color:red}',
@@ -42,11 +52,21 @@ test('lists every file under index/manifest/css/js/icons/vendor, sorted, without
   try {
     const lista = listarArchivos(raiz);
     assert.deepEqual(lista, [
-      'css/app.css', 'css/views/grupos.css', 'icons/icon.svg', 'index.html', 'js/main.js', 'js/util/a.js', 'js/util/lazy.js', 'manifest.webmanifest', 'vendor/lib.min.js',
+      'css/app.css',
+      'css/views/grupos.css',
+      'icons/icon.svg',
+      'index.html',
+      'js/main.js',
+      'js/util/a.js',
+      'js/util/lazy.js',
+      'manifest.webmanifest',
+      'vendor/lib.min.js',
     ]);
     assert.ok(!lista.includes('sw.js'));
     for (const x of EXCLUIDOS) assert.ok(!lista.includes(x));
-  } finally { limpiar(raiz); }
+  } finally {
+    limpiar(raiz);
+  }
 });
 
 test('picks up new per-view stylesheets and modules automatically', () => {
@@ -57,7 +77,9 @@ test('picks up new per-view stylesheets and modules automatically', () => {
     writeFileSync(join(raiz, 'js/presentation/nuevo.js'), 'export {};');
     const lista = listarArchivos(raiz);
     assert.ok(lista.includes('css/views/marcas.css') && lista.includes('js/presentation/nuevo.js'));
-  } finally { limpiar(raiz); }
+  } finally {
+    limpiar(raiz);
+  }
 });
 
 test('version: stable, changes when a file changes, is added or removed, ignores CRLF', () => {
@@ -82,7 +104,9 @@ test('version: stable, changes when a file changes, is added or removed, ignores
     // editing sw.js itself does not change the version
     writeFileSync(join(raiz, 'sw.js'), PLANTILLA + '// edited\n');
     assert.equal(calcularVersion(listarArchivos(raiz), raiz), crlf);
-  } finally { limpiar(raiz); }
+  } finally {
+    limpiar(raiz);
+  }
 });
 
 test('generated block: SHELL has every file, vendor is optional, markers are replaced in place', () => {
@@ -101,7 +125,9 @@ test('generated block: SHELL has every file, vendor is optional, markers are rep
     // CRLF files keep CRLF
     const crlf = aplicarBloque(PLANTILLA.replace(/\n/g, '\r\n'), bloque);
     assert.ok(!/[^\r]\n/.test(crlf));
-  } finally { limpiar(raiz); }
+  } finally {
+    limpiar(raiz);
+  }
 });
 
 test('comprobar: stale after a new file, fixed after generar', () => {
@@ -120,7 +146,9 @@ test('comprobar: stale after a new file, fixed after generar', () => {
     assert.equal(comprobar(raiz).ok, true);
     // the written file carries the computed version
     assert.ok(readFileSync(join(raiz, 'sw.js'), 'utf8').includes(`const VERSION = '${comprobar(raiz).version}'`));
-  } finally { limpiar(raiz); }
+  } finally {
+    limpiar(raiz);
+  }
 });
 
 test('verificar: missing imports, missing useStyles sheets and missing html references are visible errors', () => {
@@ -136,14 +164,18 @@ test('verificar: missing imports, missing useStyles sheets and missing html refe
     assert.match(errores, /index\.html: reference "css\/falta\.css" does not exist/);
     assert.ok(!/fantasma/.test(errores), 'commented-out imports are ignored');
     assert.ok(!/fakeGoogle/.test(errores));
-  } finally { limpiar(raiz); }
+  } finally {
+    limpiar(raiz);
+  }
 });
 
 test('verificar: the intentionally excluded fakeGoogle import is not an error', () => {
   const raiz = app({ 'js/boot.js': "const f = await import('./infrastructure/fakeGoogle.js');\n" });
   try {
     assert.deepEqual(verificar(raiz), []);
-  } finally { limpiar(raiz); }
+  } finally {
+    limpiar(raiz);
+  }
 });
 
 test('the real service worker: strategies, no skipWaiting on install, Google never cached', () => {

@@ -5,9 +5,16 @@ import en from '../../js/presentation/i18n/locales/en.js';
 import it from '../../js/presentation/i18n/locales/it.js';
 import { t, setLang, getLang, tCat, tEstado, tTipo, tDate, LANGS } from '../../js/presentation/i18n/i18n.js';
 
-const vars = (s) => [...s.matchAll(/\{(\w+)\}/g)].map((m) => m[1]).sort().join(',');
+const vars = (s) =>
+  [...s.matchAll(/\{(\w+)\}/g)]
+    .map((m) => m[1])
+    .sort()
+    .join(',');
 
-for (const [name, d] of [['en', en], ['it', it]]) {
+for (const [name, d] of [
+  ['en', en],
+  ['it', it],
+]) {
   test(`${name}: same keys as es, no orphans`, () => {
     const missing = Object.keys(es).filter((k) => !(k in d));
     const orphan = Object.keys(d).filter((k) => !(k in es));
@@ -38,7 +45,10 @@ test('interpolation and fallback', () => {
   assert.equal(t('tutorial.progreso', { hecho: 1, total: 8 }), '1 of 8 steps completed');
   setLang('xx', { persist: false });
   assert.equal(getLang(), 'es');
-  assert.deepEqual(LANGS.map((l) => l.code), ['es', 'en', 'it']);
+  assert.deepEqual(
+    LANGS.map((l) => l.code),
+    ['es', 'en', 'it'],
+  );
 });
 
 test('internal value helpers', () => {
@@ -56,8 +66,10 @@ test('schema categories, states and types have a translation', async () => {
   const s = await import('../../js/domain/schema.js');
   setLang('it', { persist: false });
   for (const c of s.CATEGORIAS) assert.notEqual(tCat(c), '', c);
-  for (const [fn, list] of [[tTipo, s.TIPOS_CARGA],
-    [tEstado, [...s.ESTADOS_ENTRENAMIENTO, ...s.ESTADOS_ASISTENCIA]]]) {
+  for (const [fn, list] of [
+    [tTipo, s.TIPOS_CARGA],
+    [tEstado, [...s.ESTADOS_ENTRENAMIENTO, ...s.ESTADOS_ASISTENCIA]],
+  ]) {
     for (const v of list) assert.notEqual(fn(v), v, v);
   }
   assert.equal(tTipo('Velocidad'), 'Velocità');
@@ -74,10 +86,23 @@ test('tDate per language', () => {
 });
 
 test('vistas-a: key and variable parity in es/en/it', async () => {
-  const [a, b, c] = await Promise.all(['es', 'en', 'it'].map((l) => import(`../../js/presentation/i18n/locales/vistas-a.${l}.js`).then((m) => m.default)));
-  for (const [name, d] of [['en', b], ['it', c]]) {
-    assert.deepEqual(Object.keys(a).filter((k) => !(k in d)), [], 'missing in ' + name);
-    assert.deepEqual(Object.keys(d).filter((k) => !(k in a)), [], 'orphans in ' + name);
+  const [a, b, c] = await Promise.all(
+    ['es', 'en', 'it'].map((l) => import(`../../js/presentation/i18n/locales/vistas-a.${l}.js`).then((m) => m.default)),
+  );
+  for (const [name, d] of [
+    ['en', b],
+    ['it', c],
+  ]) {
+    assert.deepEqual(
+      Object.keys(a).filter((k) => !(k in d)),
+      [],
+      'missing in ' + name,
+    );
+    assert.deepEqual(
+      Object.keys(d).filter((k) => !(k in a)),
+      [],
+      'orphans in ' + name,
+    );
     for (const k of Object.keys(a)) assert.equal(vars(d[k]), vars(a[k]), k);
   }
   setLang('en', { persist: false });
@@ -86,10 +111,23 @@ test('vistas-a: key and variable parity in es/en/it', async () => {
 });
 
 test('vistas-b (entrenamientos, asistencia, cargas, marcas): es/en/it parity', async () => {
-  const [bes, ben, bit] = (await Promise.all(['es', 'en', 'it'].map((l) => import(`../../js/presentation/i18n/locales/vistas-b.${l}.js`)))).map((m) => m.default);
-  for (const [name, d] of [['en', ben], ['it', bit]]) {
-    assert.deepEqual(Object.keys(bes).filter((k) => !(k in d)), [], 'missing in ' + name);
-    assert.deepEqual(Object.keys(d).filter((k) => !(k in bes)), [], 'orphans in ' + name);
+  const [bes, ben, bit] = (
+    await Promise.all(['es', 'en', 'it'].map((l) => import(`../../js/presentation/i18n/locales/vistas-b.${l}.js`)))
+  ).map((m) => m.default);
+  for (const [name, d] of [
+    ['en', ben],
+    ['it', bit],
+  ]) {
+    assert.deepEqual(
+      Object.keys(bes).filter((k) => !(k in d)),
+      [],
+      'missing in ' + name,
+    );
+    assert.deepEqual(
+      Object.keys(d).filter((k) => !(k in bes)),
+      [],
+      'orphans in ' + name,
+    );
     for (const k of Object.keys(bes)) assert.equal(vars(d[k]), vars(bes[k]), k);
   }
   for (const k of Object.keys(bes)) assert.match(k, /^(entre|asist|cargas|marcas)\./);
@@ -99,11 +137,24 @@ test('vistas-b (entrenamientos, asistencia, cargas, marcas): es/en/it parity', a
 });
 
 test('cargas-tipos: key and variable parity in es/en/it, and every preset translated', async () => {
-  const [ces, cen, cit] = (await Promise.all(['es', 'en', 'it'].map((l) => import(`../../js/presentation/i18n/locales/cargas-tipos.${l}.js`)))).map((m) => m.default);
+  const [ces, cen, cit] = (
+    await Promise.all(['es', 'en', 'it'].map((l) => import(`../../js/presentation/i18n/locales/cargas-tipos.${l}.js`)))
+  ).map((m) => m.default);
   const D = await import('../../js/domain/cargas.js');
-  for (const [name, d] of [['en', cen], ['it', cit]]) {
-    assert.deepEqual(Object.keys(ces).filter((k) => !(k in d)), [], 'missing in ' + name);
-    assert.deepEqual(Object.keys(d).filter((k) => !(k in ces)), [], 'orphans in ' + name);
+  for (const [name, d] of [
+    ['en', cen],
+    ['it', cit],
+  ]) {
+    assert.deepEqual(
+      Object.keys(ces).filter((k) => !(k in d)),
+      [],
+      'missing in ' + name,
+    );
+    assert.deepEqual(
+      Object.keys(d).filter((k) => !(k in ces)),
+      [],
+      'orphans in ' + name,
+    );
     for (const k of Object.keys(ces)) assert.equal(vars(d[k]), vars(ces[k]), k);
   }
   for (const k of Object.keys(ces)) assert.match(k, /^tc\./);

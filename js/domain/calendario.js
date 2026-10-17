@@ -24,20 +24,25 @@ const str = (v) => (v === undefined || v === null ? '' : String(v));
 export function parseFecha(s) {
   const m = /^(\d{4})-(\d{2})-(\d{2})/.exec(str(s).trim());
   if (!m) return null;
-  const y = +m[1], mo = +m[2], d = +m[3];
+  const y = +m[1],
+    mo = +m[2],
+    d = +m[3];
   const dt = new Date(Date.UTC(y, mo - 1, d));
   if (dt.getUTCFullYear() !== y || dt.getUTCMonth() !== mo - 1 || dt.getUTCDate() !== d) return null;
   return { y, m: mo, d };
 }
 export const fechaValida = (s) => parseFecha(s) !== null;
-export const aDias = (f) => { const p = parseFecha(f); return p ? Math.round(Date.UTC(p.y, p.m - 1, p.d) / 86400000) : NaN; };
+export const aDias = (f) => {
+  const p = parseFecha(f);
+  return p ? Math.round(Date.UTC(p.y, p.m - 1, p.d) / 86400000) : NaN;
+};
 export function deDias(n) {
   const d = new Date(n * 86400000);
   return `${d.getUTCFullYear()}-${pad2(d.getUTCMonth() + 1)}-${pad2(d.getUTCDate())}`;
 }
 export const addDias = (f, n) => deDias(aDias(f) + n);
 // 0 = lunes ... 6 = domingo
-export const diaSemana = (f) => (((new Date(aDias(f) * 86400000)).getUTCDay() + 6) % 7);
+export const diaSemana = (f) => (new Date(aDias(f) * 86400000).getUTCDay() + 6) % 7;
 export const lunesDe = (f) => addDias(f, -diaSemana(f));
 export const inicioMes = (f) => f.slice(0, 7) + '-01';
 export function finMes(f) {
@@ -53,8 +58,12 @@ export const fechaDeDate = (d) => `${d.getFullYear()}-${pad2(d.getMonth() + 1)}-
 
 // Predefined ranges for export. -> {desde, hasta} (both inclusive)
 export function rangoPredefinido(tipo, hoy, cursor) {
-  if (tipo === 'mes') { const c = cursor || hoy; return { desde: inicioMes(c), hasta: finMes(c) }; }
-  if (tipo === 'temporada') { // swimming season: 1 Sep - 31 Aug
+  if (tipo === 'mes') {
+    const c = cursor || hoy;
+    return { desde: inicioMes(c), hasta: finMes(c) };
+  }
+  if (tipo === 'temporada') {
+    // swimming season: 1 Sep - 31 Aug
     const p = parseFecha(hoy);
     const y = p.m >= 9 ? p.y : p.y - 1;
     return { desde: `${y}-09-01`, hasta: `${y + 1}-08-31` };
@@ -67,15 +76,20 @@ export function parseHora(h) {
   if (typeof h === 'number') return h >= 0 && h < 1 ? Math.round(h * 1440) : null; // Sheets may return a fraction of a day
   const m = /^(\d{1,2}):(\d{2})/.exec(str(h).trim());
   if (!m) return null;
-  const hh = +m[1], mm = +m[2];
+  const hh = +m[1],
+    mm = +m[2];
   return hh > 23 || mm > 59 ? null : hh * 60 + mm;
 }
 export const horaStr = (min) => `${pad2(Math.floor(min / 60) % 24)}:${pad2(min % 60)}`;
 const norm = (s) => str(s).normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().trim().replace(/\s+/g, ' ');
-const numOr = (v, d) => { const n = Number(v); return v !== '' && isFinite(n) ? n : d; };
+const numOr = (v, d) => {
+  const n = Number(v);
+  return v !== '' && isFinite(n) ? n : d;
+};
 
 // End of an event (date + local time) -> {fecha, hora}
-export const duracionEvento = (ev) => (numOr(ev.duracionMin, DURACION_DEFECTO_MIN) > 0 ? numOr(ev.duracionMin, DURACION_DEFECTO_MIN) : DURACION_DEFECTO_MIN);
+export const duracionEvento = (ev) =>
+  numOr(ev.duracionMin, DURACION_DEFECTO_MIN) > 0 ? numOr(ev.duracionMin, DURACION_DEFECTO_MIN) : DURACION_DEFECTO_MIN;
 export function finEvento(ev) {
   const ini = parseHora(ev.hora);
   const dur = duracionEvento(ev);
@@ -93,16 +107,30 @@ const nombreGrupo = (grupos, id) => (grupos.find((g) => g.id === id) || {}).nomb
 
 export function eventosDeSesiones(datos, rango) {
   const grupos = datos.Grupos || [];
-  return (datos.Entrenamientos || []).map((e) => {
-    const fecha = str(e.fecha).slice(0, 10);
-    if (!fechaValida(fecha) || !enRango(fecha, rango)) return null;
-    return {
-      id: `ses-${e.id}`, origen: 'sesion', fecha, hora: parseHora(e.hora) === null ? '' : horaStr(parseHora(e.hora)),
-      duracionMin: numOr(e.duracionMin, DURACION_DEFECTO_MIN), titulo: str(e.titulo) || str(e.enfoque) || nombreGrupo(grupos, e.grupoId),
-      grupoId: str(e.grupoId), grupoNombre: nombreGrupo(grupos, e.grupoId), piscina: str(e.piscina), piscinaNombre: '', calle: '',
-      enfoque: str(e.enfoque), volumenMin: str(e.volumenMin), volumenMax: str(e.volumenMax), descripcion: str(e.descripcion), estado: str(e.estado),
-    };
-  }).filter(Boolean);
+  return (datos.Entrenamientos || [])
+    .map((e) => {
+      const fecha = str(e.fecha).slice(0, 10);
+      if (!fechaValida(fecha) || !enRango(fecha, rango)) return null;
+      return {
+        id: `ses-${e.id}`,
+        origen: 'sesion',
+        fecha,
+        hora: parseHora(e.hora) === null ? '' : horaStr(parseHora(e.hora)),
+        duracionMin: numOr(e.duracionMin, DURACION_DEFECTO_MIN),
+        titulo: str(e.titulo) || str(e.enfoque) || nombreGrupo(grupos, e.grupoId),
+        grupoId: str(e.grupoId),
+        grupoNombre: nombreGrupo(grupos, e.grupoId),
+        piscina: str(e.piscina),
+        piscinaNombre: '',
+        calle: '',
+        enfoque: str(e.enfoque),
+        volumenMin: str(e.volumenMin),
+        volumenMax: str(e.volumenMax),
+        descripcion: str(e.descripcion),
+        estado: str(e.estado),
+      };
+    })
+    .filter(Boolean);
 }
 
 // AsignacionesCalle (pool-planning sheet): id, piscinaId, dia (1 = Monday ... 7), fecha (optional),
@@ -114,8 +142,10 @@ export function diaDeAsignacion(v) {
   const n = Number(str(v).trim());
   return Number.isInteger(n) && n >= 1 && n <= 7 ? n - 1 : null;
 }
-function rangoCalles(a) { // "3" or "3-4"
-  const d = str(a.calleDesde), h = str(a.calleHasta);
+function rangoCalles(a) {
+  // "3" or "3-4"
+  const d = str(a.calleDesde),
+    h = str(a.calleHasta);
   return !h || d === h ? d || h : `${d}-${h}`;
 }
 export function eventosDeAsignaciones(datos, rango, etq = ETQ_DEFECTO) {
@@ -123,22 +153,37 @@ export function eventosDeAsignaciones(datos, rango, etq = ETQ_DEFECTO) {
   const piscinas = datos.Piscinas || [];
   const ocupados = new Set((datos.Entrenamientos || []).map((e) => `${str(e.fecha).slice(0, 10)}|${str(e.grupoId)}`));
   const asig = datos.AsignacionesCalle || [];
-  const puntuales = new Set(asig.filter((a) => fechaValida(a.fecha)).map((a) => `${str(a.fecha).slice(0, 10)}|${str(a.grupoId)}`));
-  const ini = aDias(rango.desde), fin = aDias(rango.hasta);
+  const puntuales = new Set(
+    asig.filter((a) => fechaValida(a.fecha)).map((a) => `${str(a.fecha).slice(0, 10)}|${str(a.grupoId)}`),
+  );
+  const ini = aDias(rango.desde),
+    fin = aDias(rango.hasta);
   const out = [];
   if (!Number.isFinite(ini) || !Number.isFinite(fin)) return out;
   const crear = (a, fecha) => {
-    const t0 = parseHora(a.horaInicio), t1 = parseHora(a.horaFin);
+    const t0 = parseHora(a.horaInicio),
+      t1 = parseHora(a.horaFin);
     if (t0 === null || ocupados.has(`${fecha}|${str(a.grupoId)}`)) return;
     const gn = nombreGrupo(grupos, a.grupoId);
     const pis = piscinas.find((p) => p.id === str(a.piscinaId)) || {};
     const calle = rangoCalles(a);
     out.push({
-      id: `calle-${a.id}-${fecha}`, origen: 'calle', fecha, hora: horaStr(t0),
+      id: `calle-${a.id}-${fecha}`,
+      origen: 'calle',
+      fecha,
+      hora: horaStr(t0),
       duracionMin: t1 !== null && t1 > t0 ? t1 - t0 : DURACION_DEFECTO_MIN,
-      titulo: [gn || etq.todos, calle && etq.calle(calle)].filter(Boolean).join(' · '), grupoId: str(a.grupoId), grupoNombre: gn,
-      piscina: str(pis.longitudM), piscinaNombre: str(pis.nombre), calle,
-      enfoque: '', volumenMin: '', volumenMax: '', descripcion: str(a.notas), estado: 'planificado',
+      titulo: [gn || etq.todos, calle && etq.calle(calle)].filter(Boolean).join(' · '),
+      grupoId: str(a.grupoId),
+      grupoNombre: gn,
+      piscina: str(pis.longitudM),
+      piscinaNombre: str(pis.nombre),
+      calle,
+      enfoque: '',
+      volumenMin: '',
+      volumenMax: '',
+      descripcion: str(a.notas),
+      estado: 'planificado',
     });
   };
   asig.forEach((a) => {
@@ -171,7 +216,13 @@ const cmpEv = (a, b) => (a.fecha + (a.hora || '00:00') + a.id).localeCompare(b.f
 // datos = {Entrenamientos, Grupos, AsignacionesCalle?...}; rango = {desde, hasta}
 export function eventosEnRango(datos, rango, { fuentes = FUENTES_EVENTOS, etq = ETQ_DEFECTO } = {}) {
   const todos = [];
-  fuentes.forEach((f) => { try { todos.push(...f.genera(datos, rango, etq)); } catch (e) { /* a broken source does not bring the calendar down */ } });
+  fuentes.forEach((f) => {
+    try {
+      todos.push(...f.genera(datos, rango, etq));
+    } catch (e) {
+      /* a broken source does not bring the calendar down */
+    }
+  });
   const vistos = new Set();
   return todos.filter((e) => (vistos.has(e.id) ? false : vistos.add(e.id))).sort(cmpEv);
 }
@@ -203,15 +254,30 @@ export function colorGrupo(grupoId, grupos) {
 const dtfCache = new Map();
 function dtf(zona) {
   if (!dtfCache.has(zona)) {
-    dtfCache.set(zona, new Intl.DateTimeFormat('en-US', {
-      timeZone: zona, hourCycle: 'h23', year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', second: '2-digit',
-    }));
+    dtfCache.set(
+      zona,
+      new Intl.DateTimeFormat('en-US', {
+        timeZone: zona,
+        hourCycle: 'h23',
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit',
+        hour: '2-digit',
+        minute: '2-digit',
+        second: '2-digit',
+      }),
+    );
   }
   return dtfCache.get(zona);
 }
 export function zonaValida(zona) {
   if (!zona || typeof zona !== 'string') return false;
-  try { dtf(zona); return true; } catch (e) { return false; }
+  try {
+    dtf(zona);
+    return true;
+  } catch (e) {
+    return false;
+  }
 }
 export const zonaOrDefecto = (z) => (zonaValida(str(z).trim()) ? str(z).trim() : TZ_DEFECTO);
 
@@ -225,12 +291,17 @@ export function offsetMin(zona, utcMs) {
 const fmtOffset = (min) => `${min < 0 ? '-' : '+'}${pad2(Math.floor(Math.abs(min) / 60))}${pad2(Math.abs(min) % 60)}`;
 function nombreOffset(zona, utcMs) {
   try {
-    const p = new Intl.DateTimeFormat('en-GB', { timeZone: zona, timeZoneName: 'short' }).formatToParts(new Date(utcMs)).find((x) => x.type === 'timeZoneName');
+    const p = new Intl.DateTimeFormat('en-GB', { timeZone: zona, timeZoneName: 'short' })
+      .formatToParts(new Date(utcMs))
+      .find((x) => x.type === 'timeZoneName');
     return p ? p.value : '';
-  } catch (e) { return ''; }
+  } catch (e) {
+    return '';
+  }
 }
 const localCompact = (fecha, hhmm, ss = '00') => `${fecha.replace(/-/g, '')}T${hhmm.replace(':', '')}${ss}`;
-const fmtOffsetRfc3339 = (min) => `${min < 0 ? '-' : '+'}${pad2(Math.floor(Math.abs(min) / 60))}:${pad2(Math.abs(min) % 60)}`;
+const fmtOffsetRfc3339 = (min) =>
+  `${min < 0 ? '-' : '+'}${pad2(Math.floor(Math.abs(min) / 60))}:${pad2(Math.abs(min) % 60)}`;
 
 // Resolves a club wall-clock time to a real instant, handling the two daylight-saving edge cases the way RFC 5545 §3.3.5 says:
 //  - NON-EXISTENT time (spring gap, e.g. Europe/Madrid 2026-03-29 02:30): interpreted with the offset BEFORE the gap, so it
@@ -249,11 +320,24 @@ export function resolverHoraLocal(zona, fecha, hora) {
   const t2 = pared - despues * 60000;
   const v1 = offsetMin(zona, t1) === antes;
   const v2 = offsetMin(zona, t2) === despues;
-  let ms, off, estado = 'normal';
-  if (v1 && v2 && antes !== despues) { estado = 'ambigua'; ms = Math.min(t1, t2); off = antes > despues ? antes : despues; }
-  else if (v1) { ms = t1; off = antes; }
-  else if (v2) { ms = t2; off = despues; }
-  else { estado = 'inexistente'; ms = t1; off = despues; } // instant computed with the pre-gap offset, shown with the post-gap one
+  let ms,
+    off,
+    estado = 'normal';
+  if (v1 && v2 && antes !== despues) {
+    estado = 'ambigua';
+    ms = Math.min(t1, t2);
+    off = antes > despues ? antes : despues;
+  } else if (v1) {
+    ms = t1;
+    off = antes;
+  } else if (v2) {
+    ms = t2;
+    off = despues;
+  } else {
+    estado = 'inexistente';
+    ms = t1;
+    off = despues;
+  } // instant computed with the pre-gap offset, shown with the post-gap one
   const real = new Date(ms + (estado === 'inexistente' ? despues : off) * 60000);
   const f = `${real.getUTCFullYear()}-${pad2(real.getUTCMonth() + 1)}-${pad2(real.getUTCDate())}`;
   return { estado, ms, offsetMin: off, fecha: f, hora: `${pad2(real.getUTCHours())}:${pad2(real.getUTCMinutes())}` };
@@ -261,14 +345,20 @@ export function resolverHoraLocal(zona, fecha, hora) {
 
 // Offset changes between two dates (inclusive): [{ms, de, a}] with minute precision.
 export function transiciones(zona, desde, hasta) {
-  const ini = (aDias(desde) - 2) * 86400000, fin = (aDias(hasta) + 3) * 86400000;
+  const ini = (aDias(desde) - 2) * 86400000,
+    fin = (aDias(hasta) + 3) * 86400000;
   const out = [];
   let prev = offsetMin(zona, ini);
   for (let t = ini; t < fin; t += 86400000) {
     const next = offsetMin(zona, t + 86400000);
     if (next !== prev) {
-      let lo = t, hi = t + 86400000; // offset(lo) = prev, offset(hi) = next
-      while (hi - lo > 60000) { const mid = Math.floor((lo + hi) / 120000) * 60000; if (offsetMin(zona, mid) === prev) lo = mid; else hi = mid; }
+      let lo = t,
+        hi = t + 86400000; // offset(lo) = prev, offset(hi) = next
+      while (hi - lo > 60000) {
+        const mid = Math.floor((lo + hi) / 120000) * 60000;
+        if (offsetMin(zona, mid) === prev) lo = mid;
+        else hi = mid;
+      }
       out.push({ ms: hi, de: prev, a: next });
       prev = next;
     }
@@ -283,7 +373,8 @@ export function generarVTimezone(zona, desde, hasta) {
   const offsets = [o0, ...trs.map((x) => x.a)];
   const minOff = Math.min(...offsets);
   const tipo = (o) => (trs.length && o > minOff ? 'DAYLIGHT' : 'STANDARD');
-  const loc = (ms, off) => { // UTC instant -> local time with the given offset
+  const loc = (ms, off) => {
+    // UTC instant -> local time with the given offset
     const d = new Date(ms + off * 60000);
     return `${d.getUTCFullYear()}${pad2(d.getUTCMonth() + 1)}${pad2(d.getUTCDate())}T${pad2(d.getUTCHours())}${pad2(d.getUTCMinutes())}00`;
   };
@@ -302,8 +393,15 @@ export function generarVTimezone(zona, desde, hasta) {
 
 // ---------- iCalendar (RFC 5545) ----------
 export function escaparTexto(s) {
-  return str(s).replace(/[\u0000-\u0008\u000b\u000c\u000e-\u001f]/g, '')
-    .replace(/\\/g, '\\\\').replace(/;/g, '\\;').replace(/,/g, '\\,').replace(/\r\n|\r|\n/g, '\\n');
+  return (
+    str(s)
+      // eslint-disable-next-line no-control-regex -- strips control characters on purpose
+      .replace(/[\u0000-\u0008\u000b\u000c\u000e-\u001f]/g, '')
+      .replace(/\\/g, '\\\\')
+      .replace(/;/g, '\\;')
+      .replace(/,/g, '\\,')
+      .replace(/\r\n|\r|\n/g, '\\n')
+  );
 }
 
 // Folding to 75 UTF-8 octets per line (without splitting characters); continuations start with a space.
@@ -311,11 +409,19 @@ export function plegarLinea(linea) {
   const enc = new TextEncoder();
   if (enc.encode(linea).length <= 75) return linea;
   const partes = [];
-  let cur = '', bytes = 0, max = 75;
+  let cur = '',
+    bytes = 0,
+    max = 75;
   for (const ch of linea) {
     const b = enc.encode(ch).length;
-    if (bytes + b > max) { partes.push(cur); cur = ''; bytes = 0; max = 74; }
-    cur += ch; bytes += b;
+    if (bytes + b > max) {
+      partes.push(cur);
+      cur = '';
+      bytes = 0;
+      max = 74;
+    }
+    cur += ch;
+    bytes += b;
   }
   partes.push(cur);
   return partes.join('\r\n ');
@@ -323,21 +429,36 @@ export function plegarLinea(linea) {
 
 const uidSeguro = (id) => str(id).replace(/[^A-Za-z0-9._-]/g, '-');
 export const uidEvento = (ev) => `${uidSeguro(ev.id)}@${DOMINIO_UID}`;
-const stampUtc = (d) => `${d.getUTCFullYear()}${pad2(d.getUTCMonth() + 1)}${pad2(d.getUTCDate())}T${pad2(d.getUTCHours())}${pad2(d.getUTCMinutes())}${pad2(d.getUTCSeconds())}Z`;
+const stampUtc = (d) =>
+  `${d.getUTCFullYear()}${pad2(d.getUTCMonth() + 1)}${pad2(d.getUTCDate())}T${pad2(d.getUTCHours())}${pad2(d.getUTCMinutes())}${pad2(d.getUTCSeconds())}Z`;
 
 export function ubicacionEvento(ev, etq = ETQ_DEFECTO) {
-  const pis = ev.piscinaNombre ? (ev.piscina ? `${ev.piscinaNombre} (${ev.piscina} m)` : ev.piscinaNombre) : (ev.piscina ? etq.piscina(ev.piscina) : '');
+  const pis = ev.piscinaNombre
+    ? ev.piscina
+      ? `${ev.piscinaNombre} (${ev.piscina} m)`
+      : ev.piscinaNombre
+    : ev.piscina
+      ? etq.piscina(ev.piscina)
+      : '';
   return [pis, ev.calle ? etq.calle(ev.calle) : ''].filter(Boolean).join(', ');
 }
 export function descripcionEvento(ev, etq = ETQ_DEFECTO) {
-  const vol = ev.volumenMin !== '' && ev.volumenMax !== '' ? `${ev.volumenMin}-${ev.volumenMax} m`
-    : (ev.volumenMax !== '' ? `${ev.volumenMax} m` : (ev.volumenMin !== '' ? `${ev.volumenMin} m` : ''));
+  const vol =
+    ev.volumenMin !== '' && ev.volumenMax !== ''
+      ? `${ev.volumenMin}-${ev.volumenMax} m`
+      : ev.volumenMax !== ''
+        ? `${ev.volumenMax} m`
+        : ev.volumenMin !== ''
+          ? `${ev.volumenMin} m`
+          : '';
   return [
     ev.grupoNombre ? `${etq.grupo}: ${ev.grupoNombre}` : '',
     ev.enfoque ? `${etq.enfoque}: ${ev.enfoque}` : '',
     vol ? `${etq.volumen}: ${vol}` : '',
     ev.descripcion,
-  ].filter(Boolean).join('\n');
+  ]
+    .filter(Boolean)
+    .join('\n');
 }
 
 // Start/end lines of a timed event. A normal start keeps the zone with the club wall times. When the start is a DST edge case the
@@ -346,8 +467,16 @@ export function descripcionEvento(ev, etq = ETQ_DEFECTO) {
 function lineasInicioFin(zona, ev) {
   const ini = resolverHoraLocal(zona, ev.fecha, ev.hora);
   const fin = finEvento(ev);
-  if (!ini) return [`DTSTART;TZID=${zona}:${localCompact(ev.fecha, ev.hora)}`, `DTEND;TZID=${zona}:${localCompact(fin.fecha, fin.hora)}`];
-  if (ini.estado === 'normal') return [`DTSTART;TZID=${zona}:${localCompact(ev.fecha, ev.hora)}`, `DTEND;TZID=${zona}:${localCompact(fin.fecha, fin.hora)}`];
+  if (!ini)
+    return [
+      `DTSTART;TZID=${zona}:${localCompact(ev.fecha, ev.hora)}`,
+      `DTEND;TZID=${zona}:${localCompact(fin.fecha, fin.hora)}`,
+    ];
+  if (ini.estado === 'normal')
+    return [
+      `DTSTART;TZID=${zona}:${localCompact(ev.fecha, ev.hora)}`,
+      `DTEND;TZID=${zona}:${localCompact(fin.fecha, fin.hora)}`,
+    ];
   const finMs = ini.ms + duracionEvento(ev) * 60000;
   if (ini.estado === 'ambigua') return [`DTSTART:${stampUtc(new Date(ini.ms))}`, `DTEND:${stampUtc(new Date(finMs))}`];
   const pared = new Date(finMs + offsetMin(zona, finMs) * 60000); // wall time in the zone at the end instant
@@ -357,11 +486,22 @@ function lineasInicioFin(zona, ev) {
 
 // opciones: {nombreCalendario, zona, alarmaMin (0 = no alarm), ahora: Date (REQUIRED, the caller's clock), secuencia, etq}
 // With a time => DTSTART;TZID=<zona> and a generated VTIMEZONE; without a time => all-day event (VALUE=DATE).
-export function generarICS(eventos, { nombreCalendario = 'CNL', zona = TZ_DEFECTO, alarmaMin = 0, ahora, secuencia = 0, etq = ETQ_DEFECTO } = {}) {
-  if (!(ahora instanceof Date) || Number.isNaN(ahora.getTime())) throw new TypeError('generarICS: "ahora" (Date) is required');
+export function generarICS(
+  eventos,
+  { nombreCalendario = 'CNL', zona = TZ_DEFECTO, alarmaMin = 0, ahora, secuencia = 0, etq = ETQ_DEFECTO } = {},
+) {
+  if (!(ahora instanceof Date) || Number.isNaN(ahora.getTime()))
+    throw new TypeError('generarICS: "ahora" (Date) is required');
   zona = zonaOrDefecto(zona);
-  const l = ['BEGIN:VCALENDAR', 'VERSION:2.0', `PRODID:${PRODID}`, 'CALSCALE:GREGORIAN', 'METHOD:PUBLISH',
-    `X-WR-CALNAME:${escaparTexto(nombreCalendario)}`, `X-WR-TIMEZONE:${zona}`];
+  const l = [
+    'BEGIN:VCALENDAR',
+    'VERSION:2.0',
+    `PRODID:${PRODID}`,
+    'CALSCALE:GREGORIAN',
+    'METHOD:PUBLISH',
+    `X-WR-CALNAME:${escaparTexto(nombreCalendario)}`,
+    `X-WR-TIMEZONE:${zona}`,
+  ];
   const conHora = eventos.filter((e) => e.hora);
   if (conHora.length) {
     const fs = conHora.map((e) => e.fecha).sort();
@@ -369,11 +509,19 @@ export function generarICS(eventos, { nombreCalendario = 'CNL', zona = TZ_DEFECT
   }
   const stamp = stampUtc(ahora);
   eventos.forEach((ev) => {
-    l.push('BEGIN:VEVENT', `UID:${uidEvento(ev)}`, `DTSTAMP:${stamp}`, `SEQUENCE:${Math.max(0, Math.floor(secuencia))}`);
+    l.push(
+      'BEGIN:VEVENT',
+      `UID:${uidEvento(ev)}`,
+      `DTSTAMP:${stamp}`,
+      `SEQUENCE:${Math.max(0, Math.floor(secuencia))}`,
+    );
     if (ev.hora) {
       l.push(...lineasInicioFin(zona, ev));
     } else {
-      l.push(`DTSTART;VALUE=DATE:${ev.fecha.replace(/-/g, '')}`, `DTEND;VALUE=DATE:${addDias(ev.fecha, 1).replace(/-/g, '')}`);
+      l.push(
+        `DTSTART;VALUE=DATE:${ev.fecha.replace(/-/g, '')}`,
+        `DTEND;VALUE=DATE:${addDias(ev.fecha, 1).replace(/-/g, '')}`,
+      );
     }
     l.push(`SUMMARY:${escaparTexto(ev.titulo)}`);
     const loc = ubicacionEvento(ev, etq);
@@ -383,7 +531,13 @@ export function generarICS(eventos, { nombreCalendario = 'CNL', zona = TZ_DEFECT
     if (ev.grupoNombre) l.push(`CATEGORIES:${escaparTexto(ev.grupoNombre)}`);
     l.push('STATUS:CONFIRMED', 'TRANSP:OPAQUE');
     if (alarmaMin > 0 && ev.hora) {
-      l.push('BEGIN:VALARM', 'ACTION:DISPLAY', `DESCRIPTION:${escaparTexto(ev.titulo)}`, `TRIGGER:-PT${Math.floor(alarmaMin)}M`, 'END:VALARM');
+      l.push(
+        'BEGIN:VALARM',
+        'ACTION:DISPLAY',
+        `DESCRIPTION:${escaparTexto(ev.titulo)}`,
+        `TRIGGER:-PT${Math.floor(alarmaMin)}M`,
+        'END:VALARM',
+      );
     }
     l.push('END:VEVENT');
   });
@@ -393,7 +547,10 @@ export function generarICS(eventos, { nombreCalendario = 'CNL', zona = TZ_DEFECT
 
 // Safe file name: "CNL - Club Natación.ics" -> "cnl-club-natacion.ics"
 export function nombreFicheroICS(club, sufijo = '') {
-  const base = norm(club).replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '') || 'calendario';
+  const base =
+    norm(club)
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/^-+|-+$/g, '') || 'calendario';
   return `${base}${sufijo ? '-' + sufijo : ''}.ics`;
 }
 
@@ -417,17 +574,24 @@ export function aEventoGoogle(ev, { zona = TZ_DEFECTO, alarmaMin = 0, clubId = '
     const ini = resolverHoraLocal(zona, ev.fecha, ev.hora);
     const fin = finEvento(ev);
     out.start = { dateTime: dateTimeGoogle(zona, ev.fecha, ev.hora), timeZone: zona };
-    if (ini && ini.estado !== 'normal') { // DST edge case: end = real instant + duration, written with an explicit offset
+    if (ini && ini.estado !== 'normal') {
+      // DST edge case: end = real instant + duration, written with an explicit offset
       const finMs = ini.ms + duracionEvento(ev) * 60000;
       const off = offsetMin(zona, finMs);
       const pared = new Date(finMs + off * 60000);
-      out.end = { dateTime: `${pared.getUTCFullYear()}-${pad2(pared.getUTCMonth() + 1)}-${pad2(pared.getUTCDate())}T${pad2(pared.getUTCHours())}:${pad2(pared.getUTCMinutes())}:00${fmtOffsetRfc3339(off)}`, timeZone: zona };
+      out.end = {
+        dateTime: `${pared.getUTCFullYear()}-${pad2(pared.getUTCMonth() + 1)}-${pad2(pared.getUTCDate())}T${pad2(pared.getUTCHours())}:${pad2(pared.getUTCMinutes())}:00${fmtOffsetRfc3339(off)}`,
+        timeZone: zona,
+      };
     } else out.end = { dateTime: `${fin.fecha}T${fin.hora}:00`, timeZone: zona };
   } else {
     out.start = { date: ev.fecha };
     out.end = { date: addDias(ev.fecha, 1) };
   }
-  out.reminders = { useDefault: false, overrides: alarmaMin > 0 && ev.hora ? [{ method: 'popup', minutes: Math.floor(alarmaMin) }] : [] };
+  out.reminders = {
+    useDefault: false,
+    overrides: alarmaMin > 0 && ev.hora ? [{ method: 'popup', minutes: Math.floor(alarmaMin) }] : [],
+  };
   out.extendedProperties = { private: { cnlId: ev.id, cnlClub: str(clubId) } };
   return out;
 }
@@ -436,14 +600,19 @@ export function aEventoGoogle(ev, { zona = TZ_DEFECTO, alarmaMin = 0, clubId = '
 export function huella(obj) {
   const s = JSON.stringify(obj);
   let h = 0x811c9dc5;
-  for (let i = 0; i < s.length; i++) { h ^= s.charCodeAt(i); h = Math.imul(h, 0x01000193); }
+  for (let i = 0; i < s.length; i++) {
+    h ^= s.charCodeAt(i);
+    h = Math.imul(h, 0x01000193);
+  }
   return (h >>> 0).toString(16) + ':' + s.length;
 }
 
 // deseados: [{id, fecha, cuerpo}]; mapa: {cnlId: {gid, huella, fecha}}; desde: only mapped events with fecha >= desde are deleted
 // (earlier ones are already past and are kept). -> {crear[], actualizar[], borrar[], iguales}
 export function diffSync(deseados, mapa = {}, desde = '') {
-  const crear = [], actualizar = [], borrar = [];
+  const crear = [],
+    actualizar = [],
+    borrar = [];
   let iguales = 0;
   const ids = new Set();
   deseados.forEach((d) => {
@@ -477,7 +646,10 @@ export function vistaInicial({ guardada, movil = false } = {}) {
 // Dates shown by a view: {desde, hasta} inclusive. Month = whole weeks around the month, Week = Monday..Sunday,
 // Agenda = AGENDA_DIAS days starting AT the cursor.
 export function rangoVista(vista, cursor) {
-  if (vista === 'semana') { const l = lunesDe(cursor); return { desde: l, hasta: addDias(l, 6) }; }
+  if (vista === 'semana') {
+    const l = lunesDe(cursor);
+    return { desde: l, hasta: addDias(l, 6) };
+  }
   if (vista === 'mes') return { desde: lunesDe(inicioMes(cursor)), hasta: addDias(lunesDe(finMes(cursor)), 6) };
   return { desde: cursor, hasta: addDias(cursor, AGENDA_DIAS - 1) };
 }
@@ -496,7 +668,10 @@ export function seleccionTrasMover(vista, cursor, hoy) {
 
 export function agruparPorDia(eventos) {
   const m = new Map();
-  eventos.forEach((e) => { if (!m.has(e.fecha)) m.set(e.fecha, []); m.get(e.fecha).push(e); });
+  eventos.forEach((e) => {
+    if (!m.has(e.fecha)) m.set(e.fecha, []);
+    m.get(e.fecha).push(e);
+  });
   return m;
 }
 
@@ -504,7 +679,8 @@ export function agruparPorDia(eventos) {
 export function matrizMes(cursor) {
   const { desde, hasta } = rangoVista('mes', cursor);
   const semanas = [];
-  for (let ini = desde; ini <= hasta; ini = addDias(ini, 7)) semanas.push([0, 1, 2, 3, 4, 5, 6].map((i) => addDias(ini, i)));
+  for (let ini = desde; ini <= hasta; ini = addDias(ini, 7))
+    semanas.push([0, 1, 2, 3, 4, 5, 6].map((i) => addDias(ini, i)));
   return semanas;
 }
 
@@ -520,19 +696,26 @@ export function diasDeAgenda(porDia, desde, hoy) {
 // Arrows = +-1 day / +-1 week, Home/End = Monday/Sunday of the week, PageUp/PageDown = same day of the previous/next month.
 export function fechaTrasTecla(key, f) {
   switch (key) {
-    case 'ArrowLeft': return addDias(f, -1);
-    case 'ArrowRight': return addDias(f, 1);
-    case 'ArrowUp': return addDias(f, -7);
-    case 'ArrowDown': return addDias(f, 7);
-    case 'Home': return lunesDe(f);
-    case 'End': return addDias(lunesDe(f), 6);
+    case 'ArrowLeft':
+      return addDias(f, -1);
+    case 'ArrowRight':
+      return addDias(f, 1);
+    case 'ArrowUp':
+      return addDias(f, -7);
+    case 'ArrowDown':
+      return addDias(f, 7);
+    case 'Home':
+      return lunesDe(f);
+    case 'End':
+      return addDias(lunesDe(f), 6);
     case 'PageUp':
     case 'PageDown': {
       const primero = addMeses(f, key === 'PageUp' ? -1 : 1);
       const ultimo = +finMes(primero).slice(8);
       return primero.slice(0, 8) + pad2(Math.min(+f.slice(8), ultimo));
     }
-    default: return null;
+    default:
+      return null;
   }
 }
 
@@ -547,4 +730,3 @@ export function rangoExportacion(tipo, hoy, cursor) {
   if (tipo === 'proximos90') return { rango: rangoPredefinido('proximos90', hoy), sufijo: '90-dias' };
   return { rango: rangoPredefinido('mes', hoy, cursor), sufijo: cursor.slice(0, 7) };
 }
-

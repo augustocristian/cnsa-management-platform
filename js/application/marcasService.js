@@ -13,8 +13,13 @@ export function crearMarcasService(repo) {
       const { errores, tiempoMs } = D.validarMarca(data, { nadadorExiste: (id) => !!repo.get('Nadadores', id) });
       if (errores.length) return { ok: false, errores };
       const fila = {
-        nadadorId: data.nadadorId, fecha: data.fecha, prueba: D.nombrePrueba(data.prueba), piscina: String(data.piscina || '25'),
-        tiempoMs, competicion: String(data.competicion ?? '').trim(), notas: String(data.notas ?? '').trim(),
+        nadadorId: data.nadadorId,
+        fecha: data.fecha,
+        prueba: D.nombrePrueba(data.prueba),
+        piscina: String(data.piscina || '25'),
+        tiempoMs,
+        competicion: String(data.competicion ?? '').trim(),
+        notas: String(data.notas ?? '').trim(),
       };
       if (data.banadorId) fila.banadorId = String(data.banadorId);
       return { ok: true, marca: repo.upsert(HOJA, fila) };
@@ -26,7 +31,9 @@ export function crearMarcasService(repo) {
       repo.remove(HOJA, id);
       return fila;
     },
-    restaurar(fila) { return fila ? repo.upsert(HOJA, fila) : null; },
+    restaurar(fila) {
+      return fila ? repo.upsert(HOJA, fila) : null;
+    },
 
     // Rewrites non-canonical event names ("100 libre" -> "100 Libre"). Idempotent. -> number of rows changed
     migrarPruebas() {

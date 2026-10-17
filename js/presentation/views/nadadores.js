@@ -26,5 +26,6 @@ export async function render(container, params, ctx) {
   const refresh = () => render(container, params, ctx);
   const vc = { ctx, svc, refresh, volverALista: () => render(container, [], ctx) };
   const id = idDe(params);
-  if (id) renderFicha(container, id, vc); else renderLista(container, vc);
+  if (id) renderFicha(container, id, vc);
+  else renderLista(container, vc);
 }

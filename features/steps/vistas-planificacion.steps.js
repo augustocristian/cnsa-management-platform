@@ -6,7 +6,10 @@ import assert from 'node:assert/strict';
 // ---- Pages and menus ----
 Then('the page does not overflow horizontally', async function () {
   await this.eventually(async () => {
-    const m = await this.page.evaluate(() => ({ width: document.documentElement.scrollWidth, visible: document.documentElement.clientWidth }));
+    const m = await this.page.evaluate(() => ({
+      width: document.documentElement.scrollWidth,
+      visible: document.documentElement.clientWidth,
+    }));
     assert.ok(m.width <= m.visible + 1, `The page overflows: ${m.width} > ${m.visible}`);
   });
 });
@@ -48,10 +51,13 @@ When('I press the key {string}', async function (key) {
 
 Then('the selected day of the grid is the one {int} day(s) from now', async function (days) {
   const expected = await this.page.evaluate((n) => {
-    const d = new Date(); d.setDate(d.getDate() + n);
+    const d = new Date();
+    d.setDate(d.getDate() + n);
     return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
   }, days);
-  await this.eventually(async () => assert.equal(await this.page.locator('button.cal-num[aria-pressed="true"]').getAttribute('data-fecha'), expected));
+  await this.eventually(async () =>
+    assert.equal(await this.page.locator('button.cal-num[aria-pressed="true"]').getAttribute('data-fecha'), expected),
+  );
 });
 
 Then('the Google Calendar sync is disabled and explained', async function () {
@@ -80,7 +86,7 @@ Then('each Copy button says which value it copies', async function () {
 
 Then('the tutorial does not inject styles into the page', async function () {
   assert.equal(await this.page.locator('style#tut-style').count(), 0);
-  assert.ok(await this.page.locator('link[data-view-css="tutorial"]').count() >= 1);
+  assert.ok((await this.page.locator('link[data-view-css="tutorial"]').count()) >= 1);
 });
 
 // A field (filter, selector...) of the current view identified by its visible label

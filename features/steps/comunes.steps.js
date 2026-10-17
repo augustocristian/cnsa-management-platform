@@ -47,19 +47,27 @@ Then('the app menu is not shown', async function () {
 });
 
 Then('my session is {string}', async function (email) {
-  await this.eventually(async () => assert.equal((await this.page.locator('#user-box strong').innerText()).trim(), email));
+  await this.eventually(async () =>
+    assert.equal((await this.page.locator('#user-box strong').innerText()).trim(), email),
+  );
 });
 
 // ---- Navigation ----
-Given('I have the {string} module open', async function (m) { await this.goTo(route(m)); });
-When('I open the {string} module', async function (m) { await this.goTo(route(m)); });
+Given('I have the {string} module open', async function (m) {
+  await this.goTo(route(m));
+});
+When('I open the {string} module', async function (m) {
+  await this.goTo(route(m));
+});
 
 When('I press {string} in the menu', async function (m) {
   await this.clickInMenu(route(m));
 });
 
 When('I try to open the {string} module directly', async function (m) {
-  await this.page.evaluate((r) => { location.hash = '#/' + r; }, route(m));
+  await this.page.evaluate((r) => {
+    location.hash = '#/' + r;
+  }, route(m));
   await this.page.waitForTimeout(300);
 });
 
@@ -78,14 +86,20 @@ Then('the {string} screen is shown complete and without errors', async function 
 Then('the menu {word} the module {string}', async function (action, m) {
   const item = this.page.locator(`.nav-item[data-route="${route(m)}"]`);
   if (action === 'shows') await item.first().waitFor({ state: 'attached', timeout: this.timeout });
-  else { assert.equal(action, 'hides', 'Use "shows" or "hides"'); await this.eventually(async () => assert.equal(await item.count(), 0)); }
+  else {
+    assert.equal(action, 'hides', 'Use "shows" or "hides"');
+    await this.eventually(async () => assert.equal(await item.count(), 0));
+  }
 });
 
 // ---- Generic actions ----
 // Buttons and links: inside an open dialog if there is one, otherwise on the view or the page (recovery screens have no #view).
 When('I press {string}', async function (text) {
   const scope = await this.scope();
-  const button = scope.getByRole('button', { name: text }).or(scope.getByRole('link', { name: text })).first();
+  const button = scope
+    .getByRole('button', { name: text })
+    .or(scope.getByRole('link', { name: text }))
+    .first();
   await button.click();
 });
 
@@ -115,11 +129,15 @@ Then('I see the heading {string}', async function (t) {
 });
 
 Then('I see the toast {string}', async function (t) {
-  await this.expectVisible(this.page.locator('#toasts .toast').filter({ hasText: t }), `The toast "${t}" does not appear`);
+  await this.expectVisible(
+    this.page.locator('#toasts .toast').filter({ hasText: t }),
+    `The toast "${t}" does not appear`,
+  );
 });
 
 Then('I see the headings:', async function (table) {
-  for (const [t] of table.raw()) await this.expectVisible(this.page.getByRole('heading', { name: t }), `The heading "${t}" is missing`);
+  for (const [t] of table.raw())
+    await this.expectVisible(this.page.getByRole('heading', { name: t }), `The heading "${t}" is missing`);
 });
 
 Then('I see someone named {string} on the screen', async function (name) {

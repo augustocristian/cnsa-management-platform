@@ -3,12 +3,18 @@ import assert from 'node:assert/strict';
 import { route } from '../support/world.js';
 
 // ---- Devices ----
-Given('I use a phone {int} px wide', async function (width) { await this.page.setViewportSize({ width, height: 700 }); });
-Given('I use a device {int} px wide', async function (width) { await this.page.setViewportSize({ width, height: 800 }); });
+Given('I use a phone {int} px wide', async function (width) {
+  await this.page.setViewportSize({ width, height: 700 });
+});
+Given('I use a device {int} px wide', async function (width) {
+  await this.page.setViewportSize({ width, height: 800 });
+});
 
 Then('the {string} screen has no horizontal scroll', async function (m) {
   await this.goTo(route(m));
-  const excess = await this.page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
+  const excess = await this.page.evaluate(
+    () => document.documentElement.scrollWidth - document.documentElement.clientWidth,
+  );
   assert.ok(excess <= 0, `${excess}px of excess width in ${m}`);
 });
 
@@ -33,21 +39,37 @@ Then('the navigation menu is at the {word}', async function (position) {
 
 Then('the menu options are at least {int} px tall', async function (min) {
   // Only the items on screen: on mobile the routes that live in the More sheet are display:none in the bar.
-  const heights = await this.page.locator('.nav-item').evaluateAll((els) => els.map((e) => e.getBoundingClientRect().height).filter((h) => h > 0));
+  const heights = await this.page
+    .locator('.nav-item')
+    .evaluateAll((els) => els.map((e) => e.getBoundingClientRect().height).filter((h) => h > 0));
   assert.ok(heights.length > 0);
-  assert.ok(heights.every((h) => h >= min), `Heights: ${heights}`);
+  assert.ok(
+    heights.every((h) => h >= min),
+    `Heights: ${heights}`,
+  );
 });
 
 Then('all the fields of the open form have a label', async function () {
-  const unlabelled = await this.page.locator('.nad-modal, .grp-modal, .ent-modal, .modal').last()
+  const unlabelled = await this.page
+    .locator('.nad-modal, .grp-modal, .ent-modal, .modal')
+    .last()
     .locator('input:not([type=hidden]), select, textarea')
-    .evaluateAll((els) => els.filter((e) => !(e.labels && e.labels.length) && !e.getAttribute('aria-label')).map((e) => e.outerHTML.slice(0, 60)));
+    .evaluateAll((els) =>
+      els
+        .filter((e) => !(e.labels && e.labels.length) && !e.getAttribute('aria-label'))
+        .map((e) => e.outerHTML.slice(0, 60)),
+    );
   assert.deepEqual(unlabelled, []);
 });
 
 Then('all the log fields of the screen have a label', async function () {
-  const unlabelled = await this.view.locator('form input:not([type=hidden]), form select, form textarea')
-    .evaluateAll((els) => els.filter((e) => !(e.labels && e.labels.length) && !e.getAttribute('aria-label')).map((e) => e.outerHTML.slice(0, 60)));
+  const unlabelled = await this.view
+    .locator('form input:not([type=hidden]), form select, form textarea')
+    .evaluateAll((els) =>
+      els
+        .filter((e) => !(e.labels && e.labels.length) && !e.getAttribute('aria-label'))
+        .map((e) => e.outerHTML.slice(0, 60)),
+    );
   assert.deepEqual(unlabelled, []);
 });
 
@@ -69,7 +91,8 @@ Then('the app manifest is valid', async function () {
 });
 
 Then('all the manifest icons can be downloaded', async function () {
-  for (const ic of this.manifest.icons) assert.ok((await this.page.request.get('/' + ic.src)).ok(), `${ic.src} is missing`);
+  for (const ic of this.manifest.icons)
+    assert.ok((await this.page.request.get('/' + ic.src)).ok(), `${ic.src} is missing`);
 });
 
 Then('the service worker is active', async function () {
@@ -83,7 +106,9 @@ When('I reload the app', async function () {
 });
 
 When('I go offline', async function () {
-  await this.page.evaluate(async () => { await navigator.serviceWorker.ready; });
+  await this.page.evaluate(async () => {
+    await navigator.serviceWorker.ready;
+  });
   // The worker takes control of the page on its first load after activating
   await this.page.reload();
   await this.page.waitForFunction(() => !!navigator.serviceWorker.controller);
@@ -108,15 +133,28 @@ Then('the club sample data is loaded', async function () {
 // ---- Language ----
 When('I change the language to {string}', async function (language) {
   // Flag buttons (radio group). In the shell the switch lives in the settings menu; on the start screens it is on the page.
-  const code = { English: 'en', Italiano: 'it', 'Español': 'es' }[language];
+  const code = { English: 'en', Italiano: 'it', Español: 'es' }[language];
   assert.ok(code, `Unknown language ${language}`);
   if (await this.page.locator('.account-btn').count()) await this.openAccountMenu();
   await this.page.locator(`.lang-switch [data-lang="${code}"]`).first().click();
-  await this.eventually(async () => assert.equal(await this.page.locator(`.lang-switch [data-lang="${code}"]`).first().getAttribute('aria-checked'), 'true'));
+  await this.eventually(async () =>
+    assert.equal(
+      await this.page.locator(`.lang-switch [data-lang="${code}"]`).first().getAttribute('aria-checked'),
+      'true',
+    ),
+  );
 });
 
 Then('the menu shows {string} for the module {string}', async function (text, m) {
-  await this.eventually(async () => assert.match(await this.page.locator(`.nav-item[data-route="${route(m)}"]`).first().textContent(), new RegExp(text, 'i')));
+  await this.eventually(async () =>
+    assert.match(
+      await this.page
+        .locator(`.nav-item[data-route="${route(m)}"]`)
+        .first()
+        .textContent(),
+      new RegExp(text, 'i'),
+    ),
+  );
 });
 
 Then('the document language is {string}', async function (cod) {

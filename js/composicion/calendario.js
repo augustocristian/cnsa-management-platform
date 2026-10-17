@@ -9,7 +9,10 @@ import { preferencias, CLAVES } from './preferencias.js';
 // opciones: {store, auth, etq, ahora}  -> calendar service
 export function crearServicioCalendarioApp({ store, auth, etq, ahora = () => new Date() } = {}) {
   return crearCalendarioService({
-    store, auth, etq, ahora,
+    store,
+    auth,
+    etq,
+    ahora,
     storage: preferencias.comoAlmacenamiento(CLAVES.calSync), // the sync map is a user preference stored in Drive
     prefs: { get: (k, def) => preferencias.get(k, def), set: (k, v) => preferencias.set(k, v) },
     crearCliente: crearClienteGoogleCalendar,

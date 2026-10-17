@@ -63,7 +63,10 @@ export const esOpcional = (f) => OPCIONALES_PREFIJOS.some((p) => f.startsWith(p)
 // The text that goes between the markers (LF line endings).
 export function bloqueGenerado(archivos, version) {
   const urls = archivos.map((f) => `  './${f}',`).join('\n');
-  const opc = archivos.filter(esOpcional).map((f) => `  './${f}',`).join('\n');
+  const opc = archivos
+    .filter(esOpcional)
+    .map((f) => `  './${f}',`)
+    .join('\n');
   return [
     MARCA_INICIO,
     `const VERSION = '${version}';`,
@@ -97,7 +100,7 @@ export function verificar(raiz = RAIZ_POR_DEFECTO, archivos = listarArchivos(rai
   const errores = [];
   const lista = new Set(archivos);
   const existe = (rel) => existsSync(join(raiz, rel));
-  const comprobar = (desde, destino, tipo) => {
+  const comprobarRef = (desde, destino, tipo) => {
     if (EXCLUIDOS.includes(destino)) return;
     if (!existe(destino)) errores.push(`${desde}: ${tipo} "${destino}" does not exist`);
     else if (!lista.has(destino)) errores.push(`${desde}: ${tipo} "${destino}" exists but is not precached`);
@@ -106,19 +109,19 @@ export function verificar(raiz = RAIZ_POR_DEFECTO, archivos = listarArchivos(rai
   for (const f of archivos.filter((x) => x.startsWith('js/') && x.endsWith('.js'))) {
     const src = sinComentarios(readFileSync(join(raiz, f), 'utf8'));
     const re = /(?:\bfrom\s*|\bimport\s*\(?\s*)(['"])(\.{1,2}\/[^'"`$]+)\1/g;
-    for (let m; (m = re.exec(src));) comprobar(f, posix.normalize(posix.join(posix.dirname(f), m[2])), 'import');
+    for (let m; (m = re.exec(src));) comprobarRef(f, posix.normalize(posix.join(posix.dirname(f), m[2])), 'import');
     const us = /\buseStyles\(\s*(['"])([\w-]+)\1/g;
-    for (let m; (m = us.exec(src));) comprobar(f, `css/views/${m[2]}.css`, 'useStyles stylesheet');
+    for (let m; (m = us.exec(src));) comprobarRef(f, `css/views/${m[2]}.css`, 'useStyles stylesheet');
   }
   if (existe('index.html')) {
     const html = readFileSync(join(raiz, 'index.html'), 'utf8');
     const re = /\b(?:href|src)="(\.\/[^"#?]+)"/g;
-    for (let m; (m = re.exec(html));) comprobar('index.html', posix.normalize(m[1]), 'reference');
+    for (let m; (m = re.exec(html));) comprobarRef('index.html', posix.normalize(m[1]), 'reference');
   }
   for (const f of archivos.filter((x) => x.endsWith('.css'))) {
     const css = readFileSync(join(raiz, f), 'utf8');
     const re = /url\(\s*['"]?(\.{1,2}\/[^'")]+)['"]?\s*\)/g;
-    for (let m; (m = re.exec(css));) comprobar(f, posix.normalize(posix.join(posix.dirname(f), m[1])), 'url()');
+    for (let m; (m = re.exec(css));) comprobarRef(f, posix.normalize(posix.join(posix.dirname(f), m[1])), 'url()');
   }
   return [...new Set(errores)];
 }
@@ -134,9 +137,13 @@ export function comprobar(raiz = RAIZ_POR_DEFECTO) {
     const enSw = new Set([...actual.matchAll(/'\.\/([^']+)'/g)].map((m) => m[1]));
     const faltan = archivos.filter((f) => !enSw.has(f));
     const sobran = [...enSw].filter((f) => f && !archivos.includes(f));
-    problemas.push(`sw.js is stale (expected VERSION ${version}). Run: npm run build:sw`
-      + (faltan.length ? `\n    missing from SHELL: ${faltan.slice(0, 8).join(', ')}${faltan.length > 8 ? ` (+${faltan.length - 8})` : ''}` : '')
-      + (sobran.length ? `\n    listed but not on disk: ${sobran.slice(0, 8).join(', ')}` : ''));
+    problemas.push(
+      `sw.js is stale (expected VERSION ${version}). Run: npm run build:sw` +
+        (faltan.length
+          ? `\n    missing from SHELL: ${faltan.slice(0, 8).join(', ')}${faltan.length > 8 ? ` (+${faltan.length - 8})` : ''}`
+          : '') +
+        (sobran.length ? `\n    listed but not on disk: ${sobran.slice(0, 8).join(', ')}` : ''),
+    );
   }
   return { ok: !problemas.length, problemas, version, esperado, archivos };
 }

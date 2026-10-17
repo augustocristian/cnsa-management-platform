@@ -4,16 +4,28 @@ import { fresh, tick, fieldByLabel, buttonByText, setValue } from '../helpers/ap
 
 let c;
 let vista;
-const test = (name, fn) => base(name, async (t) => { c = await fresh(); vista = await import('../../js/presentation/views/banadores-catalogo.js'); return fn(t); });
+const test = (name, fn) =>
+  base(name, async (t) => {
+    c = await fresh();
+    vista = await import('../../js/presentation/views/banadores-catalogo.js');
+    return fn(t);
+  });
 
-const abrir = async (opts) => { const h = vista.abrirCatalogoBanadores({ store: c.store, ui: c.ui }, opts); await tick(); return h; };
+const abrir = async (opts) => {
+  const h = vista.abrirCatalogoBanadores({ store: c.store, ui: c.ui }, opts);
+  await tick();
+  return h;
+};
 // The catalogue dialog is the first sheet; a form/delete dialog opened on top of it is the last one.
 const dialogos = () => [...document.querySelectorAll('.modal')];
 const catalogo = () => dialogos()[0];
 const superior = () => dialogos().at(-1);
-const item = (nombre) => [...catalogo().querySelectorAll('.bn-item')].find((li) => li.querySelector('.bn-nombre').textContent === nombre);
-const boton = (li, prefijo) => [...li.querySelectorAll('button')].find((b) => (b.getAttribute('aria-label') || b.textContent).startsWith(prefijo));
-const nombres = (tipo) => [...catalogo().querySelectorAll(`.bn-grupo[data-tipo="${tipo}"] .bn-nombre`)].map((n) => n.textContent);
+const item = (nombre) =>
+  [...catalogo().querySelectorAll('.bn-item')].find((li) => li.querySelector('.bn-nombre').textContent === nombre);
+const boton = (li, prefijo) =>
+  [...li.querySelectorAll('button')].find((b) => (b.getAttribute('aria-label') || b.textContent).startsWith(prefijo));
+const nombres = (tipo) =>
+  [...catalogo().querySelectorAll(`.bn-grupo[data-tipo="${tipo}"] .bn-nombre`)].map((n) => n.textContent);
 const porNombre = (marca, modelo) => c.store.list('Banadores').find((b) => b.marca === marca && b.modelo === modelo);
 
 async function crear({ tipo, marca, modelo, notas }) {
@@ -30,9 +42,16 @@ async function crear({ tipo, marca, modelo, notas }) {
 
 test('lists the demo catalogue grouped by type, with the number of marks each suit has', async () => {
   await abrir();
-  assert.deepEqual([...catalogo().querySelectorAll('.bn-grupo-titulo')].map((h) => h.textContent), ['Entrenamiento', 'Competición (bañadores técnicos)']);
+  assert.deepEqual(
+    [...catalogo().querySelectorAll('.bn-grupo-titulo')].map((h) => h.textContent),
+    ['Entrenamiento', 'Competición (bañadores técnicos)'],
+  );
   assert.deepEqual(nombres('entrenamiento'), ['Arena Solid', 'Speedo Endurance+']);
-  assert.deepEqual(nombres('competicion'), ['Arena Powerskin Carbon Core FX', 'Mizuno GX Sonic V', 'Speedo Fastskin LZR Pure Intent']);
+  assert.deepEqual(nombres('competicion'), [
+    'Arena Powerskin Carbon Core FX',
+    'Mizuno GX Sonic V',
+    'Speedo Fastskin LZR Pure Intent',
+  ]);
   const fast = porNombre('Arena', 'Powerskin Carbon Core FX');
   const n = c.store.list('Marcas').filter((m) => m.banadorId === fast.id).length;
   assert.ok(n > 0);
@@ -72,13 +91,20 @@ test('create: a training suit may be generic or have only a brand; a duplicate (
   assert.ok(item('Finis'));
   await crear({ tipo: 'entrenamiento', marca: 'ARENA', modelo: 'solid' });
   assert.equal(dialogos().length, 2, 'form still open');
-  assert.match(superior().querySelector('.field-error').textContent, /Ya existe un bañador de este tipo con la misma marca y modelo/);
+  assert.match(
+    superior().querySelector('.field-error').textContent,
+    /Ya existe un bañador de este tipo con la misma marca y modelo/,
+  );
   assert.equal(c.store.list('Banadores').filter((b) => b.modelo === 'Solid').length, 1);
 });
 
 test('edit: changes brand and model and refreshes the list; onCambio is notified', async () => {
   let avisos = 0;
-  await abrir({ onCambio: () => { avisos++; } });
+  await abrir({
+    onCambio: () => {
+      avisos++;
+    },
+  });
   boton(item('Mizuno GX Sonic V'), 'Editar').click();
   await tick();
   const m = superior();
@@ -109,7 +135,10 @@ test('deactivate with undo: the suit stays listed as inactive and the toast can 
 test('delete an unused suit with undo; restoring brings it back with the same id', async () => {
   await abrir();
   const antes = porNombre('Mizuno', 'GX Sonic V');
-  c.store.list('Marcas').filter((m) => m.banadorId === antes.id).forEach((m) => c.store.upsert('Marcas', { ...m, banadorId: '' }));
+  c.store
+    .list('Marcas')
+    .filter((m) => m.banadorId === antes.id)
+    .forEach((m) => c.store.upsert('Marcas', { ...m, banadorId: '' }));
   boton(item('Mizuno GX Sonic V'), 'Eliminar').click();
   await tick(10);
   assert.equal(dialogos().length, 1, 'no confirmation: undo instead');

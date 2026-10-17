@@ -15,7 +15,9 @@ export function fmtTiempo(ms) {
 // Typing "1:02.34" by hand gives the same result as typing 10234.
 //   '10245' -> '1:02.45'   '2845' -> '28.45'   '545' -> '5.45'   '28' -> '28'
 export function maskTiempo(str) {
-  const d = String(str ?? '').replace(/\D/g, '').slice(0, 6);
+  const d = String(str ?? '')
+    .replace(/\D/g, '')
+    .slice(0, 6);
   if (d.length <= 2) return d;
   const cc = d.slice(-2);
   const ss = d.slice(-4, -2);
@@ -25,7 +27,9 @@ export function maskTiempo(str) {
 
 // "1:02.34" | "62.34" | "02:05,5" -> ms; also with the numeric mask: "10245" -> 1:02.45 (NaN if invalid)
 export function parseTiempo(str) {
-  const txt = String(str ?? '').trim().replace(',', '.');
+  const txt = String(str ?? '')
+    .trim()
+    .replace(',', '.');
   if (/^\d{3,6}$/.test(txt)) {
     const cs = Number(txt.slice(-2));
     const ss = Number(txt.slice(-4, -2));

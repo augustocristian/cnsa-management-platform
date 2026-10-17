@@ -1,7 +1,8 @@
 // Training content (load catalogue) texts and its manager (English).
 export default {
   'tc.aerobico-ligero.nombre': 'Light aerobic',
-  'tc.aerobico-ligero.desc': 'Gentle effort (<60-75 % of HR or Borg 4-5/10), long duration; ideal for warm-up and recovery.',
+  'tc.aerobico-ligero.desc':
+    'Gentle effort (<60-75 % of HR or Borg 4-5/10), long duration; ideal for warm-up and recovery.',
   'tc.aerobico-medio.nombre': 'Medium aerobic / Anaerobic threshold',
   'tc.aerobico-medio.desc': 'Sustained pace (CSS-type, Critical Swim Speed); the base of aerobic endurance.',
   'tc.aerobico-intenso.nombre': 'Intense aerobic / Aerobic power',
@@ -24,7 +25,8 @@ export default {
   'tc.cat.especifico': 'Specific work',
   'tc.cat.personalizado': 'Custom',
   'tc.titulo': 'Training content',
-  'tc.intro': 'Content used to record loads. Predefined items can be deactivated and adjusted (description, colour and targets) but not deleted; custom ones are yours to define.',
+  'tc.intro':
+    'Content used to record loads. Predefined items can be deactivated and adjusted (description, colour and targets) but not deleted; custom ones are yours to define.',
   'tc.mostrar': 'Training content',
   'tc.ocultar': 'Hide content',
   'tc.nuevo': 'New content',
@@ -86,7 +88,8 @@ export default {
   'tc.err.minutos': 'Minutes must be greater than 0',
   'tc.borrar.confirmar': 'Delete the content “{nombre}”?',
   'tc.borrar.en-uso-titulo': 'Cannot be deleted',
-  'tc.borrar.en-uso': '“{nombre}” has {n} recorded loads, so it cannot be deleted. You can deactivate it (it stops being offered when recording loads) or merge it into another content (its loads move there).',
+  'tc.borrar.en-uso':
+    '“{nombre}” has {n} recorded loads, so it cannot be deleted. You can deactivate it (it stops being offered when recording loads) or merge it into another content (its loads move there).',
   'tc.borrar.fusionar-con': 'Merge into',
   'tc.borrar.fusionar': 'Merge and delete',
   'tc.borrar.desactivar': 'Deactivate',
@@ -102,7 +105,8 @@ export default {
   'tc.chart.objetivo-max': 'target ≤ {max} m',
   'tc.mie.por-contenido': 'By content',
   'tc.f.alias': 'Aliases (abbreviations)',
-  'tc.f.alias-ayuda': 'How the coach abbreviates it when writing an exercise (AeL, Tope, Pn…), comma-separated. Used to split the metres automatically.',
+  'tc.f.alias-ayuda':
+    'How the coach abbreviates it when writing an exercise (AeL, Tope, Pn…), comma-separated. Used to split the metres automatically.',
   'tc.alias-lista': 'Aliases: {alias}',
   'tc.err.alias-duplicado': 'Another content already uses that alias',
   'tc.err.alias-largo': 'Each alias can have at most 24 characters',

@@ -1,8 +1,13 @@
 // Texts for the Home, Swimmers and Groups views (English).
 export default {
   'inicio.bienvenida': 'Welcome, Coach!',
-  'inicio.dia.0': 'Mon', 'inicio.dia.1': 'Tue', 'inicio.dia.2': 'Wed', 'inicio.dia.3': 'Thu',
-  'inicio.dia.4': 'Fri', 'inicio.dia.5': 'Sat', 'inicio.dia.6': 'Sun',
+  'inicio.dia.0': 'Mon',
+  'inicio.dia.1': 'Tue',
+  'inicio.dia.2': 'Wed',
+  'inicio.dia.3': 'Thu',
+  'inicio.dia.4': 'Fri',
+  'inicio.dia.5': 'Sat',
+  'inicio.dia.6': 'Sun',
   'inicio.acceso-rapido': 'Quick access',
   'inicio.grafico-titulo': 'Club weekly training load',
   'inicio.grafico-aria': 'Weekly training load',
@@ -86,7 +91,7 @@ export default {
   'nadadores.d-notas': 'Notes',
   'nadadores.ficha-datos': 'Details',
   'nadadores.privacidad': 'Privacy (GDPR)',
-  'nadadores.privacidad-texto': 'Export all of this swimmer\'s data or erase it permanently, Drive copies included.',
+  'nadadores.privacidad-texto': "Export all of this swimmer's data or erase it permanently, Drive copies included.",
   'nadadores.asistencia': 'Attendance',
   'nadadores.sin-asistencia': 'No attendance records.',
   'nadadores.st-presente': 'Present',
@@ -134,5 +139,4 @@ export default {
   'grupos.sin-grupo': 'No group',
   'grupos.sin-grupo-texto': 'Active swimmers with no group assigned.',
   'grupos.miembros-aria': 'Swimmers of group {nombre}',
-
 };

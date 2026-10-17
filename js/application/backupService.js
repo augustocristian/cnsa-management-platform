@@ -20,11 +20,11 @@ const MENSAJES = {
   'version-invalida': 'The backup format version is not valid.',
   'version-futura': 'This backup was made by a newer version of the app. Update the app to restore it.',
   'documento-futuro': 'This backup holds data written by a newer version of the app. Update the app to restore it.',
-  'danado': 'The backup file is damaged (the checksum does not match).',
-  'estructura': 'The backup file has an unexpected structure.',
+  danado: 'The backup file is damaged (the checksum does not match).',
+  estructura: 'The backup file has an unexpected structure.',
   'demasiadas-filas': 'The backup has more than 50,000 rows.',
   'demasiado-grande': 'The backup file is larger than 20 MB.',
-  'ilegible': 'The file is not valid JSON.',
+  ilegible: 'The file is not valid JSON.',
   'requiere-passphrase': 'This backup is encrypted: enter its passphrase.',
   'passphrase-incorrecta': 'Wrong passphrase, or the file is damaged.',
   'passphrase-corta': 'The passphrase must have at least ' + D.PASSPHRASE_MIN + ' characters.',
@@ -36,14 +36,24 @@ const MENSAJES = {
   'sin-drive': 'Backups in Drive are not available in demo mode.',
   'sin-seguridad': 'There is no restore to revert.',
 };
-export const falla = (code, extra = {}, errores) => Object.assign(new Error(MENSAJES[code] || code), { ...extra, code, ...(errores ? { errores } : {}) });
+export const falla = (code, extra = {}, errores) =>
+  Object.assign(new Error(MENSAJES[code] || code), { ...extra, code, ...(errores ? { errores } : {}) });
 
-const iso = (f) => `${f.getFullYear()}-${String(f.getMonth() + 1).padStart(2, '0')}-${String(f.getDate()).padStart(2, '0')}`;
+const iso = (f) =>
+  `${f.getFullYear()}-${String(f.getMonth() + 1).padStart(2, '0')}-${String(f.getDate()).padStart(2, '0')}`;
 const ENTIDADES = Object.keys(SHEETS).filter((s) => s !== 'Club');
 
 // deps: {repo, preferencias, hash, cripto?, ahora, archivos: {descargar, crearBlob, leer?}, driveBackups?, categorias?, appVersion?}
 export function crearBackupService({
-  repo, preferencias, hash, cripto = null, ahora, archivos = {}, driveBackups = null, categorias = null, appVersion = '',
+  repo,
+  preferencias,
+  hash,
+  cripto = null,
+  ahora,
+  archivos = {},
+  driveBackups = null,
+  categorias = null,
+  appVersion = '',
 } = {}) {
   let ultimaSeguridad = null; // {doc, nombre, destino:'drive'|'sesion', creada, id?}
   const resumenesDrive = new Map();
@@ -55,17 +65,32 @@ export function crearBackupService({
 
   function prefsActuales() {
     const v = {};
-    D.PREFS_USUARIO.forEach((k) => { const x = preferencias.get(k, undefined); if (x !== undefined && x !== null) v[k] = x; });
+    D.PREFS_USUARIO.forEach((k) => {
+      const x = preferencias.get(k, undefined);
+      if (x !== undefined && x !== null) v[k] = x;
+    });
     return D.prefsDeUsuario(v);
   }
 
   async function construirDocumento() {
     const d = repo.documento();
     const top = {};
-    Object.keys(d).forEach((k) => { if (!['version', 'club', 'hojas', 'sync'].includes(k)) top[k] = d[k]; });
-    return D.construirBackup({
-      nombre: nombreClub(), club: d.club, hojas: d.hojas, top, preferencias: prefsActuales(), appVersion, docVersion: d.version, creado: ahora().toISOString(),
-    }, hash);
+    Object.keys(d).forEach((k) => {
+      if (!['version', 'club', 'hojas', 'sync'].includes(k)) top[k] = d[k];
+    });
+    return D.construirBackup(
+      {
+        nombre: nombreClub(),
+        club: d.club,
+        hojas: d.hojas,
+        top,
+        preferencias: prefsActuales(),
+        appVersion,
+        docVersion: d.version,
+        creado: ahora().toISOString(),
+      },
+      hash,
+    );
   }
 
   // ---------- Create / download ----------
@@ -81,21 +106,38 @@ export function crearBackupService({
     if (cifrada) texto = JSON.stringify(await cripto.cifrar(texto, passphrase));
     const blob = archivos.crearBlob(texto, 'application/json');
     const avisos = [];
-    if (blob.size > D.LIMITE_BYTES || D.totalFilas(doc.counts) > D.LIMITE_FILAS) avisos.push({ codigo: 'supera-limite' });
-    return { blob, nombre: D.nombreFichero(doc.club.name, ahora(), { cifrada }), doc, resumen: D.resumenBackup(doc, { esquema: SHEETS }), cifrada, bytes: blob.size, avisos };
+    if (blob.size > D.LIMITE_BYTES || D.totalFilas(doc.counts) > D.LIMITE_FILAS)
+      avisos.push({ codigo: 'supera-limite' });
+    return {
+      blob,
+      nombre: D.nombreFichero(doc.club.name, ahora(), { cifrada }),
+      doc,
+      resumen: D.resumenBackup(doc, { esquema: SHEETS }),
+      cifrada,
+      bytes: blob.size,
+      avisos,
+    };
   }
 
   async function descargarBackup(opciones = {}) {
     const r = await crearBackup(opciones);
     await archivos.descargar(r.blob, r.nombre);
-    preferencias.set(D.PREF_ULTIMA_COPIA, { creada: r.doc.createdAt, nombre: r.nombre, filas: r.resumen.total, cifrada: r.cifrada });
+    preferencias.set(D.PREF_ULTIMA_COPIA, {
+      creada: r.doc.createdAt,
+      nombre: r.nombre,
+      filas: r.resumen.total,
+      cifrada: r.cifrada,
+    });
     return r;
   }
 
   const ultimaCopia = () => preferencias.get(D.PREF_ULTIMA_COPIA, null);
 
   // ---------- Read / validate / preview ----------
-  const estadoActual = () => { const d = docToData(repo.documento()); return { club: d.club, hojas: d.db, meta: d.meta, extra: d.extra }; };
+  const estadoActual = () => {
+    const d = docToData(repo.documento());
+    return { club: d.club, hojas: d.db, meta: d.meta, extra: d.extra };
+  };
 
   // Rows of the backup that a restore would use: normalised like a file read, without invalid rows nor erased (GDPR) ones.
   function candidatos(doc) {
@@ -115,7 +157,11 @@ export function crearBackupService({
 
   function comparar(doc) {
     const c = candidatos(doc);
-    const comparacion = D.compararConActual({ sheets: c.hojas, club: { data: c.remote.club } }, { club: c.actual.club, hojas: c.actual.hojas }, { esquema: SHEETS });
+    const comparacion = D.compararConActual(
+      { sheets: c.hojas, club: { data: c.remote.club } },
+      { club: c.actual.club, hojas: c.actual.hojas },
+      { esquema: SHEETS },
+    );
     return { ...comparacion, omitidas: c.omitidas.length, excluidas: c.excluidas };
   }
 
@@ -129,19 +175,31 @@ export function crearBackupService({
       if (!passphrase) throw falla('requiere-passphrase');
       if (!cripto) throw falla('sin-cifrado');
       const texto = await cripto.descifrar(o, passphrase);
-      try { o = JSON.parse(texto); } catch (e) { throw falla('danado', { motivo: 'cifrado' }); }
+      try {
+        o = JSON.parse(texto);
+      } catch (e) {
+        throw falla('danado', { motivo: 'cifrado' });
+      }
       cifrada = true;
     }
     let origen = 'backup';
     if (D.esDocumentoClub(o)) {
-      if (Number(o.version) > DOC_VERSION) throw falla('documento-futuro', { version: Number(o.version), soportada: DOC_VERSION });
+      if (Number(o.version) > DOC_VERSION)
+        throw falla('documento-futuro', { version: Number(o.version), soportada: DOC_VERSION });
       o = D.documentoABackup(o, { appVersion: '', retiradas: HOJAS_RETIRADAS });
       o.checksum = await D.calcularChecksum(o, hash);
       origen = 'documento-club';
     }
     const v = await D.validarBackup(o, { hash, esquema: SHEETS, docVersion: DOC_VERSION });
     if (!v.ok) throw falla(v.errores[0].codigo, v.errores[0], v.errores);
-    return { doc: o, resumen: D.resumenBackup(o, { esquema: SHEETS }), comparacion: comparar(o), avisos: v.avisos, origen, cifrada };
+    return {
+      doc: o,
+      resumen: D.resumenBackup(o, { esquema: SHEETS }),
+      comparacion: comparar(o),
+      avisos: v.avisos,
+      origen,
+      cifrada,
+    };
   }
 
   async function leerTexto(file) {
@@ -153,7 +211,11 @@ export function crearBackupService({
   async function leerBackup(file, { passphrase = '' } = {}) {
     if (file && Number(file.size) > D.LIMITE_BYTES) throw falla('demasiado-grande');
     let obj;
-    try { obj = JSON.parse(await leerTexto(file)); } catch (e) { throw falla('ilegible'); }
+    try {
+      obj = JSON.parse(await leerTexto(file));
+    } catch (e) {
+      throw falla('ilegible');
+    }
     return prepararDocumento(obj, { passphrase });
   }
 
@@ -166,7 +228,12 @@ export function crearBackupService({
         const r = await driveBackups.guardarSeguridad(nombreDrive(), doc, ahora());
         return { doc, nombre: r.nombre, id: r.id, destino: 'drive', creada: doc.createdAt };
       }
-      return { doc, nombre: D.nombreFichero(doc.club.name, ahora()).replace('cnl-backup-', 'cnl-safety-'), destino: 'sesion', creada: doc.createdAt };
+      return {
+        doc,
+        nombre: D.nombreFichero(doc.club.name, ahora()).replace('cnl-backup-', 'cnl-safety-'),
+        destino: 'sesion',
+        creada: doc.createdAt,
+      };
     } catch (e) {
       throw falla('seguridad-fallida', { causa: e });
     }
@@ -175,15 +242,31 @@ export function crearBackupService({
   // Applies the backup rows to the repository. -> change summary
   function aplicar(doc, modoRestauracion) {
     const c = candidatos(doc);
-    const resumen = { hojas: [], club: { nuevas: 0, cambiadas: 0, eliminadas: 0 }, total: { nuevas: 0, cambiadas: 0, eliminadas: 0 }, omitidas: c.omitidas.length, excluidas: c.excluidas, extras: false };
-    const sumar = (n, ca, e) => { resumen.total.nuevas += n; resumen.total.cambiadas += ca; resumen.total.eliminadas += e; };
+    const resumen = {
+      hojas: [],
+      club: { nuevas: 0, cambiadas: 0, eliminadas: 0 },
+      total: { nuevas: 0, cambiadas: 0, eliminadas: 0 },
+      omitidas: c.omitidas.length,
+      excluidas: c.excluidas,
+      extras: false,
+    };
+    const sumar = (n, ca, e) => {
+      resumen.total.nuevas += n;
+      resumen.total.cambiadas += ca;
+      resumen.total.eliminadas += e;
+    };
 
     let destino = c.hojas; // rows the sheets must end up with (replace) or be completed with (merge)
     let clubDestino = c.remote.club;
     if (modoRestauracion === 'merge') {
       // Field-level merge with the existing algorithm. The tombstones of the current data are ignored on purpose: restoring is how
       // deleted rows come back. Where both have a value, the current one wins.
-      const local = { db: c.actual.hojas, club: c.actual.club, meta: { ...c.actual.meta, lapidas: {} }, extra: c.actual.extra };
+      const local = {
+        db: c.actual.hojas,
+        club: c.actual.club,
+        meta: { ...c.actual.meta, lapidas: {} },
+        extra: c.actual.extra,
+      };
       const remoto = { db: c.hojas, club: c.remote.club, meta: metaVacia(), extra: c.remote.extra };
       const mg = mergeData(null, local, remoto, { dispositivo: 'restore' });
       destino = mg.db;
@@ -196,23 +279,40 @@ export function crearBackupService({
       if (quitar.length) repo.removeMany(s, quitar);
       const subir = [...d.nuevas, ...d.cambiadas];
       if (subir.length) repo.upsertMany(s, subir);
-      if (subir.length || quitar.length) resumen.hojas.push({ hoja: s, nuevas: d.nuevas.length, cambiadas: d.cambiadas.length, eliminadas: quitar.length });
+      if (subir.length || quitar.length)
+        resumen.hojas.push({
+          hoja: s,
+          nuevas: d.nuevas.length,
+          cambiadas: d.cambiadas.length,
+          eliminadas: quitar.length,
+        });
       sumar(d.nuevas.length, d.cambiadas.length, quitar.length);
     });
 
     // Club sheet: the name never changes (it names the file in Drive)
     const dc = D.diferenciarClub(c.actual.club, clubDestino);
-    const cambiosClub = dc.nuevas.length + dc.cambiadas.length + (modoRestauracion === 'replace' ? dc.eliminadas.length : 0);
+    const cambiosClub =
+      dc.nuevas.length + dc.cambiadas.length + (modoRestauracion === 'replace' ? dc.eliminadas.length : 0);
     if (cambiosClub) {
       const valores = {};
-      [...dc.nuevas, ...dc.cambiadas].forEach((k) => { valores[k] = clubDestino[k]; });
-      if (modoRestauracion === 'replace') dc.eliminadas.forEach((k) => { valores[k] = ''; });
+      [...dc.nuevas, ...dc.cambiadas].forEach((k) => {
+        valores[k] = clubDestino[k];
+      });
+      if (modoRestauracion === 'replace')
+        dc.eliminadas.forEach((k) => {
+          valores[k] = '';
+        });
       repo.setClub(valores);
     }
-    resumen.club = { nuevas: dc.nuevas.length, cambiadas: dc.cambiadas.length, eliminadas: modoRestauracion === 'replace' ? dc.eliminadas.length : 0 };
+    resumen.club = {
+      nuevas: dc.nuevas.length,
+      cambiadas: dc.cambiadas.length,
+      eliminadas: modoRestauracion === 'replace' ? dc.eliminadas.length : 0,
+    };
     sumar(resumen.club.nuevas, resumen.club.cambiadas, resumen.club.eliminadas);
 
-    if (typeof repo.aplicarExtras === 'function') resumen.extras = !!repo.aplicarExtras(c.remote.extra, { reemplazar: modoRestauracion === 'replace' });
+    if (typeof repo.aplicarExtras === 'function')
+      resumen.extras = !!repo.aplicarExtras(c.remote.extra, { reemplazar: modoRestauracion === 'replace' });
     return resumen;
   }
 
@@ -230,7 +330,13 @@ export function crearBackupService({
   // doc: a backup document (from leerBackup). opciones: {modo:'replace'|'merge', onProgreso(fase), sinSeguridad}
   // -> {modo, seguridad:{nombre,destino}|null, hojas, club, total, omitidas, excluidas, extras, preferencias:[keys], sincronizado, errorSync?}
   async function restaurar(doc, { modo: modoRestauracion = 'replace', onProgreso, sinSeguridad = false } = {}) {
-    const avisar = (fase) => { try { if (onProgreso) onProgreso(fase); } catch (e) { /* the UI must not break a restore */ } };
+    const avisar = (fase) => {
+      try {
+        if (onProgreso) onProgreso(fase);
+      } catch (e) {
+        /* the UI must not break a restore */
+      }
+    };
     if (!['replace', 'merge'].includes(modoRestauracion)) throw falla('modo-invalido');
     if (repo.soloLectura) throw falla('solo-lectura');
     avisar('validando');
@@ -249,13 +355,26 @@ export function crearBackupService({
       resumen = aplicar(doc, modoRestauracion);
     } catch (e) {
       let revertido = false;
-      if (seguridad) { try { aplicar(seguridad.doc, 'replace'); revertido = true; } catch (e2) { revertido = false; } }
+      if (seguridad) {
+        try {
+          aplicar(seguridad.doc, 'replace');
+          revertido = true;
+        } catch (e2) {
+          revertido = false;
+        }
+      }
       throw falla('restauracion-fallida', { causa: e, revertido, detalle: e && e.message });
     }
     const hubo = resumen.total.nuevas + resumen.total.cambiadas + resumen.total.eliminadas > 0 || resumen.extras;
     if (hubo) {
       if (typeof repo.migrar === 'function') repo.migrar(); // legacy objectives / content catalogue
-      if (categorias && typeof categorias.alAbrirClub === 'function') { try { categorias.alAbrirClub(); } catch (e) { /* best effort */ } }
+      if (categorias && typeof categorias.alAbrirClub === 'function') {
+        try {
+          categorias.alAbrirClub();
+        } catch (e) {
+          /* best effort */
+        }
+      }
     }
     const prefs = aplicarPreferencias(doc);
     if (seguridad) ultimaSeguridad = seguridad;
@@ -263,12 +382,20 @@ export function crearBackupService({
     let errorSync = null;
     if (hubo && typeof repo.sync === 'function') {
       avisar('sincronizando');
-      try { await repo.sync(); } catch (e) { errorSync = e; }
+      try {
+        await repo.sync();
+      } catch (e) {
+        errorSync = e;
+      }
     }
     avisar('listo');
     return {
-      modo: modoRestauracion, seguridad: seguridad ? { nombre: seguridad.nombre, destino: seguridad.destino } : null, ...resumen,
-      preferencias: prefs, sincronizado: !errorSync && !repo.pendiente, ...(errorSync ? { errorSync } : {}),
+      modo: modoRestauracion,
+      seguridad: seguridad ? { nombre: seguridad.nombre, destino: seguridad.destino } : null,
+      ...resumen,
+      preferencias: prefs,
+      sincronizado: !errorSync && !repo.pendiente,
+      ...(errorSync ? { errorSync } : {}),
     };
   }
 
@@ -280,7 +407,10 @@ export function crearBackupService({
     return { ...r, revertida: true };
   }
   const haySeguridad = () => !!ultimaSeguridad;
-  const seguridadActual = () => (ultimaSeguridad ? { nombre: ultimaSeguridad.nombre, destino: ultimaSeguridad.destino, creada: ultimaSeguridad.creada } : null);
+  const seguridadActual = () =>
+    ultimaSeguridad
+      ? { nombre: ultimaSeguridad.nombre, destino: ultimaSeguridad.destino, creada: ultimaSeguridad.creada }
+      : null;
   async function descargarSeguridad() {
     if (!ultimaSeguridad) throw falla('sin-seguridad');
     const blob = archivos.crearBlob(JSON.stringify(ultimaSeguridad.doc), 'application/json');
@@ -289,18 +419,32 @@ export function crearBackupService({
   }
 
   // ---------- Backups in Drive (cnl/backups) ----------
-  function exigirDrive() { if (modo() === 'demo' || !driveBackups) throw falla('sin-drive'); }
+  function exigirDrive() {
+    if (modo() === 'demo' || !driveBackups) throw falla('sin-drive');
+  }
   const driveDisponible = () => modo() !== 'demo' && !!driveBackups;
 
   // -> [{id, nombre, tipo, fecha, hora, resumen?}] most recent first. conteos: also read each file for its row counts.
   async function listarBackupsDrive({ conteos = false } = {}) {
     exigirDrive();
     const { prefijo, archivos: lista } = await driveBackups.listar(nombreDrive());
-    const items = lista.map((a) => {
-      const info = D.analizarNombreDrive(a.name, prefijo);
-      return info ? { id: a.id, nombre: a.name, ...info, resumen: resumenesDrive.get(a.id) || null } : null;
-    }).filter(Boolean).sort(D.porFechaDesc);
-    if (conteos) for (const it of items) { if (!it.resumen) { try { it.resumen = await resumenBackupDrive(it.id); } catch (e) { it.resumen = null; } } }
+    const items = lista
+      .map((a) => {
+        const info = D.analizarNombreDrive(a.name, prefijo);
+        return info ? { id: a.id, nombre: a.name, ...info, resumen: resumenesDrive.get(a.id) || null } : null;
+      })
+      .filter(Boolean)
+      .sort(D.porFechaDesc);
+    if (conteos)
+      for (const it of items) {
+        if (!it.resumen) {
+          try {
+            it.resumen = await resumenBackupDrive(it.id);
+          } catch (e) {
+            it.resumen = null;
+          }
+        }
+      }
     return items;
   }
 
@@ -311,8 +455,10 @@ export function crearBackupService({
     let res;
     if (D.esSobreCifrado(obj)) res = { cifrada: true, filas: null, nadadores: null };
     else {
-      const hojas = D.esDocumentoClub(obj) ? (obj.hojas || {}) : ((obj && obj.sheets) || {});
-      const filas = Object.keys(hojas).filter((s) => Array.isArray(hojas[s])).reduce((a, s) => a + hojas[s].length, 0);
+      const hojas = D.esDocumentoClub(obj) ? obj.hojas || {} : (obj && obj.sheets) || {};
+      const filas = Object.keys(hojas)
+        .filter((s) => Array.isArray(hojas[s]))
+        .reduce((a, s) => a + hojas[s].length, 0);
       res = { cifrada: false, filas, nadadores: Array.isArray(hojas.Nadadores) ? hojas.Nadadores.length : 0 };
     }
     resumenesDrive.set(id, res);
@@ -334,9 +480,25 @@ export function crearBackupService({
   }
 
   return {
-    modo, soloLectura: () => !!repo.soloLectura, nombreClub, criptoDisponible: () => !!cripto,
-    crearBackup, descargarBackup, ultimaCopia,
-    leerBackup, prepararDocumento, restaurar, revertirUltimaRestauracion, haySeguridad, seguridadActual, descargarSeguridad,
-    driveDisponible, listarBackupsDrive, resumenBackupDrive, leerBackupDrive, restaurarDesdeDrive, eliminarBackupDrive,
+    modo,
+    soloLectura: () => !!repo.soloLectura,
+    nombreClub,
+    criptoDisponible: () => !!cripto,
+    crearBackup,
+    descargarBackup,
+    ultimaCopia,
+    leerBackup,
+    prepararDocumento,
+    restaurar,
+    revertirUltimaRestauracion,
+    haySeguridad,
+    seguridadActual,
+    descargarSeguridad,
+    driveDisponible,
+    listarBackupsDrive,
+    resumenBackupDrive,
+    leerBackupDrive,
+    restaurarDesdeDrive,
+    eliminarBackupDrive,
   };
 }

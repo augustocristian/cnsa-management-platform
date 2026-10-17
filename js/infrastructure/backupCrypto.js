@@ -1,7 +1,15 @@
 // WebCrypto adapter for backups: SHA-256 (checksum) and passphrase encryption (PBKDF2-SHA256 -> AES-256-GCM).
 // The application service receives it as a port ({sha256Hex, cifrar, descifrar}); nothing here knows about clubs or sheets.
 // Everything stays on the device: the passphrase is never stored or sent anywhere, and there is no recovery if it is lost.
-import { FORMATO_CIFRADO, VERSION_FORMATO, KDF, CIFRADO, ITERACIONES, validarSobre, datosAutenticados } from '../domain/backup.js';
+import {
+  FORMATO_CIFRADO,
+  VERSION_FORMATO,
+  KDF,
+  CIFRADO,
+  ITERACIONES,
+  validarSobre,
+  datosAutenticados,
+} from '../domain/backup.js';
 
 const codificador = new TextEncoder();
 const decodificador = new TextDecoder();
@@ -23,26 +31,48 @@ const err = (code, message, extra = {}) => Object.assign(new Error(message), { c
 // opciones: {cripto (default globalThis.crypto), iteraciones (default 600,000; tests lower it)}
 export function crearBackupCrypto({ cripto = globalThis.crypto, iteraciones = ITERACIONES } = {}) {
   const subtle = cripto && cripto.subtle;
-  const exigir = () => { if (!subtle) throw err('sin-cifrado', 'This browser has no WebCrypto: encryption is not available.'); return subtle; };
+  const exigir = () => {
+    if (!subtle) throw err('sin-cifrado', 'This browser has no WebCrypto: encryption is not available.');
+    return subtle;
+  };
 
   async function clave(passphrase, salt, iter) {
     const s = exigir();
-    const base = await s.importKey('raw', codificador.encode(String(passphrase).normalize('NFKC')), 'PBKDF2', false, ['deriveKey']);
-    return s.deriveKey({ name: 'PBKDF2', salt, iterations: iter, hash: 'SHA-256' }, base, { name: 'AES-GCM', length: 256 }, false, ['encrypt', 'decrypt']);
+    const base = await s.importKey('raw', codificador.encode(String(passphrase).normalize('NFKC')), 'PBKDF2', false, [
+      'deriveKey',
+    ]);
+    return s.deriveKey(
+      { name: 'PBKDF2', salt, iterations: iter, hash: 'SHA-256' },
+      base,
+      { name: 'AES-GCM', length: 256 },
+      false,
+      ['encrypt', 'decrypt'],
+    );
   }
 
   return {
     disponible: !!subtle,
-    async sha256Hex(texto) { return aHex(await exigir().digest('SHA-256', codificador.encode(texto))); },
+    async sha256Hex(texto) {
+      return aHex(await exigir().digest('SHA-256', codificador.encode(texto)));
+    },
 
     // text -> encrypted envelope (see domain/backup.js)
     async cifrar(texto, passphrase) {
       const s = exigir();
       const salt = cripto.getRandomValues(new Uint8Array(16));
       const iv = cripto.getRandomValues(new Uint8Array(12));
-      const sobre = { format: FORMATO_CIFRADO, formatVersion: VERSION_FORMATO, kdf: KDF, iterations: iteraciones, cipher: CIFRADO };
-      const cifrado = await s.encrypt({ name: 'AES-GCM', iv, additionalData: codificador.encode(datosAutenticados(sobre)) },
-        await clave(passphrase, salt, iteraciones), codificador.encode(texto));
+      const sobre = {
+        format: FORMATO_CIFRADO,
+        formatVersion: VERSION_FORMATO,
+        kdf: KDF,
+        iterations: iteraciones,
+        cipher: CIFRADO,
+      };
+      const cifrado = await s.encrypt(
+        { name: 'AES-GCM', iv, additionalData: codificador.encode(datosAutenticados(sobre)) },
+        await clave(passphrase, salt, iteraciones),
+        codificador.encode(texto),
+      );
       return { ...sobre, salt: aBase64(salt), iv: aBase64(iv), ciphertext: aBase64(new Uint8Array(cifrado)) };
     },
 
@@ -52,8 +82,11 @@ export function crearBackupCrypto({ cripto = globalThis.crypto, iteraciones = IT
       if (!v.ok) throw err(v.errores[0].codigo, 'The encrypted backup is not valid.', v.errores[0]);
       const s = exigir();
       try {
-        const plano = await s.decrypt({ name: 'AES-GCM', iv: deBase64(sobre.iv), additionalData: codificador.encode(datosAutenticados(sobre)) },
-          await clave(passphrase, deBase64(sobre.salt), sobre.iterations), deBase64(sobre.ciphertext));
+        const plano = await s.decrypt(
+          { name: 'AES-GCM', iv: deBase64(sobre.iv), additionalData: codificador.encode(datosAutenticados(sobre)) },
+          await clave(passphrase, deBase64(sobre.salt), sobre.iterations),
+          deBase64(sobre.ciphertext),
+        );
         return decodificador.decode(plano);
       } catch (e) {
         throw err('passphrase-incorrecta', 'Wrong passphrase, or the file is damaged.', { causa: e });

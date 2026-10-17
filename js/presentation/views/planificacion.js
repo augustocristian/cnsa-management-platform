@@ -23,12 +23,30 @@ export async function render(container, params, ctx) {
   const acciones = h('div', { class: 'page-head-actions pl-screen' });
   const panel = h('div', { role: 'tabpanel', class: 'pl-apartado', tabindex: 0 });
   const tabs = new Map();
-  const lista = teclasTabs(h('div', { class: 'tabs pl-screen', id: 'pl-apartados', role: 'tablist', 'aria-label': t('plan.apartados') },
-    APARTADOS.map((a) => {
-      const b = h('button', { type: 'button', role: 'tab', class: 'tab', id: 'pl-tab-' + a, 'aria-controls': 'pl-panel-' + a, onclick: () => mostrar(a) }, icon(ICONO[a], { size: 16 }), ' ', t('plan.apartado.' + a));
-      tabs.set(a, b);
-      return b;
-    })));
+  const lista = teclasTabs(
+    h(
+      'div',
+      { class: 'tabs pl-screen', id: 'pl-apartados', role: 'tablist', 'aria-label': t('plan.apartados') },
+      APARTADOS.map((a) => {
+        const b = h(
+          'button',
+          {
+            type: 'button',
+            role: 'tab',
+            class: 'tab',
+            id: 'pl-tab-' + a,
+            'aria-controls': 'pl-panel-' + a,
+            onclick: () => mostrar(a),
+          },
+          icon(ICONO[a], { size: 16 }),
+          ' ',
+          t('plan.apartado.' + a),
+        );
+        tabs.set(a, b);
+        return b;
+      }),
+    ),
+  );
 
   const marcar = () => {
     APARTADOS.forEach((a) => {
@@ -48,16 +66,27 @@ export async function render(container, params, ctx) {
     const interior = h('div', { class: 'pl-apartado-in' });
     panel.replaceChildren(interior);
     acciones.replaceChildren();
-    try { history.replaceState(null, '', RUTA[a]); } catch (e) { /* no history API (tests) */ }
+    try {
+      history.replaceState(null, '', RUTA[a]);
+    } catch (e) {
+      /* no history API (tests) */
+    }
     const mod = a === 'piscina' ? { render: renderPiscina } : await import('./temporada.js');
     const off = await mod.render(interior, [], { ...ctx, planificacion: { acciones } });
-    if (mia !== secuencia) { if (typeof off === 'function') off(); return; }
+    if (mia !== secuencia) {
+      if (typeof off === 'function') off();
+      return;
+    }
     panelOff = off;
   }
 
   container.replaceChildren(
     h('header', { class: 'page-head pl-cabecera' }, h('h1', null, t('nav.planificacion')), acciones),
-    lista, panel);
+    lista,
+    panel,
+  );
   await mostrar(actual);
-  return () => { if (typeof panelOff === 'function') panelOff(); };
+  return () => {
+    if (typeof panelOff === 'function') panelOff();
+  };
 }

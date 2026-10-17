@@ -16,8 +16,36 @@ const esObjeto = (x) => !!x && typeof x === 'object' && !Array.isArray(x);
 
 // ---------- Type normalisation ----------
 // Excel and other editors turn "0034 600" into a number or "2012-03-04" into a serial date: everything goes back to text.
-const COLS_TEXTO = new Set(['nombre', 'apellidos', 'email', 'telefono', 'tutor', 'licencia', 'notas', 'titulo', 'descripcion', 'texto', 'autor',
-  'categoria', 'sexo', 'prueba', 'competicion', 'lugar', 'entrenador', 'talla', 'estado', 'piscina', 'activo', 'predefinido', 'activa', 'tipo', 'enfoque', 'alias', 'marca', 'modelo']);
+const COLS_TEXTO = new Set([
+  'nombre',
+  'apellidos',
+  'email',
+  'telefono',
+  'tutor',
+  'licencia',
+  'notas',
+  'titulo',
+  'descripcion',
+  'texto',
+  'autor',
+  'categoria',
+  'sexo',
+  'prueba',
+  'competicion',
+  'lugar',
+  'entrenador',
+  'talla',
+  'estado',
+  'piscina',
+  'activo',
+  'predefinido',
+  'activa',
+  'tipo',
+  'enfoque',
+  'alias',
+  'marca',
+  'modelo',
+]);
 const COLS_FECHA = new Set(['fecha', 'fechaNacimiento', 'fechaInicio', 'fechaFin', 'lunes']);
 const COLS_HORA = new Set(['hora', 'horaInicio', 'horaFin']);
 const esColTexto = (c) => COLS_TEXTO.has(c) || /Id$/.test(c);
@@ -75,7 +103,7 @@ export function parseSello(s) {
 export function cmpSello(a, b) {
   const [na, da] = parseSello(a);
   const [nb, db] = parseSello(b);
-  return na !== nb ? na - nb : (da < db ? -1 : da > db ? 1 : 0);
+  return na !== nb ? na - nb : da < db ? -1 : da > db ? 1 : 0;
 }
 const masReciente = (a, b) => (cmpSello(a, b) >= 0 ? a : b);
 
@@ -88,7 +116,10 @@ export function purgarLapidas(meta, ventana = LAPIDAS_VENTANA) {
   Object.keys(meta.lapidas || {}).forEach((s) => {
     Object.keys(meta.lapidas[s]).forEach((id) => {
       const l = meta.lapidas[s][id];
-      if (!l.h && parseSello(l.s)[0] < meta.reloj - ventana) { delete meta.lapidas[s][id]; n++; }
+      if (!l.h && parseSello(l.s)[0] < meta.reloj - ventana) {
+        delete meta.lapidas[s][id];
+        n++;
+      }
     });
   });
   return n;
@@ -98,8 +129,15 @@ const cloneMeta = (m) => {
   const o = metaVacia();
   if (!m) return o;
   o.reloj = Number(m.reloj) || 0;
-  Object.keys(m.sellos || {}).forEach((s) => { o.sellos[s] = { ...m.sellos[s] }; });
-  Object.keys(m.lapidas || {}).forEach((s) => { o.lapidas[s] = {}; Object.keys(m.lapidas[s]).forEach((id) => { o.lapidas[s][id] = { ...m.lapidas[s][id] }; }); });
+  Object.keys(m.sellos || {}).forEach((s) => {
+    o.sellos[s] = { ...m.sellos[s] };
+  });
+  Object.keys(m.lapidas || {}).forEach((s) => {
+    o.lapidas[s] = {};
+    Object.keys(m.lapidas[s]).forEach((id) => {
+      o.lapidas[s][id] = { ...m.lapidas[s][id] };
+    });
+  });
   return o;
 };
 
@@ -107,12 +145,19 @@ function metaDeDoc(sync) {
   const m = metaVacia();
   if (!esObjeto(sync)) return m;
   m.reloj = Number(sync.reloj) || 0;
-  if (esObjeto(sync.sellos)) Object.keys(sync.sellos).forEach((s) => { if (esObjeto(sync.sellos[s])) m.sellos[s] = { ...sync.sellos[s] }; });
-  if (esObjeto(sync.lapidas)) Object.keys(sync.lapidas).forEach((s) => {
-    if (!esObjeto(sync.lapidas[s])) return;
-    m.lapidas[s] = {};
-    Object.keys(sync.lapidas[s]).forEach((id) => { const l = sync.lapidas[s][id]; if (esObjeto(l) && l.s) m.lapidas[s][id] = { s: String(l.s), ...(l.h ? { h: 1 } : {}) }; });
-  });
+  if (esObjeto(sync.sellos))
+    Object.keys(sync.sellos).forEach((s) => {
+      if (esObjeto(sync.sellos[s])) m.sellos[s] = { ...sync.sellos[s] };
+    });
+  if (esObjeto(sync.lapidas))
+    Object.keys(sync.lapidas).forEach((s) => {
+      if (!esObjeto(sync.lapidas[s])) return;
+      m.lapidas[s] = {};
+      Object.keys(sync.lapidas[s]).forEach((id) => {
+        const l = sync.lapidas[s][id];
+        if (esObjeto(l) && l.s) m.lapidas[s][id] = { s: String(l.s), ...(l.h ? { h: 1 } : {}) };
+      });
+    });
   return m;
 }
 
@@ -127,18 +172,27 @@ export function dataToDoc(data) {
     const cols = (extra.cols && extra.cols[s]) || {};
     hojas[s] = (data.db[s] || []).map((r) => {
       const o = {};
-      SHEETS[s].forEach((c) => { o[c] = norm(r[c]); });
-      if (cols[r.id]) Object.keys(cols[r.id]).forEach((c) => { if (!(c in o)) o[c] = cols[r.id][c]; });
+      SHEETS[s].forEach((c) => {
+        o[c] = norm(r[c]);
+      });
+      if (cols[r.id])
+        Object.keys(cols[r.id]).forEach((c) => {
+          if (!(c in o)) o[c] = cols[r.id][c];
+        });
       return o;
     });
   });
-  Object.keys(extra.hojas || {}).forEach((s) => { if (!(s in hojas) && !HOJAS_RETIRADAS.includes(s)) hojas[s] = extra.hojas[s]; });
+  Object.keys(extra.hojas || {}).forEach((s) => {
+    if (!(s in hojas) && !HOJAS_RETIRADAS.includes(s)) hojas[s] = extra.hojas[s];
+  });
   const doc = { version: DOC_VERSION, club: Object.assign({}, data.club || {}), hojas };
   if (data.meta) {
     const m = data.meta;
     doc.sync = { reloj: m.reloj, sellos: m.sellos, lapidas: m.lapidas };
   }
-  Object.keys(extra.top || {}).forEach((k) => { if (!(k in doc)) doc[k] = extra.top[k]; });
+  Object.keys(extra.top || {}).forEach((k) => {
+    if (!(k in doc)) doc[k] = extra.top[k];
+  });
   return doc;
 }
 
@@ -150,14 +204,21 @@ export function docToData(doc) {
   const v = Number(d.version);
   if (Number.isFinite(v) && v > DOC_VERSION) out.versionFutura = v;
   const club = esObjeto(d.club) ? d.club : {};
-  Object.keys(club).forEach((k) => { out.club[k] = normalizarClub(club[k]); });
+  Object.keys(club).forEach((k) => {
+    out.club[k] = normalizarClub(club[k]);
+  });
   const hojas = esObjeto(d.hojas) ? d.hojas : {};
   ENTITY_SHEETS.forEach((s) => {
     const seen = new Map();
     (Array.isArray(hojas[s]) ? hojas[s] : []).forEach((r) => {
-      if (!r || typeof r !== 'object' || Array.isArray(r) || norm(r.id) === '') { out.avisos.push({ tipo: 'sin-id', hoja: s }); return; }
+      if (!r || typeof r !== 'object' || Array.isArray(r) || norm(r.id) === '') {
+        out.avisos.push({ tipo: 'sin-id', hoja: s });
+        return;
+      }
       const o = {};
-      SHEETS[s].forEach((c) => { o[c] = normalizarValor(c, r[c]); });
+      SHEETS[s].forEach((c) => {
+        o[c] = normalizarValor(c, r[c]);
+      });
       o.id = String(o.id);
       if (seen.has(o.id)) out.avisos.push({ tipo: 'duplicado', hoja: s, id: o.id });
       seen.set(o.id, o);
@@ -169,17 +230,28 @@ export function docToData(doc) {
     out.db[s] = [...seen.values()];
   });
   // Retired sheets (see HOJAS_RETIRADAS) are dropped, with their sync metadata: they are not kept as unknown extra.
-  Object.keys(hojas).forEach((s) => { if (!ENTITY_SHEETS.includes(s) && s !== 'Club' && !HOJAS_RETIRADAS.includes(s)) out.extra.hojas[s] = hojas[s]; });
-  HOJAS_RETIRADAS.forEach((s) => { delete out.meta.sellos[s]; delete out.meta.lapidas[s]; });
-  Object.keys(d).forEach((k) => { if (!CLAVES_DOC.has(k)) out.extra.top[k] = d[k]; });
+  Object.keys(hojas).forEach((s) => {
+    if (!ENTITY_SHEETS.includes(s) && s !== 'Club' && !HOJAS_RETIRADAS.includes(s)) out.extra.hojas[s] = hojas[s];
+  });
+  HOJAS_RETIRADAS.forEach((s) => {
+    delete out.meta.sellos[s];
+    delete out.meta.lapidas[s];
+  });
+  Object.keys(d).forEach((k) => {
+    if (!CLAVES_DOC.has(k)) out.extra.top[k] = d[k];
+  });
   return out;
 }
 
 // true if there is no data at all (freshly created or empty file).
 export function isEmptyData(data) {
   const ex = data.extra || {};
-  return !Object.keys(data.club || {}).length && ENTITY_SHEETS.every((s) => !(data.db[s] || []).length)
-    && !Object.keys(ex.hojas || {}).length && !Object.keys(ex.top || {}).length;
+  return (
+    !Object.keys(data.club || {}).length &&
+    ENTITY_SHEETS.every((s) => !(data.db[s] || []).length) &&
+    !Object.keys(ex.hojas || {}).length &&
+    !Object.keys(ex.top || {}).length
+  );
 }
 
 // Does the document have the shape of a club document? ({} or null do not: that is not a new club, it is an emptied file)
@@ -192,7 +264,10 @@ export function hashData(data) {
   const doc = dataToDoc({ db: data.db, club: data.club, extra: data.extra });
   const str = JSON.stringify(doc);
   let h = 0x811c9dc5;
-  for (let i = 0; i < str.length; i++) { h ^= str.charCodeAt(i); h = Math.imul(h, 0x01000193); }
+  for (let i = 0; i < str.length; i++) {
+    h ^= str.charCodeAt(i);
+    h = Math.imul(h, 0x01000193);
+  }
   return (h >>> 0).toString(16) + ':' + str.length;
 }
 
@@ -201,11 +276,15 @@ const same = (a, b) => JSON.stringify(a) === JSON.stringify(b);
 // ---------- Merge ----------
 // Child -> parent relations used to clean up orphans after a merge: [child sheet, column, parent sheet]
 export const RELACIONES = [
-  ['Asistencia', 'nadadorId', 'Nadadores'], ['Asistencia', 'entrenamientoId', 'Entrenamientos'],
-  ['Cargas', 'nadadorId', 'Nadadores'], ['Cargas', 'entrenamientoId', 'Entrenamientos'],
+  ['Asistencia', 'nadadorId', 'Nadadores'],
+  ['Asistencia', 'entrenamientoId', 'Entrenamientos'],
+  ['Cargas', 'nadadorId', 'Nadadores'],
+  ['Cargas', 'entrenamientoId', 'Entrenamientos'],
   ['Marcas', 'nadadorId', 'Nadadores'], // Marcas.banadorId -> Banadores is deliberately NOT a relation: a mark must survive its suit being deleted (orphan = "no suit")
   ['EntrenoLineas', 'entrenamientoId', 'Entrenamientos'],
-  ['Fases', 'temporadaId', 'Temporadas'], ['SemanasPlan', 'temporadaId', 'Temporadas'], ['EventosTemporada', 'temporadaId', 'Temporadas'],
+  ['Fases', 'temporadaId', 'Temporadas'],
+  ['SemanasPlan', 'temporadaId', 'Temporadas'],
+  ['EventosTemporada', 'temporadaId', 'Temporadas'],
   ['AsignacionesCalle', 'piscinaId', 'Piscinas'],
 ];
 
@@ -219,7 +298,13 @@ export const RELACIONES = [
 export function mergeData(base, local, remote, { dispositivo = 'merge' } = {}) {
   const lm = cloneMeta(local.meta);
   const rm = cloneMeta(remote.meta);
-  const out = { db: {}, club: Object.assign({}, remote.club), meta: metaVacia(), extra: mezclarExtra(local.extra, remote.extra), avisos: [] };
+  const out = {
+    db: {},
+    club: Object.assign({}, remote.club),
+    meta: metaVacia(),
+    extra: mezclarExtra(local.extra, remote.extra),
+    avisos: [],
+  };
   if (remote.versionFutura) out.versionFutura = remote.versionFutura;
   out.meta.reloj = Math.max(lm.reloj, rm.reloj);
   const nuevoSello = () => `${++out.meta.reloj}@${dispositivo}`;
@@ -257,28 +342,39 @@ export function mergeData(base, local, remote, { dispositivo = 'merge' } = {}) {
           else if (b && same(r[c], b[c])) row[c] = l[c];
           else row[c] = sr && (!sl || cmpSello(sr, sl) > 0) ? r[c] : l[c];
         });
-        Object.keys(r).forEach((c) => { if (!(c in row)) row[c] = r[c]; });
+        Object.keys(r).forEach((c) => {
+          if (!(c in row)) row[c] = r[c];
+        });
         filas.set(id, row);
-        const st = sl && sr ? masReciente(sl, sr) : (sl || sr);
+        const st = sl && sr ? masReciente(sl, sr) : sl || sr;
         if (st) sellos[id] = st;
-      } else if (l) { // missing on the remote side
-        const remotoBorro = (b !== undefined) || tr;
+      } else if (l) {
+        // missing on the remote side
+        const remotoBorro = b !== undefined || tr;
         let conservar = true;
         if (remotoBorro) {
           if (tr && tr.h) conservar = false;
-          else if (b !== undefined) conservar = !same(l, b); // no local changes: the deletion wins; edited: the edit wins
+          else if (b !== undefined)
+            conservar = !same(l, b); // no local changes: the deletion wins; edited: the edit wins
           else conservar = !!sl && cmpSello(sl, tr.s) > 0; // no base: was it edited after the deletion?
         }
-        if (conservar) { filas.set(id, l); if (sl) sellos[id] = sl; } else lapida(id, tr || { s: nuevoSello() });
-      } else if (r) { // missing on the local side
-        const localBorro = (b !== undefined) || tl;
+        if (conservar) {
+          filas.set(id, l);
+          if (sl) sellos[id] = sl;
+        } else lapida(id, tr || { s: nuevoSello() });
+      } else if (r) {
+        // missing on the local side
+        const localBorro = b !== undefined || tl;
         let conservar = true;
         if (localBorro) {
           if (tl && tl.h) conservar = false;
           else if (b !== undefined) conservar = !same(r, b);
           else conservar = !!sr && cmpSello(sr, tl.s) > 0;
         }
-        if (conservar) { filas.set(id, r); if (sr) sellos[id] = sr; } else lapida(id, tl || { s: nuevoSello() });
+        if (conservar) {
+          filas.set(id, r);
+          if (sr) sellos[id] = sr;
+        } else lapida(id, tl || { s: nuevoSello() });
       }
       if (tl && !filas.has(id)) lapida(id, tl);
       if (tr && !filas.has(id)) lapida(id, tr);
@@ -298,7 +394,10 @@ export function mergeData(base, local, remote, { dispositivo = 'merge' } = {}) {
       out.club[k] = lv;
     }
   });
-  if (base) Object.keys(bc).forEach((k) => { if (!(k in (local.club || {})) && same(bc[k], remote.club[k])) delete out.club[k]; });
+  if (base)
+    Object.keys(bc).forEach((k) => {
+      if (!(k in (local.club || {})) && same(bc[k], remote.club[k])) delete out.club[k];
+    });
   return out;
 }
 
@@ -321,7 +420,10 @@ export function limpiarHuerfanas(data, nuevoSello) {
     });
     if (meta && quitar.length) {
       meta.lapidas[hijo] ||= {};
-      quitar.forEach((id) => { meta.lapidas[hijo][id] = { s: nuevoSello ? nuevoSello() : `${meta.reloj}@merge` }; if (meta.sellos[hijo]) delete meta.sellos[hijo][id]; });
+      quitar.forEach((id) => {
+        meta.lapidas[hijo][id] = { s: nuevoSello ? nuevoSello() : `${meta.reloj}@merge` };
+        if (meta.sellos[hijo]) delete meta.sellos[hijo][id];
+      });
     }
     n += antes - data.db[hijo].length;
   });
@@ -332,6 +434,8 @@ function mezclarExtra(a, b) {
   const x = a || { top: {}, hojas: {}, cols: {} };
   const y = b || { top: {}, hojas: {}, cols: {} };
   const cols = {};
-  new Set([...Object.keys(x.cols || {}), ...Object.keys(y.cols || {})]).forEach((s) => { cols[s] = { ...(x.cols || {})[s], ...(y.cols || {})[s] }; });
+  new Set([...Object.keys(x.cols || {}), ...Object.keys(y.cols || {})]).forEach((s) => {
+    cols[s] = { ...(x.cols || {})[s], ...(y.cols || {})[s] };
+  });
   return { top: { ...x.top, ...y.top }, hojas: { ...x.hojas, ...y.hojas }, cols };
 }

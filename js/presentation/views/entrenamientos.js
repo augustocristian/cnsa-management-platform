@@ -15,7 +15,8 @@ const nombreDia = (iso) => new Intl.DateTimeFormat(locale(), { weekday: 'long' }
 
 // Store events that can change what the list shows
 const HOJAS = new Set(['Entrenamientos', 'EntrenoLineas', 'Grupos']);
-const relevante = (ev) => ['remote', 'club', 'init'].includes(ev.type) || (ev.type === 'change' && (!ev.sheet || HOJAS.has(ev.sheet)));
+const relevante = (ev) =>
+  ['remote', 'club', 'init'].includes(ev.type) || (ev.type === 'change' && (!ev.sheet || HOJAS.has(ev.sheet)));
 
 export async function render(container, params, ctx) {
   useStyles('entrenamientos');
@@ -30,51 +31,147 @@ export async function render(container, params, ctx) {
     pdf: (s) => pdfSesion(ctx, s.id),
     eliminar: (s) => {
       const snap = svc.eliminar(s.id);
-      if (snap) toast.undo(t('entre.eliminada'), () => { svc.restaurar(snap); toast(t('entreno.lista.restaurada')); });
+      if (snap)
+        toast.undo(t('entre.eliminada'), () => {
+          svc.restaurar(snap);
+          toast(t('entreno.lista.restaurada'));
+        });
     },
   };
   const nueva = () => abrirFormularioSesion({ svc, fila: svc.borradorNuevo({ grupoId: estado.grupoId }) });
-  const irA = (lunes) => { estado.lunes = lunes; dibujar(); };
+  const irA = (lunes) => {
+    estado.lunes = lunes;
+    dibujar();
+  };
 
   function barra(semana) {
-    const sel = h('select', { 'aria-label': t('entre.f.grupo'), onchange: (e) => { estado.grupoId = e.target.value; dibujar(); } },
-      h('option', { value: '' }, t('entre.todos-grupos')), svc.grupos().map((g) => h('option', { value: g.id }, g.nombre)));
+    const sel = h(
+      'select',
+      {
+        'aria-label': t('entre.f.grupo'),
+        onchange: (e) => {
+          estado.grupoId = e.target.value;
+          dibujar();
+        },
+      },
+      h('option', { value: '' }, t('entre.todos-grupos')),
+      svc.grupos().map((g) => h('option', { value: g.id }, g.nombre)),
+    );
     sel.value = estado.grupoId;
-    return h('div', { class: 'ent-bar' },
-      h('div', { class: 'ent-nav' },
-        h('button', { type: 'button', class: 'btn btn--ghost btn-icon', 'data-accion': 'semana-anterior', 'aria-label': t('entre.semana-anterior'), onclick: () => irA(svc.semanaAnterior(estado.lunes)) }, icon('flecha-izq', { size: 20 })),
-        h('div', { class: 'ent-week num', role: 'status', 'aria-label': t('entreno.lista.semana-aria', { desde: corta(semana.lunes), hasta: corta(semana.fin) }) },
-          `${corta(semana.lunes)} – ${corta(semana.fin)} ${aFecha(semana.fin).getFullYear()}`),
-        h('button', { type: 'button', class: 'btn btn--ghost btn-icon', 'data-accion': 'semana-siguiente', 'aria-label': t('entre.semana-siguiente'), onclick: () => irA(svc.semanaSiguiente(estado.lunes)) }, icon('flecha-dcha', { size: 20 })),
-        h('button', { type: 'button', class: 'btn btn-sm', 'data-accion': 'hoy', onclick: () => irA(svc.lunesActual()) }, t('entre.hoy'))),
-      h('div', { class: 'ent-filtros' }, sel,
-        h('button', { type: 'button', class: 'btn btn-sm', 'data-accion': 'pdf-semana', onclick: () => pdfSemana(ctx, { lunes: estado.lunes, grupoId: estado.grupoId }) }, icon('descargar', { size: 16 }), h('span', null, t('entreno.pdf-semana')))));
+    return h(
+      'div',
+      { class: 'ent-bar' },
+      h(
+        'div',
+        { class: 'ent-nav' },
+        h(
+          'button',
+          {
+            type: 'button',
+            class: 'btn btn--ghost btn-icon',
+            'data-accion': 'semana-anterior',
+            'aria-label': t('entre.semana-anterior'),
+            onclick: () => irA(svc.semanaAnterior(estado.lunes)),
+          },
+          icon('flecha-izq', { size: 20 }),
+        ),
+        h(
+          'div',
+          {
+            class: 'ent-week num',
+            role: 'status',
+            'aria-label': t('entreno.lista.semana-aria', { desde: corta(semana.lunes), hasta: corta(semana.fin) }),
+          },
+          `${corta(semana.lunes)} – ${corta(semana.fin)} ${aFecha(semana.fin).getFullYear()}`,
+        ),
+        h(
+          'button',
+          {
+            type: 'button',
+            class: 'btn btn--ghost btn-icon',
+            'data-accion': 'semana-siguiente',
+            'aria-label': t('entre.semana-siguiente'),
+            onclick: () => irA(svc.semanaSiguiente(estado.lunes)),
+          },
+          icon('flecha-dcha', { size: 20 }),
+        ),
+        h(
+          'button',
+          { type: 'button', class: 'btn btn-sm', 'data-accion': 'hoy', onclick: () => irA(svc.lunesActual()) },
+          t('entre.hoy'),
+        ),
+      ),
+      h(
+        'div',
+        { class: 'ent-filtros' },
+        sel,
+        h(
+          'button',
+          {
+            type: 'button',
+            class: 'btn btn-sm',
+            'data-accion': 'pdf-semana',
+            onclick: () => pdfSemana(ctx, { lunes: estado.lunes, grupoId: estado.grupoId }),
+          },
+          icon('descargar', { size: 16 }),
+          h('span', null, t('entreno.pdf-semana')),
+        ),
+      ),
+    );
   }
 
   function dia(d) {
-    return h('section', { class: 'card ent-day' + (d.esHoy ? ' ent-today' : ''), 'aria-label': `${nombreDia(d.fecha)} ${corta(d.fecha)}` },
+    return h(
+      'section',
+      {
+        class: 'card ent-day' + (d.esHoy ? ' ent-today' : ''),
+        'aria-label': `${nombreDia(d.fecha)} ${corta(d.fecha)}`,
+      },
       h('h2', { class: 'ent-day-titulo' }, `${nombreDia(d.fecha)} ${corta(d.fecha)}`),
       d.sesiones.length
         ? d.sesiones.map((s) => tarjetaSesion(s, { nombreGrupo: svc.nombreGrupo, acciones }))
-        : h('p', { class: 'ent-empty' }, t('entre.sin-sesiones')));
+        : h('p', { class: 'ent-empty' }, t('entre.sin-sesiones')),
+    );
   }
 
   function dibujar() {
     const semana = svc.semana(estado.lunes, { grupoId: estado.grupoId });
     container.replaceChildren(
-      h('header', { class: 'page-head' }, h('h1', null, t('entre.titulo')),
-        h('div', { class: 'page-head-actions' }, h('button', { type: 'button', class: 'btn btn--primary', 'data-accion': 'nueva', onclick: nueva }, icon('mas', { size: 16 }), h('span', null, t('entre.nueva'))))),
+      h(
+        'header',
+        { class: 'page-head' },
+        h('h1', null, t('entre.titulo')),
+        h(
+          'div',
+          { class: 'page-head-actions' },
+          h(
+            'button',
+            { type: 'button', class: 'btn btn--primary', 'data-accion': 'nueva', onclick: nueva },
+            icon('mas', { size: 16 }),
+            h('span', null, t('entre.nueva')),
+          ),
+        ),
+      ),
       barra(semana),
       h('p', { class: 'ent-total' }, t('entre.total-semana', { n: semana.total })),
       semana.total
         ? h('div', { class: 'ent-dias' }, semana.dias.map(dia))
-        : empty({ icon: 'entrenamientos', title: t('entreno.lista.vacio-titulo'), text: t('entreno.lista.vacio-texto'), action: { label: t('entre.nueva'), onClick: nueva } }));
+        : empty({
+            icon: 'entrenamientos',
+            title: t('entreno.lista.vacio-titulo'),
+            text: t('entreno.lista.vacio-texto'),
+            action: { label: t('entre.nueva'), onClick: nueva },
+          }),
+    );
   }
 
   dibujar();
   if (ctx.store.on) {
     const off = ctx.store.on((ev) => {
-      if (!container.isConnected) { if (typeof off === 'function') off(); return; }
+      if (!container.isConnected) {
+        if (typeof off === 'function') off();
+        return;
+      }
       if (ev && !relevante(ev)) return; // sync status, cache and other sheets must not close an open menu
       dibujar();
     });

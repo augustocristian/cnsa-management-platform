@@ -31,14 +31,20 @@ export async function render(container, params, ctx) {
   useStyles('calendario');
   const { store, auth } = ctx;
   const hooks = ctx.cal || {}; // test hooks: servicio, ahora, descargar
-  const svc = hooks.servicio || ctx.servicioCalendario({ store, auth, etq: etiquetas, ahora: hooks.ahora || ctx.ahora });
+  const svc =
+    hooks.servicio || ctx.servicioCalendario({ store, auth, etq: etiquetas, ahora: hooks.ahora || ctx.ahora });
   const hoy = svc.hoy();
   const movil = typeof window.matchMedia === 'function' && window.matchMedia('(max-width: 759px)').matches;
   const pref = svc.preferencias();
   const vistaIni = D.vistaInicial({ guardada: pref.vista, movil });
   const st = {
-    vista: vistaIni, cursor: hoy, sel: hoy, filtros: { grupoId: '', piscina: '' },
-    rango: 'mes', alarma: pref.alarmaMin, ventana: pref.ventanaDias,
+    vista: vistaIni,
+    cursor: hoy,
+    sel: hoy,
+    filtros: { grupoId: '', piscina: '' },
+    rango: 'mes',
+    alarma: pref.alarmaMin,
+    ventana: pref.ventanaDias,
   };
   const grupos = svc.grupos();
   const v = { hoy, st, grupos, svc, etq: etiquetas, elegirDia };
@@ -48,11 +54,19 @@ export async function render(container, params, ctx) {
   // ---------- Pieces ----------
   const tituloEl = h('p', { class: 'cal-titulo', 'aria-live': 'polite', id: 'cal-titulo' });
   const cuerpo = h('div', { id: 'cal-cuerpo' });
-  const segBtns = D.VISTAS.map((x) => h('button', { type: 'button', dataset: { vista: x }, onclick: () => cambiarVista(x) }, t('cal.vista.' + x)));
+  const segBtns = D.VISTAS.map((x) =>
+    h('button', { type: 'button', dataset: { vista: x }, onclick: () => cambiarVista(x) }, t('cal.vista.' + x)),
+  );
 
   function titulo() {
-    if (st.vista === 'semana') { const l = D.lunesDe(st.cursor); return t('cal.semana-de', { a: fmtCorta(l), b: fmtCorta(D.addDias(l, 6)) }); }
-    if (st.vista === 'agenda') { const r = D.rangoVista('agenda', st.cursor); return `${fmtCorta(r.desde)} – ${fmtCorta(r.hasta)}`; }
+    if (st.vista === 'semana') {
+      const l = D.lunesDe(st.cursor);
+      return t('cal.semana-de', { a: fmtCorta(l), b: fmtCorta(D.addDias(l, 6)) });
+    }
+    if (st.vista === 'agenda') {
+      const r = D.rangoVista('agenda', st.cursor);
+      return `${fmtCorta(r.desde)} – ${fmtCorta(r.hasta)}`;
+    }
     return fmtMesAnio(st.cursor);
   }
   function cambiarVista(x) {
@@ -66,7 +80,11 @@ export async function render(container, params, ctx) {
     st.sel = D.seleccionTrasMover(st.vista, st.cursor, hoy);
     pintar();
   }
-  function irAHoy() { st.cursor = hoy; st.sel = hoy; pintar(); }
+  function irAHoy() {
+    st.cursor = hoy;
+    st.sel = hoy;
+    pintar();
+  }
   function elegirDia(f, enfocar) {
     st.sel = f;
     st.cursor = f;
@@ -75,49 +93,141 @@ export async function render(container, params, ctx) {
   }
 
   // ---------- Toolbar: navigation, view switch, filters ----------
-  const barra = h('div', { class: 'cal-toolbar' },
-    h('div', { class: 'cal-nav', role: 'group', 'aria-label': t('cal.navegacion') },
-      h('button', { type: 'button', class: 'btn btn-icon', 'aria-label': t('cal.anterior'), title: t('cal.anterior'), onclick: () => mover(-1) }, icon('flecha-izq', { size: 18 })),
+  const barra = h(
+    'div',
+    { class: 'cal-toolbar' },
+    h(
+      'div',
+      { class: 'cal-nav', role: 'group', 'aria-label': t('cal.navegacion') },
+      h(
+        'button',
+        {
+          type: 'button',
+          class: 'btn btn-icon',
+          'aria-label': t('cal.anterior'),
+          title: t('cal.anterior'),
+          onclick: () => mover(-1),
+        },
+        icon('flecha-izq', { size: 18 }),
+      ),
       tituloEl,
-      h('button', { type: 'button', class: 'btn btn-icon', 'aria-label': t('cal.siguiente'), title: t('cal.siguiente'), onclick: () => mover(1) }, icon('flecha-dcha', { size: 18 })),
-      h('button', { type: 'button', class: 'btn', onclick: irAHoy }, t('cal.hoy'))),
-    h('div', { class: 'segmented', role: 'group', 'aria-label': t('cal.vista.etiqueta') }, segBtns));
-  const filtros = h('div', { class: 'filters cal-filtros' },
-    h('div', { class: 'field' }, h('label', { class: 'field-control' }, h('span', { class: 'field-label' }, t('cal.filtro.grupo')),
-      h('select', { id: 'cal-grupo', onchange: (e) => { st.filtros.grupoId = e.target.value; pintar(); } },
-        h('option', { value: '' }, t('cal.filtro.grupo-todos')), grupos.map((g) => h('option', { value: g.id }, g.nombre))))),
-    h('div', { class: 'field' }, h('label', { class: 'field-control' }, h('span', { class: 'field-label' }, t('cal.filtro.piscina')),
-      h('select', { id: 'cal-piscina', onchange: (e) => { st.filtros.piscina = e.target.value; pintar(); } },
-        h('option', { value: '' }, t('cal.filtro.piscina-todas')), ['25', '50'].map((p) => h('option', { value: p }, p + ' m'))))));
+      h(
+        'button',
+        {
+          type: 'button',
+          class: 'btn btn-icon',
+          'aria-label': t('cal.siguiente'),
+          title: t('cal.siguiente'),
+          onclick: () => mover(1),
+        },
+        icon('flecha-dcha', { size: 18 }),
+      ),
+      h('button', { type: 'button', class: 'btn', onclick: irAHoy }, t('cal.hoy')),
+    ),
+    h('div', { class: 'segmented', role: 'group', 'aria-label': t('cal.vista.etiqueta') }, segBtns),
+  );
+  const filtros = h(
+    'div',
+    { class: 'filters cal-filtros' },
+    h(
+      'div',
+      { class: 'field' },
+      h(
+        'label',
+        { class: 'field-control' },
+        h('span', { class: 'field-label' }, t('cal.filtro.grupo')),
+        h(
+          'select',
+          {
+            id: 'cal-grupo',
+            onchange: (e) => {
+              st.filtros.grupoId = e.target.value;
+              pintar();
+            },
+          },
+          h('option', { value: '' }, t('cal.filtro.grupo-todos')),
+          grupos.map((g) => h('option', { value: g.id }, g.nombre)),
+        ),
+      ),
+    ),
+    h(
+      'div',
+      { class: 'field' },
+      h(
+        'label',
+        { class: 'field-control' },
+        h('span', { class: 'field-label' }, t('cal.filtro.piscina')),
+        h(
+          'select',
+          {
+            id: 'cal-piscina',
+            onchange: (e) => {
+              st.filtros.piscina = e.target.value;
+              pintar();
+            },
+          },
+          h('option', { value: '' }, t('cal.filtro.piscina-todas')),
+          ['25', '50'].map((p) => h('option', { value: p }, p + ' m')),
+        ),
+      ),
+    ),
+  );
 
   function pintar() {
     const lista = svc.eventos(D.rangoVista(st.vista, st.cursor), st.filtros);
     tituloEl.textContent = titulo();
     segBtns.forEach((b) => b.setAttribute('aria-pressed', b.dataset.vista === st.vista ? 'true' : 'false'));
-    const vista = st.vista === 'mes' ? vistaMes(lista, v) : st.vista === 'semana' ? vistaSemana(lista, v) : vistaAgenda(lista, v);
+    const vista =
+      st.vista === 'mes' ? vistaMes(lista, v) : st.vista === 'semana' ? vistaSemana(lista, v) : vistaAgenda(lista, v);
     cuerpo.replaceChildren(leyenda(lista, v), vista);
   }
 
   // ---------- Page header: ONE Export menu ----------
   const menuExportar = menuAcciones({
-    etiqueta: t('cal.exp.menu'), texto: t('cal.exp.menu'),
+    etiqueta: t('cal.exp.menu'),
+    texto: t('cal.exp.menu'),
     items: [
-      { label: t('cal.exp.descargar'), icono: 'descargar', onClick: () => exportar({ svc, st, hooks, hoy, abrir: false }) },
-      { label: t('cal.exp.anadir'), icono: 'calendario', onClick: () => exportar({ svc, st, hooks, hoy, abrir: true }) },
-      { label: t('cal.exp.opciones'), icono: 'ajustes', onClick: () => abrirOpcionesExportacion({ svc, st, onCambio: () => {} }) },
+      {
+        label: t('cal.exp.descargar'),
+        icono: 'descargar',
+        onClick: () => exportar({ svc, st, hooks, hoy, abrir: false }),
+      },
+      {
+        label: t('cal.exp.anadir'),
+        icono: 'calendario',
+        onClick: () => exportar({ svc, st, hooks, hoy, abrir: true }),
+      },
+      {
+        label: t('cal.exp.opciones'),
+        icono: 'ajustes',
+        onClick: () => abrirOpcionesExportacion({ svc, st, onCambio: () => {} }),
+      },
     ],
   });
   menuExportar.id = 'cal-exportar';
   // Descriptive text under the title: what is being shown
   container.append(
-    h('header', { class: 'page-head' }, h('h1', null, t('cal.titulo')), h('div', { class: 'page-head-actions' }, menuExportar), h('p', { class: 'page-head-sub', id: 'cal-ambito' }, t('cal.ambito.todos'))),
-    barra, filtros, cuerpo, panelSync({ svc, st }));
+    h(
+      'header',
+      { class: 'page-head' },
+      h('h1', null, t('cal.titulo')),
+      h('div', { class: 'page-head-actions' }, menuExportar),
+      h('p', { class: 'page-head-sub', id: 'cal-ambito' }, t('cal.ambito.todos')),
+    ),
+    barra,
+    filtros,
+    cuerpo,
+    panelSync({ svc, st }),
+  );
   pintar();
 
   // Repaint when data changes (another device of the same person, import...) while the view is on screen.
   if (store.on) {
     const off = store.on(() => {
-      if (!container.isConnected) { if (typeof off === 'function') off(); return; }
+      if (!container.isConnected) {
+        if (typeof off === 'function') off();
+        return;
+      }
       pintar();
     });
   }

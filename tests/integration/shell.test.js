@@ -4,20 +4,26 @@ import { test, before, beforeEach } from 'node:test';
 import assert from 'node:assert/strict';
 import { setupEnv, importApp, tick } from '../helpers/env.js';
 
-let shell, nav, banners, menu, header, model, router, ui, a11y, i18n, avisosSvc;
+let shell, banners, model, router, ui, a11y, i18n, avisosSvc;
 
 before(async () => {
   // Reuse the jsdom of the other tests when they ran first in this process; create one when run alone.
   if (typeof globalThis.window === 'undefined') setupEnv();
-  [shell, nav, banners, menu, header, model, router, ui, a11y, i18n, avisosSvc] = await Promise.all([
-    importApp('js/presentation/shell/shell.js'), importApp('js/presentation/shell/nav.js'), importApp('js/presentation/shell/banners.js'),
-    importApp('js/presentation/shell/accountMenu.js'), importApp('js/presentation/shell/header.js'), importApp('js/presentation/shell/navModel.js'),
-    importApp('js/presentation/router.js'), importApp('js/presentation/ui.js'), importApp('js/presentation/shell/a11y.js'), importApp('js/presentation/i18n/i18n.js'),
+  [shell, banners, model, router, ui, a11y, i18n, avisosSvc] = await Promise.all([
+    importApp('js/presentation/shell/shell.js'),
+    importApp('js/presentation/shell/banners.js'),
+    importApp('js/presentation/shell/navModel.js'),
+    importApp('js/presentation/router.js'),
+    importApp('js/presentation/ui.js'),
+    importApp('js/presentation/shell/a11y.js'),
+    importApp('js/presentation/i18n/i18n.js'),
     importApp('js/application/avisosService.js'),
   ]);
   for (const name of model.RUTAS) {
     router.registerRoute(name, async () => ({
-      render: async (c) => { c.append(ui.h('header', { class: 'page-head' }, ui.h('h1', null, 'View ' + name))); },
+      render: async (c) => {
+        c.append(ui.h('header', { class: 'page-head' }, ui.h('h1', null, 'View ' + name)));
+      },
     }));
   }
 });
@@ -25,20 +31,42 @@ before(async () => {
 function crearRt({ demo = false, comunicaciones = [], offline = false, clientId = false } = {}) {
   const llamadas = { logout: 0, sync: 0, conectarDemo: 0, salirDemo: 0, configurarDrive: 0 };
   const store = {
-    club: { nombre: 'Club Prueba', lema: 'Siempre adelante' }, status: 'sincronizado', mode: demo ? 'demo' : 'drive',
-    list: (hoja) => (hoja === 'Comunicaciones' ? comunicaciones : []), on() {},
+    club: { nombre: 'Club Prueba', lema: 'Siempre adelante' },
+    status: 'sincronizado',
+    mode: demo ? 'demo' : 'drive',
+    list: (hoja) => (hoja === 'Comunicaciones' ? comunicaciones : []),
+    on() {},
   };
   const rt = {
-    ui, store, auth: {}, prefs: { get: () => true, set() {} }, offline, menu: null, rutaMostrada: '', actualizarVersion: null, ctxVista: {},
+    ui,
+    store,
+    auth: {},
+    prefs: { get: () => true, set() {} },
+    offline,
+    menu: null,
+    rutaMostrada: '',
+    actualizarVersion: null,
+    ctxVista: {},
     ahora: () => new Date(2026, 9, 14, 10, 30),
     conexion: {
       esDemo: () => store.mode === 'demo',
       puedeConectar: () => clientId, // a Google Client ID exists
-      configurarDrive: () => { llamadas.configurarDrive++; },
-      conectarDesdeDemo: () => { llamadas.conectarDemo++; }, salirDeDemo: () => { llamadas.salirDemo++; },
+      configurarDrive: () => {
+        llamadas.configurarDrive++;
+      },
+      conectarDesdeDemo: () => {
+        llamadas.conectarDemo++;
+      },
+      salirDeDemo: () => {
+        llamadas.salirDemo++;
+      },
     },
-    logout: () => { llamadas.logout++; },
-    sincronizar: async () => { llamadas.sync++; },
+    logout: () => {
+      llamadas.logout++;
+    },
+    sincronizar: async () => {
+      llamadas.sync++;
+    },
     reconectar: async () => true,
   };
   rt.avisos = avisosSvc.crearAvisosService({ listar: () => store.list('Comunicaciones'), ahora: rt.ahora });
@@ -118,11 +146,14 @@ test('settings menu: language flags, theme, Drive status, disconnect with confir
 test('settings menu status follows the store: pending, offline and error', async () => {
   const rt = crearRt();
   await shell.renderShell(rt);
-  rt.store.status = 'pendiente'; shell.refrescarShell(rt);
+  rt.store.status = 'pendiente';
+  shell.refrescarShell(rt);
   assert.equal(document.querySelector('.account-btn').getAttribute('aria-label'), 'Ajustes y conexión: Sincronizando…');
-  rt.store.status = 'error'; shell.refrescarShell(rt);
+  rt.store.status = 'error';
+  shell.refrescarShell(rt);
   assert.match(document.querySelector('.account-btn').getAttribute('aria-label'), /Error de sincronización/);
-  rt.offline = true; shell.refrescarShell(rt);
+  rt.offline = true;
+  shell.refrescarShell(rt);
   assert.match(document.querySelector('.account-btn').getAttribute('aria-label'), /Sin conexión/);
 });
 
@@ -130,14 +161,33 @@ test('navigation: Home plus three groups; no swimsuits entry; 4 bar items plus M
   const rt = crearRt();
   await shell.renderShell(rt);
   const items = [...document.querySelectorAll('nav.sidebar a.nav-item')].map((a) => a.dataset.route);
-  assert.deepEqual(items, ['inicio', 'nadadores', 'grupos', 'entrenamientos', 'asistencia', 'calendario', 'planificacion', 'cargas', 'marcas', 'comunicaciones', 'club', 'tutorial']);
+  assert.deepEqual(items, [
+    'inicio',
+    'nadadores',
+    'grupos',
+    'entrenamientos',
+    'asistencia',
+    'calendario',
+    'planificacion',
+    'cargas',
+    'marcas',
+    'comunicaciones',
+    'club',
+    'tutorial',
+  ]);
   assert.ok(!items.includes('banador'));
   const titulos = [...document.querySelectorAll('nav.sidebar .nav-group-title')].map((p) => p.textContent);
   assert.deepEqual(titulos, ['Personas', 'Entrenamiento', 'Club']);
-  const barra = [...document.querySelectorAll('nav.sidebar a.nav-item:not(.nav-item--extra)')].map((a) => a.dataset.route);
+  const barra = [...document.querySelectorAll('nav.sidebar a.nav-item:not(.nav-item--extra)')].map(
+    (a) => a.dataset.route,
+  );
   assert.deepEqual(barra, model.BARRA_MOVIL);
   assert.ok(document.querySelector('nav.sidebar .nav-more'));
-  assert.equal(document.querySelectorAll('nav.sidebar h1, nav.sidebar h2, nav.sidebar h3').length, 0, 'group titles are not headings');
+  assert.equal(
+    document.querySelectorAll('nav.sidebar h1, nav.sidebar h2, nav.sidebar h3').length,
+    0,
+    'group titles are not headings',
+  );
   // distinct Tutorial icon: not the Home fallback
   const icons = await importApp('js/presentation/icons.js');
   assert.notEqual(model.iconoDe('tutorial'), 'inicio');
@@ -166,8 +216,15 @@ test('More sheet: groups, active item, closes after choosing', async () => {
   const hoja = document.querySelector('.sheet');
   assert.ok(hoja);
   assert.equal(hoja.querySelector('h2').textContent, 'Más');
-  const grupos = [...hoja.querySelectorAll('.mas-group')].map((g) => [g.querySelector('.nav-group-title').textContent, [...g.querySelectorAll('.mas-item')].map((a) => a.dataset.route)]);
-  assert.deepEqual(grupos, [['Personas', ['nadadores', 'grupos']], ['Entrenamiento', ['planificacion', 'cargas', 'marcas']], ['Club', ['comunicaciones', 'club', 'tutorial']]]);
+  const grupos = [...hoja.querySelectorAll('.mas-group')].map((g) => [
+    g.querySelector('.nav-group-title').textContent,
+    [...g.querySelectorAll('.mas-item')].map((a) => a.dataset.route),
+  ]);
+  assert.deepEqual(grupos, [
+    ['Personas', ['nadadores', 'grupos']],
+    ['Entrenamiento', ['planificacion', 'cargas', 'marcas']],
+    ['Club', ['comunicaciones', 'club', 'tutorial']],
+  ]);
   assert.equal(hoja.querySelector('.mas-item.active').dataset.route, 'cargas');
   assert.equal(hoja.querySelector('.mas-item.active').getAttribute('aria-current'), 'page');
   hoja.querySelector('.mas-item[data-route="marcas"]').click();
@@ -228,13 +285,16 @@ test('banners: demo mode, offline and update use the alert component and are rep
   const [configurar, salir] = demo.querySelectorAll('button');
   assert.equal(configurar.textContent, 'Configurar Google Drive', 'without a Client ID there is no Connect button yet');
   assert.equal(salir.textContent, 'Salir de la demo');
-  configurar.click(); salir.click();
+  configurar.click();
+  salir.click();
   assert.deepEqual([rt.llamadas.configurarDrive, rt.llamadas.conectarDemo, rt.llamadas.salirDemo], [1, 0, 1]);
   assert.equal(slot.querySelector('[data-aviso="sin-conexion"]'), null, 'no offline banner in demo');
   // the menu shows the demo status and "Exit demo" instead of "Disconnect"
   document.querySelector('.account-btn').click();
   assert.equal(document.querySelector('.account-panel .status-text').textContent, 'Modo demostración');
-  assert.ok(![...document.querySelectorAll('.account-panel button')].some((b) => b.textContent.trim() === 'Desconectar Drive'));
+  assert.ok(
+    ![...document.querySelectorAll('.account-panel button')].some((b) => b.textContent.trim() === 'Desconectar Drive'),
+  );
 
   // same content -> same nodes (no re-announcement)
   const antes = slot.firstElementChild;
@@ -248,7 +308,9 @@ test('banners: demo mode, offline and update use the alert component and are rep
   assert.ok(off && off.classList.contains('alert--warn'));
   assert.equal(off.getAttribute('role'), 'alert');
   let recargado = 0;
-  rt2.actualizarVersion = () => { recargado++; };
+  rt2.actualizarVersion = () => {
+    recargado++;
+  };
   banners.pintarBanners(rt2);
   const up = document.querySelector('#cnl-avisos [data-aviso="actualizacion"]');
   assert.equal(up.textContent.includes('versión nueva'), true);
@@ -265,7 +327,11 @@ test('banner in demo mode: once a Client ID exists the action is Connect Google 
   conectar.click();
   assert.deepEqual([rt.llamadas.conectarDemo, rt.llamadas.configurarDrive], [1, 0]);
   document.querySelector('.account-btn').click();
-  assert.ok([...document.querySelectorAll('.account-panel button')].some((b) => b.textContent.trim() === 'Conectar Google Drive'));
+  assert.ok(
+    [...document.querySelectorAll('.account-panel button')].some(
+      (b) => b.textContent.trim() === 'Conectar Google Drive',
+    ),
+  );
 });
 
 test('banner in demo mode without a Client ID: menu offers Set up Google Drive', async () => {
@@ -279,12 +345,27 @@ test('banner in demo mode without a Client ID: menu offers Set up Google Drive',
 
 test('bell: counts recent notices written after the last visit and resets when Notices opens', async () => {
   const hoy = '2026-10-14';
-  const rt = crearRt({ comunicaciones: [{ fecha: hoy, titulo: 'a' }, { fecha: '2026-10-10', titulo: 'b' }, { fecha: '2026-09-01', titulo: 'vieja' }] });
+  const rt = crearRt({
+    comunicaciones: [
+      { fecha: hoy, titulo: 'a' },
+      { fecha: '2026-10-10', titulo: 'b' },
+      { fecha: '2026-09-01', titulo: 'vieja' },
+    ],
+  });
   await shell.renderShell(rt);
   assert.equal(document.querySelector('.bell').getAttribute('aria-label'), 'Avisos: 2');
   assert.equal(document.querySelector('.bell-count').textContent, '2');
   let visto = null;
-  rt.avisos = avisosSvc.crearAvisosService({ listar: () => rt.store.list('Comunicaciones'), ahora: rt.ahora, visto: { leer: () => visto, escribir: (d) => { visto = d; } } });
+  rt.avisos = avisosSvc.crearAvisosService({
+    listar: () => rt.store.list('Comunicaciones'),
+    ahora: rt.ahora,
+    visto: {
+      leer: () => visto,
+      escribir: (d) => {
+        visto = d;
+      },
+    },
+  });
   await abrirRuta(rt, 'comunicaciones');
   assert.equal(visto, hoy);
   assert.equal(document.querySelector('.bell').getAttribute('aria-label'), 'Avisos: 0');
@@ -301,10 +382,16 @@ test('language change keeps the settings menu open on the language control', asy
   const rt2 = rt;
   await shell.renderShell(rt2);
   rt2.menu.abrir({ foco: 'idioma' });
-  assert.equal(document.querySelector('.account-btn').getAttribute('aria-label'), 'Settings and connection: Drive connected');
+  assert.equal(
+    document.querySelector('.account-btn').getAttribute('aria-label'),
+    'Settings and connection: Drive connected',
+  );
   assert.equal(document.activeElement.dataset.lang, 'en');
   assert.equal(document.querySelector('nav.sidebar .nav-more .nav-label').textContent, 'More');
-  assert.deepEqual([...document.querySelectorAll('nav.sidebar .nav-group-title')].map((p) => p.textContent), ['People', 'Training', 'Club']);
+  assert.deepEqual(
+    [...document.querySelectorAll('nav.sidebar .nav-group-title')].map((p) => p.textContent),
+    ['People', 'Training', 'Club'],
+  );
 });
 
 test('title helper composes "view · club" and falls back to the app name', () => {

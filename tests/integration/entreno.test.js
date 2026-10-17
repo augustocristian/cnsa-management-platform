@@ -13,23 +13,42 @@ const AHORA = () => new Date(2026, 9, 14, 10, 30);
 const ascii = (s) => s.normalize('NFD').replace(/[̀-ͯ]/g, '');
 
 function fakeStore(datos = {}) {
-  const db = { Entrenamientos: [], EntrenoLineas: [], Grupos: [], Cargas: [], Nadadores: [], Asistencia: [], Marcas: [], Comunicaciones: [], ...datos };
+  const db = {
+    Entrenamientos: [],
+    EntrenoLineas: [],
+    Grupos: [],
+    Cargas: [],
+    Nadadores: [],
+    Asistencia: [],
+    Marcas: [],
+    Comunicaciones: [],
+    ...datos,
+  };
   const oyentes = new Set();
   let n = 0;
   const emit = () => oyentes.forEach((f) => f({ type: 'change' }));
   return {
-    db, club: { nombre: 'Club Test', colorPrimario: '#4aa32a', colorSecundario: '#2f6f1a' }, mode: 'drive',
+    db,
+    club: { nombre: 'Club Test', colorPrimario: '#4aa32a', colorSecundario: '#2f6f1a' },
+    mode: 'drive',
     list: (h) => (db[h] || []).slice(),
     get: (h, id) => (db[h] || []).find((r) => r.id === String(id)) || null,
     upsert(h, row) {
-      const fila = { ...row, id: row.id ? String(row.id) : 'id' + (++n) };
+      const fila = { ...row, id: row.id ? String(row.id) : 'id' + ++n };
       const i = db[h].findIndex((r) => r.id === fila.id);
-      if (i >= 0) db[h][i] = fila; else db[h].push(fila);
+      if (i >= 0) db[h][i] = fila;
+      else db[h].push(fila);
       emit();
       return fila;
     },
-    remove(h, id) { db[h] = db[h].filter((r) => r.id !== String(id)); emit(); },
-    on(f) { oyentes.add(f); return () => oyentes.delete(f); },
+    remove(h, id) {
+      db[h] = db[h].filter((r) => r.id !== String(id));
+      emit();
+    },
+    on(f) {
+      oyentes.add(f);
+      return () => oyentes.delete(f);
+    },
   };
 }
 
@@ -37,7 +56,15 @@ const L = (set, orden, extra) => ({ id: `l${set}-${orden}`, entrenamientoId: 's1
 const PLAN = [
   L(1, 1, { tiempoMin: 7, objetivo: 'Calentamiento', series: 1, distancia: 300, ejercicio: 'Suave' }),
   L(1, 2, { tiempoMin: 6, series: 4, distancia: 50, ejercicio: '25tec/25N' }),
-  L(2, 1, { tiempoMin: 12, objetivo: 'Piernas', series: 8, distancia: 50, salida: "C/1'10\"", ejercicio: 'Pn C', material: 'Tabla' }),
+  L(2, 1, {
+    tiempoMin: 12,
+    objetivo: 'Piernas',
+    series: 8,
+    distancia: 50,
+    salida: 'C/1\'10"',
+    ejercicio: 'Pn C',
+    material: 'Tabla',
+  }),
 ];
 
 async function montar({ modo = 'drive', conPlan = true, extraDatos = {} } = {}) {
@@ -48,11 +75,41 @@ async function montar({ modo = 'drive', conPlan = true, extraDatos = {} } = {}) 
   const P = await importApp('js/infrastructure/pdfEntreno.js');
   P.usarLibreria(libNode());
   const store = fakeStore({
-    Grupos: [{ id: 'g2', nombre: 'Alevín' }, { id: 'g1', nombre: 'Promoción' }],
+    Grupos: [
+      { id: 'g2', nombre: 'Alevín' },
+      { id: 'g1', nombre: 'Promoción' },
+    ],
     Entrenamientos: [
-      { id: 's1', fecha: HOY, hora: '19:50', grupoId: 'g2', titulo: 'Sesión Alevín', estado: 'planificado', piscina: '50', tipoSesion: 'Aer+Ritmo', materialDia: 'JJDD', notasGenerales: 'Tabla' },
-      { id: 's2', fecha: HOY, hora: '17:30', grupoId: 'g1', titulo: 'Sesión Promo', estado: 'planificado', piscina: '25' },
-      { id: 's3', fecha: MANANA, hora: '18:00', grupoId: 'g2', titulo: 'Sesión mañana', estado: 'planificado', piscina: '25' },
+      {
+        id: 's1',
+        fecha: HOY,
+        hora: '19:50',
+        grupoId: 'g2',
+        titulo: 'Sesión Alevín',
+        estado: 'planificado',
+        piscina: '50',
+        tipoSesion: 'Aer+Ritmo',
+        materialDia: 'JJDD',
+        notasGenerales: 'Tabla',
+      },
+      {
+        id: 's2',
+        fecha: HOY,
+        hora: '17:30',
+        grupoId: 'g1',
+        titulo: 'Sesión Promo',
+        estado: 'planificado',
+        piscina: '25',
+      },
+      {
+        id: 's3',
+        fecha: MANANA,
+        hora: '18:00',
+        grupoId: 'g2',
+        titulo: 'Sesión mañana',
+        estado: 'planificado',
+        piscina: '25',
+      },
     ],
     EntrenoLineas: conPlan ? PLAN.map((l) => ({ ...l })) : [],
     Nadadores: [{ id: 'n1', nombre: 'Carla', apellidos: 'Menéndez', grupoId: 'g2', categoria: 'Alevín' }],
@@ -61,18 +118,32 @@ async function montar({ modo = 'drive', conPlan = true, extraDatos = {} } = {}) 
   store.mode = modo;
   const blobs = [];
   const descargas = [];
-  globalThis.URL.createObjectURL = (b) => { blobs.push(b); return 'blob:test/' + blobs.length; };
+  globalThis.URL.createObjectURL = (b) => {
+    blobs.push(b);
+    return 'blob:test/' + blobs.length;
+  };
   globalThis.URL.revokeObjectURL = () => {};
-  document.addEventListener('click', (e) => {
-    const a = e.target.closest && e.target.closest('a[download]');
-    if (a) { descargas.push({ nombre: a.getAttribute('download'), href: a.getAttribute('href') }); e.preventDefault(); }
-  }, true);
+  document.addEventListener(
+    'click',
+    (e) => {
+      const a = e.target.closest && e.target.closest('a[download]');
+      if (a) {
+        descargas.push({ nombre: a.getAttribute('download'), href: a.getAttribute('href') });
+        e.preventDefault();
+      }
+    },
+    true,
+  );
   const container = document.createElement('main');
   document.body.appendChild(container);
   const ctx = {
-    store, auth: { user: null, on: () => () => {} }, ui, ahora: AHORA,
+    store,
+    auth: { user: null, on: () => () => {} },
+    ui,
+    ahora: AHORA,
     pdf: { generar: (fichas, etiquetas) => P.generar(fichas, etiquetas) },
-    guardarPdfEnDrive: async ({ blob, nombre, drive }) => (await importApp('js/infrastructure/driveEntrenos.js')).guardarPdfEnDrive({ drive, blob, nombre }),
+    guardarPdfEnDrive: async ({ blob, nombre, drive }) =>
+      (await importApp('js/infrastructure/driveEntrenos.js')).guardarPdfEnDrive({ drive, blob, nombre }),
   };
   const vista = await importApp('js/presentation/views/entrenamientos.js');
   await vista.render(container, [], ctx);
@@ -80,23 +151,50 @@ async function montar({ modo = 'drive', conPlan = true, extraDatos = {} } = {}) 
   return { store, ui, ctx, container, blobs, descargas, vista, P };
 }
 
-const test = (name, fn) => base(name, async () => { try { await fn(); } finally { delete globalThis.matchMedia; } });
+const test = (name, fn) =>
+  base(name, async () => {
+    try {
+      await fn();
+    } finally {
+      delete globalThis.matchMedia;
+    }
+  });
 const botones = (raiz) => [...raiz.querySelectorAll('button')];
 const botonTexto = (raiz, txt, exacto = true) => {
-  const b = botones(raiz).find((x) => (exacto ? x.textContent.trim() === txt : x.textContent.includes(txt)) || x.getAttribute('aria-label') === txt);
-  if (!b) throw new Error('No button: ' + txt + ' in ' + botones(raiz).map((x) => x.textContent.trim()).join(' | '));
+  const b = botones(raiz).find(
+    (x) =>
+      (exacto ? x.textContent.trim() === txt : x.textContent.includes(txt)) || x.getAttribute('aria-label') === txt,
+  );
+  if (!b)
+    throw new Error(
+      'No button: ' +
+        txt +
+        ' in ' +
+        botones(raiz)
+          .map((x) => x.textContent.trim())
+          .join(' | '),
+    );
   return b;
 };
-const tarjeta = (c, titulo) => [...c.container.querySelectorAll('.ent-sess')].find((e) => e.textContent.includes(titulo));
+const tarjeta = (c, titulo) =>
+  [...c.container.querySelectorAll('.ent-sess')].find((e) => e.textContent.includes(titulo));
 async function esperar(fn, ms = 4000) {
   const fin = Date.now() + ms;
   for (;;) {
-    try { const r = fn(); if (r) return r; } catch (e) { /* retry */ }
+    try {
+      const r = fn();
+      if (r) return r;
+    } catch (e) {
+      /* retry */
+    }
     if (Date.now() > fin) throw new Error('Timed out waiting for: ' + fn);
     await tick(20);
   }
 }
-const poner = (el, v) => { el.value = v; el.dispatchEvent(new window.Event('input', { bubbles: true })); };
+const poner = (el, v) => {
+  el.value = v;
+  el.dispatchEvent(new window.Event('input', { bubbles: true }));
+};
 const editor = () => document.querySelector('.enp-ov');
 const fila = (set, orden) => editor().querySelector(`.enp-row[data-set="${set}"][data-orden="${orden}"]`);
 const campo = (set, orden, c) => fila(set, orden).querySelector(`[data-campo="${c}"]`);
@@ -105,7 +203,9 @@ const estadoTexto = () => editor().querySelector('.enp-estado').textContent;
 
 // Overflow menus: open the one whose button has this aria-label and click an item by its text.
 function abrirMenu(raiz, etiqueta) {
-  const b = [...raiz.querySelectorAll('button[aria-haspopup="menu"]')].find((x) => x.getAttribute('aria-label') === etiqueta);
+  const b = [...raiz.querySelectorAll('button[aria-haspopup="menu"]')].find(
+    (x) => x.getAttribute('aria-label') === etiqueta,
+  );
   if (!b) throw new Error('No menu button: ' + etiqueta);
   b.click();
   return document.querySelector('.enp-mn');
@@ -113,7 +213,13 @@ function abrirMenu(raiz, etiqueta) {
 function elegir(raiz, etiquetaMenu, item) {
   const m = abrirMenu(raiz, etiquetaMenu);
   const it = [...m.querySelectorAll('[role="menuitem"]')].find((x) => x.textContent.trim() === item);
-  if (!it) throw new Error('No menu item: ' + item + ' in ' + [...m.querySelectorAll('[role="menuitem"]')].map((x) => x.textContent.trim()).join(' | '));
+  if (!it)
+    throw new Error(
+      'No menu item: ' +
+        item +
+        ' in ' +
+        [...m.querySelectorAll('[role="menuitem"]')].map((x) => x.textContent.trim()).join(' | '),
+    );
   it.click();
   return it;
 }
@@ -132,14 +238,19 @@ test('list: summary of the plan, ONE primary action and a more menu per card; co
   const c = await montar();
   const s = tarjeta(c, 'Sesión Alevín');
   assert.match(s.textContent, /900 m · 25 min/);
-  assert.deepEqual(botones(s).map((b) => b.getAttribute('aria-haspopup') || b.textContent.trim()), ['Abrir plan', 'menu']);
+  assert.deepEqual(
+    botones(s).map((b) => b.getAttribute('aria-haspopup') || b.textContent.trim()),
+    ['Abrir plan', 'menu'],
+  );
   assert.ok(s.querySelector('.btn--primary'));
   assert.doesNotMatch(tarjeta(c, 'Sesión Promo').textContent, / m · \d+ min/, 'no plan, no summary');
   assert.ok(botonTexto(c.container, 'Generar PDF de la semana', false));
   assert.equal(c.container.querySelectorAll('h1').length, 1);
   assert.ok(c.container.querySelector('.ent-today'), 'today is highlighted (fixed clock)');
   assert.match(c.container.querySelector('.ent-week').textContent, /12 oct\. – 18 oct\. 2026|12 oct – 18 oct 2026/);
-  const items = [...abrirMenu(s, 'Más acciones de Sesión Alevín').querySelectorAll('[role="menuitem"]')].map((x) => x.textContent.trim());
+  const items = [...abrirMenu(s, 'Más acciones de Sesión Alevín').querySelectorAll('[role="menuitem"]')].map((x) =>
+    x.textContent.trim(),
+  );
   assert.deepEqual(items, ['Marcar realizado', 'Editar', 'Duplicar', 'Descargar PDF', 'Eliminar']);
 });
 
@@ -183,7 +294,10 @@ test('session form: inline validation (required, volume range) and nothing is sa
   const c = await montar();
   botonTexto(c.container, 'Nueva sesión').click();
   const m = await dialogo();
-  const campoDe = (txt) => [...m.querySelectorAll('label')].find((l) => l.textContent.trim().startsWith(txt)).querySelector('input,select,textarea');
+  const campoDe = (txt) =>
+    [...m.querySelectorAll('label')]
+      .find((l) => l.textContent.trim().startsWith(txt))
+      .querySelector('input,select,textarea');
   botonTexto(m, 'Guardar').click();
   await tick();
   assert.equal(m.querySelectorAll('.field-error').length >= 1, true);
@@ -224,7 +338,8 @@ test('PDF of a session from the card menu: name Group-date-day.pdf and content',
   assert.match(d.info.cabecera, /^%PDF-/);
   assert.equal(d.info.paginas, 1);
   const t = d.info.texto.replace(/\s+/g, ' ');
-  for (const e of ['Aer+Ritmo', 'JJDD', 'Calentamiento', 'Piernas', "C/1'10\"", 'TOTALES', 'Club Test']) assert.ok(t.includes(e), e);
+  for (const e of ['Aer+Ritmo', 'JJDD', 'Calentamiento', 'Piernas', 'C/1\'10"', 'TOTALES', 'Club Test'])
+    assert.ok(t.includes(e), e);
   await esperar(() => /PDF generado: Alevin-/.test(document.querySelector('#toasts')?.textContent || ''));
 });
 
@@ -269,8 +384,16 @@ test('editor: compact two-line rows, no autofocus, live totals, mobile numeric k
   assert.equal(totalTexto(), 'Total: 900 m · 25 min · 2 sets');
   assert.equal(editor().querySelectorAll('.enp-set').length, 2);
   const f = fila(1, 2);
-  assert.ok(f.querySelector('.enp-l1 [data-campo="series"]') && f.querySelector('.enp-l1 [data-campo="distancia"]') && f.querySelector('.enp-l1 [data-campo="ejercicio"]'), 'line 1 = series x distance + exercise');
-  assert.deepEqual([...f.querySelectorAll('.enp-l2 .enp-chip')].map((b) => b.dataset.chip), ['salida', 'tiempoMin', 'material', 'objetivo', 'contenidos', 'mas']);
+  assert.ok(
+    f.querySelector('.enp-l1 [data-campo="series"]') &&
+      f.querySelector('.enp-l1 [data-campo="distancia"]') &&
+      f.querySelector('.enp-l1 [data-campo="ejercicio"]'),
+    'line 1 = series x distance + exercise',
+  );
+  assert.deepEqual(
+    [...f.querySelectorAll('.enp-l2 .enp-chip')].map((b) => b.dataset.chip),
+    ['salida', 'tiempoMin', 'material', 'objetivo', 'contenidos', 'mas'],
+  );
   assert.equal(campo(1, 1, 'ejercicio').value, 'Suave');
   assert.equal(fila(1, 2).querySelector('output').textContent, '200');
   poner(campo(1, 2, 'series'), '6');
@@ -279,12 +402,15 @@ test('editor: compact two-line rows, no autofocus, live totals, mobile numeric k
   poner(campo(2, 1, 'tiempoMin'), '20');
   assert.equal(totalTexto(), 'Total: 1000 m · 33 min · 2 sets');
   assert.match(editor().querySelectorAll('.enp-set-tot')[0].textContent, /600 m · 13 min/);
-  for (const cmp of ['tiempoMin', 'series', 'distancia']) assert.equal(campo(1, 1, cmp).getAttribute('inputmode'), 'numeric', cmp);
+  for (const cmp of ['tiempoMin', 'series', 'distancia'])
+    assert.equal(campo(1, 1, cmp).getAttribute('inputmode'), 'numeric', cmp);
   assert.equal(campo(1, 1, 'salida').getAttribute('inputmode'), 'text');
   assert.equal(campo(1, 1, 'salida').getAttribute('autocapitalize'), 'off');
   assert.equal(campo(1, 1, 'objetivo').getAttribute('list'), 'enp-dl-objetivo');
   const opciones = [...document.querySelectorAll('#enp-dl-objetivo option')].map((o) => o.value);
-  assert.ok(opciones.includes('Calentamiento') && opciones.includes('Piernas') && opciones.includes('Vuelta a la calma'));
+  assert.ok(
+    opciones.includes('Calentamiento') && opciones.includes('Piernas') && opciones.includes('Vuelta a la calma'),
+  );
   assert.ok(editor().querySelector('#enp-dl-distancia option[value="100"]'));
 });
 
@@ -308,7 +434,10 @@ test('editor: chips show the values, open one inline pane at a time and the note
   chip('material').click();
   assert.ok(f.querySelector('[data-pane="material"]').hidden, 'tapping again closes it');
   chip('mas').click();
-  assert.ok(f.querySelector('[data-pane="mas"] [data-campo="notas"]') && f.querySelector('[data-pane="mas"] [data-campo="bloque"]'));
+  assert.ok(
+    f.querySelector('[data-pane="mas"] [data-campo="notas"]') &&
+      f.querySelector('[data-pane="mas"] [data-campo="bloque"]'),
+  );
   poner(campo(2, 1, 'notas'), 'Contar brazadas');
   assert.match(chip('mas').className, /enp-chip--lleno/);
   poner(campo(2, 1, 'salida'), '');
@@ -339,10 +468,14 @@ test('editor: add, duplicate, move and remove sets and rows (set and row menus)'
 test('editor: Enter moves to the next row and creates one at the end; rows move, duplicate and are removed from the row menu', async () => {
   const c = await montar();
   abrirPlan(c, 'Sesión Alevín');
-  campo(1, 2, 'ejercicio').dispatchEvent(new window.KeyboardEvent('keydown', { key: 'Enter', bubbles: true, cancelable: true }));
+  campo(1, 2, 'ejercicio').dispatchEvent(
+    new window.KeyboardEvent('keydown', { key: 'Enter', bubbles: true, cancelable: true }),
+  );
   assert.ok(fila(1, 3), 'Enter on the last row of a set adds a new one');
   assert.equal(document.activeElement, campo(1, 3, 'ejercicio'));
-  campo(1, 1, 'ejercicio').dispatchEvent(new window.KeyboardEvent('keydown', { key: 'Enter', bubbles: true, cancelable: true }));
+  campo(1, 1, 'ejercicio').dispatchEvent(
+    new window.KeyboardEvent('keydown', { key: 'Enter', bubbles: true, cancelable: true }),
+  );
   assert.equal(document.activeElement, campo(1, 2, 'ejercicio'));
   elegir(editor(), menuFilaDe(1, 1), 'Bajar fila (Set 1, fila 1)');
   assert.equal(campo(1, 2, 'ejercicio').value, 'Suave');
@@ -374,7 +507,11 @@ test('editor: non-numeric values are flagged (field and chip), block Save and PD
   assert.equal(campo(1, 2, 'series').getAttribute('aria-invalid'), 'true');
   assert.match(editor().querySelector('.enp-avisos').textContent, /Set 1, fila 2:.*series deben ser un número entero/);
   poner(campo(1, 2, 'tiempoMin'), 'x');
-  assert.match(fila(1, 2).querySelector('[data-chip="tiempoMin"]').className, /enp-chip--error/, 'an error in a closed pane marks its chip');
+  assert.match(
+    fila(1, 2).querySelector('[data-chip="tiempoMin"]').className,
+    /enp-chip--error/,
+    'an error in a closed pane marks its chip',
+  );
   poner(campo(1, 2, 'tiempoMin'), '6');
   botonTexto(editor(), 'Guardar').click();
   assert.equal(c.store.db.EntrenoLineas.find((l) => l.id === 'l1-2').series, 4, 'not saved with errors');
@@ -389,11 +526,13 @@ test('editor: non-numeric values are flagged (field and chip), block Save and PD
   assert.equal(editor().querySelector('.enp-err'), null);
   poner(campo(1, 2, 'salida'), '1:10');
   campo(1, 2, 'salida').dispatchEvent(new window.Event('blur'));
-  assert.equal(campo(1, 2, 'salida').value, "C/1'10\"");
+  assert.equal(campo(1, 2, 'salida').value, 'C/1\'10"');
 });
 
 test('editor: warns when the total differs from the recorded load', async () => {
-  const c = await montar({ extraDatos: { Cargas: [{ id: 'c1', entrenamientoId: 's1', nadadorId: 'n1', metros: 3000 }] } });
+  const c = await montar({
+    extraDatos: { Cargas: [{ id: 'c1', entrenamientoId: 's1', nadadorId: 'n1', metros: 3000 }] },
+  });
   abrirPlan(c, 'Sesión Alevín');
   assert.match(editor().querySelector('.enp-avisos').textContent, /difiere de la carga registrada \(3000 m/);
 });
@@ -416,13 +555,22 @@ test('bottom bar: live total, unsaved indicator that clears when the edit is und
   botonTexto(barra, 'Guardar').click();
   assert.equal(estadoTexto(), 'Todo guardado');
   assert.equal(c.store.db.EntrenoLineas.find((l) => l.id === 'l1-1').series, 2);
-  const items = [...abrirMenu(barra, 'Más acciones').querySelectorAll('[role="menuitem"]')].map((x) => x.textContent.trim());
-  assert.deepEqual(items, ['Descargar PDF', 'Vista previa', 'Imprimir', 'Guardar en Drive', 'Registrar cargas desde el plan', 'Copiar resumen']);
+  const items = [...abrirMenu(barra, 'Más acciones').querySelectorAll('[role="menuitem"]')].map((x) =>
+    x.textContent.trim(),
+  );
+  assert.deepEqual(items, [
+    'Descargar PDF',
+    'Vista previa',
+    'Imprimir',
+    'Guardar en Drive',
+    'Registrar cargas desde el plan',
+    'Copiar resumen',
+  ]);
 });
 
 test('toasts are positioned above the editor bottom bar (stylesheet rule)', () => {
   const css = readFileSync(path.join(ROOT, 'css/views/entreno-editor.css'), 'utf8');
-  assert.match(css, /body:has\(\.enp-ov\) #toasts \{ bottom: calc\(var\(--enp-bar-h\)/);
+  assert.match(css, /body:has\(\.enp-ov\) #toasts \{\s*bottom: calc\(var\(--enp-bar-h\)/);
   assert.match(css, /--enp-bar-h: \d+px/);
 });
 
@@ -463,7 +611,11 @@ test('leave guard: closing with unsaved changes asks; Cancel keeps the editor; b
   window.dispatchEvent(new window.PopStateEvent('popstate', { state: null }));
   botonTexto(await dialogo(), 'Aceptar').click();
   await esperar(() => !editor());
-  assert.equal(c.store.db.EntrenoLineas.find((l) => l.id === 'l1-1').ejercicio, 'Suave', 'discarded edits are not saved');
+  assert.equal(
+    c.store.db.EntrenoLineas.find((l) => l.id === 'l1-1').ejercicio,
+    'Suave',
+    'discarded edits are not saved',
+  );
   // after closing the guard is gone
   ev = new window.Event('beforeunload', { cancelable: true });
   window.dispatchEvent(ev);
@@ -563,18 +715,35 @@ test('mobile: one Share PDF action with Web Share and a file; cancel is silent; 
   globalThis.matchMedia = (q) => ({ matches: /coarse/.test(q) });
   const compartidos = [];
   let modo = 'ok';
-  Object.defineProperty(navigator, 'canShare', { value: (d) => !!(d && d.files && d.files.length), configurable: true });
+  Object.defineProperty(navigator, 'canShare', {
+    value: (d) => !!(d && d.files && d.files.length),
+    configurable: true,
+  });
   Object.defineProperty(navigator, 'share', {
-    value: async (d) => { compartidos.push(d); if (modo === 'cancel') throw Object.assign(new Error('x'), { name: 'AbortError' }); if (modo === 'fail') throw Object.assign(new Error('x'), { name: 'NotAllowedError' }); },
+    value: async (d) => {
+      compartidos.push(d);
+      if (modo === 'cancel') throw Object.assign(new Error('x'), { name: 'AbortError' });
+      if (modo === 'fail') throw Object.assign(new Error('x'), { name: 'NotAllowedError' });
+    },
     configurable: true,
   });
   const abiertas = [];
-  window.open = (...a) => { abiertas.push(a); return {}; };
+  window.open = (...a) => {
+    abiertas.push(a);
+    return {};
+  };
   try {
     abrirPlan(c, 'Sesión Alevín');
-    const items = [...abrirMenu(editor(), 'Más acciones').querySelectorAll('[role="menuitem"]')].map((x) => x.textContent.trim());
-    assert.ok(items.includes('Compartir PDF') && !items.includes('Descargar PDF') && !items.includes('Imprimir'), items.join('|'));
-    document.querySelector('.enp-mn-item').dispatchEvent(new window.KeyboardEvent('keydown', { key: 'Escape', bubbles: true, cancelable: true }));
+    const items = [...abrirMenu(editor(), 'Más acciones').querySelectorAll('[role="menuitem"]')].map((x) =>
+      x.textContent.trim(),
+    );
+    assert.ok(
+      items.includes('Compartir PDF') && !items.includes('Descargar PDF') && !items.includes('Imprimir'),
+      items.join('|'),
+    );
+    document
+      .querySelector('.enp-mn-item')
+      .dispatchEvent(new window.KeyboardEvent('keydown', { key: 'Escape', bubbles: true, cancelable: true }));
     elegir(editor(), 'Más acciones', 'Compartir PDF');
     await esperar(() => compartidos.length === 1);
     assert.equal(compartidos[0].files[0].type, 'application/pdf');
@@ -614,9 +783,18 @@ test('Save to Drive: needs the Drive connection (disabled with an explanation in
   const c = await montar();
   const llamadas = [];
   c.ctx.drive = {
-    ensureFolderPath: async (p) => { llamadas.push(['carpeta', p]); return 'f1'; },
-    findFile: async (n, padre) => { llamadas.push(['buscar', n, padre]); return null; },
-    upload: async (o) => { llamadas.push(['subir', o]); return { id: 'nuevo', name: o.name }; },
+    ensureFolderPath: async (p) => {
+      llamadas.push(['carpeta', p]);
+      return 'f1';
+    },
+    findFile: async (n, padre) => {
+      llamadas.push(['buscar', n, padre]);
+      return null;
+    },
+    upload: async (o) => {
+      llamadas.push(['subir', o]);
+      return { id: 'nuevo', name: o.name };
+    },
     fileUrl: (id) => 'https://drive/' + id,
   };
   abrirPlan(c, 'Sesión Alevín');
@@ -627,14 +805,20 @@ test('Save to Drive: needs the Drive connection (disabled with an explanation in
   assert.match(subida.name, /^Alevin-\d{4}-\d{2}-\d{2}-[a-z]+\.pdf$/);
   assert.equal(subida.mimeType, 'application/pdf');
   assert.equal(subida.parentId, 'f1');
-  await esperar(() => /PDF guardado en Drive \(cnl\/entrenos\): Alevin-/.test(document.querySelector('#toasts')?.textContent || ''));
-  c.ctx.drive.upload = async () => { throw new Error('boom'); };
+  await esperar(() =>
+    /PDF guardado en Drive \(cnl\/entrenos\): Alevin-/.test(document.querySelector('#toasts')?.textContent || ''),
+  );
+  c.ctx.drive.upload = async () => {
+    throw new Error('boom');
+  };
   const consola = console.error;
   console.error = () => {};
   try {
     elegir(editor(), 'Más acciones', 'Guardar en Drive');
     await esperar(() => /No se pudo guardar en Drive/.test(document.querySelector('#toasts')?.textContent || ''));
-  } finally { console.error = consola; }
+  } finally {
+    console.error = consola;
+  }
   assert.ok(editor());
 });
 

@@ -1,56 +1,186 @@
 /* Backup panel (js/presentation/views/backup-panel.js), shown in Settings. Tokens only: no hard-coded colours. */
-.backup-panel { display: grid; gap: var(--sp-4); min-width: 0; }
-.backup-card { display: grid; gap: var(--sp-3); min-width: 0; }
-.backup-card > * { margin: 0; }
-.backup-card h2 { margin: 0; }
-.backup-card h3 { margin: 0; font-size: var(--fs-h3); }
-.backup-card [hidden] { display: none !important; }
+.backup-panel {
+  display: grid;
+  gap: var(--sp-4);
+  min-width: 0;
+}
+.backup-card {
+  display: grid;
+  gap: var(--sp-3);
+  min-width: 0;
+}
+.backup-card > * {
+  margin: 0;
+}
+.backup-card h2 {
+  margin: 0;
+}
+.backup-card h3 {
+  margin: 0;
+  font-size: var(--fs-h3);
+}
+.backup-card [hidden] {
+  display: none !important;
+}
 
-.backup-actions { display: flex; flex-wrap: wrap; align-items: center; gap: var(--sp-2); }
-.backup-status { margin: 0; min-height: 1.5em; color: var(--muted); font-size: var(--fs-sm); }
-.backup-last { display: grid; gap: 2px; }
-.backup-last strong { font-weight: 650; }
+.backup-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--sp-2);
+}
+.backup-status {
+  margin: 0;
+  min-height: 1.5em;
+  color: var(--muted);
+  font-size: var(--fs-sm);
+}
+.backup-last {
+  display: grid;
+  gap: 2px;
+}
+.backup-last strong {
+  font-weight: 650;
+}
 
 /* Passphrase strength: label + 3-step meter (never colour alone: the text says the level) */
-.backup-strength { display: grid; gap: var(--sp-1); }
-.backup-strength-text { margin: 0; font-size: var(--fs-sm); color: var(--muted); }
-.backup-strength .progress { max-width: 280px; }
+.backup-strength {
+  display: grid;
+  gap: var(--sp-1);
+}
+.backup-strength-text {
+  margin: 0;
+  font-size: var(--fs-sm);
+  color: var(--muted);
+}
+.backup-strength .progress {
+  max-width: 280px;
+}
 
 /* Drop zone: a real <label> around the file input, so keyboard and screen readers get a normal file picker */
 .backup-drop {
-  display: grid; justify-items: start; gap: var(--sp-2); padding: var(--sp-4);
-  border: 2px dashed var(--field-border); border-radius: var(--r-md); background: var(--surface-2); color: var(--text);
+  display: grid;
+  justify-items: start;
+  gap: var(--sp-2);
+  padding: var(--sp-4);
+  border: 2px dashed var(--field-border);
+  border-radius: var(--r-md);
+  background: var(--surface-2);
+  color: var(--text);
 }
-.backup-drop.is-over { border-color: var(--c-accent); background: var(--c-primary-soft); }
-.backup-drop:focus-within { outline: 3px solid var(--c-accent); outline-offset: 2px; }
-.backup-drop input[type="file"] { position: absolute; width: 1px; height: 1px; opacity: 0; overflow: hidden; }
-.backup-drop-btn { cursor: pointer; }
-.backup-drop-hint { margin: 0; color: var(--muted); font-size: var(--fs-sm); }
+.backup-drop.is-over {
+  border-color: var(--c-accent);
+  background: var(--c-primary-soft);
+}
+.backup-drop:focus-within {
+  outline: 3px solid var(--c-accent);
+  outline-offset: 2px;
+}
+.backup-drop input[type='file'] {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+  overflow: hidden;
+}
+.backup-drop-btn {
+  cursor: pointer;
+}
+.backup-drop-hint {
+  margin: 0;
+  color: var(--muted);
+  font-size: var(--fs-sm);
+}
 
-.backup-result { display: grid; gap: var(--sp-3); min-width: 0; }
-.backup-result > * { margin: 0; }
+.backup-result {
+  display: grid;
+  gap: var(--sp-3);
+  min-width: 0;
+}
+.backup-result > * {
+  margin: 0;
+}
 
 /* Restore mode: two big radio choices */
-.backup-modes { display: grid; gap: var(--sp-2); margin: 0; padding: 0; border: 0; min-width: 0; }
-.backup-modes legend { padding: 0; margin-bottom: var(--sp-2); font-weight: 650; }
-.backup-mode {
-  display: grid; grid-template-columns: auto 1fr; gap: 2px var(--sp-3); align-items: start; min-height: var(--touch);
-  padding: var(--sp-3); border: 1px solid var(--field-border); border-radius: var(--r-md); background: var(--surface); cursor: pointer;
+.backup-modes {
+  display: grid;
+  gap: var(--sp-2);
+  margin: 0;
+  padding: 0;
+  border: 0;
+  min-width: 0;
 }
-.backup-mode:has(input:checked) { border-color: var(--c-accent); background: var(--c-primary-soft); }
-.backup-mode:focus-within { outline: 3px solid var(--c-accent); outline-offset: 2px; }
-.backup-mode input { grid-row: span 2; margin-top: 3px; width: 20px; height: 20px; accent-color: var(--c-action); }
-.backup-mode-name { font-weight: 650; }
-.backup-mode-desc { color: var(--muted); font-size: var(--fs-sm); }
+.backup-modes legend {
+  padding: 0;
+  margin-bottom: var(--sp-2);
+  font-weight: 650;
+}
+.backup-mode {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 2px var(--sp-3);
+  align-items: start;
+  min-height: var(--touch);
+  padding: var(--sp-3);
+  border: 1px solid var(--field-border);
+  border-radius: var(--r-md);
+  background: var(--surface);
+  cursor: pointer;
+}
+.backup-mode:has(input:checked) {
+  border-color: var(--c-accent);
+  background: var(--c-primary-soft);
+}
+.backup-mode:focus-within {
+  outline: 3px solid var(--c-accent);
+  outline-offset: 2px;
+}
+.backup-mode input {
+  grid-row: span 2;
+  margin-top: 3px;
+  width: 20px;
+  height: 20px;
+  accent-color: var(--c-action);
+}
+.backup-mode-name {
+  font-weight: 650;
+}
+.backup-mode-desc {
+  color: var(--muted);
+  font-size: var(--fs-sm);
+}
 
-.backup-table-title { margin: 0; font-size: var(--fs-h3); }
-.backup-table .num { white-space: nowrap; }
-.backup-table td:first-child, .backup-table th:first-child { overflow-wrap: anywhere; }
+.backup-table-title {
+  margin: 0;
+  font-size: var(--fs-h3);
+}
+.backup-table .num {
+  white-space: nowrap;
+}
+.backup-table td:first-child,
+.backup-table th:first-child {
+  overflow-wrap: anywhere;
+}
 
-.backup-progress { display: grid; gap: var(--sp-2); }
-.backup-progress-text { margin: 0; font-size: var(--fs-sm); }
+.backup-progress {
+  display: grid;
+  gap: var(--sp-2);
+}
+.backup-progress-text {
+  margin: 0;
+  font-size: var(--fs-sm);
+}
 
-.backup-confirm { display: grid; gap: var(--sp-3); }
-.backup-confirm p { margin: 0; }
+.backup-confirm {
+  display: grid;
+  gap: var(--sp-3);
+}
+.backup-confirm p {
+  margin: 0;
+}
 
-.backup-drive-actions { display: flex; flex-wrap: wrap; gap: var(--sp-2); }
+.backup-drive-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--sp-2);
+}

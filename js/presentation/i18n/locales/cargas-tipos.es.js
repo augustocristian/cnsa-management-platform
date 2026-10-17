@@ -2,10 +2,12 @@
 // Los nombres y descripciones de los predefinidos salen del propio catálogo del dominio (única fuente del valor guardado).
 import { CATALOGO_PREDEFINIDO } from '../../../domain/cargas.js';
 
-const predefinidos = Object.fromEntries(CATALOGO_PREDEFINIDO.flatMap((c) => [
-  [`tc.${c.clave}.nombre`, c.nombre],
-  [`tc.${c.clave}.desc`, c.descripcion],
-]));
+const predefinidos = Object.fromEntries(
+  CATALOGO_PREDEFINIDO.flatMap((c) => [
+    [`tc.${c.clave}.nombre`, c.nombre],
+    [`tc.${c.clave}.desc`, c.descripcion],
+  ]),
+);
 
 export default {
   ...predefinidos,
@@ -13,7 +15,8 @@ export default {
   'tc.cat.especifico': 'Trabajo específico',
   'tc.cat.personalizado': 'Personalizados',
   'tc.titulo': 'Contenidos de entrenamiento',
-  'tc.intro': 'Contenidos con los que se registran las cargas. Los predefinidos se pueden desactivar y ajustar (descripción, color y objetivos), pero no borrar; los personalizados los defines tú.',
+  'tc.intro':
+    'Contenidos con los que se registran las cargas. Los predefinidos se pueden desactivar y ajustar (descripción, color y objetivos), pero no borrar; los personalizados los defines tú.',
   'tc.mostrar': 'Contenidos de entrenamiento',
   'tc.ocultar': 'Ocultar contenidos',
   'tc.nuevo': 'Nuevo contenido',
@@ -75,7 +78,8 @@ export default {
   'tc.err.minutos': 'Los minutos deben ser mayores que 0',
   'tc.borrar.confirmar': '¿Eliminar el contenido «{nombre}»?',
   'tc.borrar.en-uso-titulo': 'No se puede eliminar',
-  'tc.borrar.en-uso': '«{nombre}» tiene {n} cargas registradas, así que no se puede eliminar. Puedes desactivarlo (deja de ofrecerse al registrar cargas) o fusionarlo con otro contenido (sus cargas pasan a ese).',
+  'tc.borrar.en-uso':
+    '«{nombre}» tiene {n} cargas registradas, así que no se puede eliminar. Puedes desactivarlo (deja de ofrecerse al registrar cargas) o fusionarlo con otro contenido (sus cargas pasan a ese).',
   'tc.borrar.fusionar-con': 'Fusionar con',
   'tc.borrar.fusionar': 'Fusionar y eliminar',
   'tc.borrar.desactivar': 'Desactivar',
@@ -91,7 +95,8 @@ export default {
   'tc.chart.objetivo-max': 'objetivo ≤ {max} m',
   'tc.mie.por-contenido': 'Por contenido',
   'tc.f.alias': 'Alias (abreviaturas)',
-  'tc.f.alias-ayuda': 'Cómo lo abrevia el entrenador al escribir un ejercicio (AeL, Tope, Pn…), separados por comas. Se usan para repartir los metros automáticamente.',
+  'tc.f.alias-ayuda':
+    'Cómo lo abrevia el entrenador al escribir un ejercicio (AeL, Tope, Pn…), separados por comas. Se usan para repartir los metros automáticamente.',
   'tc.alias-lista': 'Alias: {alias}',
   'tc.err.alias-duplicado': 'Ese alias ya lo usa otro contenido',
   'tc.err.alias-largo': 'Cada alias puede tener como máximo 24 caracteres',

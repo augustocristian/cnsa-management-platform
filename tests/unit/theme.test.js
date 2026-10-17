@@ -12,8 +12,10 @@ const oyentes = [];
 // Other test files reinstall the jsdom environment when loaded: each test restores its own clean one.
 function prep() {
   window.matchMedia = (q) => ({
-    matches: q.includes('dark') && sistemaOscuro, media: q,
-    addEventListener: (_, fn) => oyentes.push(fn), removeEventListener() {},
+    matches: q.includes('dark') && sistemaOscuro,
+    media: q,
+    addEventListener: (_, fn) => oyentes.push(fn),
+    removeEventListener() {},
   });
   document.documentElement.removeAttribute('data-theme');
   localStorage.removeItem('cnl:tema');
@@ -21,7 +23,10 @@ function prep() {
 }
 prep();
 const theme = await importApp('js/presentation/theme.js');
-const html = { getAttribute: (k) => document.documentElement.getAttribute(k), hasAttribute: (k) => document.documentElement.hasAttribute(k) };
+const html = {
+  getAttribute: (k) => document.documentElement.getAttribute(k),
+  hasAttribute: (k) => document.documentElement.hasAttribute(k),
+};
 
 test('setTheme sets data-theme, mirrors it in localStorage and auto removes it', () => {
   prep();
@@ -67,8 +72,13 @@ test('persistence: saves to preferences and applies the stored / remote value', 
   let oyente = null;
   const prefs = {
     get: (k, def) => (k in guardado ? guardado[k] : def),
-    set: (k, v) => { if (v === null) delete guardado[k]; else guardado[k] = v; },
-    on: (fn) => { oyente = fn; },
+    set: (k, v) => {
+      if (v === null) delete guardado[k];
+      else guardado[k] = v;
+    },
+    on: (fn) => {
+      oyente = fn;
+    },
   };
   theme.setTheme('auto', { persist: false });
   guardado.tema = 'dark';
@@ -105,8 +115,14 @@ test('themeSelect: labelled, 3 options and changes the theme', () => {
   const sel = theme.themeSelect();
   assert.equal(sel, theme.themeSelect(), 'single instance');
   assert.ok(sel.getAttribute('aria-label'));
-  assert.deepEqual([...sel.options].map((o) => o.value), ['auto', 'light', 'dark']);
-  assert.deepEqual([...sel.options].map((o) => o.textContent), ['Automático', 'Claro', 'Oscuro']);
+  assert.deepEqual(
+    [...sel.options].map((o) => o.value),
+    ['auto', 'light', 'dark'],
+  );
+  assert.deepEqual(
+    [...sel.options].map((o) => o.textContent),
+    ['Automático', 'Claro', 'Oscuro'],
+  );
   sel.value = 'dark';
   sel.dispatchEvent(new window.Event('change'));
   assert.equal(theme.getTheme(), 'dark');
@@ -123,7 +139,13 @@ test('theme-boot.js applies the stored theme before first paint', () => {
     const store = valor === undefined ? {} : { 'cnl:tema': valor };
     vm.runInNewContext(src, {
       localStorage: { getItem: (k) => store[k] ?? null },
-      document: { documentElement: { setAttribute: (k, v) => { attrs[k] = v; } } },
+      document: {
+        documentElement: {
+          setAttribute: (k, v) => {
+            attrs[k] = v;
+          },
+        },
+      },
     });
     return attrs;
   };
@@ -131,5 +153,14 @@ test('theme-boot.js applies the stored theme before first paint', () => {
   assert.deepEqual(correr('light'), { 'data-theme': 'light' });
   assert.deepEqual(correr(undefined), {});
   assert.deepEqual(correr('<script>'), {}, 'unknown values are ignored');
-  assert.doesNotThrow(() => vm.runInNewContext(src, { localStorage: { getItem: () => { throw new Error('blocked'); } }, document: { documentElement: {} } }));
+  assert.doesNotThrow(() =>
+    vm.runInNewContext(src, {
+      localStorage: {
+        getItem: () => {
+          throw new Error('blocked');
+        },
+      },
+      document: { documentElement: {} },
+    }),
+  );
 });

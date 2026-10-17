@@ -35,18 +35,43 @@ test('resolverHoraLocal: a zone without DST never has edge cases; invalid input 
   assert.equal(D.resolverHoraLocal('Europe/Madrid', '2026-03-29', 'xx'), null);
 });
 
-const EV = (fecha, hora = '02:30', dur = 60) => ({ id: 'dst', origen: 'sesion', fecha, hora, duracionMin: dur, titulo: 'DST', grupoId: '', grupoNombre: '', piscina: '', piscinaNombre: '', calle: '', enfoque: '', volumenMin: '', volumenMax: '', descripcion: '', estado: 'planificado' });
+const EV = (fecha, hora = '02:30', dur = 60) => ({
+  id: 'dst',
+  origen: 'sesion',
+  fecha,
+  hora,
+  duracionMin: dur,
+  titulo: 'DST',
+  grupoId: '',
+  grupoNombre: '',
+  piscina: '',
+  piscinaNombre: '',
+  calle: '',
+  enfoque: '',
+  volumenMin: '',
+  volumenMax: '',
+  descripcion: '',
+  estado: 'planificado',
+});
 
 test('generarICS: a non-existent time is written with the wall time of the real instant (03:30)', () => {
   const out = D.generarICS([EV('2026-03-29')], { ahora: new Date(Date.UTC(2026, 2, 1)), zona: 'Europe/Madrid' });
   assert.match(out, /DTSTART;TZID=Europe\/Madrid:20260329T033000/);
-  assert.match(out, /DTEND;TZID=Europe\/Madrid:20260329T043000/, 'a 60 min event that starts in the gap ends 60 real minutes after 03:30');
+  assert.match(
+    out,
+    /DTEND;TZID=Europe\/Madrid:20260329T043000/,
+    'a 60 min event that starts in the gap ends 60 real minutes after 03:30',
+  );
 });
 
 test('generarICS: an ambiguous time is written in UTC (first occurrence) so every client agrees', () => {
   const out = D.generarICS([EV('2026-10-25')], { ahora: new Date(Date.UTC(2026, 9, 1)), zona: 'Europe/Madrid' });
   assert.match(out, /^DTSTART:20261025T003000Z$/m);
-  assert.match(out, /^DTEND:20261025T013000Z$/m, '60 real minutes after the first 02:30 (02:30 again, now winter time)');
+  assert.match(
+    out,
+    /^DTEND:20261025T013000Z$/m,
+    '60 real minutes after the first 02:30 (02:30 again, now winter time)',
+  );
 });
 
 test('generarICS: "ahora" is mandatory (the domain never reads the clock)', () => {
@@ -54,7 +79,10 @@ test('generarICS: "ahora" is mandatory (the domain never reads the clock)', () =
 });
 
 test('aEventoGoogle: DST edge cases get a deterministic dateTime', () => {
-  assert.equal(D.aEventoGoogle(EV('2026-07-01', '10:00'), { zona: 'Europe/Madrid' }).start.dateTime, '2026-07-01T10:00:00');
+  assert.equal(
+    D.aEventoGoogle(EV('2026-07-01', '10:00'), { zona: 'Europe/Madrid' }).start.dateTime,
+    '2026-07-01T10:00:00',
+  );
   assert.equal(D.aEventoGoogle(EV('2026-03-29'), { zona: 'Europe/Madrid' }).start.dateTime, '2026-03-29T03:30:00');
   const doble = D.aEventoGoogle(EV('2026-10-25'), { zona: 'Europe/Madrid' });
   assert.equal(doble.start.dateTime, '2026-10-25T02:30:00+02:00');
@@ -86,7 +114,11 @@ test('the agenda window STARTS at the cursor (today), not at the first of the mo
 });
 
 test('diasDeAgenda: the days with events, plus the anchor day when it is today', () => {
-  const porDia = D.agruparPorDia([{ fecha: '2026-10-20', id: 'a' }, { fecha: '2026-10-18', id: 'b' }, { fecha: '2026-10-20', id: 'c' }]);
+  const porDia = D.agruparPorDia([
+    { fecha: '2026-10-20', id: 'a' },
+    { fecha: '2026-10-18', id: 'b' },
+    { fecha: '2026-10-20', id: 'c' },
+  ]);
   assert.deepEqual(D.diasDeAgenda(porDia, '2026-10-16', '2026-10-16'), ['2026-10-16', '2026-10-18', '2026-10-20']);
   assert.deepEqual(D.diasDeAgenda(porDia, '2026-10-17', '2026-10-16'), ['2026-10-18', '2026-10-20']);
   assert.equal(porDia.get('2026-10-20').length, 2);
@@ -111,7 +143,10 @@ test('fechaTrasTecla: arrows, Home/End and PageUp/PageDown keep the day within t
 });
 
 test('rangoExportacion: month in view, season and next 90 days with their file suffix', () => {
-  assert.deepEqual(D.rangoExportacion('mes', '2026-10-16', '2026-11-20'), { rango: { desde: '2026-11-01', hasta: '2026-11-30' }, sufijo: '2026-11' });
+  assert.deepEqual(D.rangoExportacion('mes', '2026-10-16', '2026-11-20'), {
+    rango: { desde: '2026-11-01', hasta: '2026-11-30' },
+    sufijo: '2026-11',
+  });
   assert.equal(D.rangoExportacion('temporada', '2026-10-16', '2026-10-16').sufijo, 'temporada');
   assert.equal(D.rangoExportacion('proximos90', '2026-10-16', '2026-10-16').rango.hasta, '2027-01-13');
 });

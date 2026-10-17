@@ -25,7 +25,8 @@ export default {
   'tp.sin-previsto': 'Sin previsto',
   'tp.sin-clasificar': 'Sin clasificar',
   'tp.sin-semanas': 'Las fechas de la temporada no generan ninguna semana. Revisa el inicio y el fin.',
-  'tp.sin-fases-ayuda': 'Todavía no hay fases. Añade una fase (preparación general, específica, competitiva, tapering o transición) para asignar las semanas.',
+  'tp.sin-fases-ayuda':
+    'Todavía no hay fases. Añade una fase (preparación general, específica, competitiva, tapering o transición) para asignar las semanas.',
   'tp.fuera-temporada': 'fuera de la temporada',
   'tp.guardar-igualmente': 'Guardar de todos modos',
   'tp.fuente-real': 'Origen del real',
@@ -74,7 +75,8 @@ export default {
   'tp.temporada.eliminada': 'Temporada eliminada',
   'tp.temporada.eliminar-confirm': '¿Eliminar la temporada «{nombre}» con sus fases, semanas y eventos?',
   'tp.vacio.titulo': 'Todavía no hay ninguna temporada',
-  'tp.vacio.texto': 'Crea una temporada con sus fechas: se generan las semanas (lunes a domingo) y puedes añadir fases, volumen previsto y competiciones.',
+  'tp.vacio.texto':
+    'Crea una temporada con sus fechas: se generan las semanas (lunes a domingo) y puedes añadir fases, volumen previsto y competiciones.',
   'tp.f.nombre': 'Nombre',
   'tp.f.inicio': 'Fecha de inicio',
   'tp.f.fin': 'Fecha de fin',
@@ -128,7 +130,8 @@ export default {
   'tp.g.previsto': 'Volumen previsto',
   'tp.g.planificado': 'Planificado en sesiones (trazo discontinuo)',
   'tp.g.prioridad-leyenda': 'Competición prioridad {p}',
-  'tp.g.semana-aria': 'Semana {n}, {fechas}. Fase: {fase}. Previsto: {previsto}. Real: {real}. Desviación {desv}, {estado}. Eventos: {eventos}',
+  'tp.g.semana-aria':
+    'Semana {n}, {fechas}. Fase: {fase}. Previsto: {previsto}. Real: {real}. Desviación {desv}, {estado}. Eventos: {eventos}',
   'tp.lista-aria': 'Semanas de la temporada',
   'tp.tl.titulo': 'Línea de tiempo: fases y eventos',
   'tp.tl.aria': 'Línea de tiempo de la temporada: {fases} fases, {eventos} eventos, {semanas} semanas',
@@ -151,11 +154,16 @@ export default {
   'tp.sug.aplicar': 'Aplicar',
   'tp.sug.aplicada': 'Sugerencia aplicada',
   'tp.sug.ver': 'Ver semana {n}',
-  'tp.sug.contenido-bajo': 'Llevas {pct} % de {contenido} en las últimas {semanas} semanas ({real} m reales frente a {previsto} m previstos): añade {metros} m a la semana {semana}.',
-  'tp.sug.contenido-alto': 'Llevas {pct} % de {contenido} en las últimas {semanas} semanas ({real} m reales frente a {previsto} m previstos): resta {metros} m en la semana {semana}.',
-  'tp.sug.previa-competicion': 'La semana {semana} es previa a «{evento}» (prioridad {prioridad}): reduce el volumen de {previsto} m a {objetivo} m ({pct} % sobre la media de {base} m).',
-  'tp.sug.tapering': 'Tapering «{fase}»: la semana {semana} debería bajar de {previsto} m a {objetivo} m ({pct} % sobre la media de {base} m).',
-  'tp.sug.sin-previsto': 'Hay {n} semanas futuras sin volumen previsto (la primera, la {primera}). Aplica una plantilla de fase.',
+  'tp.sug.contenido-bajo':
+    'Llevas {pct} % de {contenido} en las últimas {semanas} semanas ({real} m reales frente a {previsto} m previstos): añade {metros} m a la semana {semana}.',
+  'tp.sug.contenido-alto':
+    'Llevas {pct} % de {contenido} en las últimas {semanas} semanas ({real} m reales frente a {previsto} m previstos): resta {metros} m en la semana {semana}.',
+  'tp.sug.previa-competicion':
+    'La semana {semana} es previa a «{evento}» (prioridad {prioridad}): reduce el volumen de {previsto} m a {objetivo} m ({pct} % sobre la media de {base} m).',
+  'tp.sug.tapering':
+    'Tapering «{fase}»: la semana {semana} debería bajar de {previsto} m a {objetivo} m ({pct} % sobre la media de {base} m).',
+  'tp.sug.sin-previsto':
+    'Hay {n} semanas futuras sin volumen previsto (la primera, la {primera}). Aplica una plantilla de fase.',
   'tp.herr.titulo': 'Herramientas de la semana',
   'tp.herr.copiar': 'Copiar semana',
   'tp.herr.copiar-titulo': 'Copiar el plan de la semana {n}',
@@ -164,14 +172,16 @@ export default {
   'tp.herr.copiada': 'Semana copiada',
   'tp.herr.plantilla': 'Aplicar plantilla de fase',
   'tp.herr.plantilla-corta': 'Plantilla',
-  'tp.herr.plantilla-ayuda': 'Rellena el volumen previsto, el reparto por contenido y la intensidad de todas las semanas de la fase con una ondulación típica de su tipo.',
+  'tp.herr.plantilla-ayuda':
+    'Rellena el volumen previsto, el reparto por contenido y la intensidad de todas las semanas de la fase con una ondulación típica de su tipo.',
   'tp.herr.fase': 'Fase',
   'tp.herr.base': 'Volumen base por semana (m)',
   'tp.herr.sin-base': 'Indica un volumen base para calcular la plantilla.',
   'tp.herr.aplicar': 'Aplicar',
   'tp.herr.aplicada': 'Plantilla aplicada',
   'tp.herr.ajustar': 'Ajustar volumen de varias semanas',
-  'tp.herr.ajustar-ayuda': 'Escala (± %) o mueve unas semanas el volumen previsto del rango elegido. Revisa la previsualización antes de aplicar.',
+  'tp.herr.ajustar-ayuda':
+    'Escala (± %) o mueve unas semanas el volumen previsto del rango elegido. Revisa la previsualización antes de aplicar.',
   'tp.herr.ajustado': 'Ajustadas {n} semanas',
   'tp.herr.desde': 'Desde la semana',
   'tp.herr.hasta': 'Hasta la semana',

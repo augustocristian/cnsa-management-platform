@@ -14,11 +14,28 @@ const docAntiguo = () => ({
   club: { nombre: 'Club Viejo' },
   hojas: {
     Nadadores: [{ id: 'n1', nombre: 'Ana', apellidos: 'Pérez', fechaNacimiento: '2012-05-04' }],
-    Marcas: [{ id: 'm1', nadadorId: 'n1', fecha: '2026-09-01', prueba: '100 Libre', piscina: '25', tiempoMs: 65000, competicion: 'Copa', notas: '' }],
-    Banador: [{ id: 'b1', nadadorId: 'n1', talla: 'M', estado: 'entregado', fecha: '2026-05-01', notas: 'dato personal' }],
+    Marcas: [
+      {
+        id: 'm1',
+        nadadorId: 'n1',
+        fecha: '2026-09-01',
+        prueba: '100 Libre',
+        piscina: '25',
+        tiempoMs: 65000,
+        competicion: 'Copa',
+        notas: '',
+      },
+    ],
+    Banador: [
+      { id: 'b1', nadadorId: 'n1', talla: 'M', estado: 'entregado', fecha: '2026-05-01', notas: 'dato personal' },
+    ],
     'Hoja Futura': [{ id: 'f1' }],
   },
-  sync: { reloj: 5, sellos: { Banador: { b1: '3@x' }, Marcas: { m1: '2@x' } }, lapidas: { Banador: { b0: { s: '4@x' } } } },
+  sync: {
+    reloj: 5,
+    sellos: { Banador: { b1: '3@x' }, Marcas: { m1: '2@x' } },
+    lapidas: { Banador: { b0: { s: '4@x' } } },
+  },
 });
 
 test('schema: Banadores is an entity sheet, Banador is retired, Marcas has the optional banadorId', () => {
@@ -26,7 +43,11 @@ test('schema: Banadores is an entity sheet, Banador is retired, Marcas has the o
   assert.equal(ENTITY_SHEETS.includes('Banador'), false);
   assert.deepEqual(HOJAS_RETIRADAS, ['Banador']);
   assert.equal(SHEETS.Marcas.at(-1), 'banadorId');
-  assert.equal(RELACIONES.some(([hijo, , padre]) => hijo === 'Banador' || padre === 'Banadores'), false, 'no cascade from/to suits');
+  assert.equal(
+    RELACIONES.some(([hijo, , padre]) => hijo === 'Banador' || padre === 'Banadores'),
+    false,
+    'no cascade from/to suits',
+  );
 });
 
 test('migration: a file with the old Banador sheet loads without error and the sheet is dropped (not kept as extra)', () => {
@@ -55,7 +76,13 @@ test('migration: an old Banador sheet coming from a stale cache (extra.hojas) is
 });
 
 test('Banadores rows keep text columns as text (a numeric brand from Excel) and validate as dates-free', () => {
-  const d = docToData({ version: 1, hojas: { Banadores: [{ id: 'b1', tipo: 'competicion', marca: 2020, modelo: 1, activo: true, notas: '' }] } });
-  assert.deepEqual([d.db.Banadores[0].marca, d.db.Banadores[0].modelo, d.db.Banadores[0].activo], ['2020', '1', 'true']);
+  const d = docToData({
+    version: 1,
+    hojas: { Banadores: [{ id: 'b1', tipo: 'competicion', marca: 2020, modelo: 1, activo: true, notas: '' }] },
+  });
+  assert.deepEqual(
+    [d.db.Banadores[0].marca, d.db.Banadores[0].modelo, d.db.Banadores[0].activo],
+    ['2020', '1', 'true'],
+  );
   assert.deepEqual(validarFila('Banadores', d.db.Banadores[0]), []);
 });

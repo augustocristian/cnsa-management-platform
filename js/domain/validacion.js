@@ -15,8 +15,16 @@ export const RANGOS = {
   TiposCarga: { minSemanalM: [0, 500000], maxSemanalM: [0, 500000], orden: [0, 100000] },
 };
 const COLS_FECHA = {
-  Nadadores: ['fechaNacimiento'], Entrenamientos: ['fecha'], Cargas: ['fecha'], Marcas: ['fecha'], Comunicaciones: ['fecha'],
-  AsignacionesCalle: ['fecha'], Temporadas: ['fechaInicio', 'fechaFin'], Fases: ['fechaInicio', 'fechaFin'], SemanasPlan: ['lunes'], EventosTemporada: ['fechaInicio', 'fechaFin'],
+  Nadadores: ['fechaNacimiento'],
+  Entrenamientos: ['fecha'],
+  Cargas: ['fecha'],
+  Marcas: ['fecha'],
+  Comunicaciones: ['fecha'],
+  AsignacionesCalle: ['fecha'],
+  Temporadas: ['fechaInicio', 'fechaFin'],
+  Fases: ['fechaInicio', 'fechaFin'],
+  SemanasPlan: ['lunes'],
+  EventosTemporada: ['fechaInicio', 'fechaFin'],
 };
 const COLS_HORA = { Entrenamientos: ['hora'], AsignacionesCalle: ['horaInicio', 'horaFin'] };
 
@@ -53,14 +61,19 @@ export function validarFila(sheet, row, { hoy = '' } = {}) {
   const r = row || {};
   (COLS_FECHA[sheet] || []).forEach((c) => {
     if (vacio(r[c])) return;
-    if (!esFechaReal(r[c])) { errores.push({ campo: c, codigo: 'fecha-invalida' }); return; }
+    if (!esFechaReal(r[c])) {
+      errores.push({ campo: c, codigo: 'fecha-invalida' });
+      return;
+    }
     if (hoy && sheet === 'Nadadores' && c === 'fechaNacimiento') {
       if (String(r[c]) > hoy) errores.push({ campo: c, codigo: 'fecha-futura' });
       else if (edadEnAnios(r[c], hoy) < EDAD_MINIMA_ANIOS) errores.push({ campo: c, codigo: 'edad-minima' });
       else if (edadEnAnios(r[c], hoy) > EDAD_MAXIMA_ANIOS) errores.push({ campo: c, codigo: 'edad-maxima' });
     }
   });
-  (COLS_HORA[sheet] || []).forEach((c) => { if (!vacio(r[c]) && !esHoraReal(r[c])) errores.push({ campo: c, codigo: 'hora-invalida' }); });
+  (COLS_HORA[sheet] || []).forEach((c) => {
+    if (!vacio(r[c]) && !esHoraReal(r[c])) errores.push({ campo: c, codigo: 'hora-invalida' });
+  });
   const rangos = RANGOS[sheet] || {};
   Object.keys(rangos).forEach((c) => {
     if (vacio(r[c])) return;
@@ -75,13 +88,19 @@ export function validarFila(sheet, row, { hoy = '' } = {}) {
 export function idsDuplicados(rows) {
   const vistos = new Set();
   const dup = new Set();
-  (rows || []).forEach((r) => { const id = String(r && r.id); if (vistos.has(id)) dup.add(id); vistos.add(id); });
+  (rows || []).forEach((r) => {
+    const id = String(r && r.id);
+    if (vistos.has(id)) dup.add(id);
+    vistos.add(id);
+  });
   return [...dup];
 }
 
 // Error with code 'validacion' and the list in .errores (so the view can show them).
 export function errorValidacion(sheet, errores) {
-  const e = new Error('Datos no válidos en ' + sheet + ': ' + errores.map((x) => x.campo + ' (' + x.codigo + ')').join(', '));
+  const e = new Error(
+    'Datos no válidos en ' + sheet + ': ' + errores.map((x) => x.campo + ' (' + x.codigo + ')').join(', '),
+  );
   e.code = 'validacion';
   e.sheet = sheet;
   e.errores = errores;

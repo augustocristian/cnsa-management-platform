@@ -19,17 +19,41 @@ export function crearBarra(env, acciones) {
     items: () => [
       { id: 'pdf', label: etiquetaPdf(), icono: 'descargar', onClick: acciones.pdf },
       { id: 'previa', label: t('entreno.vista-previa'), icono: 'ojo', onClick: acciones.previa },
-      { id: 'imprimir', label: t('entreno.imprimir'), icono: 'imprimir', onClick: acciones.imprimir, oculto: esMovil() },
-      { id: 'drive', label: t('entreno.guardar-drive'), icono: 'nube', onClick: acciones.drive, deshabilitado: !acciones.driveDisponible, ayuda: acciones.driveDisponible ? null : t('entreno.drive-demo') },
+      {
+        id: 'imprimir',
+        label: t('entreno.imprimir'),
+        icono: 'imprimir',
+        onClick: acciones.imprimir,
+        oculto: esMovil(),
+      },
+      {
+        id: 'drive',
+        label: t('entreno.guardar-drive'),
+        icono: 'nube',
+        onClick: acciones.drive,
+        deshabilitado: !acciones.driveDisponible,
+        ayuda: acciones.driveDisponible ? null : t('entreno.drive-demo'),
+      },
       { id: 'registrar', label: t('entreno.res.registrar'), icono: 'cargas', onClick: acciones.registrar },
       { id: 'copiar', label: t('entreno.res.copiar'), icono: 'copiar', onClick: acciones.copiar },
     ],
   });
-  const el = h('div', { class: 'enp-foot' },
+  const el = h(
+    'div',
+    { class: 'enp-foot' },
     h('div', { class: 'enp-foot-info' }, totEl, estadoEl),
-    h('div', { class: 'enp-acts' },
-      h('button', { type: 'button', class: 'btn btn--primary enp-guardar', onclick: () => env.guardar() }, icon('check', { size: 18 }), h('span', null, t('common.guardar'))),
-      menu));
+    h(
+      'div',
+      { class: 'enp-acts' },
+      h(
+        'button',
+        { type: 'button', class: 'btn btn--primary enp-guardar', onclick: () => env.guardar() },
+        icon('check', { size: 18 }),
+        h('span', null, t('common.guardar')),
+      ),
+      menu,
+    ),
+  );
 
   // Redraws total and state; called on every change of the draft.
   function actualizar() {

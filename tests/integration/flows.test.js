@@ -4,10 +4,13 @@ import { fresh, renderView, tick, fieldByLabel, buttonByText, setValue } from '.
 
 let c;
 // Each test starts with a clean DOM and a seeded store (no hooks: the files share a process via index.js).
-const test = (name, fn) => base(name, async (t) => { c = await fresh(); return fn(t); });
+const test = (name, fn) =>
+  base(name, async (t) => {
+    c = await fresh();
+    return fn(t);
+  });
 
 const today = () => c.ui.isoDate(new Date());
-const submit = (form) => form.dispatchEvent(new window.Event('submit', { cancelable: true, bubbles: true }));
 
 test('create a swimmer from the modal and see it in the list', async () => {
   c.store.setClub({ ...c.store.club, temporadaActual: '2026-2027' });
@@ -62,7 +65,8 @@ test('clicking a row navigates to the profile and the profile shows data', async
   await renderView('nadadores', c.container, [id], c);
   const n = c.store.get('Nadadores', id);
   assert.ok(c.container.textContent.includes(`${n.nombre} ${n.apellidos}`));
-  for (const t of ['Asistencia', 'Cargas', 'Evolución de marcas', 'Licencia']) assert.ok(c.container.textContent.includes(t), t);
+  for (const t of ['Asistencia', 'Cargas', 'Evolución de marcas', 'Licencia'])
+    assert.ok(c.container.textContent.includes(t), t);
   assert.ok(c.container.querySelector('svg.nad-chart'), 'times chart');
 });
 
@@ -85,7 +89,9 @@ test('edit and delete a swimmer from the profile', async () => {
   assert.match(c.container.textContent, /Nota de prueba/);
 
   // deleting is undoable: no dialog, with a «Deshacer» (Undo) notice
-  const antes = ['Asistencia', 'Cargas', 'Marcas'].map((sheet) => c.store.list(sheet).filter((a) => a.nadadorId === 'n01').length);
+  const antes = ['Asistencia', 'Cargas', 'Marcas'].map(
+    (sheet) => c.store.list(sheet).filter((a) => a.nadadorId === 'n01').length,
+  );
   buttonByText(c.container, 'Eliminar').click();
   await tick(10);
   assert.equal(c.store.get('Nadadores', 'n01'), null);
@@ -95,7 +101,10 @@ test('edit and delete a swimmer from the profile', async () => {
   buttonByText(document.querySelector('#toasts'), 'Deshacer').click();
   await tick(10);
   assert.ok(c.store.get('Nadadores', 'n01'), 'undo brings the swimmer back');
-  assert.deepEqual(['Asistencia', 'Cargas', 'Marcas'].map((sheet) => c.store.list(sheet).filter((a) => a.nadadorId === 'n01').length), antes);
+  assert.deepEqual(
+    ['Asistencia', 'Cargas', 'Marcas'].map((sheet) => c.store.list(sheet).filter((a) => a.nadadorId === 'n01').length),
+    antes,
+  );
 });
 
 test('groups: create a group from the modal', async () => {
@@ -111,14 +120,26 @@ test('groups: create a group from the modal', async () => {
 });
 
 test('attendance: one tap marks present, tapping again clears it, "Marcar todos" uses a single write and can be undone', async () => {
-  const ses = c.store.upsert('Entrenamientos', { fecha: today(), hora: '10:00', titulo: 'Sesión test', grupoId: 'g1', estado: 'planificado' });
+  const ses = c.store.upsert('Entrenamientos', {
+    fecha: today(),
+    hora: '10:00',
+    titulo: 'Sesión test',
+    grupoId: 'g1',
+    estado: 'planificado',
+  });
   await renderView('asistencia', c.container, [ses.id], c);
   const regs = () => c.store.list('Asistencia').filter((a) => a.entrenamientoId === ses.id);
   const tarjetas = () => [...c.container.querySelectorAll('li.asi-card')];
-  const pulsar = (i, estado) => tarjetas()[i].querySelector('.asi-btn[data-estado="' + estado + '"]').click();
+  const pulsar = (i, estado) => {
+    const tarjeta = tarjetas()[i];
+    tarjeta.querySelector('.asi-btn[data-estado="' + estado + '"]').click();
+  };
   assert.equal(tarjetas().length, 3, 'g1 has 3 swimmers');
   assert.equal(regs().length, 0);
-  assert.ok(tarjetas().every((t) => t.dataset.estado === ''), 'nobody is marked by default');
+  assert.ok(
+    tarjetas().every((t) => t.dataset.estado === ''),
+    'nobody is marked by default',
+  );
 
   pulsar(0, 'presente');
   await tick();
@@ -126,17 +147,26 @@ test('attendance: one tap marks present, tapping again clears it, "Marcar todos"
   assert.equal(regs()[0].estado, 'presente');
   assert.match(c.container.textContent, /1 presentes/);
   assert.match(c.container.textContent, /1 de 3 marcados/);
-  pulsar(0, 'ausente'); await tick();
+  pulsar(0, 'ausente');
+  await tick();
   assert.equal(regs()[0].estado, 'ausente');
-  pulsar(0, 'ausente'); await tick();
+  pulsar(0, 'ausente');
+  await tick();
   assert.equal(regs().length, 0, 'tapping the same state clears it');
 
-  const marcar = [...c.container.querySelectorAll('button')].find((b) => b.textContent.trim() === 'Marcar todos presentes');
+  const marcar = [...c.container.querySelectorAll('button')].find(
+    (b) => b.textContent.trim() === 'Marcar todos presentes',
+  );
   marcar.click();
   await tick(10);
   assert.equal(regs().length, 3);
   assert.ok(regs().every((r) => r.estado === 'presente'));
-  const ids = new Set(c.store.list('Nadadores').filter((n) => n.grupoId === 'g1').map((n) => n.id));
+  const ids = new Set(
+    c.store
+      .list('Nadadores')
+      .filter((n) => n.grupoId === 'g1')
+      .map((n) => n.id),
+  );
   assert.ok(regs().every((r) => ids.has(r.nadadorId)));
   const undo = [...document.querySelectorAll('#toasts .toast-action')].find((b) => /Deshacer/.test(b.textContent));
   assert.ok(undo, 'undo toast after the bulk action');
@@ -201,10 +231,19 @@ test('training: minimum volume > maximum does not save', async () => {
 });
 
 test('training: mark as done and reopen from the session menu', async () => {
-  const s = c.store.upsert('Entrenamientos', { fecha: today(), hora: '07:00', titulo: 'Para cambiar', grupoId: 'g1', estado: 'planificado' });
+  const s = c.store.upsert('Entrenamientos', {
+    fecha: today(),
+    hora: '07:00',
+    titulo: 'Para cambiar',
+    grupoId: 'g1',
+    estado: 'planificado',
+  });
   await renderView('entrenamientos', c.container, [], c);
   const fila = () => [...c.container.querySelectorAll('.ent-sess')].find((e) => e.textContent.includes('Para cambiar'));
-  const elegir = (texto) => { fila().querySelector('button[aria-haspopup="menu"]').click(); [...document.querySelectorAll('.enp-mn [role="menuitem"]')].find((b) => b.textContent.trim() === texto).click(); };
+  const elegir = (texto) => {
+    fila().querySelector('button[aria-haspopup="menu"]').click();
+    [...document.querySelectorAll('.enp-mn [role="menuitem"]')].find((b) => b.textContent.trim() === texto).click();
+  };
   elegir('Marcar realizado');
   await tick();
   assert.equal(c.store.get('Entrenamientos', s.id).estado, 'realizado');
@@ -250,7 +289,8 @@ test('loads: save weekly target', async () => {
   const form = c.container.querySelector('form.cg-obj');
   const fila = [...form.querySelectorAll('tbody tr')].find((tr) => tr.firstChild.textContent === 'Brazos');
   const [mn, mx] = fila.querySelectorAll('input');
-  mn.value = '100'; mx.value = '900';
+  mn.value = '100';
+  mx.value = '900';
   buttonByText(form, 'Guardar objetivos').click();
   const o = c.store.get('TiposCarga', 'tc-brazos');
   assert.deepEqual([o.minSemanalM, o.maxSemanalM], [100, 900]);
@@ -322,7 +362,11 @@ test('individual use: forms and edit actions are always available (no roles)', a
   assert.equal(c.auth.setDemoRole, undefined, 'there is no role selector');
   await renderView('entrenamientos', c.container, [], c);
   assert.ok(c.container.textContent.includes('Nueva sesión'));
-  for (const [name, sel] of [['cargas', '.cg-add'], ['marcas', '.mc-add'], ['comunicaciones', 'form.cm-form']]) {
+  for (const [name, sel] of [
+    ['cargas', '.cg-add'],
+    ['marcas', '.mc-add'],
+    ['comunicaciones', 'form.cm-form'],
+  ]) {
     await renderView(name, c.container, [], c);
     assert.ok(c.container.querySelector(sel), `${name} should show ${sel}`);
   }

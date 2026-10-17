@@ -4,27 +4,57 @@ import { crearCargasService } from '../../js/application/cargasService.js';
 
 // In-memory repository with the same interface as the store.
 function repoMem(datos = {}) {
-  const db = { TiposCarga: [], Cargas: [], ObjetivosCarga: [], Nadadores: [{ id: 'n1' }, { id: 'n2' }], Entrenamientos: [{ id: 'e1', fecha: '2026-10-12', hora: '17:00', titulo: 'Sesión 1' }], ...datos };
+  const db = {
+    TiposCarga: [],
+    Cargas: [],
+    ObjetivosCarga: [],
+    Nadadores: [{ id: 'n1' }, { id: 'n2' }],
+    Entrenamientos: [{ id: 'e1', fecha: '2026-10-12', hora: '17:00', titulo: 'Sesión 1' }],
+    ...datos,
+  };
   let n = 0;
   return {
     db,
     list: (s) => (db[s] || []).map((r) => ({ ...r })),
-    get: (s, id) => { const r = (db[s] || []).find((x) => x.id === String(id)); return r ? { ...r } : null; },
+    get: (s, id) => {
+      const r = (db[s] || []).find((x) => x.id === String(id));
+      return r ? { ...r } : null;
+    },
     upsert(s, row) {
       db[s] = db[s] || [];
-      const fila = { ...row, id: row.id ? String(row.id) : 'g' + (++n) };
+      const fila = { ...row, id: row.id ? String(row.id) : 'g' + ++n };
       const i = db[s].findIndex((x) => x.id === fila.id);
-      if (i >= 0) db[s][i] = fila; else db[s].push(fila);
+      if (i >= 0) db[s][i] = fila;
+      else db[s].push(fila);
       return fila;
     },
-    remove(s, id) { db[s] = (db[s] || []).filter((x) => x.id !== String(id)); },
+    remove(s, id) {
+      db[s] = (db[s] || []).filter((x) => x.id !== String(id));
+    },
   };
 }
-const nuevo = (opts, datos) => { const repo = repoMem(datos); const svc = crearCargasService(repo, { generarId: (() => { let i = 0; return () => 'tc-p' + (++i); })(), ...opts }); svc.asegurarCatalogo(); return { repo, svc }; };
+const nuevo = (opts, datos) => {
+  const repo = repoMem(datos);
+  const svc = crearCargasService(repo, {
+    generarId: (() => {
+      let i = 0;
+      return () => 'tc-p' + ++i;
+    })(),
+    ...opts,
+  });
+  svc.asegurarCatalogo();
+  return { repo, svc };
+};
 const carga = (o) => ({ nadadorId: 'n1', fecha: '2026-10-12', metros: 1000, ...o });
 
 test('asegurarCatalogo seeds the defaults only once and migrates old targets', () => {
-  const repo = repoMem({ ObjetivosCarga: [{ id: 'o1', tipo: 'Técnica', minSemanalM: 100, maxSemanalM: 900 }, { id: 'o2', tipo: 'Fuerza', minSemanalM: 5, maxSemanalM: 50 }], Cargas: [{ id: 'c1', tipo: 'Fuerza' }] });
+  const repo = repoMem({
+    ObjetivosCarga: [
+      { id: 'o1', tipo: 'Técnica', minSemanalM: 100, maxSemanalM: 900 },
+      { id: 'o2', tipo: 'Fuerza', minSemanalM: 5, maxSemanalM: 50 },
+    ],
+    Cargas: [{ id: 'c1', tipo: 'Fuerza' }],
+  });
   const svc = crearCargasService(repo, { generarId: () => 'tc-heredado' });
   assert.ok(svc.asegurarCatalogo() > 0);
   assert.equal(svc.asegurarCatalogo(), 0, 'second time: nothing to do');
@@ -44,7 +74,10 @@ test('crear: validates mandatory and unique name, assigns custom/active at the e
   const r = svc.crear({ nombre: 'Aguas abiertas', descripcion: ' Mar ', color: '#112233', min: '1000', max: '' });
   assert.ok(r.ok);
   assert.equal(r.tipo.categoria, 'personalizado');
-  assert.deepEqual([r.tipo.activo, r.tipo.predefinido, r.tipo.descripcion, r.tipo.min, r.tipo.max], [true, false, 'Mar', 1000, null]);
+  assert.deepEqual(
+    [r.tipo.activo, r.tipo.predefinido, r.tipo.descripcion, r.tipo.min, r.tipo.max],
+    [true, false, 'Mar', 1000, null],
+  );
   assert.equal(svc.crear({ nombre: 'aguas ABIERTAS' }).errores[0].codigo, 'nombre-duplicado');
   assert.equal(svc.tipos().at(-1).nombre, 'Aguas abiertas');
 });
@@ -54,7 +87,10 @@ test('editar: a default keeps its name; a renamed custom one carries its loads a
   const pred = svc.resolver('Piernas');
   const r = svc.editar(pred.id, { nombre: 'Otro nombre', descripcion: 'Nueva', color: '#abcdef', min: 100, max: 200 });
   assert.ok(r.ok);
-  assert.deepEqual([r.tipo.nombre, r.tipo.descripcion, r.tipo.color, r.tipo.min, r.tipo.max], ['Piernas', 'Nueva', '#abcdef', 100, 200]);
+  assert.deepEqual(
+    [r.tipo.nombre, r.tipo.descripcion, r.tipo.color, r.tipo.min, r.tipo.max],
+    ['Piernas', 'Nueva', '#abcdef', 100, 200],
+  );
   const mio = svc.crear({ nombre: 'Mío' }).tipo;
   svc.registrarCarga(carga({ tipoId: mio.id }));
   const edit = svc.editar(mio.id, { nombre: 'Renombrado' });
@@ -84,9 +120,16 @@ test('mover: reorders within its category and does not go past the ends', () => 
   assert.deepEqual(orden().slice(0, 2), [antes[1], antes[0]]);
   svc.mover(svc.resolver('Aeróbico ligero').id, -1);
   assert.deepEqual(orden(), antes);
-  const a = svc.crear({ nombre: 'A' }).tipo, b = svc.crear({ nombre: 'B' }).tipo;
+  const a = svc.crear({ nombre: 'A' }).tipo,
+    b = svc.crear({ nombre: 'B' }).tipo;
   svc.mover(b.id, -1);
-  assert.deepEqual(svc.grupos().at(-1).tipos.map((t) => t.nombre), ['B', 'A']);
+  assert.deepEqual(
+    svc
+      .grupos()
+      .at(-1)
+      .tipos.map((t) => t.nombre),
+    ['B', 'A'],
+  );
   void a;
 });
 
@@ -106,11 +149,15 @@ test('fusionar: reassigns the loads to the destination and removes the custom or
   const { svc, repo } = nuevo();
   const o = svc.crear({ nombre: 'Origen' }).tipo;
   const d = svc.resolver('Técnica');
-  svc.registrarCarga(carga({ tipoId: o.id })); svc.registrarCarga(carga({ tipoId: o.id, metros: 500 }));
+  svc.registrarCarga(carga({ tipoId: o.id }));
+  svc.registrarCarga(carga({ tipoId: o.id, metros: 500 }));
   assert.deepEqual(svc.fusionar(d.id, o.id).motivo, 'predefinido');
   assert.deepEqual(svc.fusionar(o.id, o.id).motivo, 'mismo');
   assert.deepEqual(svc.fusionar(o.id, d.id), { ok: true, reasignadas: 2 });
-  assert.deepEqual(repo.db.Cargas.map((c) => c.tipo), ['Técnica', 'Técnica']);
+  assert.deepEqual(
+    repo.db.Cargas.map((c) => c.tipo),
+    ['Técnica', 'Técnica'],
+  );
   assert.equal(svc.tipo(o.id), null);
   assert.equal(svc.usos(d.id), 2);
 });
@@ -126,9 +173,14 @@ test('registrarCarga: validates fields and stores the content name and the optio
   assert.deepEqual(codigos(carga({ tipoId: t.id, minutos: 0 })), ['minutos']);
   assert.deepEqual(codigos(carga({})), ['tipo-inexistente']);
   assert.deepEqual(codigos(carga({ tipoId: t.id, entrenamientoId: 'no' })), ['sesion-inexistente']);
-  const r = svc.registrarCarga(carga({ tipo: 'salidas', rpe: '7', minutos: '60', entrenamientoId: 'e1', notas: ' ok ' }));
+  const r = svc.registrarCarga(
+    carga({ tipo: 'salidas', rpe: '7', minutos: '60', entrenamientoId: 'e1', notas: ' ok ' }),
+  );
   assert.ok(r.ok);
-  assert.deepEqual([r.carga.tipo, r.carga.rpe, r.carga.minutos, r.carga.entrenamientoId, r.carga.notas], ['Salidas', 7, 60, 'e1', 'ok']);
+  assert.deepEqual(
+    [r.carga.tipo, r.carga.rpe, r.carga.minutos, r.carga.entrenamientoId, r.carga.notas],
+    ['Salidas', 7, 60, 'e1', 'ok'],
+  );
   assert.equal(repo.db.Cargas.length, 1);
 });
 
@@ -139,7 +191,10 @@ test('semana: target evaluation and read-only permissions', () => {
   svc.registrarCarga(carga({ tipoId: p.id, metros: 1000 }));
   const s = svc.semana(new Date(2026, 9, 12));
   assert.equal(s.agregado.metros[p.id], 1000);
-  assert.deepEqual(s.evaluacion.map((e) => [e.tipo.nombre, e.estado, e.diferencia]), [['Piernas', 'bajo', 2000]]);
+  assert.deepEqual(
+    s.evaluacion.map((e) => [e.tipo.nombre, e.estado, e.diferencia]),
+    [['Piernas', 'bajo', 2000]],
+  );
 
   assert.equal(svc.puedeEditar, undefined, 'no role-based permissions: the service always writes');
 });
@@ -153,17 +208,39 @@ test('alias: saved on create/edit (also on defaults) and cannot be repeated', ()
   const e = svc.editar('tc-piernas', { alias: 'Patada, Pn' });
   assert.deepEqual([e.ok, e.tipo.alias], [true, ['Patada', 'Pn']]);
   assert.equal(svc.editar('tc-brazos', { alias: 'Pn' }).errores[0].codigo, 'alias-duplicado');
-  assert.deepEqual(svc.editar('tc-piernas', { descripcion: 'x' }).tipo.alias, ['Patada', 'Pn'], 'the alias is kept when it is not touched');
+  assert.deepEqual(
+    svc.editar('tc-piernas', { descripcion: 'x' }).tipo.alias,
+    ['Patada', 'Pn'],
+    'the alias is kept when it is not touched',
+  );
 });
 
 test('renaming or merging a content updates the components of the training plans', () => {
   const comps = (...n) => JSON.stringify(n.map((c) => ({ contenido: c, metrosPorRep: 25, modo: 'auto' })));
-  const { repo, svc } = nuevo({}, { EntrenoLineas: [{ id: 'l1', entrenamientoId: 'e1', componentes: comps('Fuerza', 'Piernas') }, { id: 'l2', entrenamientoId: 'e1', componentes: '' }] });
+  const { repo, svc } = nuevo(
+    {},
+    {
+      EntrenoLineas: [
+        { id: 'l1', entrenamientoId: 'e1', componentes: comps('Fuerza', 'Piernas') },
+        { id: 'l2', entrenamientoId: 'e1', componentes: '' },
+      ],
+    },
+  );
   const f = svc.crear({ nombre: 'Fuerza' }).tipo;
   svc.editar(f.id, { nombre: 'Fuerza seca' });
-  assert.deepEqual(JSON.parse(repo.db.EntrenoLineas.find((l) => l.id === 'l1').componentes).map((c) => c.contenido), ['Fuerza seca', 'Piernas']);
-  assert.equal(repo.db.EntrenoLineas.find((l) => l.id === 'l2').componentes, '', 'rows without components are not touched');
+  assert.deepEqual(
+    JSON.parse(repo.db.EntrenoLineas.find((l) => l.id === 'l1').componentes).map((c) => c.contenido),
+    ['Fuerza seca', 'Piernas'],
+  );
+  assert.equal(
+    repo.db.EntrenoLineas.find((l) => l.id === 'l2').componentes,
+    '',
+    'rows without components are not touched',
+  );
   const r = svc.fusionar(f.id, 'tc-piernas');
   assert.equal(r.ok, true);
-  assert.deepEqual(JSON.parse(repo.db.EntrenoLineas.find((l) => l.id === 'l1').componentes).map((c) => [c.contenido, c.metrosPorRep]), [['Piernas', 50]]);
+  assert.deepEqual(
+    JSON.parse(repo.db.EntrenoLineas.find((l) => l.id === 'l1').componentes).map((c) => [c.contenido, c.metrosPorRep]),
+    [['Piernas', 50]],
+  );
 });

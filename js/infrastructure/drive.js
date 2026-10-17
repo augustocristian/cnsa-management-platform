@@ -21,28 +21,43 @@ let prefsFileId = null;
 
 const q = (s) => String(s).replace(/\\/g, '\\\\').replace(/'/g, "\\'");
 const rev = (f) => (f && (f.md5Checksum || f.modifiedTime)) || '';
-const ver = (f) => { const n = Number(f && f.version); return Number.isFinite(n) && n > 0 ? n : null; };
+const ver = (f) => {
+  const n = Number(f && f.version);
+  return Number.isFinite(n) && n > 0 ? n : null;
+};
 
 // Network settings (tests replace them: no real waits). timeoutMs: a request that does not answer is aborted.
 const net = {
-  timeoutMs: 30000, reintentos: 3, esperaBaseMs: 500, esperaMaxMs: 30000,
-  sleep: (ms) => new Promise((r) => { setTimeout(r, ms); }),
+  timeoutMs: 30000,
+  reintentos: 3,
+  esperaBaseMs: 500,
+  esperaMaxMs: 30000,
+  sleep: (ms) =>
+    new Promise((r) => {
+      setTimeout(r, ms);
+    }),
 };
 
 // Error with HTTP `status`, stable `code` (domain/erroresGoogle.js) or `offline` if there is no network.
 function httpError(status, body) {
   const c = clasificarErrorApi(status, body);
-  let detail = '';
-  try { detail = JSON.parse(body).error.message || ''; } catch (e) { detail = String(body || '').slice(0, 160); }
-  const msg = {
-    'sesion-caducada': 'La conexión con Google Drive ha caducado. Vuelve a conectar.',
-    'sin-permiso': 'Google ha denegado el acceso a tu Drive. Desconecta Drive, vuelve a conectarlo y acepta el permiso de archivos.',
-    'no-encontrado': 'No se encuentra el fichero en tu Drive (¿borrado o movido a la papelera?).',
-    'limite': 'Google limita las peticiones: espera un momento y reintenta.',
-    'cuota-drive': 'Tu Google Drive está lleno: libera espacio para poder guardar los cambios.',
-    'timeout': 'Google no responde (tiempo agotado). Reintenta en unos instantes.',
-    'api-desactivada': 'La API de Google Drive no está activada en el proyecto de Google Cloud.',
-  }[c.codigo] || 'Error de Google ' + status;
+  let detail;
+  try {
+    detail = JSON.parse(body).error.message || '';
+  } catch (e) {
+    detail = String(body || '').slice(0, 160);
+  }
+  const msg =
+    {
+      'sesion-caducada': 'La conexión con Google Drive ha caducado. Vuelve a conectar.',
+      'sin-permiso':
+        'Google ha denegado el acceso a tu Drive. Desconecta Drive, vuelve a conectarlo y acepta el permiso de archivos.',
+      'no-encontrado': 'No se encuentra el fichero en tu Drive (¿borrado o movido a la papelera?).',
+      limite: 'Google limita las peticiones: espera un momento y reintenta.',
+      'cuota-drive': 'Tu Google Drive está lleno: libera espacio para poder guardar los cambios.',
+      timeout: 'Google no responde (tiempo agotado). Reintenta en unos instantes.',
+      'api-desactivada': 'La API de Google Drive no está activada en el proyecto de Google Cloud.',
+    }[c.codigo] || 'Error de Google ' + status;
   const e = new Error(msg + (detail && status !== 401 ? ' [' + detail + ']' : ''));
   e.status = status;
   e.code = c.codigo;
@@ -52,11 +67,23 @@ function httpError(status, body) {
 
 const offlineError = () => Object.assign(new Error('Sin conexión'), { offline: true, code: 'sin-conexion' });
 
-const timeoutError = () => Object.assign(new Error('Google no responde (tiempo agotado).'), { timeout: true, code: 'timeout' });
-const razonesDe = (body) => { try { return (JSON.parse(body).error.errors || []).map((e) => String(e.reason || '')); } catch (e) { return []; } };
+const timeoutError = () =>
+  Object.assign(new Error('Google no responde (tiempo agotado).'), { timeout: true, code: 'timeout' });
+const razonesDe = (body) => {
+  try {
+    return (JSON.parse(body).error.errors || []).map((e) => String(e.reason || ''));
+  } catch (e) {
+    return [];
+  }
+};
 // Transient error worth retrying? 429/5xx, or 403 for request rate limits (not for storage quota).
-const esTransitorio = (status, body) => status === 429 || status === 500 || status === 502 || status === 503 || status === 504
-  || (status === 403 && razonesDe(body).some((r) => /rateLimitExceeded|userRateLimitExceeded/i.test(r)));
+const esTransitorio = (status, body) =>
+  status === 429 ||
+  status === 500 ||
+  status === 502 ||
+  status === 503 ||
+  status === 504 ||
+  (status === 403 && razonesDe(body).some((r) => /rateLimitExceeded|userRateLimitExceeded/i.test(r)));
 // Wait before retry n (0..): Retry-After if Google gives one; otherwise exponential with some jitter.
 export function esperaReintento(n, retryAfter) {
   const ra = retryAfter === null || retryAfter === undefined || retryAfter === '' ? NaN : Number(retryAfter);
@@ -73,11 +100,19 @@ async function pedir(url, opts, token) {
   try {
     const r = await fetch(url, Object.assign({}, opts, { headers }, ctl ? { signal: ctl.signal } : {}));
     const texto = await r.text();
-    return { ok: r.ok, status: r.status, retryAfter: r.headers && r.headers.get ? r.headers.get('Retry-After') : null, text: async () => texto, json: async () => JSON.parse(texto) };
+    return {
+      ok: r.ok,
+      status: r.status,
+      retryAfter: r.headers && r.headers.get ? r.headers.get('Retry-After') : null,
+      text: async () => texto,
+      json: async () => JSON.parse(texto),
+    };
   } catch (err) {
     if (ctl && ctl.signal.aborted) throw timeoutError();
     throw offlineError();
-  } finally { if (timer) clearTimeout(timer); }
+  } finally {
+    if (timer) clearTimeout(timer);
+  }
 }
 
 // fetch with a token; if it expires (401) it renews it once; on 429/5xx it retries with exponential backoff (honouring Retry-After);
@@ -88,36 +123,61 @@ async function gfetch(url, opts = {}, retry = true) {
     const token = await auth.ensureToken();
     if (!token) {
       if (typeof navigator !== 'undefined' && navigator.onLine === false) throw offlineError();
-      const e = new Error('Google Drive no está conectado. Conéctalo de nuevo.'); e.status = 401; e.code = 'sesion-caducada'; throw e;
+      const e = new Error('Google Drive no está conectado. Conéctalo de nuevo.');
+      e.status = 401;
+      e.code = 'sesion-caducada';
+      throw e;
     }
     let r;
-    try { r = await pedir(url, opts, token); }
-    catch (err) {
-      if (err.timeout && metodo === 'GET' && intento < net.reintentos) { await net.sleep(esperaReintento(intento)); continue; }
+    try {
+      r = await pedir(url, opts, token);
+    } catch (err) {
+      if (err.timeout && metodo === 'GET' && intento < net.reintentos) {
+        await net.sleep(esperaReintento(intento));
+        continue;
+      }
       throw err;
     }
-    if (r.status === 401 && retry) { auth.invalidate(); return gfetch(url, opts, false); }
+    if (r.status === 401 && retry) {
+      auth.invalidate();
+      return gfetch(url, opts, false);
+    }
     if (r.ok) return r;
     const body = await r.text();
-    if (esTransitorio(r.status, body) && intento < net.reintentos) { await net.sleep(esperaReintento(intento, r.retryAfter)); continue; }
+    if (esTransitorio(r.status, body) && intento < net.reintentos) {
+      await net.sleep(esperaReintento(intento, r.retryAfter));
+      continue;
+    }
     const e = httpError(r.status, body);
-    if (r.retryAfter != null && r.retryAfter !== '' && Number.isFinite(Number(r.retryAfter))) e.retryAfterMs = Number(r.retryAfter) * 1000;
+    if (r.retryAfter != null && r.retryAfter !== '' && Number.isFinite(Number(r.retryAfter)))
+      e.retryAfterMs = Number(r.retryAfter) * 1000;
     if (r.status === 401 && typeof auth.markExpired === 'function') auth.markExpired();
     throw e;
   }
 }
 
-const jsonReq = (url, body, method = 'POST') => gfetch(url, { method, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+const jsonReq = (url, body, method = 'POST') =>
+  gfetch(url, { method, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
 
 // Cuerpo multipart/related (metadatos JSON + contenido). `contenido` = string | Blob | ArrayBuffer.
 function multipart(meta, mimeType, contenido) {
   const b = 'cnl' + Math.random().toString(36).slice(2) + Date.now().toString(36);
-  const body = new Blob([`--${b}\r\nContent-Type: application/json; charset=UTF-8\r\n\r\n${JSON.stringify(meta)}\r\n--${b}\r\nContent-Type: ${mimeType}\r\n\r\n`, contenido, `\r\n--${b}--`]);
+  const body = new Blob([
+    `--${b}\r\nContent-Type: application/json; charset=UTF-8\r\n\r\n${JSON.stringify(meta)}\r\n--${b}\r\nContent-Type: ${mimeType}\r\n\r\n`,
+    contenido,
+    `\r\n--${b}--`,
+  ]);
   return { body, headers: { 'Content-Type': 'multipart/related; boundary=' + b } };
 }
 
 // Safe file name for Drive.
-const safeName = (s) => String(s || 'club').replace(/[\\/:*?"<>|\u0000-\u001f]/g, '-').replace(/\s+/g, ' ').trim().slice(0, 120) || 'club';
+const safeName = (s) =>
+  String(s || 'club')
+    // eslint-disable-next-line no-control-regex -- strips control characters on purpose
+    .replace(/[\\/:*?"<>|\u0000-\u001f]/g, '-')
+    .replace(/\s+/g, ' ')
+    .trim()
+    .slice(0, 120) || 'club';
 const jsonName = (name) => safeName(name) + '.json';
 
 const dosCifras = (n) => String(n).padStart(2, '0');
@@ -128,12 +188,19 @@ export function nombreBackup(nombre, fecha = new Date(), etiqueta = '') {
   return safeName(nombre) + '-' + (etiqueta ? etiqueta + '-' + d + h : d) + '.json';
 }
 const escapar = (x) => x.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-const patronBackup = (nombre, etiqueta) => new RegExp('^' + escapar(safeName(nombre)) + '-' + (etiqueta ? escapar(etiqueta) + '-\\d{14}' : '\\d{8}') + '\\.json$');
+const patronBackup = (nombre, etiqueta) =>
+  new RegExp(
+    '^' + escapar(safeName(nombre)) + '-' + (etiqueta ? escapar(etiqueta) + '-\\d{14}' : '\\d{8}') + '\\.json$',
+  );
 
 export const drive = {
   config: net,
-  fileUrl(id) { return 'https://drive.google.com/file/d/' + id + '/view'; },
-  folderUrl(id) { return 'https://drive.google.com/drive/folders/' + id; },
+  fileUrl(id) {
+    return 'https://drive.google.com/file/d/' + id + '/view';
+  },
+  folderUrl(id) {
+    return 'https://drive.google.com/drive/folders/' + id;
+  },
 
   // Returns the folder id (creates it if missing; if there are several with the same name the oldest is used: never duplicated).
   // With two tabs/devices opening at once: it searches again (after a random pause) before creating and,
@@ -145,7 +212,9 @@ export const drive = {
     const enPadre = parentId === 'root' ? '' : ` and '${q(parentId)}' in parents`;
     const query = `name='${q(name)}' and mimeType='${FOLDER_MIME}' and trashed=false${enPadre}`;
     const buscar = async () => {
-      const r = await gfetch(`${API}/files?q=${encodeURIComponent(query)}&fields=files(id,name,createdTime)&orderBy=createdTime&spaces=drive&pageSize=10`);
+      const r = await gfetch(
+        `${API}/files?q=${encodeURIComponent(query)}&fields=files(id,name,createdTime)&orderBy=createdTime&spaces=drive&pageSize=10`,
+      );
       return (await r.json()).files || [];
     };
     let found = await buscar();
@@ -155,10 +224,13 @@ export const drive = {
     }
     let id = found.length ? found[0].id : null;
     if (!id) {
-      id = (await (await jsonReq(`${API}/files?fields=id`, { name, mimeType: FOLDER_MIME, parents: [parentId] })).json()).id;
+      id = (
+        await (await jsonReq(`${API}/files?fields=id`, { name, mimeType: FOLDER_MIME, parents: [parentId] })).json()
+      ).id;
       const despues = await buscar().catch(() => []);
       const iPropia = despues.findIndex((f) => f.id === id);
-      if (iPropia > 0) { // another instance created its own first: keep the oldest and discard ours (empty)
+      if (iPropia > 0) {
+        // another instance created its own first: keep the oldest and discard ours (empty)
         await drive.deleteFile(id).catch(() => {});
         id = despues[0].id;
       }
@@ -178,7 +250,11 @@ export const drive = {
   async findFile(name, parentId, { appProperty } = {}) {
     let query = `name='${q(name)}' and '${q(parentId)}' in parents and trashed=false`;
     if (appProperty) query += ` and appProperties has { key='${q(appProperty[0])}' and value='${q(appProperty[1])}' }`;
-    const j = await (await gfetch(`${API}/files?q=${encodeURIComponent(query)}&fields=files(${FILE_FIELDS})&orderBy=createdTime&spaces=drive&pageSize=5`)).json();
+    const j = await (
+      await gfetch(
+        `${API}/files?q=${encodeURIComponent(query)}&fields=files(${FILE_FIELDS})&orderBy=createdTime&spaces=drive&pageSize=5`,
+      )
+    ).json();
     const f = (j.files || [])[0];
     return f ? { id: f.id, name: f.name, rev: rev(f), modifiedTime: f.modifiedTime, version: ver(f) } : null;
   },
@@ -189,7 +265,11 @@ export const drive = {
     let token = '';
     for (let n = 0; n < 50 && out.length < max; n++) {
       const query = `'${q(parentId)}' in parents and trashed=false`;
-      const j = await (await gfetch(`${API}/files?q=${encodeURIComponent(query)}&fields=nextPageToken,files(id,name,createdTime,modifiedTime)&spaces=drive&pageSize=200${token ? '&pageToken=' + encodeURIComponent(token) : ''}`)).json();
+      const j = await (
+        await gfetch(
+          `${API}/files?q=${encodeURIComponent(query)}&fields=nextPageToken,files(id,name,createdTime,modifiedTime)&spaces=drive&pageSize=200${token ? '&pageToken=' + encodeURIComponent(token) : ''}`,
+        )
+      ).json();
       out.push(...(j.files || []));
       token = j.nextPageToken || '';
       if (!token) break;
@@ -200,21 +280,33 @@ export const drive = {
   // Creates or updates (if `id` is given) a file. contenido = string | Blob. -> {id,name,rev}
   async upload({ name, mimeType = JSON_MIME, body, parentId, id, appProperties }) {
     if (id) {
-      const r = await gfetch(`${UPLOAD}/files/${encodeURIComponent(id)}?uploadType=media&fields=${FILE_FIELDS}`, { method: 'PATCH', headers: { 'Content-Type': mimeType }, body });
+      const r = await gfetch(`${UPLOAD}/files/${encodeURIComponent(id)}?uploadType=media&fields=${FILE_FIELDS}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': mimeType },
+        body,
+      });
       const f = await r.json();
       return { id: f.id, name: f.name, rev: rev(f), version: ver(f) };
     }
     const meta = { name, parents: [parentId || (await drive.ensureFolder())] };
     if (appProperties) meta.appProperties = appProperties;
     const m = multipart(meta, mimeType, body);
-    const r = await gfetch(`${UPLOAD}/files?uploadType=multipart&fields=${FILE_FIELDS}`, { method: 'POST', headers: m.headers, body: m.body });
+    const r = await gfetch(`${UPLOAD}/files?uploadType=multipart&fields=${FILE_FIELDS}`, {
+      method: 'POST',
+      headers: m.headers,
+      body: m.body,
+    });
     const f = await r.json();
     return { id: f.id, name: f.name, rev: rev(f), version: ver(f) };
   },
 
   // -> {version} (renaming also increments the file version in Drive)
   async renameFile(id, name) {
-    const f = await (await jsonReq(`${API}/files/${encodeURIComponent(id)}?fields=id,version`, { name }, 'PATCH')).json().catch(() => ({}));
+    const f = await (
+      await jsonReq(`${API}/files/${encodeURIComponent(id)}?fields=id,version`, { name }, 'PATCH')
+    )
+      .json()
+      .catch(() => ({}));
     return { version: ver(f) };
   },
 
@@ -233,7 +325,14 @@ export const drive = {
     const revs = await drive.revisiones(id);
     let n = 0;
     for (const r of revs.slice(0, -1)) {
-      try { await gfetch(`${API}/files/${encodeURIComponent(id)}/revisions/${encodeURIComponent(r.id)}`, { method: 'DELETE' }); n++; } catch (e) { /* it cannot be deleted: the user is informed */ }
+      try {
+        await gfetch(`${API}/files/${encodeURIComponent(id)}/revisions/${encodeURIComponent(r.id)}`, {
+          method: 'DELETE',
+        });
+        n++;
+      } catch (e) {
+        /* it cannot be deleted: the user is informed */
+      }
     }
     return n;
   },
@@ -245,14 +344,25 @@ export const drive = {
     const query = `'${q(fid)}' in parents and trashed=false and appProperties has { key='cnl' and value='club' }`;
     const files = [];
     let token = '';
-    for (let n = 0; n < 50; n++) { // paginated: more than 100 clubs are not left out
-      const j = await (await gfetch(`${API}/files?q=${encodeURIComponent(query)}&fields=nextPageToken,files(${FILE_FIELDS})&spaces=drive&pageSize=100${token ? '&pageToken=' + encodeURIComponent(token) : ''}`)).json();
+    for (let n = 0; n < 50; n++) {
+      // paginated: more than 100 clubs are not left out
+      const j = await (
+        await gfetch(
+          `${API}/files?q=${encodeURIComponent(query)}&fields=nextPageToken,files(${FILE_FIELDS})&spaces=drive&pageSize=100${token ? '&pageToken=' + encodeURIComponent(token) : ''}`,
+        )
+      ).json();
       files.push(...(j.files || []));
       token = j.nextPageToken || '';
       if (!token) break;
     }
     return files
-      .map((f) => ({ id: f.id, name: String(f.name || '').replace(/\.json$/i, ''), url: drive.fileUrl(f.id), modified: f.modifiedTime, rev: rev(f) }))
+      .map((f) => ({
+        id: f.id,
+        name: String(f.name || '').replace(/\.json$/i, ''),
+        url: drive.fileUrl(f.id),
+        modified: f.modifiedTime,
+        rev: rev(f),
+      }))
       .sort((a, b) => a.name.localeCompare(b.name));
   },
 
@@ -267,14 +377,22 @@ export const drive = {
   },
 
   // Renames the club file (it follows the club name).
-  async renameClub(id, nombre) { return drive.renameFile(id, jsonName(nombre)); },
+  async renameClub(id, nombre) {
+    return drive.renameFile(id, jsonName(nombre));
+  },
 
   // Cheap metadata to detect changes from another device -> {rev, modifiedTime, name, version}
   // version = Drive's monotonic integer (it grows with every change to the file): it allows detecting in-between writes.
   async meta(id) {
     const f = await (await gfetch(`${API}/files/${encodeURIComponent(id)}?fields=${FILE_FIELDS},trashed`)).json();
-    if (f.trashed) throw Object.assign(new Error('El club está en la papelera de Drive.'), { status: 404, code: 'no-encontrado' });
-    return { rev: rev(f), modifiedTime: f.modifiedTime, name: String(f.name || '').replace(/\.json$/i, ''), version: ver(f) };
+    if (f.trashed)
+      throw Object.assign(new Error('El club está en la papelera de Drive.'), { status: 404, code: 'no-encontrado' });
+    return {
+      rev: rev(f),
+      modifiedTime: f.modifiedTime,
+      name: String(f.name || '').replace(/\.json$/i, ''),
+      version: ver(f),
+    };
   },
 
   // Reads the club file -> {doc, rev, version, name}. If it is not JSON it throws an error with code 'fichero-danado' and the text in .raw.
@@ -283,7 +401,14 @@ export const drive = {
     const r = await gfetch(`${API}/files/${encodeURIComponent(id)}?alt=media`);
     const raw = await r.text();
     let doc;
-    try { doc = JSON.parse(raw); } catch (e) { throw Object.assign(new Error('El fichero del club no es un JSON válido.'), { code: 'fichero-danado', raw: String(raw).slice(0, 2000000) }); }
+    try {
+      doc = JSON.parse(raw);
+    } catch (e) {
+      throw Object.assign(new Error('El fichero del club no es un JSON válido.'), {
+        code: 'fichero-danado',
+        raw: String(raw).slice(0, 2000000),
+      });
+    }
     return { doc, rev: m.rev, version: m.version, name: m.name };
   },
 
@@ -299,7 +424,11 @@ export const drive = {
     const out = [];
     let token = '';
     for (let n = 0; n < 20; n++) {
-      const j = await (await gfetch(`${API}/files/${encodeURIComponent(id)}/revisions?fields=nextPageToken,revisions(id,modifiedTime)&pageSize=200${token ? '&pageToken=' + encodeURIComponent(token) : ''}`)).json();
+      const j = await (
+        await gfetch(
+          `${API}/files/${encodeURIComponent(id)}/revisions?fields=nextPageToken,revisions(id,modifiedTime)&pageSize=200${token ? '&pageToken=' + encodeURIComponent(token) : ''}`,
+        )
+      ).json();
       out.push(...(j.revisions || []));
       token = j.nextPageToken || '';
       if (!token) break;
@@ -309,7 +438,11 @@ export const drive = {
 
   async leerRevision(id, revId) {
     const r = await gfetch(`${API}/files/${encodeURIComponent(id)}/revisions/${encodeURIComponent(revId)}?alt=media`);
-    try { return JSON.parse(await r.text()); } catch (e) { return null; }
+    try {
+      return JSON.parse(await r.text());
+    } catch (e) {
+      return null;
+    }
   },
 
   // Document of the revision before the last one (the one right before our write) or null if there is none / it cannot be read.
@@ -331,8 +464,11 @@ export const drive = {
     const f = await drive.upload({ name, body, parentId: fid, id: prev && prev.id, appProperties: { cnl: 'backup' } });
     // Rotation: only of this club's backups of this kind
     const re = patronBackup(nombre, etiqueta);
-    const todos = (await drive.listFiles(fid)).filter((x) => re.test(x.name)).sort((a, b) => b.name.localeCompare(a.name));
-    for (const viejo of todos.slice(etiqueta ? BACKUPS_IMPORT : BACKUPS_DIARIOS)) await drive.deleteFile(viejo.id).catch(() => {});
+    const todos = (await drive.listFiles(fid))
+      .filter((x) => re.test(x.name))
+      .sort((a, b) => b.name.localeCompare(a.name));
+    for (const viejo of todos.slice(etiqueta ? BACKUPS_IMPORT : BACKUPS_DIARIOS))
+      await drive.deleteFile(viejo.id).catch(() => {});
     return { id: f.id, name, creado: true };
   },
 
@@ -341,7 +477,10 @@ export const drive = {
   async listarBackups(nombre, { todos = false } = {}) {
     const fid = await drive.ensureFolderPath([BACKUPS]);
     const res = (todos ? ['', 'import', 'restore'] : ['']).map((e) => patronBackup(nombre, e));
-    return (await drive.listFiles(fid)).filter((x) => res.some((re) => re.test(x.name))).sort((a, b) => b.name.localeCompare(a.name)).map((x) => ({ id: x.id, name: x.name }));
+    return (await drive.listFiles(fid))
+      .filter((x) => res.some((re) => re.test(x.name)))
+      .sort((a, b) => b.name.localeCompare(a.name))
+      .map((x) => ({ id: x.id, name: x.name }));
   },
 
   async leerFichero(id) {
@@ -361,7 +500,10 @@ export const drive = {
       const r = await gfetch(`${API}/files/${encodeURIComponent(prefsFileId)}?alt=media`);
       return JSON.parse(await r.text());
     } catch (e) {
-      if (e.status === 404) { prefsFileId = null; return null; }
+      if (e.status === 404) {
+        prefsFileId = null;
+        return null;
+      }
       if (e instanceof SyntaxError) return null; // corrupt file: it is rewritten
       throw e;
     }
@@ -375,7 +517,13 @@ export const drive = {
       if (f) prefsFileId = f.id;
     }
     if (prefsFileId) {
-      try { await drive.upload({ id: prefsFileId, body }); return; } catch (e) { if (e.status !== 404) throw e; prefsFileId = null; }
+      try {
+        await drive.upload({ id: prefsFileId, body });
+        return;
+      } catch (e) {
+        if (e.status !== 404) throw e;
+        prefsFileId = null;
+      }
     }
     prefsFileId = (await drive.upload({ name: PREFS_FILE, body, parentId: fid, appProperties: { cnl: 'prefs' } })).id;
   },
@@ -386,7 +534,10 @@ export const drive = {
   },
 
   // Forgets internal caches (when Drive is disconnected).
-  reset() { folderIds.clear(); prefsFileId = null; },
+  reset() {
+    folderIds.clear();
+    prefsFileId = null;
+  },
 };
 
 export default drive;

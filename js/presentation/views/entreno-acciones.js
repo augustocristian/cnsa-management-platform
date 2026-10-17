@@ -26,7 +26,10 @@ const nombreDia = (fecha) => {
 export function servicios(ctx) {
   const entreno = crearEntrenoService(ctx.store, { genId: genIdDe(ctx), club: () => ctx.store.club });
   const pdf = ctx.pdf; // PDF adapter (composition root): { generar(fichas, etiquetas) }
-  const drive = driveConectado(ctx) && ctx.guardarPdfEnDrive ? { guardar: ({ blob, nombre }) => ctx.guardarPdfEnDrive({ blob, nombre, drive: ctx.drive }) } : null;
+  const drive =
+    driveConectado(ctx) && ctx.guardarPdfEnDrive
+      ? { guardar: ({ blob, nombre }) => ctx.guardarPdfEnDrive({ blob, nombre, drive: ctx.drive }) }
+      : null;
   const ahora = ahoraDe(ctx);
   const svc = crearEntrenamientosService(ctx.store, { entreno, ahora, pdf, drive, nombreDia });
   return { entreno, svc, ahora };
@@ -35,8 +38,11 @@ export function servicios(ctx) {
 // Labels for the PDF port in the active language.
 export function etiquetas(ahora) {
   return crearEtiquetasPdf({
-    t, locale: locale(), ahora: ahora(),
-    nombreContenido: (it) => (it.tipoId ? tContenido({ id: it.tipoId, nombre: it.contenido, predefinido: it.predefinido }) : it.contenido),
+    t,
+    locale: locale(),
+    ahora: ahora(),
+    nombreContenido: (it) =>
+      it.tipoId ? tContenido({ id: it.tipoId, nombre: it.contenido, predefinido: it.predefinido }) : it.contenido,
   });
 }
 
@@ -46,12 +52,23 @@ export const esMovil = () => typeof matchMedia === 'function' && matchMedia('(po
 const archivo = (blob, nombre) => new File([blob], nombre, { type: 'application/pdf' });
 // Web Share with a file only on touch devices that support it (desktop browsers download instead).
 export function puedeCompartir(r) {
-  if (!esMovil() || typeof navigator === 'undefined' || typeof navigator.share !== 'function' || typeof navigator.canShare !== 'function') return false;
-  try { return !!navigator.canShare({ files: [archivo(r.blob, r.nombre)] }); } catch (e) { return false; }
+  if (
+    !esMovil() ||
+    typeof navigator === 'undefined' ||
+    typeof navigator.share !== 'function' ||
+    typeof navigator.canShare !== 'function'
+  )
+    return false;
+  try {
+    return !!navigator.canShare({ files: [archivo(r.blob, r.nombre)] });
+  } catch (e) {
+    return false;
+  }
 }
 // Label of the single PDF button: "Share PDF" where sharing a file works, "Download PDF" elsewhere.
 export const etiquetaPdf = () => {
-  const prueba = typeof Blob === 'function' ? { blob: new Blob([''], { type: 'application/pdf' }), nombre: 'a.pdf' } : null;
+  const prueba =
+    typeof Blob === 'function' ? { blob: new Blob([''], { type: 'application/pdf' }), nombre: 'a.pdf' } : null;
   return t(prueba && puedeCompartir(prueba) ? 'entreno.pdf-compartir' : 'entreno.pdf-descargar');
 };
 
@@ -85,22 +102,46 @@ export async function enviar(r) {
 // Desktop: dialog with the PDF in an iframe. Mobile browsers do not render a PDF inside an iframe: open it in a new tab.
 export function vistaPrevia(r) {
   const url = URL.createObjectURL(r.blob);
-  const liberar = () => { const tm = setTimeout(() => URL.revokeObjectURL(url), 60000); if (tm && tm.unref) tm.unref(); };
+  const liberar = () => {
+    const tm = setTimeout(() => URL.revokeObjectURL(url), 60000);
+    if (tm && tm.unref) tm.unref();
+  };
   if (esMovil()) {
     const w = window.open(url, '_blank', 'noopener');
     if (w) toast(t('entreno.pdf-abierto'));
-    else toast(t('entreno.pdf-bloqueado'), { action: { label: t('entreno.abrir-pdf'), onClick: () => window.open(url, '_blank', 'noopener') } });
+    else
+      toast(t('entreno.pdf-bloqueado'), {
+        action: { label: t('entreno.abrir-pdf'), onClick: () => window.open(url, '_blank', 'noopener') },
+      });
     liberar();
     return null;
   }
   useStyles('entreno-editor');
   return sheet({
-    title: t('entreno.vista-previa'), className: 'enp-prev', onClose: liberar,
-    body: h('div', { class: 'enp-prev-cuerpo' }, h('p', { class: 'hint' }, r.nombre),
-      h('iframe', { class: 'enp-frame', src: url, title: t('entreno.vista-previa') + ' ' + r.nombre })),
+    title: t('entreno.vista-previa'),
+    className: 'enp-prev',
+    onClose: liberar,
+    body: h(
+      'div',
+      { class: 'enp-prev-cuerpo' },
+      h('p', { class: 'hint' }, r.nombre),
+      h('iframe', { class: 'enp-frame', src: url, title: t('entreno.vista-previa') + ' ' + r.nombre }),
+    ),
     actions: [
-      { label: t('entreno.abrir-pestana'), onClick: () => { window.open(url, '_blank', 'noopener'); return false; } },
-      { label: t('entreno.descargar'), onClick: () => { descargar(r.blob, r.nombre); return false; } },
+      {
+        label: t('entreno.abrir-pestana'),
+        onClick: () => {
+          window.open(url, '_blank', 'noopener');
+          return false;
+        },
+      },
+      {
+        label: t('entreno.descargar'),
+        onClick: () => {
+          descargar(r.blob, r.nombre);
+          return false;
+        },
+      },
       { label: t('common.cerrar'), primary: true, autofocus: true },
     ],
   });
@@ -109,10 +150,24 @@ export function vistaPrevia(r) {
 // Prints with a hidden iframe; if the browser does not allow it, opens the PDF in another tab.
 export function imprimir(r) {
   const url = URL.createObjectURL(r.blob);
-  const f = h('iframe', { class: 'enp-print', src: url, title: t('entreno.imprimir'), 'aria-hidden': 'true', tabindex: '-1' });
-  const quitar = () => { f.remove(); URL.revokeObjectURL(url); };
+  const f = h('iframe', {
+    class: 'enp-print',
+    src: url,
+    title: t('entreno.imprimir'),
+    'aria-hidden': 'true',
+    tabindex: '-1',
+  });
+  const quitar = () => {
+    f.remove();
+    URL.revokeObjectURL(url);
+  };
   f.addEventListener('load', () => {
-    try { f.contentWindow.focus(); f.contentWindow.print(); } catch (e) { window.open(url, '_blank', 'noopener'); }
+    try {
+      f.contentWindow.focus();
+      f.contentWindow.print();
+    } catch (e) {
+      window.open(url, '_blank', 'noopener');
+    }
   });
   document.body.appendChild(f);
   const tm = setTimeout(quitar, 120000);
@@ -136,7 +191,10 @@ async function generarYEntregar(generar, alEntregar, mensajeVacio) {
       if (!(await confirmDialog(t(mensajeVacio)))) return null;
       r = await generar(true);
     }
-    if (!r.ok) { toast.error(t(r.codigo === 'sin-sesiones' ? 'entreno.sin-sesiones-pdf' : 'entreno.err-pdf')); return null; }
+    if (!r.ok) {
+      toast.error(t(r.codigo === 'sin-sesiones' ? 'entreno.sin-sesiones-pdf' : 'entreno.err-pdf'));
+      return null;
+    }
     await alEntregar(r);
     return r;
   } catch (e) {
@@ -148,12 +206,20 @@ async function generarYEntregar(generar, alEntregar, mensajeVacio) {
 
 export function pdfSesion(ctx, sesionId, { accion = 'enviar', borrador = null } = {}) {
   const { svc, ahora } = servicios(ctx);
-  return generarYEntregar((permitirVacio) => svc.pdfSesion(sesionId, { borrador, etiquetas: etiquetas(ahora), permitirVacio }), entrega(ctx, accion), 'entreno.pdf-vacio-confirmar');
+  return generarYEntregar(
+    (permitirVacio) => svc.pdfSesion(sesionId, { borrador, etiquetas: etiquetas(ahora), permitirVacio }),
+    entrega(ctx, accion),
+    'entreno.pdf-vacio-confirmar',
+  );
 }
 
 export function pdfSemana(ctx, { lunes, grupoId = '', accion = 'enviar' }) {
   const { svc, ahora } = servicios(ctx);
-  return generarYEntregar((permitirVacio) => svc.pdfSemana(lunes, { grupoId, etiquetas: etiquetas(ahora), permitirVacio }), entrega(ctx, accion), 'entreno.pdf-vacio-semana-confirmar');
+  return generarYEntregar(
+    (permitirVacio) => svc.pdfSemana(lunes, { grupoId, etiquetas: etiquetas(ahora), permitirVacio }),
+    entrega(ctx, accion),
+    'entreno.pdf-vacio-semana-confirmar',
+  );
 }
 
 // Saves a generated PDF to cnl/entrenos in the user's Drive (only with the Drive connection).

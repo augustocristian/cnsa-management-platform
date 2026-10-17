@@ -8,37 +8,72 @@ export const HOJA_ASIGNACIONES = 'AsignacionesCalle';
 
 export function filaPiscina(p) {
   const n = D.normalizarPiscina(p);
-  return { id: n.id, nombre: n.nombre, longitudM: n.longitudM, numCalles: n.numCalles, intervaloMin: n.intervaloMin, maxPorCalle: n.maxPorCalle, horario: D.stringifyHorario(n.horario) };
+  return {
+    id: n.id,
+    nombre: n.nombre,
+    longitudM: n.longitudM,
+    numCalles: n.numCalles,
+    intervaloMin: n.intervaloMin,
+    maxPorCalle: n.maxPorCalle,
+    horario: D.stringifyHorario(n.horario),
+  };
 }
 export function filaAsignacion(a) {
   const n = D.normalizarAsignacion(a);
   return {
-    id: n.id, piscinaId: n.piscinaId, dia: n.fecha ? n.dia : (Number.isNaN(n.dia) ? '' : n.dia), fecha: n.fecha,
-    horaInicio: n.horaInicio, horaFin: n.horaFin, calleDesde: Number.isNaN(n.calleDesde) ? '' : n.calleDesde,
+    id: n.id,
+    piscinaId: n.piscinaId,
+    dia: n.fecha ? n.dia : Number.isNaN(n.dia) ? '' : n.dia,
+    fecha: n.fecha,
+    horaInicio: n.horaInicio,
+    horaFin: n.horaFin,
+    calleDesde: Number.isNaN(n.calleDesde) ? '' : n.calleDesde,
     calleHasta: Number.isNaN(n.calleHasta) ? (Number.isNaN(n.calleDesde) ? '' : n.calleDesde) : n.calleHasta,
-    grupoId: n.grupoId, entrenadorId: n.entrenadorId, notas: n.notas,
+    grupoId: n.grupoId,
+    entrenadorId: n.entrenadorId,
+    notas: n.notas,
   };
 }
 export function piscinaPorDefecto() {
-  return { id: '', nombre: '', longitudM: 25, numCalles: 6, intervaloMin: 30, maxPorCalle: 8, horario: D.horarioPorDefecto() };
+  return {
+    id: '',
+    nombre: '',
+    longitudM: 25,
+    numCalles: 6,
+    intervaloMin: 30,
+    maxPorCalle: 8,
+    horario: D.horarioPorDefecto(),
+  };
 }
 
 export function crearPlanificacionService(repo) {
   const datos = () => ({
-    piscinas: repo.list(HOJA_PISCINAS), asignaciones: repo.list(HOJA_ASIGNACIONES),
-    grupos: repo.list('Grupos'), nadadores: repo.list('Nadadores'),
+    piscinas: repo.list(HOJA_PISCINAS),
+    asignaciones: repo.list(HOJA_ASIGNACIONES),
+    grupos: repo.list('Grupos'),
+    nadadores: repo.list('Nadadores'),
   });
 
   const svc = {
     piscinas: () => repo.list(HOJA_PISCINAS).map(D.normalizarPiscina),
-    piscina: (id) => { const p = repo.get(HOJA_PISCINAS, id); return p ? D.normalizarPiscina(p) : null; },
-    asignaciones: (piscinaId) => repo.list(HOJA_ASIGNACIONES).map(D.normalizarAsignacion).filter((a) => !piscinaId || a.piscinaId === String(piscinaId)),
+    piscina: (id) => {
+      const p = repo.get(HOJA_PISCINAS, id);
+      return p ? D.normalizarPiscina(p) : null;
+    },
+    asignaciones: (piscinaId) =>
+      repo
+        .list(HOJA_ASIGNACIONES)
+        .map(D.normalizarAsignacion)
+        .filter((a) => !piscinaId || a.piscinaId === String(piscinaId)),
     grupos: () => repo.list('Grupos'),
     nadadoresPorGrupo: () => D.nadadoresPorGrupo(repo.list('Nadadores')),
     // Known coaches: those of Grupos and of the assignments (no duplicates, alphabetical order).
     entrenadores() {
       const set = new Map();
-      const add = (n) => { const s = String(n || '').trim(); if (s) set.set(s.toLowerCase(), set.get(s.toLowerCase()) || s); };
+      const add = (n) => {
+        const s = String(n || '').trim();
+        if (s) set.set(s.toLowerCase(), set.get(s.toLowerCase()) || s);
+      };
       repo.list('Grupos').forEach((g) => add(g.entrenador));
       repo.list(HOJA_ASIGNACIONES).forEach((a) => add(a.entrenadorId));
       return [...set.values()].sort((a, b) => a.localeCompare(b));
@@ -54,12 +89,15 @@ export function crearPlanificacionService(repo) {
       const errores = D.validarPiscina(data);
       if (errores.length) return { ok: false, errores, recortadas: 0, fuera: 0 };
       const fila = filaPiscina(data);
-      let recortadas = 0, fuera = 0;
+      let recortadas = 0,
+        fuera = 0;
       if (fila.id) {
         const aj = D.ajustarAlReducir(repo.list(HOJA_ASIGNACIONES), fila.id, fila.numCalles);
         fuera = aj.fuera.length;
-        if (recortar) { aj.recortadas.forEach((a) => repo.upsert(HOJA_ASIGNACIONES, a)); recortadas = aj.recortadas.length; }
-        else fuera += aj.recortadas.length;
+        if (recortar) {
+          aj.recortadas.forEach((a) => repo.upsert(HOJA_ASIGNACIONES, a));
+          recortadas = aj.recortadas.length;
+        } else fuera += aj.recortadas.length;
       }
       const piscina = repo.upsert(HOJA_PISCINAS, fila);
       return { ok: true, piscina: D.normalizarPiscina(piscina), recortadas, fuera };
@@ -109,7 +147,9 @@ export function crearPlanificacionService(repo) {
       repo.remove(HOJA_ASIGNACIONES, id);
       return fila;
     },
-    restaurarAsignacion(fila) { if (fila) repo.upsert(HOJA_ASIGNACIONES, fila); },
+    restaurarAsignacion(fila) {
+      if (fila) repo.upsert(HOJA_ASIGNACIONES, fila);
+    },
 
     // ----- Analysis -----
     // Global conflicts (or those affecting one pool). huecos=true adds the free gaps (info).
@@ -123,12 +163,21 @@ export function crearPlanificacionService(repo) {
       const piscina = repo.get(HOJA_PISCINAS, piscinaId);
       if (!piscina) return { propuestas: [], sinHueco: [] };
       const d = datos();
-      return D.sugerirDistribucion({ piscina, dia, grupos: d.grupos, nadadores: d.nadadores, asignaciones: d.asignaciones, ...resto });
+      return D.sugerirDistribucion({
+        piscina,
+        dia,
+        grupos: d.grupos,
+        nadadores: d.nadadores,
+        asignaciones: d.asignaciones,
+        ...resto,
+      });
     },
     // Saves the proposals (they only carry warnings, never errors). -> number of assignments created
     aplicarSugerencia(propuestas) {
       let n = 0;
-      propuestas.forEach((p) => { if (svc.guardarAsignacion(p, { forzar: true }).ok) n++; });
+      propuestas.forEach((p) => {
+        if (svc.guardarAsignacion(p, { forzar: true }).ok) n++;
+      });
       return n;
     },
   };

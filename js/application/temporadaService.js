@@ -24,8 +24,15 @@ export function crearTemporadaService(repo, { ahora, nombreFase = (t) => t } = {
     grupos: () => repo.list('Grupos'),
 
     // ----- Temporadas -----
-    temporadas: () => repo.list(HOJA_TEMPORADAS).map(D.normalizarTemporada).sort((a, b) => (a.inicio < b.inicio ? 1 : a.inicio > b.inicio ? -1 : 0)),
-    temporada: (id) => { const r = repo.get(HOJA_TEMPORADAS, id); return r ? D.normalizarTemporada(r) : null; },
+    temporadas: () =>
+      repo
+        .list(HOJA_TEMPORADAS)
+        .map(D.normalizarTemporada)
+        .sort((a, b) => (a.inicio < b.inicio ? 1 : a.inicio > b.inicio ? -1 : 0)),
+    temporada: (id) => {
+      const r = repo.get(HOJA_TEMPORADAS, id);
+      return r ? D.normalizarTemporada(r) : null;
+    },
     activa() {
       const todas = svc.temporadas();
       return todas.find((t) => t.activa) || todas[0] || null;
@@ -38,22 +45,33 @@ export function crearTemporadaService(repo, { ahora, nombreFase = (t) => t } = {
       const otras = svc.temporadas().filter((t) => t.id !== String(data.id || ''));
       const activa = !!data.activa || !otras.some((t) => t.activa);
       const guardada = repo.upsert(HOJA_TEMPORADAS, D.filaTemporada({ ...data, activa }));
-      if (activa) otras.filter((t) => t.activa).forEach((t) => repo.upsert(HOJA_TEMPORADAS, D.filaTemporada({ ...t, activa: false })));
+      if (activa)
+        otras
+          .filter((t) => t.activa)
+          .forEach((t) => repo.upsert(HOJA_TEMPORADAS, D.filaTemporada({ ...t, activa: false })));
       const temporada = D.normalizarTemporada(guardada);
       if (conFases && !data.id) {
-        D.fasesPorDefecto(temporada.inicio, temporada.fin, nombreFase).forEach((f) => repo.upsert(HOJA_FASES, D.filaFase({ ...f, temporadaId: temporada.id })));
+        D.fasesPorDefecto(temporada.inicio, temporada.fin, nombreFase).forEach((f) =>
+          repo.upsert(HOJA_FASES, D.filaFase({ ...f, temporadaId: temporada.id })),
+        );
       }
       return { ok: true, temporada };
     },
     activar(id) {
-      svc.temporadas().forEach((t) => { if (t.activa !== (t.id === String(id))) repo.upsert(HOJA_TEMPORADAS, D.filaTemporada({ ...t, activa: t.id === String(id) })); });
+      svc.temporadas().forEach((t) => {
+        if (t.activa !== (t.id === String(id)))
+          repo.upsert(HOJA_TEMPORADAS, D.filaTemporada({ ...t, activa: t.id === String(id) }));
+      });
     },
     // Deletes the season with its phases, edited weeks and events. -> snapshot for restaurarTemporada() (Undo) or null
     borrarTemporada(id) {
       const fila = repo.get(HOJA_TEMPORADAS, id);
       if (!fila) return null;
       const hijos = {};
-      [HOJA_FASES, HOJA_SEMANAS, HOJA_EVENTOS].forEach((h) => { hijos[h] = enTemporada(h, id); hijos[h].forEach((r) => repo.remove(h, r.id)); });
+      [HOJA_FASES, HOJA_SEMANAS, HOJA_EVENTOS].forEach((h) => {
+        hijos[h] = enTemporada(h, id);
+        hijos[h].forEach((r) => repo.remove(h, r.id));
+      });
       repo.remove(HOJA_TEMPORADAS, id);
       if (!svc.temporadas().some((t) => t.activa) && svc.temporadas()[0]) svc.activar(svc.temporadas()[0].id);
       return { fila, hijos };
@@ -62,7 +80,8 @@ export function crearTemporadaService(repo, { ahora, nombreFase = (t) => t } = {
       if (!snap) return;
       repo.upsert(HOJA_TEMPORADAS, snap.fila);
       Object.entries(snap.hijos).forEach(([h, filas]) => filas.forEach((r) => repo.upsert(h, r)));
-      if (String(snap.fila.activa) === 'true') svc.activar(String(snap.fila.id)); // it was the active one: it becomes active again
+      if (String(snap.fila.activa) === 'true')
+        svc.activar(String(snap.fila.id)); // it was the active one: it becomes active again
       else if (!svc.temporadas().some((t) => t.activa)) svc.activar(svc.temporadas()[0].id);
     },
 
@@ -74,7 +93,12 @@ export function crearTemporadaService(repo, { ahora, nombreFase = (t) => t } = {
       if (errores.length) return { ok: false, errores };
       const cand = D.normalizarFase({ ...data, fechaInicio: data.inicio, fechaFin: data.fin });
       const solapan = D.fasesQueSolapan(cand, svc.fases(data.temporadaId));
-      if (solapan.length && !forzar) return { ok: false, requiereForzar: true, conflictos: solapan.map((f) => ({ tipo: 'fases-solapadas', fase: f.nombre })) };
+      if (solapan.length && !forzar)
+        return {
+          ok: false,
+          requiereForzar: true,
+          conflictos: solapan.map((f) => ({ tipo: 'fases-solapadas', fase: f.nombre })),
+        };
       const t = svc.temporada(data.temporadaId);
       const avisos = t && (cand.inicio < t.inicio || cand.fin > t.fin) ? [{ tipo: 'fase-fuera-temporada' }] : [];
       const fases = svc.fases(data.temporadaId);
@@ -83,12 +107,24 @@ export function crearTemporadaService(repo, { ahora, nombreFase = (t) => t } = {
       return { ok: true, fase: D.normalizarFase(fase), avisos };
     },
     // Deletes a phase. -> the removed row for restaurarFase() (Undo) or null
-    borrarFase(id) { const fila = repo.get(HOJA_FASES, id); if (fila) repo.remove(HOJA_FASES, id); return fila || null; },
-    restaurarFase(fila) { if (fila) repo.upsert(HOJA_FASES, fila); },
+    borrarFase(id) {
+      const fila = repo.get(HOJA_FASES, id);
+      if (fila) repo.remove(HOJA_FASES, id);
+      return fila || null;
+    },
+    restaurarFase(fila) {
+      if (fila) repo.upsert(HOJA_FASES, fila);
+    },
 
     // ----- Eventos -----
-    eventos: (tid) => enTemporada(HOJA_EVENTOS, tid).map(D.normalizarEvento).sort((a, b) => (a.inicio < b.inicio ? -1 : a.inicio > b.inicio ? 1 : 0)),
-    evento: (id) => { const r = repo.get(HOJA_EVENTOS, id); return r ? D.normalizarEvento(r) : null; },
+    eventos: (tid) =>
+      enTemporada(HOJA_EVENTOS, tid)
+        .map(D.normalizarEvento)
+        .sort((a, b) => (a.inicio < b.inicio ? -1 : a.inicio > b.inicio ? 1 : 0)),
+    evento: (id) => {
+      const r = repo.get(HOJA_EVENTOS, id);
+      return r ? D.normalizarEvento(r) : null;
+    },
     // -> {ok, errores?, avisos?, evento?}; an event outside the season is saved but warns.
     guardarEvento(data) {
       const errores = D.validarEvento(data);
@@ -99,27 +135,47 @@ export function crearTemporadaService(repo, { ahora, nombreFase = (t) => t } = {
       return { ok: true, evento, avisos: D.eventoFuera(cand, t) ? [{ tipo: 'evento-fuera-temporada' }] : [] };
     },
     // Deletes an event. -> the removed row for restaurarEvento() (Undo) or null
-    borrarEvento(id) { const fila = repo.get(HOJA_EVENTOS, id); if (fila) repo.remove(HOJA_EVENTOS, id); return fila || null; },
-    restaurarEvento(fila) { if (fila) repo.upsert(HOJA_EVENTOS, fila); },
+    borrarEvento(id) {
+      const fila = repo.get(HOJA_EVENTOS, id);
+      if (fila) repo.remove(HOJA_EVENTOS, id);
+      return fila || null;
+    },
+    restaurarEvento(fila) {
+      if (fila) repo.upsert(HOJA_EVENTOS, fila);
+    },
 
     // ----- Weeks -----
     semanasPlan: (tid) => enTemporada(HOJA_SEMANAS, tid).map(D.normalizarSemanaPlan),
     // cambios: {volumen, contenidos, intensidad, objetivo, notas} (partial; merged with what is stored). Without useful content it deletes the row.
     // -> {ok, errores?}
     guardarSemana(tid, lunes, cambios) {
-      const previo = svc.semanasPlan(tid).find((s) => s.lunes === lunes) || { temporadaId: String(tid), lunes, volumen: null, contenidos: {}, intensidad: null, objetivo: '', notas: '' };
+      const previo = svc.semanasPlan(tid).find((s) => s.lunes === lunes) || {
+        temporadaId: String(tid),
+        lunes,
+        volumen: null,
+        contenidos: {},
+        intensidad: null,
+        objetivo: '',
+        notas: '',
+      };
       const mezcla = { ...previo, ...cambios };
       const errores = D.validarSemanaPlan(mezcla);
       if (errores.length) return { ok: false, errores };
       const s = D.normalizarSemanaPlan({ ...mezcla, volumenPrevisto: mezcla.volumen, temporadaId: tid, lunes });
       const id = D.idSemanaPlan(tid, lunes);
-      if (D.semanaPlanVacia(s)) { repo.remove(HOJA_SEMANAS, id); return { ok: true, vacia: true }; }
+      if (D.semanaPlanVacia(s)) {
+        repo.remove(HOJA_SEMANAS, id);
+        return { ok: true, vacia: true };
+      }
       repo.upsert(HOJA_SEMANAS, D.filaSemanaPlan({ ...s, id, temporadaId: String(tid), lunes }));
       return { ok: true };
     },
     // Several weeks at once (tools). cambios: [{lunes, volumen, contenidos, intensidad?}]
     guardarSemanas(tid, cambios) {
-      cambios.forEach((c) => { const { lunes, ...resto } = c; svc.guardarSemana(tid, lunes, resto); });
+      cambios.forEach((c) => {
+        const { lunes, ...resto } = c;
+        svc.guardarSemana(tid, lunes, resto);
+      });
       return cambios.length;
     },
 
@@ -128,17 +184,38 @@ export function crearTemporadaService(repo, { ahora, nombreFase = (t) => t } = {
     resumen(tid, { fuente = 'auto', tolerancia = D.TOLERANCIA } = {}) {
       const temporada = svc.temporada(tid);
       if (!temporada) return null;
-      const fases = svc.fases(tid), eventos = svc.eventos(tid), tp = tipos();
+      const fases = svc.fases(tid),
+        eventos = svc.eventos(tid),
+        tp = tipos();
       const h = hoy();
       const semanas = D.resumenSemanas({
-        temporada, fases, semanasPlan: svc.semanasPlan(tid), eventos, tipos: tp, sesiones: repo.list('Entrenamientos'), lineas: repo.list('EntrenoLineas'),
-        cargas: repo.list('Cargas'), nadadores: repo.list('Nadadores'), hoy: h, fuente, tolerancia,
+        temporada,
+        fases,
+        semanasPlan: svc.semanasPlan(tid),
+        eventos,
+        tipos: tp,
+        sesiones: repo.list('Entrenamientos'),
+        lineas: repo.list('EntrenoLineas'),
+        cargas: repo.list('Cargas'),
+        nadadores: repo.list('Nadadores'),
+        hoy: h,
+        fuente,
+        tolerancia,
       });
       const actual = semanas.find((s) => s.tiempo === 'actual');
       return {
-        temporada, fases, eventos, tipos: tp, semanas, hoy: h, tolerancia, fuente,
-        semanaActual: actual ? actual.n : 0, totales: D.totales(semanas, fases, tolerancia),
-        validaciones: D.validarPlan({ temporada, fases, eventos }), sugerencias: D.sugerencias({ semanas, tipos: tp, hoy: h, tolerancia }),
+        temporada,
+        fases,
+        eventos,
+        tipos: tp,
+        semanas,
+        hoy: h,
+        tolerancia,
+        fuente,
+        semanaActual: actual ? actual.n : 0,
+        totales: D.totales(semanas, fases, tolerancia),
+        validaciones: D.validarPlan({ temporada, fases, eventos }),
+        sugerencias: D.sugerencias({ semanas, tipos: tp, hoy: h, tolerancia }),
         proxima: D.proximaCompeticion(eventos, h),
       };
     },
@@ -149,15 +226,30 @@ export function crearTemporadaService(repo, { ahora, nombreFase = (t) => t } = {
       if (!t) return [];
       const dom = D.addDias(lunes, 6);
       const grupos = repo.list('Grupos');
-      return repo.list('Entrenamientos').filter((e) => String(e.fecha).slice(0, 10) >= lunes && String(e.fecha).slice(0, 10) <= dom && (!t.grupoId || e.grupoId === t.grupoId))
+      return repo
+        .list('Entrenamientos')
+        .filter(
+          (e) =>
+            String(e.fecha).slice(0, 10) >= lunes &&
+            String(e.fecha).slice(0, 10) <= dom &&
+            (!t.grupoId || e.grupoId === t.grupoId),
+        )
         .sort((a, b) => (String(a.fecha) + String(a.hora)).localeCompare(String(b.fecha) + String(b.hora)))
         .map((e) => {
           const lineas = repo.list('EntrenoLineas').filter((l) => l.entrenamientoId === e.id);
           const tot = totalesSesion(lineas);
           const g = grupos.find((x) => x.id === e.grupoId);
           return {
-            id: e.id, fecha: String(e.fecha).slice(0, 10), hora: e.hora, titulo: e.titulo, grupoId: e.grupoId, grupoNombre: g ? g.nombre : '', estado: e.estado,
-            metros: tot.metros || Math.round((Number(e.volumenMin) + Number(e.volumenMax)) / 2) || 0, conPlan: tot.filas > 0, minutos: tot.tiempoMin,
+            id: e.id,
+            fecha: String(e.fecha).slice(0, 10),
+            hora: e.hora,
+            titulo: e.titulo,
+            grupoId: e.grupoId,
+            grupoNombre: g ? g.nombre : '',
+            estado: e.estado,
+            metros: tot.metros || Math.round((Number(e.volumenMin) + Number(e.volumenMax)) / 2) || 0,
+            conPlan: tot.filas > 0,
+            minutos: tot.tiempoMin,
           };
         });
     },
@@ -166,7 +258,8 @@ export function crearTemporadaService(repo, { ahora, nombreFase = (t) => t } = {
     // Copies the plan (volume, split, intensity, goal and notes) from one week n to another.
     copiarSemana(tid, nOrigen, nDestino, opciones) {
       const m = svc.resumen(tid, opciones);
-      const o = m && m.semanas.find((s) => s.n === nOrigen), d = m && m.semanas.find((s) => s.n === nDestino);
+      const o = m && m.semanas.find((s) => s.n === nOrigen),
+        d = m && m.semanas.find((s) => s.n === nDestino);
       if (!o || !d || o.n === d.n) return { ok: false };
       return svc.guardarSemana(tid, d.lunes, D.copiarPlanSemana(o.plan));
     },
@@ -178,17 +271,39 @@ export function crearTemporadaService(repo, { ahora, nombreFase = (t) => t } = {
       const ns = m.semanas.filter((s) => s.fase && s.fase.id === fase.id).map((s) => s.n);
       if (!ns.length) return { ok: false, cambios: [] };
       const base = volumenBase > 0 ? Number(volumenBase) : D.volumenBaseSugerido(m.semanas, ns[0], ns[ns.length - 1]);
-      const cambios = D.aplicarPlantillaFase(m.semanas, { nIni: ns[0], nFin: ns[ns.length - 1], tipo: tipo || fase.tipo, volumenBase: base, tipos: m.tipos });
-      if (aplicar) { svc.guardarSemanas(String(tid), cambios); }
+      const cambios = D.aplicarPlantillaFase(m.semanas, {
+        nIni: ns[0],
+        nFin: ns[ns.length - 1],
+        tipo: tipo || fase.tipo,
+        volumenBase: base,
+        tipos: m.tipos,
+      });
+      if (aplicar) {
+        svc.guardarSemanas(String(tid), cambios);
+      }
       return { ok: true, cambios, volumenBase: base };
     },
     // Scales (± %) or moves (k weeks) the planned volume of weeks [desde, hasta]. aplicar=false = only previews.
     ajustarVolumen(tid, { desde, hasta, pct = 0, mover = 0, aplicar = false }) {
       const m = svc.resumen(tid);
       if (!m) return { ok: false, cambios: [] };
-      const cambios = mover ? D.desplazarPlan(m.semanas, { desde, hasta, k: mover }) : D.ajustarVolumenes(m.semanas, { desde, hasta, pct });
-      const filas = cambios.map((c) => ({ ...c, volumen: c.despues, lunes: c.lunes })).filter((c) => c.antes !== c.despues);
-      if (aplicar) { svc.guardarSemanas(String(tid), filas.map((c) => ({ lunes: c.lunes, volumen: c.despues, contenidos: c.contenidos, ...(mover ? { intensidad: c.intensidad } : {}) }))); }
+      const cambios = mover
+        ? D.desplazarPlan(m.semanas, { desde, hasta, k: mover })
+        : D.ajustarVolumenes(m.semanas, { desde, hasta, pct });
+      const filas = cambios
+        .map((c) => ({ ...c, volumen: c.despues, lunes: c.lunes }))
+        .filter((c) => c.antes !== c.despues);
+      if (aplicar) {
+        svc.guardarSemanas(
+          String(tid),
+          filas.map((c) => ({
+            lunes: c.lunes,
+            volumen: c.despues,
+            contenidos: c.contenidos,
+            ...(mover ? { intensidad: c.intensidad } : {}),
+          })),
+        );
+      }
       return { ok: true, cambios: filas };
     },
     aplicarSugerencia(tid, sugerencia) {

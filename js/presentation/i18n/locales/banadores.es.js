@@ -1,7 +1,8 @@
 // Textos del catálogo de bañadores (entrenamiento / técnico de competición) y del filtro de marcas por bañador.
 export default {
   'bn.titulo': 'Bañadores',
-  'bn.intro': 'Los bañadores del club con los que se registran las marcas, para poder filtrarlas por tipo (entrenamiento o técnico de competición), marca y modelo.',
+  'bn.intro':
+    'Los bañadores del club con los que se registran las marcas, para poder filtrarlas por tipo (entrenamiento o técnico de competición), marca y modelo.',
   'bn.nuevo': 'Nuevo bañador',
   'bn.nuevo-titulo': 'Nuevo bañador',
   'bn.editar-titulo': 'Editar bañador',
@@ -43,7 +44,8 @@ export default {
   'bn.fusionado': 'Bañador «{nombre}» unido a «{destino}» ({n} marcas reasignadas)',
   'bn.borrar.confirmar': '¿Eliminar el bañador «{nombre}»?',
   'bn.borrar.en-uso-titulo': 'Bañador en uso',
-  'bn.borrar.en-uso': 'El bañador «{nombre}» figura en {n} marcas, así que no se puede eliminar. Puedes desactivarlo (deja de ofrecerse al registrar marcas) o unirlo con otro bañador.',
+  'bn.borrar.en-uso':
+    'El bañador «{nombre}» figura en {n} marcas, así que no se puede eliminar. Puedes desactivarlo (deja de ofrecerse al registrar marcas) o unirlo con otro bañador.',
   'bn.borrar.desactivar': 'Desactivar',
   'bn.borrar.fusionar': 'Unir y eliminar',
   'bn.borrar.fusionar-con': 'Unir con',

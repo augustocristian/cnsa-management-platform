@@ -5,22 +5,47 @@ import { tmpdir } from 'node:os';
 import { execFileSync } from 'node:child_process';
 
 const tmp = mkdtempSync(join(tmpdir(), 'cnl-'));
-let n = 0, bad = 0;
-const walk = (d) => { for (const f of readdirSync(d)) {
-  const p = join(d, f);
-  if (statSync(p).isDirectory()) { if (f !== 'node_modules' && f !== 'vendor' && !f.startsWith('.')) walk(p); }
-  else if (/\.js$/.test(f)) {
-    const t = join(tmp, `${n++}.mjs`); writeFileSync(t, readFileSync(p));
-    try { execFileSync(process.execPath, ['--check', t], { stdio: 'pipe' }); }
-    catch (e) { bad++; console.error(`ERROR ${p}\n${e.stderr}`); }
+let n = 0,
+  bad = 0;
+const walk = (d) => {
+  for (const f of readdirSync(d)) {
+    const p = join(d, f);
+    if (statSync(p).isDirectory()) {
+      if (f !== 'node_modules' && f !== 'vendor' && !f.startsWith('.')) walk(p);
+    } else if (/\.js$/.test(f)) {
+      const t = join(tmp, `${n++}.mjs`);
+      writeFileSync(t, readFileSync(p));
+      try {
+        execFileSync(process.execPath, ['--check', t], { stdio: 'pipe' });
+      } catch (e) {
+        bad++;
+        console.error(`ERROR ${p}\n${e.stderr}`);
+      }
+    }
   }
-} };
-walk('js'); try { execFileSync(process.execPath, ['--check', 'sw.js'], { stdio: 'pipe' }); } catch (e) { bad++; console.error(String(e.stderr)); }
+};
+walk('js');
+try {
+  execFileSync(process.execPath, ['--check', 'sw.js'], { stdio: 'pipe' });
+} catch (e) {
+  bad++;
+  console.error(String(e.stderr));
+}
 // The precache list of sw.js is generated from the disk: a stale list (or a missing/unprecached import) fails the check.
-try { console.log(execFileSync(process.execPath, ['scripts/generate-sw.mjs', '--check'], { stdio: 'pipe' }).toString().trim()); }
-catch (e) { bad++; console.error(String(e.stderr || e.stdout || e)); }
+try {
+  console.log(
+    execFileSync(process.execPath, ['scripts/generate-sw.mjs', '--check'], { stdio: 'pipe' }).toString().trim(),
+  );
+} catch (e) {
+  bad++;
+  console.error(String(e.stderr || e.stdout || e));
+}
 // Layer rules (scripts/check-arch.mjs): imports per layer, cycles, forbidden globals, file size... with a shrinking baseline.
-try { console.log(execFileSync(process.execPath, ['scripts/check-arch.mjs'], { stdio: 'pipe' }).toString().trim()); }
-catch (e) { bad++; console.error(String(e.stderr || e.stdout || e)); }
-console.log(bad ?`${bad} con errores` : `OK (${n} ficheros)`);
+try {
+  console.log(execFileSync(process.execPath, ['scripts/check-arch.mjs'], { stdio: 'pipe' }).toString().trim());
+} catch (e) {
+  bad++;
+  console.error(String(e.stderr || e.stdout || e));
+}
+console.log(bad ? `${bad} con errores` : `OK (${n} ficheros)`);
 process.exit(bad ? 1 : 0);

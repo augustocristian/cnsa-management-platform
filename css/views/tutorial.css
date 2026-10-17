@@ -1,32 +1,138 @@
 /* Tutorial (Configurar Google en 5 minutos). Tokens only. Used both inside the shell and on the pre-shell standalone screen. */
-.tut-wrap { max-width: 860px; margin: 0 auto; display: grid; gap: var(--sp-4); text-align: left; min-width: 0; }
-.tut-wrap .page-head { margin-bottom: 0; }
-.tut-wrap .page-head h1 { display: flex; align-items: center; gap: var(--sp-2); }
-.tut-intro { margin: 0; color: var(--muted); }
-.tut-progreso { display: grid; gap: var(--sp-2); }
-.tut-progreso .hint { margin: 0; }
+.tut-wrap {
+  max-width: 860px;
+  margin: 0 auto;
+  display: grid;
+  gap: var(--sp-4);
+  text-align: left;
+  min-width: 0;
+}
+.tut-wrap .page-head {
+  margin-bottom: 0;
+}
+.tut-wrap .page-head h1 {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+}
+.tut-intro {
+  margin: 0;
+  color: var(--muted);
+}
+.tut-progreso {
+  display: grid;
+  gap: var(--sp-2);
+}
+.tut-progreso .hint {
+  margin: 0;
+}
 
 /* Step chips: 44 px targets */
-.tut-steps { list-style: none; display: flex; gap: var(--sp-2); flex-wrap: wrap; margin: 0; padding: 0; }
-.tut-chip {
-  width: var(--touch); height: var(--touch); min-width: var(--touch); border-radius: 50%; border: 2px solid var(--field-border);
-  background: var(--surface); color: var(--text); font: inherit; font-weight: 700; cursor: pointer; display: inline-grid; place-items: center; padding: 0;
+.tut-steps {
+  list-style: none;
+  display: flex;
+  gap: var(--sp-2);
+  flex-wrap: wrap;
+  margin: 0;
+  padding: 0;
 }
-.tut-chip:hover { background: var(--c-primary-soft); }
-.tut-chip.done { background: var(--ok); border-color: var(--ok); color: var(--surface); }
-.tut-chip.cur { border-color: var(--c-accent); box-shadow: 0 0 0 3px var(--c-primary-mid); }
+.tut-chip {
+  width: var(--touch);
+  height: var(--touch);
+  min-width: var(--touch);
+  border-radius: 50%;
+  border: 2px solid var(--field-border);
+  background: var(--surface);
+  color: var(--text);
+  font: inherit;
+  font-weight: 700;
+  cursor: pointer;
+  display: inline-grid;
+  place-items: center;
+  padding: 0;
+}
+.tut-chip:hover {
+  background: var(--c-primary-soft);
+}
+.tut-chip.done {
+  background: var(--ok);
+  border-color: var(--ok);
+  color: var(--surface);
+}
+.tut-chip.cur {
+  border-color: var(--c-accent);
+  box-shadow: 0 0 0 3px var(--c-primary-mid);
+}
 
-.tut-paso { border-top: 1px solid var(--border); padding-top: var(--sp-4); }
-.tut-paso-n { margin: 0 0 var(--sp-1); font-size: var(--fs-sm); }
-.tut-paso h2 { margin-bottom: var(--sp-2); }
-.tut-paso h3 { margin: var(--sp-4) 0 var(--sp-2); font-size: var(--fs-h3); }
-.tut-list { padding-left: 1.2rem; display: grid; gap: var(--sp-2); margin: var(--sp-3) 0; }
-.tut-row { display: flex; gap: var(--sp-2); flex-wrap: wrap; align-items: center; margin: var(--sp-2) 0; }
-.tut-copy { display: grid; gap: var(--sp-1); margin: var(--sp-3) 0; }
-.tut-copy-label { font-size: var(--fs-sm); color: var(--muted); }
-.tut-val { display: flex; gap: var(--sp-2); align-items: center; flex-wrap: wrap; }
-.tut-val code { background: var(--c-primary-soft); color: var(--text); padding: .3rem .55rem; border-radius: var(--r-sm); word-break: break-all; font-size: var(--fs-sm); max-width: 100%; }
-.tut-paso .alert { margin: var(--sp-3) 0; }
-.tut-field { display: grid; gap: var(--sp-2); margin: var(--sp-3) 0; }
-.tut-nav { display: flex; justify-content: space-between; gap: var(--sp-2); flex-wrap: wrap; margin-top: var(--sp-4); }
-@media (max-width: 520px) { .tut-nav .btn { flex: 1 1 100%; } }
+.tut-paso {
+  border-top: 1px solid var(--border);
+  padding-top: var(--sp-4);
+}
+.tut-paso-n {
+  margin: 0 0 var(--sp-1);
+  font-size: var(--fs-sm);
+}
+.tut-paso h2 {
+  margin-bottom: var(--sp-2);
+}
+.tut-paso h3 {
+  margin: var(--sp-4) 0 var(--sp-2);
+  font-size: var(--fs-h3);
+}
+.tut-list {
+  padding-left: 1.2rem;
+  display: grid;
+  gap: var(--sp-2);
+  margin: var(--sp-3) 0;
+}
+.tut-row {
+  display: flex;
+  gap: var(--sp-2);
+  flex-wrap: wrap;
+  align-items: center;
+  margin: var(--sp-2) 0;
+}
+.tut-copy {
+  display: grid;
+  gap: var(--sp-1);
+  margin: var(--sp-3) 0;
+}
+.tut-copy-label {
+  font-size: var(--fs-sm);
+  color: var(--muted);
+}
+.tut-val {
+  display: flex;
+  gap: var(--sp-2);
+  align-items: center;
+  flex-wrap: wrap;
+}
+.tut-val code {
+  background: var(--c-primary-soft);
+  color: var(--text);
+  padding: 0.3rem 0.55rem;
+  border-radius: var(--r-sm);
+  word-break: break-all;
+  font-size: var(--fs-sm);
+  max-width: 100%;
+}
+.tut-paso .alert {
+  margin: var(--sp-3) 0;
+}
+.tut-field {
+  display: grid;
+  gap: var(--sp-2);
+  margin: var(--sp-3) 0;
+}
+.tut-nav {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--sp-2);
+  flex-wrap: wrap;
+  margin-top: var(--sp-4);
+}
+@media (max-width: 520px) {
+  .tut-nav .btn {
+    flex: 1 1 100%;
+  }
+}

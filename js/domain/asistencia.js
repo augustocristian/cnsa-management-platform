@@ -41,7 +41,13 @@ export function resumenSesion(nadadores, registros) {
   const c = contar(nadadores.map((n) => porNadador.get(n.id)).filter(Boolean));
   const marcados = c.presente + c.ausente + c.justificado;
   const total = nadadores.length;
-  return { total, marcados, sinMarcar: total - marcados, ...c, porcentajeMarcado: total ? Math.round((marcados / total) * 100) : 0 };
+  return {
+    total,
+    marcados,
+    sinMarcar: total - marcados,
+    ...c,
+    porcentajeMarcado: total ? Math.round((marcados / total) * 100) : 0,
+  };
 }
 
 // Attendance percentage = present / sessions with a record. null when there is no record yet.
@@ -53,7 +59,9 @@ export function porcentajeAsistencia({ presente = 0, ausente = 0, justificado = 
 // Rows to create so that every unmarked swimmer gets `estado`. Existing records are never overwritten.
 export function planMarcarTodos(nadadores, registros, sesionId, estado = 'presente') {
   const con = new Set(registros.filter((r) => esEstado(r.estado)).map((r) => r.nadadorId));
-  return nadadores.filter((n) => !con.has(n.id)).map((n) => ({ entrenamientoId: sesionId, nadadorId: n.id, estado, nota: '' }));
+  return nadadores
+    .filter((n) => !con.has(n.id))
+    .map((n) => ({ entrenamientoId: sesionId, nadadorId: n.id, estado, nota: '' }));
 }
 
 // ---------- Sessions ----------
@@ -100,11 +108,15 @@ export function historial({ nadadores, sesiones, registros, grupoId = '', locale
     if (!porNadador.has(r.nadadorId)) porNadador.set(r.nadadorId, []);
     porNadador.get(r.nadadorId).push(r);
   }
-  const lista = ordenarPorApellidos(nadadores.filter((n) => esActivo(n) && (!grupoId || n.grupoId === grupoId)), locale);
+  const lista = ordenarPorApellidos(
+    nadadores.filter((n) => esActivo(n) && (!grupoId || n.grupoId === grupoId)),
+    locale,
+  );
   return lista.map((nadador) => {
     const recs = porNadador.get(nadador.id) || [];
     const c = contar(recs);
-    const detalle = recs.map((registro) => ({ registro, sesion: sesPorId.get(registro.entrenamientoId) }))
+    const detalle = recs
+      .map((registro) => ({ registro, sesion: sesPorId.get(registro.entrenamientoId) }))
       .sort((a, b) => claveSesion(b.sesion).localeCompare(claveSesion(a.sesion)));
     return { nadador, ...c, total: recs.length, pct: porcentajeAsistencia(c), detalle };
   });

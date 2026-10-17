@@ -57,16 +57,86 @@ import { normalizarNombre } from '../../domain/cargas.js';
 export const LANGS = [
   { code: 'es', label: 'Español' },
   { code: 'en', label: 'English' },
-  { code: 'it', label: 'Italiano' }
+  { code: 'it', label: 'Italiano' },
 ];
 export const LANG_KEY = 'cnl:lang';
-const DICTS = { es: { ...es, ...vistasAes, ...vistasBes, ...vistasCes, ...planES, ...calES, ...entES, ...tcES , ...accES, ...disES, ...tpES, ...catES, ...datES, ...bnES, ...homeES, ...bkES, ...tutES }, en: { ...en, ...vistasAen, ...vistasBen, ...vistasCen, ...planEN, ...calEN, ...entEN, ...tcEN , ...accEN, ...disEN, ...tpEN, ...catEN, ...datEN, ...bnEN, ...homeEN, ...bkEN, ...tutEN }, it: { ...it, ...vistasAit, ...vistasBit, ...vistasCit, ...planIT, ...calIT, ...entIT, ...tcIT , ...accIT, ...disIT, ...tpIT, ...catIT, ...datIT, ...bnIT, ...homeIT, ...bkIT, ...tutIT } };
+const DICTS = {
+  es: {
+    ...es,
+    ...vistasAes,
+    ...vistasBes,
+    ...vistasCes,
+    ...planES,
+    ...calES,
+    ...entES,
+    ...tcES,
+    ...accES,
+    ...disES,
+    ...tpES,
+    ...catES,
+    ...datES,
+    ...bnES,
+    ...homeES,
+    ...bkES,
+    ...tutES,
+  },
+  en: {
+    ...en,
+    ...vistasAen,
+    ...vistasBen,
+    ...vistasCen,
+    ...planEN,
+    ...calEN,
+    ...entEN,
+    ...tcEN,
+    ...accEN,
+    ...disEN,
+    ...tpEN,
+    ...catEN,
+    ...datEN,
+    ...bnEN,
+    ...homeEN,
+    ...bkEN,
+    ...tutEN,
+  },
+  it: {
+    ...it,
+    ...vistasAit,
+    ...vistasBit,
+    ...vistasCit,
+    ...planIT,
+    ...calIT,
+    ...entIT,
+    ...tcIT,
+    ...accIT,
+    ...disIT,
+    ...tpIT,
+    ...catIT,
+    ...datIT,
+    ...bnIT,
+    ...homeIT,
+    ...bkIT,
+    ...tutIT,
+  },
+};
 const INTL = { es: 'es-ES', en: 'en-GB', it: 'it-IT' };
 const listeners = new Set();
 
 const ls = {
-  get(k) { try { return localStorage.getItem(k); } catch (e) { return null; } },
-  set(k, v) { try { localStorage.setItem(k, v); } catch (e) { /* ignorar */ } }
+  get(k) {
+    try {
+      return localStorage.getItem(k);
+    } catch (e) {
+      return null;
+    }
+  },
+  set(k, v) {
+    try {
+      localStorage.setItem(k, v);
+    } catch (e) {
+      /* ignorar */
+    }
+  },
 };
 const valid = (c) => LANGS.some((l) => l.code === c);
 
@@ -84,7 +154,9 @@ function applyDocLang() {
 }
 applyDocLang();
 
-export function getLang() { return lang; }
+export function getLang() {
+  return lang;
+}
 
 export function setLang(code, { persist = true } = {}) {
   if (!valid(code)) code = 'es';
@@ -92,7 +164,14 @@ export function setLang(code, { persist = true } = {}) {
   lang = code;
   if (persist) ls.set(LANG_KEY, code);
   applyDocLang();
-  if (changed) listeners.forEach((fn) => { try { fn(lang); } catch (e) { console.error(e); } });
+  if (changed)
+    listeners.forEach((fn) => {
+      try {
+        fn(lang);
+      } catch (e) {
+        console.error(e);
+      }
+    });
   return lang;
 }
 
@@ -111,10 +190,18 @@ export function t(key, vars) {
   return s.replace(/\{(\w+)\}/g, (m, k) => (vars[k] != null ? String(vars[k]) : m));
 }
 
-export function hasKey(key) { return key in DICTS.es; }
+export function hasKey(key) {
+  return key in DICTS.es;
+}
 
 // --- Internal values (Spanish) -> visible text ---
-const norm = (v) => String(v ?? '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().trim().replace(/\s+/g, '-');
+const norm = (v) =>
+  String(v ?? '')
+    .normalize('NFD')
+    .replace(/[̀-ͯ]/g, '')
+    .toLowerCase()
+    .trim()
+    .replace(/\s+/g, '-');
 function tVal(ns, value) {
   if (value == null || value === '') return '';
   const key = `${ns}.${norm(value)}`;
@@ -174,9 +261,10 @@ export function tDate(d, mode) {
   if (d === '' || d == null) return '';
   const x = toDate(d);
   if (isNaN(x)) return String(d);
-  const opts = mode === 'long'
-    ? { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' }
-    : { day: '2-digit', month: '2-digit', year: 'numeric' };
+  const opts =
+    mode === 'long'
+      ? { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' }
+      : { day: '2-digit', month: '2-digit', year: 'numeric' };
   return new Intl.DateTimeFormat(locale(), opts).format(x);
 }
 

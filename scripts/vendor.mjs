@@ -13,7 +13,10 @@ const files = [
 mkdirSync('vendor', { recursive: true });
 const integrity = {};
 for (const [from, to] of files) {
-  if (!existsSync(from)) { console.warn(`vendor: no existe ${from}, omitido`); continue; }
+  if (!existsSync(from)) {
+    console.warn(`vendor: no existe ${from}, omitido`);
+    continue;
+  }
   copyFileSync(from, to);
   integrity[basename(to)] = 'sha384-' + createHash('sha384').update(readFileSync(to)).digest('base64');
   console.log(`vendor: ${from} -> ${to}`);

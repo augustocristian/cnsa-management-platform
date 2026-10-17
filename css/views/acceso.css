@@ -1,81 +1,281 @@
 /* Start, "configuration needed", first-run wizard and club picker (js/presentation/views/acceso.js). Tokens only. */
 
 /* The card is anchored to the top so errors/steps growing below never move the main button (no layout jump). */
-.auth-wrap { place-items: start center; padding-top: clamp(var(--sp-4), 9vh, 96px); }
-.auth-card.acc-card-wide { max-width: 520px; text-align: left; align-items: stretch; gap: var(--sp-3); }
-.auth-card.acc-card-wide > h1, .auth-card.acc-card-wide > .acc-propuesta, .auth-card.acc-card-wide > .logo-big { text-align: center; }
-.auth-card.acc-card-wide > .logo-big { display: block; }
-.auth-card .btn, .auth-card input { min-height: var(--touch); }
-.auth-card a.btn { text-decoration: none; }
+.auth-wrap {
+  place-items: start center;
+  padding-top: clamp(var(--sp-4), 9vh, 96px);
+}
+.auth-card.acc-card-wide {
+  max-width: 520px;
+  text-align: left;
+  align-items: stretch;
+  gap: var(--sp-3);
+}
+.auth-card.acc-card-wide > h1,
+.auth-card.acc-card-wide > .acc-propuesta,
+.auth-card.acc-card-wide > .logo-big {
+  text-align: center;
+}
+.auth-card.acc-card-wide > .logo-big {
+  display: block;
+}
+.auth-card .btn,
+.auth-card input {
+  min-height: var(--touch);
+}
+.auth-card a.btn {
+  text-decoration: none;
+}
 /* The shell puts its own language control first; this screen shows it in the footer instead. */
-.acc-card-wide:has(.acc-foot) > .auth-lang { display: none; }
+.acc-card-wide:has(.acc-foot) > .auth-lang {
+  display: none;
+}
 
 /* Start screen */
-.acc-propuesta { color: var(--text); font-size: var(--fs-h3); }
-.acc-acciones { display: grid; gap: var(--sp-3); }
-.acc-acciones .btn-lg { width: 100%; }
-.acc-aviso { text-align: left; }
-.acc-aviso p { margin: 0; }
-.acc-privacidad { display: flex; align-items: flex-start; gap: var(--sp-2); padding: var(--sp-3); border-radius: var(--r-md); background: var(--info-bg); color: var(--text); font-size: var(--fs-sm); }
-.acc-privacidad .icon { color: var(--info); margin-top: 2px; }
-.auth-card .hint { text-align: center; }
-.auth-card .acc-help .hint, .auth-card .acc-form .hint, .auth-card .acc-error .hint { text-align: left; }
-.auth-card .btn-link { align-self: center; }
+.acc-propuesta {
+  color: var(--text);
+  font-size: var(--fs-h3);
+}
+.acc-acciones {
+  display: grid;
+  gap: var(--sp-3);
+}
+.acc-acciones .btn-lg {
+  width: 100%;
+}
+.acc-aviso {
+  text-align: left;
+}
+.acc-aviso p {
+  margin: 0;
+}
+.acc-privacidad {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--sp-2);
+  padding: var(--sp-3);
+  border-radius: var(--r-md);
+  background: var(--info-bg);
+  color: var(--text);
+  font-size: var(--fs-sm);
+}
+.acc-privacidad .icon {
+  color: var(--info);
+  margin-top: 2px;
+}
+.auth-card .hint {
+  text-align: center;
+}
+.auth-card .acc-help .hint,
+.auth-card .acc-form .hint,
+.auth-card .acc-error .hint {
+  text-align: left;
+}
+.auth-card .btn-link {
+  align-self: center;
+}
 
 /* Live region for results/errors: reserves no space until used, but keeps the controls above fixed. */
-.acc-salida:empty { display: none; }
+.acc-salida:empty {
+  display: none;
+}
 
 /* Google error: shared .alert component */
-.acc-error { text-align: left; }
-.acc-error-body { display: grid; gap: var(--sp-2); min-width: 0; }
-.acc-error-body p { margin: 0; overflow-wrap: anywhere; }
+.acc-error {
+  text-align: left;
+}
+.acc-error-body {
+  display: grid;
+  gap: var(--sp-2);
+  min-width: 0;
+}
+.acc-error-body p {
+  margin: 0;
+  overflow-wrap: anywhere;
+}
 
 /* Copy row: the value and its button share one aligned row */
-.acc-copyrow { display: grid; gap: var(--sp-1); }
-.acc-label { font-size: var(--fs-sm); font-weight: 600; color: var(--text); }
-.acc-copy { display: flex; flex-wrap: wrap; align-items: stretch; gap: var(--sp-2); }
-.acc-copy code {
-  flex: 1 1 12rem; min-width: 0; display: flex; align-items: center; min-height: var(--touch); padding: 0 var(--sp-3);
-  border: 1px solid var(--field-border); border-radius: var(--r-sm); background: var(--surface-2); color: var(--text);
-  font-size: var(--fs-sm); overflow-wrap: anywhere;
+.acc-copyrow {
+  display: grid;
+  gap: var(--sp-1);
 }
-.acc-copy .btn { flex: none; }
+.acc-label {
+  font-size: var(--fs-sm);
+  font-weight: 600;
+  color: var(--text);
+}
+.acc-copy {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: stretch;
+  gap: var(--sp-2);
+}
+.acc-copy code {
+  flex: 1 1 12rem;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  min-height: var(--touch);
+  padding: 0 var(--sp-3);
+  border: 1px solid var(--field-border);
+  border-radius: var(--r-sm);
+  background: var(--surface-2);
+  color: var(--text);
+  font-size: var(--fs-sm);
+  overflow-wrap: anywhere;
+}
+.acc-copy .btn {
+  flex: none;
+}
 
 /* Config needed: the demo call to action comes first, the owner setup below it */
-.acc-demo-cta { display: grid; gap: var(--sp-2); padding: var(--sp-4); border: 1px solid var(--border); border-radius: var(--r-md); background: var(--info-bg); text-align: center; }
-.acc-demo-cta h2 { margin: 0; font-size: var(--fs-h3); }
-.acc-demo-cta p { margin: 0; color: var(--text); }
-.acc-demo-cta .btn-lg { width: 100%; margin-top: var(--sp-1); }
-.acc-help { display: grid; gap: var(--sp-3); padding-top: var(--sp-4); border-top: 1px solid var(--border); }
-.acc-help h2 { margin: 0; font-size: var(--fs-h3); }
-.acc-help > p { margin: 0; }
-.acc-owner-links { display: flex; flex-wrap: wrap; gap: var(--sp-2); align-items: center; }
-.acc-owner-links .btn { flex: 0 1 auto; }
+.acc-demo-cta {
+  display: grid;
+  gap: var(--sp-2);
+  padding: var(--sp-4);
+  border: 1px solid var(--border);
+  border-radius: var(--r-md);
+  background: var(--info-bg);
+  text-align: center;
+}
+.acc-demo-cta h2 {
+  margin: 0;
+  font-size: var(--fs-h3);
+}
+.acc-demo-cta p {
+  margin: 0;
+  color: var(--text);
+}
+.acc-demo-cta .btn-lg {
+  width: 100%;
+  margin-top: var(--sp-1);
+}
+.acc-help {
+  display: grid;
+  gap: var(--sp-3);
+  padding-top: var(--sp-4);
+  border-top: 1px solid var(--border);
+}
+.acc-help h2 {
+  margin: 0;
+  font-size: var(--fs-h3);
+}
+.acc-help > p {
+  margin: 0;
+}
+.acc-owner-links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--sp-2);
+  align-items: center;
+}
+.acc-owner-links .btn {
+  flex: 0 1 auto;
+}
 
 /* Wizard */
-.acc-form { display: grid; gap: var(--sp-3); }
-.acc-pasos { display: flex; gap: var(--sp-2); justify-content: center; }
-.acc-pasos span { width: 2rem; height: .4rem; border-radius: var(--r-pill); background: var(--border); }
-.acc-pasos span.on { background: var(--c-action); }
-.auth-card .muted[role="status"] { text-align: center; margin: 0; }
-.acc-actions { display: flex; gap: var(--sp-2); justify-content: space-between; flex-wrap: wrap; }
-.acc-actions .btn { flex: 1 1 140px; }
-.acc-colores { display: grid; grid-template-columns: 1fr 1fr; gap: var(--sp-3); }
-.acc-colores input[type="color"] { width: 100%; height: var(--touch); }
-@media (max-width: 420px) { .acc-colores { grid-template-columns: 1fr; } }
+.acc-form {
+  display: grid;
+  gap: var(--sp-3);
+}
+.acc-pasos {
+  display: flex;
+  gap: var(--sp-2);
+  justify-content: center;
+}
+.acc-pasos span {
+  width: 2rem;
+  height: 0.4rem;
+  border-radius: var(--r-pill);
+  background: var(--border);
+}
+.acc-pasos span.on {
+  background: var(--c-action);
+}
+.auth-card .muted[role='status'] {
+  text-align: center;
+  margin: 0;
+}
+.acc-actions {
+  display: flex;
+  gap: var(--sp-2);
+  justify-content: space-between;
+  flex-wrap: wrap;
+}
+.acc-actions .btn {
+  flex: 1 1 140px;
+}
+.acc-colores {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--sp-3);
+}
+.acc-colores input[type='color'] {
+  width: 100%;
+  height: var(--touch);
+}
+@media (max-width: 420px) {
+  .acc-colores {
+    grid-template-columns: 1fr;
+  }
+}
 
 /* Live preview of the club colours (variables are set inline by the view from domain/tema.js) */
-.acc-prev-wrap { display: grid; gap: var(--sp-1); }
-.acc-prev { border: 1px solid var(--border); border-radius: var(--r-md); overflow: hidden; background: var(--surface); }
-.acc-prev-cab { display: flex; flex-direction: column; padding: var(--sp-3) var(--sp-4); background: var(--c-action); color: var(--c-on-primary); }
-.acc-prev-nombre { font-weight: 700; overflow-wrap: anywhere; }
-.acc-prev-lema { font-size: var(--fs-sm); }
-.acc-prev-lema:empty { display: none; }
-.acc-prev-cuerpo { display: flex; flex-wrap: wrap; align-items: center; gap: var(--sp-4); padding: var(--sp-3) var(--sp-4); }
-.acc-prev-boton { padding: .5rem var(--sp-4); border-radius: var(--r-md); background: var(--c-action); color: var(--c-on-primary); font-weight: 600; }
-.acc-prev-enlace { color: var(--c-accent); font-weight: 600; text-decoration: underline; }
+.acc-prev-wrap {
+  display: grid;
+  gap: var(--sp-1);
+}
+.acc-prev {
+  border: 1px solid var(--border);
+  border-radius: var(--r-md);
+  overflow: hidden;
+  background: var(--surface);
+}
+.acc-prev-cab {
+  display: flex;
+  flex-direction: column;
+  padding: var(--sp-3) var(--sp-4);
+  background: var(--c-action);
+  color: var(--c-on-primary);
+}
+.acc-prev-nombre {
+  font-weight: 700;
+  overflow-wrap: anywhere;
+}
+.acc-prev-lema {
+  font-size: var(--fs-sm);
+}
+.acc-prev-lema:empty {
+  display: none;
+}
+.acc-prev-cuerpo {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--sp-4);
+  padding: var(--sp-3) var(--sp-4);
+}
+.acc-prev-boton {
+  padding: 0.5rem var(--sp-4);
+  border-radius: var(--r-md);
+  background: var(--c-action);
+  color: var(--c-on-primary);
+  font-weight: 600;
+}
+.acc-prev-enlace {
+  color: var(--c-accent);
+  font-weight: 600;
+  text-decoration: underline;
+}
 
 /* Footer with the language switch */
-.acc-foot { display: flex; justify-content: center; padding-top: var(--sp-3); border-top: 1px solid var(--border); }
+.acc-foot {
+  display: flex;
+  justify-content: center;
+  padding-top: var(--sp-3);
+  border-top: 1px solid var(--border);
+}
 
-.acc-h1-sm { font-size: var(--fs-h2); }
+.acc-h1-sm {
+  font-size: var(--fs-h2);
+}

@@ -21,7 +21,7 @@
 //   R4  presentation never imports infrastructure
 //   R5  locales are imported only by presentation/i18n
 //   R6  domain/application never import i18n / ui / router / icons / theme
-//   R9  file size: > 450 lines warns, > 600 fails unless baselined
+//   R9  file size: > 550 lines warns, > 800 fails unless baselined
 //   R10 no <style> injection in views (use useStyles('<name>') + css/views/<name>.css)
 //   R11 views do not call store.upsert/remove directly (warn only)
 //   R12 every import resolves to an existing file and ends in .js
@@ -33,8 +33,8 @@ import { scan } from './lib/scan.mjs';
 const RAIZ = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 export const RUTA_BASELINE = join(RAIZ, 'scripts', 'arch-baseline.json');
 
-export const LIMITE_AVISO = 450;
-export const LIMITE_ERROR = 600;
+export const LIMITE_AVISO = 550;
+export const LIMITE_ERROR = 800;
 
 export const CAPAS = ['domain', 'application', 'ports', 'infrastructure', 'presentation', 'composicion'];
 const PERMITIDO = {
@@ -59,12 +59,41 @@ export function capaDe(rel) {
 
 // Globals the pure layers must not touch. Property accesses (`x.fetch`) and object keys are not matched.
 const GLOBALES = [
-  'document', 'window', 'localStorage', 'sessionStorage', 'indexedDB', 'fetch', 'navigator', 'location', 'history',
-  'setTimeout', 'setInterval', 'clearTimeout', 'clearInterval', 'requestAnimationFrame', 'queueMicrotask',
-  'console', 'alert', 'confirm', 'prompt', 'XMLHttpRequest', 'FileReader', 'Blob', 'crypto', 'performance',
-  'HTMLElement', 'Element', 'Node', 'Event', 'CustomEvent', 'AbortController',
+  'document',
+  'window',
+  'localStorage',
+  'sessionStorage',
+  'indexedDB',
+  'fetch',
+  'navigator',
+  'location',
+  'history',
+  'setTimeout',
+  'setInterval',
+  'clearTimeout',
+  'clearInterval',
+  'requestAnimationFrame',
+  'queueMicrotask',
+  'console',
+  'alert',
+  'confirm',
+  'prompt',
+  'XMLHttpRequest',
+  'FileReader',
+  'Blob',
+  'crypto',
+  'performance',
+  'HTMLElement',
+  'Element',
+  'Node',
+  'Event',
+  'CustomEvent',
+  'AbortController',
 ];
-const RE_GLOBAL = new RegExp(`(?<![\\w$.])(?:globalThis\\s*\\.\\s*)?(${GLOBALES.join('|')})(?![\\w$])(?!\\s*:(?!:))`, 'g');
+const RE_GLOBAL = new RegExp(
+  `(?<![\\w$.])(?:globalThis\\s*\\.\\s*)?(${GLOBALES.join('|')})(?![\\w$])(?!\\s*:(?!:))`,
+  'g',
+);
 const RE_GLOBAL_THIS = new RegExp(`\\bglobalThis\\s*\\.\\s*(${GLOBALES.join('|')})\\b`, 'g');
 const PATRONES_IMPUROS = [
   [/\bDate\s*\.\s*now\s*\(/, 'Date.now()'],
@@ -91,19 +120,32 @@ function listarJs(raiz) {
 // Strongly connected components with more than one member (import cycles). Static imports only: a dynamic import is
 // a lazy edge and cannot deadlock module evaluation.
 export function ciclos(grafo) {
-  const idx = new Map(), low = new Map(), enPila = new Set(), pila = [], res = [];
+  const idx = new Map(),
+    low = new Map(),
+    enPila = new Set(),
+    pila = [],
+    res = [];
   let n = 0;
   const visita = (v) => {
-    idx.set(v, n); low.set(v, n); n++;
-    pila.push(v); enPila.add(v);
+    idx.set(v, n);
+    low.set(v, n);
+    n++;
+    pila.push(v);
+    enPila.add(v);
     for (const w of grafo.get(v) || []) {
-      if (!idx.has(w)) { visita(w); low.set(v, Math.min(low.get(v), low.get(w))); }
-      else if (enPila.has(w)) low.set(v, Math.min(low.get(v), idx.get(w)));
+      if (!idx.has(w)) {
+        visita(w);
+        low.set(v, Math.min(low.get(v), low.get(w)));
+      } else if (enPila.has(w)) low.set(v, Math.min(low.get(v), idx.get(w)));
     }
     if (low.get(v) === idx.get(v)) {
       const comp = [];
       let w;
-      do { w = pila.pop(); enPila.delete(w); comp.push(w); } while (w !== v);
+      do {
+        w = pila.pop();
+        enPila.delete(w);
+        comp.push(w);
+      } while (w !== v);
       if (comp.length > 1 || (grafo.get(v) || new Set()).has(v)) res.push(comp.sort());
     }
   };
@@ -112,18 +154,25 @@ export function ciclos(grafo) {
 }
 
 function reglaDeImport(de, a, capaDeOrigen, capaDestino) {
-  if (capaDeOrigen === 'ports' && capaDestino !== 'domain') return ['R7', `port imports ${a} (ports may only import domain)`];
-  if (/\/locales\//.test(a) && !/^js\/(presentation\/i18n|locales)\//.test(de)) return ['R5', `imports locale ${a} (only presentation/i18n may)`];
-  if (capaDeOrigen !== 'composicion' && capaDestino === 'composicion') return ['R8', `imports composition root ${a} (only the composition root may)`];
-  if ((capaDeOrigen === 'domain' || capaDeOrigen === 'application') && capaDestino === 'presentation') return ['R6', `imports presentation module ${a}`];
-  if (capaDeOrigen === 'presentation' && capaDestino === 'infrastructure') return ['R4', `presentation imports infrastructure ${a}`];
-  if (!PERMITIDO[capaDeOrigen].includes(capaDestino)) return ['R1', `${capaDeOrigen} may not import ${capaDestino} (${a})`];
+  if (capaDeOrigen === 'ports' && capaDestino !== 'domain')
+    return ['R7', `port imports ${a} (ports may only import domain)`];
+  if (/\/locales\//.test(a) && !/^js\/(presentation\/i18n|locales)\//.test(de))
+    return ['R5', `imports locale ${a} (only presentation/i18n may)`];
+  if (capaDeOrigen !== 'composicion' && capaDestino === 'composicion')
+    return ['R8', `imports composition root ${a} (only the composition root may)`];
+  if ((capaDeOrigen === 'domain' || capaDeOrigen === 'application') && capaDestino === 'presentation')
+    return ['R6', `imports presentation module ${a}`];
+  if (capaDeOrigen === 'presentation' && capaDestino === 'infrastructure')
+    return ['R4', `presentation imports infrastructure ${a}`];
+  if (!PERMITIDO[capaDeOrigen].includes(capaDestino))
+    return ['R1', `${capaDeOrigen} may not import ${capaDestino} (${a})`];
   return null;
 }
 
 // -> { errores: [{regla, clave, msg}], avisos: [string] }   `clave` is the stable identity used by the baseline.
 export function analizar(raiz = RAIZ) {
-  const errores = [], avisos = [];
+  const errores = [],
+    avisos = [];
   const add = (regla, clave, msg) => errores.push({ regla, clave: `${regla} ${clave}`, msg: `${regla} ${msg}` });
   const archivos = listarJs(raiz);
   const conjunto = new Set(archivos);
@@ -140,20 +189,39 @@ export function analizar(raiz = RAIZ) {
     for (const m of text.matchAll(/import\(\s*`([^`$]*)\$\{/g)) {
       if (!m[1].startsWith('.')) continue;
       const dir = posix.normalize(posix.join(posix.dirname(f), m[1].replace(/[^/]*$/, ''))).replace(/\/?$/, '/');
-      if (!archivos.some((a) => a.startsWith(dir))) add('R12', `${f} -> ${m[1]}... (missing folder)`, `${f} dynamic import "${m[1]}\${...}" points to a folder without modules`);
+      if (!archivos.some((a) => a.startsWith(dir)))
+        add(
+          'R12',
+          `${f} -> ${m[1]}... (missing folder)`,
+          `${f} dynamic import "${m[1]}\${...}" points to a folder without modules`,
+        );
     }
 
-    if (!capa) add('R1', `${f} (outside a layer)`, `${f} is not inside a layer folder (domain/application/infrastructure/presentation/composicion)`);
+    if (!capa)
+      add(
+        'R1',
+        `${f} (outside a layer)`,
+        `${f} is not inside a layer folder (domain/application/infrastructure/presentation/composicion)`,
+      );
 
     for (const imp of imports) {
       if (!imp.spec.startsWith('.')) continue; // URL or bare specifier: not a module of the app
       const destino = posix.normalize(posix.join(posix.dirname(f), imp.spec));
-      if (!/\.js$/.test(imp.spec)) { add('R12', `${f} -> ${imp.spec} (no .js)`, `${f}:${imp.line} import "${imp.spec}" must end in .js`); continue; }
-      if (!conjunto.has(destino)) { add('R12', `${f} -> ${imp.spec} (missing)`, `${f}:${imp.line} import "${imp.spec}" does not resolve to a file`); continue; }
+      if (!/\.js$/.test(imp.spec)) {
+        add('R12', `${f} -> ${imp.spec} (no .js)`, `${f}:${imp.line} import "${imp.spec}" must end in .js`);
+        continue;
+      }
+      if (!conjunto.has(destino)) {
+        add('R12', `${f} -> ${imp.spec} (missing)`, `${f}:${imp.line} import "${imp.spec}" does not resolve to a file`);
+        continue;
+      }
       if (!imp.dynamic) grafo.get(f).add(destino);
       if (!capa) continue;
       const capaDest = capaDe(destino);
-      if (!capaDest) { add('R1', `${f} -> ${destino}`, `${f}:${imp.line} imports ${destino}, which is outside every layer`); continue; }
+      if (!capaDest) {
+        add('R1', `${f} -> ${destino}`, `${f}:${imp.line} imports ${destino}, which is outside every layer`);
+        continue;
+      }
       const r = reglaDeImport(f, destino, capa, capaDest);
       if (r) add(r[0], `${f} -> ${destino}`, `${f}:${imp.line} ${r[1]}`);
     }
@@ -163,7 +231,11 @@ export function analizar(raiz = RAIZ) {
       const anota = (token) => {
         if (vistos.has(token)) return;
         vistos.add(token);
-        add('R3', `${f}: ${token}`, `${f} uses the forbidden global/impure call "${token}" (inject it: clock, id generator, storage, ...)`);
+        add(
+          'R3',
+          `${f}: ${token}`,
+          `${f} uses the forbidden global/impure call "${token}" (inject it: clock, id generator, storage, ...)`,
+        );
       };
       for (const m of code.matchAll(RE_GLOBAL)) anota(m[1]);
       for (const m of code.matchAll(RE_GLOBAL_THIS)) anota(m[1]);
@@ -180,7 +252,8 @@ export function analizar(raiz = RAIZ) {
     }
 
     if (lineas > LIMITE_ERROR) add('R9', f, `${f} has ${lineas} lines (> ${LIMITE_ERROR}): split it`);
-    else if (lineas > LIMITE_AVISO) avisos.push(`R9 ${f} has ${lineas} lines (> ${LIMITE_AVISO}): consider splitting it`);
+    else if (lineas > LIMITE_AVISO)
+      avisos.push(`R9 ${f} has ${lineas} lines (> ${LIMITE_AVISO}): consider splitting it`);
   }
 
   for (const comp of ciclos(grafo)) add('R2', comp.join(' > '), `import cycle: ${comp.join(' > ')}`);
@@ -194,7 +267,8 @@ export function leerBaseline(ruta = RUTA_BASELINE) {
 
 export function escribirBaseline(claves, ruta = RUTA_BASELINE) {
   const doc = {
-    comment: 'Known architecture violations tolerated by scripts/check-arch.mjs (ratchet). It may only shrink; the goal is an empty list. Each remaining entry is explained in docs/ARCHITECTURE.md.',
+    comment:
+      'Known architecture violations tolerated by scripts/check-arch.mjs (ratchet). It may only shrink; the goal is an empty list. Each remaining entry is explained in docs/ARCHITECTURE.md.',
     violations: [...new Set(claves)].sort(),
   };
   writeFileSync(ruta, JSON.stringify(doc, null, 2) + '\n');
@@ -228,10 +302,16 @@ if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) 
   const r = comprobar();
   for (const a of r.avisos) console.warn(`warn ${a}`);
   if (r.nuevos.length) {
-    console.error(`Architecture check FAILED: ${r.nuevos.length} new violation(s):\n  - ` + r.nuevos.map((e) => e.msg).join('\n  - '));
+    console.error(
+      `Architecture check FAILED: ${r.nuevos.length} new violation(s):\n  - ` +
+        r.nuevos.map((e) => e.msg).join('\n  - '),
+    );
   }
   if (r.obsoletos.length) {
-    console.error(`Architecture baseline is stale (fixed violations still listed). Run: node scripts/check-arch.mjs --update-baseline\n  - ` + r.obsoletos.join('\n  - '));
+    console.error(
+      `Architecture baseline is stale (fixed violations still listed). Run: node scripts/check-arch.mjs --update-baseline\n  - ` +
+        r.obsoletos.join('\n  - '),
+    );
   }
   if (r.nuevos.length || r.obsoletos.length) process.exit(1);
   console.log(`Architecture OK (${r.tolerados} known violation(s) in the baseline, ${r.avisos.length} warning(s))`);

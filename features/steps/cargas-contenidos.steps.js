@@ -6,10 +6,15 @@ import { textRegex, allWords } from '../support/world.js';
 const exact = (s) => new RegExp('^' + s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '$');
 const withoutSeparators = (t) => t.replace(/[.\s,]/g, '');
 const manager = (w) => w.view.locator('#cg-gestor');
-const row = (w, name) => manager(w).locator('.tc-item').filter({ has: w.page.locator('.tc-nombre', { hasText: exact(name) }) });
+const row = (w, name) =>
+  manager(w)
+    .locator('.tc-item')
+    .filter({ has: w.page.locator('.tc-nombre', { hasText: exact(name) }) });
 
 When('I open the training contents manager', async function () {
-  const button = this.view.locator('.page-head').getByRole('button', { name: /Contenidos de entrenamiento|Ocultar contenidos/ });
+  const button = this.view
+    .locator('.page-head')
+    .getByRole('button', { name: /Contenidos de entrenamiento|Ocultar contenidos/ });
   if ((await button.getAttribute('aria-expanded')) !== 'true') await button.click();
   await this.expectVisible(manager(this), 'The contents manager does not open');
 });
@@ -59,7 +64,10 @@ Then('the content {string} appears as custom', async function (name) {
 });
 
 Then('I see the error {string}', async function (text) {
-  await this.expectVisible(this.page.locator('.field-error, .tc-error', { hasText: text }), `The error "${text}" does not appear`);
+  await this.expectVisible(
+    this.page.locator('.field-error, .tc-error', { hasText: text }),
+    `The error "${text}" does not appear`,
+  );
 });
 
 // The content selector lives in the "Log load" sheet: open it, read the options and close it again.
@@ -81,10 +89,22 @@ Then('the content selector does not offer {string}', async function (name) {
   assert.ok(!(await contentOptions(this)).includes(name), `The selector still offers "${name}"`);
 });
 
-Then('the load of {int} metres of {string} appears linked to the session {string}', async function (metres, name, session) {
-  const rows = this.view.locator('section.card').filter({ has: this.page.getByRole('heading', { name: 'Cargas de la semana', exact: true }) }).locator('tbody tr').filter({ hasText: allWords(name) });
-  await this.eventually(async () => {
-    const cells = await rows.evaluateAll((trs) => trs.map((tr) => [...tr.children].map((td) => td.textContent.trim())));
-    assert.ok(cells.some((c) => withoutSeparators(c[4] || '') === String(metres) && (c[3] || '').includes(session)), `Rows of ${name}: ${JSON.stringify(cells)}`);
-  });
-});
+Then(
+  'the load of {int} metres of {string} appears linked to the session {string}',
+  async function (metres, name, session) {
+    const rows = this.view
+      .locator('section.card')
+      .filter({ has: this.page.getByRole('heading', { name: 'Cargas de la semana', exact: true }) })
+      .locator('tbody tr')
+      .filter({ hasText: allWords(name) });
+    await this.eventually(async () => {
+      const cells = await rows.evaluateAll((trs) =>
+        trs.map((tr) => [...tr.children].map((td) => td.textContent.trim())),
+      );
+      assert.ok(
+        cells.some((c) => withoutSeparators(c[4] || '') === String(metres) && (c[3] || '').includes(session)),
+        `Rows of ${name}: ${JSON.stringify(cells)}`,
+      );
+    });
+  },
+);

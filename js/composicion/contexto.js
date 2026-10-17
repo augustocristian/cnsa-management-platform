@@ -15,11 +15,21 @@ export function serviciosDeVista({ store, auth, ahora = () => new Date() } = {})
     CLAVES,
     config: { setClientId },
     // Training PDF (jsPDF is loaded lazily the first time one is generated) and its copy in the cnl/entrenos folder of Drive.
-    pdf: { generar: async (fichas, etiquetas) => (await import('../infrastructure/pdfEntreno.js')).generar(fichas, etiquetas) },
-    guardarPdfEnDrive: async ({ blob, nombre, drive: cliente }) => (await import('../infrastructure/driveEntrenos.js')).guardarPdfEnDrive({ drive: cliente || drive, blob, nombre }),
+    pdf: {
+      generar: async (fichas, etiquetas) =>
+        (await import('../infrastructure/pdfEntreno.js')).generar(fichas, etiquetas),
+    },
+    guardarPdfEnDrive: async ({ blob, nombre, drive: cliente }) =>
+      (await import('../infrastructure/driveEntrenos.js')).guardarPdfEnDrive({ drive: cliente || drive, blob, nombre }),
     cargarDrive: async () => drive, // the Drive client, for opening the folder
     // The factories take the store / auth of the view that asks (they default to the ones of this context).
     servicioBackup: (o = {}) => crearServicioBackupApp({ store: o.store || store, ahora: o.ahora || ahora }),
-    servicioCalendario: (o = {}) => crearServicioCalendarioApp({ store: o.store || store, auth: o.auth || auth, etq: o.etq, ahora: o.ahora || ahora }),
+    servicioCalendario: (o = {}) =>
+      crearServicioCalendarioApp({
+        store: o.store || store,
+        auth: o.auth || auth,
+        etq: o.etq,
+        ahora: o.ahora || ahora,
+      }),
   };
 }

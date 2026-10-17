@@ -2,7 +2,12 @@
 
 // Search key: no accents, no upper case, single spaces. "  Lucia  FERNANDEZ " -> "lucia fernandez".
 export function claveBusqueda(texto) {
-  return String(texto ?? '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().replace(/\s+/g, ' ').trim();
+  return String(texto ?? '')
+    .normalize('NFD')
+    .replace(/[̀-ͯ]/g, '')
+    .toLowerCase()
+    .replace(/\s+/g, ' ')
+    .trim();
 }
 
 // True when every word of `consulta` appears in `texto` (accent and case insensitive, any order).

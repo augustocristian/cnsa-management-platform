@@ -46,7 +46,8 @@ export default {
   'cal.exp.anadir': 'Add to my calendar',
   'cal.exp.ok': 'Calendar exported: {n} events.',
   'cal.exp.vacio': 'There are no events to export in that period.',
-  'cal.exp.nota': 'The .ics file is a snapshot of today. A live subscription link is not possible without a server: export it again to pick up changes (re-importing it updates existing events instead of duplicating them).',
+  'cal.exp.nota':
+    'The .ics file is a snapshot of today. A live subscription link is not possible without a server: export it again to pick up changes (re-importing it updates existing events instead of duplicating them).',
   'cal.exp.zona': 'Club time zone',
   'cal.exp.zona-ayuda': 'Stored in the Club sheet (key zonaHoraria). Defaults to Europe/Madrid.',
   'cal.exp.zona-guardar': 'Save time zone',
@@ -54,7 +55,8 @@ export default {
   'cal.exp.zona-ok': 'Time zone saved: {zona}.',
   'cal.exp.alcance': 'The export follows the filters shown on screen.',
   'cal.sync.titulo': 'Sync with Google Calendar',
-  'cal.sync.desc': 'Creates and keeps your sessions in your primary Google calendar (with an internal marker so they can be updated and removed without touching your other events). Calendar permission is only requested when you enable this. Your sessions are synced.',
+  'cal.sync.desc':
+    'Creates and keeps your sessions in your primary Google calendar (with an internal marker so they can be updated and removed without touching your other events). Calendar permission is only requested when you enable this. Your sessions are synced.',
   'cal.sync.ventana': 'Sync window',
   'cal.sync.ventana.30': 'Next 30 days',
   'cal.sync.ventana.90': 'Next 90 days',
@@ -69,17 +71,22 @@ export default {
   'cal.sync.parado': '{n} events were removed from your Google Calendar.',
   'cal.sync.parado-errores': '{n} events were removed; {e} could not be deleted (try again).',
   'cal.sync.err.auth': 'Could not get Google Calendar permission. Press the button again and grant access.',
-  'cal.sync.err.permisos': 'Google refused the Calendar permission. Accept access to "view and edit events" when Google asks.',
-  'cal.sync.err.api-desactivada': "The Google Calendar API is not enabled in this app's Google Cloud project (see the tutorial).",
-  'cal.sync.err.limite': 'Google is rate-limiting requests right now. Wait a minute and sync again: what was already created will not be duplicated.',
+  'cal.sync.err.permisos':
+    'Google refused the Calendar permission. Accept access to "view and edit events" when Google asks.',
+  'cal.sync.err.api-desactivada':
+    "The Google Calendar API is not enabled in this app's Google Cloud project (see the tutorial).",
+  'cal.sync.err.limite':
+    'Google is rate-limiting requests right now. Wait a minute and sync again: what was already created will not be duplicated.',
   'cal.sync.err.red': 'No connection to Google Calendar.',
   'cal.sync.err.servidor': 'Google Calendar is not responding properly. Try again later.',
   'cal.sync.err.http': 'Google Calendar error: {msg}',
   'cal.vacio-agenda': 'No events in the next 30 days.',
   'cal.exp.menu': 'Export',
   'cal.exp.opciones': 'Export options',
-  'cal.sync.motivo.demo': 'Demo mode keeps its data only in this browser and does not connect to Google, so it cannot sync. Connect Google Drive to turn it on.',
-  'cal.sync.motivo.sin-conexion': 'Connect Google Drive to sync with Google Calendar. Syncing asks for one extra permission, only when you turn it on.',
+  'cal.sync.motivo.demo':
+    'Demo mode keeps its data only in this browser and does not connect to Google, so it cannot sync. Connect Google Drive to turn it on.',
+  'cal.sync.motivo.sin-conexion':
+    'Connect Google Drive to sync with Google Calendar. Syncing asks for one extra permission, only when you turn it on.',
   'cal.sync.motivo.sin-cliente': 'Google Calendar sync is not available in this copy of the app.',
   'cal.sync.err.demo': 'Demo mode does not connect to Google.',
   'cal.sync.err.sin-cliente': 'Google Calendar sync is not available in this copy of the app.',

@@ -15,24 +15,57 @@ export function tarjetaSesion(s, { nombreGrupo, acciones }) {
   const menu = menuAcciones({
     etiqueta: t('entreno.lista.mas-aria', { n: titulo }),
     items: () => [
-      { id: 'estado', label: hecha ? t('entre.reabrir') : t('entre.marcar-realizado'), icono: 'check', onClick: () => acciones.alternarEstado(s) },
+      {
+        id: 'estado',
+        label: hecha ? t('entre.reabrir') : t('entre.marcar-realizado'),
+        icono: 'check',
+        onClick: () => acciones.alternarEstado(s),
+      },
       { id: 'editar', label: t('common.editar'), icono: 'editar', onClick: () => acciones.editar(s) },
       { id: 'duplicar', label: t('entre.duplicar'), icono: 'copiar', onClick: () => acciones.duplicar(s) },
       { id: 'pdf', label: etiquetaPdf(), icono: 'descargar', onClick: () => acciones.pdf(s) },
-      { id: 'eliminar', label: t('common.eliminar'), icono: 'borrar', danger: true, onClick: () => acciones.eliminar(s) },
+      {
+        id: 'eliminar',
+        label: t('common.eliminar'),
+        icono: 'borrar',
+        danger: true,
+        onClick: () => acciones.eliminar(s),
+      },
     ],
   });
-  return h('article', { class: 'ent-sess', 'data-id': s.id },
+  return h(
+    'article',
+    { class: 'ent-sess', 'data-id': s.id },
     h('div', { class: 'ent-time num' }, s.hora || '--:--'),
-    h('div', { class: 'ent-main' },
+    h(
+      'div',
+      { class: 'ent-main' },
       h('div', { class: 'ent-title' }, titulo),
-      h('div', { class: 'ent-meta' },
+      h(
+        'div',
+        { class: 'ent-meta' },
         badge(nombreGrupo(s.grupoId) || t('entre.grupo-todos'), 'neutral'),
         badge(tEstado(hecha ? 'realizado' : 'planificado'), hecha ? 'ok' : 'info'),
-        meta),
-      s.descripcion ? h('div', { class: 'ent-meta ent-desc' }, s.descripcion) : null),
-    h('div', { class: 'ent-act' },
-      h('button', { type: 'button', class: 'btn btn--primary btn-sm', 'data-accion': 'abrir-plan', 'aria-label': `${t('entreno.lista.abrir-plan')}: ${titulo}`, onclick: () => acciones.abrirPlan(s) },
-        icon('documento', { size: 16 }), h('span', null, t('entreno.lista.abrir-plan'))),
-      menu));
+        meta,
+      ),
+      s.descripcion ? h('div', { class: 'ent-meta ent-desc' }, s.descripcion) : null,
+    ),
+    h(
+      'div',
+      { class: 'ent-act' },
+      h(
+        'button',
+        {
+          type: 'button',
+          class: 'btn btn--primary btn-sm',
+          'data-accion': 'abrir-plan',
+          'aria-label': `${t('entreno.lista.abrir-plan')}: ${titulo}`,
+          onclick: () => acciones.abrirPlan(s),
+        },
+        icon('documento', { size: 16 }),
+        h('span', null, t('entreno.lista.abrir-plan')),
+      ),
+      menu,
+    ),
+  );
 }

@@ -45,7 +45,11 @@ test('h() escapes text and does not interpret HTML', () => {
 
 test('h() attributes, events, nested children and SVG', () => {
   let n = 0;
-  const el = ui.h('button', { onclick: () => n++, dataset: { a: '1' }, 'aria-busy': true, hidden: false, title: null }, ['a', [null, 'b', false, 0]]);
+  const el = ui.h(
+    'button',
+    { onclick: () => n++, dataset: { a: '1' }, 'aria-busy': true, hidden: false, title: null },
+    ['a', [null, 'b', false, 0]],
+  );
   el.click();
   assert.equal(n, 1);
   assert.equal(el.dataset.a, '1');
@@ -58,12 +62,15 @@ test('h() attributes, events, nested children and SVG', () => {
 });
 
 test('formFields reads values and validates', () => {
-  const f = ui.formFields([
-    { name: 'a', label: 'A', required: true },
-    { name: 'n', type: 'number' },
-    { name: 'c', type: 'checkbox' },
-    { name: 's', type: 'select', options: ['x', { value: 'y', label: 'Y' }] },
-  ], { a: 'hola', n: 5, c: true, s: 'y' });
+  const f = ui.formFields(
+    [
+      { name: 'a', label: 'A', required: true },
+      { name: 'n', type: 'number' },
+      { name: 'c', type: 'checkbox' },
+      { name: 's', type: 'select', options: ['x', { value: 'y', label: 'Y' }] },
+    ],
+    { a: 'hola', n: 5, c: true, s: 'y' },
+  );
   assert.deepEqual(f.values(), { a: 'hola', n: 5, c: true, s: 'y' });
   assert.equal(f.validate(), true);
 });

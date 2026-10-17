@@ -6,7 +6,26 @@ const S = await importApp('js/domain/schema.js');
 const { newId } = await importApp('js/infrastructure/ids.js');
 
 test('SHEETS contains all the contract sheets with an id', () => {
-  const esperadas = ['Club', 'Nadadores', 'Grupos', 'Entrenamientos', 'Asistencia', 'Cargas', 'Marcas', 'Comunicaciones', 'ObjetivosCarga', 'Banadores', 'Piscinas', 'AsignacionesCalle', 'EntrenoLineas', 'TiposCarga', 'Temporadas', 'Fases', 'SemanasPlan', 'EventosTemporada'];
+  const esperadas = [
+    'Club',
+    'Nadadores',
+    'Grupos',
+    'Entrenamientos',
+    'Asistencia',
+    'Cargas',
+    'Marcas',
+    'Comunicaciones',
+    'ObjetivosCarga',
+    'Banadores',
+    'Piscinas',
+    'AsignacionesCalle',
+    'EntrenoLineas',
+    'TiposCarga',
+    'Temporadas',
+    'Fases',
+    'SemanasPlan',
+    'EventosTemporada',
+  ];
   assert.deepEqual(Object.keys(S.SHEETS).sort(), esperadas.sort());
   for (const s of S.ENTITY_SHEETS) assert.equal(S.SHEETS[s][0], 'id', s);
   assert.deepEqual(S.SHEETS.Club, ['clave', 'valor']);
@@ -15,10 +34,32 @@ test('SHEETS contains all the contract sheets with an id', () => {
 
 test('key columns of each sheet', () => {
   assert.ok(S.SHEETS.Cargas.includes('tipo'));
-  assert.deepEqual(S.SHEETS.TiposCarga, ['id', 'nombre', 'descripcion', 'color', 'categoria', 'orden', 'activo', 'predefinido', 'minSemanalM', 'maxSemanalM', 'alias']);
+  assert.deepEqual(S.SHEETS.TiposCarga, [
+    'id',
+    'nombre',
+    'descripcion',
+    'color',
+    'categoria',
+    'orden',
+    'activo',
+    'predefinido',
+    'minSemanalM',
+    'maxSemanalM',
+    'alias',
+  ]);
   assert.equal(S.TIPOS_CARGA.length, 10, 'TIPOS_CARGA is derived from the predefined catalogue');
   assert.ok(S.SHEETS.Entrenamientos.includes('volumenMax'));
-  assert.deepEqual(S.SHEETS.Marcas, ['id', 'nadadorId', 'fecha', 'prueba', 'piscina', 'tiempoMs', 'competicion', 'notas', 'banadorId']);
+  assert.deepEqual(S.SHEETS.Marcas, [
+    'id',
+    'nadadorId',
+    'fecha',
+    'prueba',
+    'piscina',
+    'tiempoMs',
+    'competicion',
+    'notas',
+    'banadorId',
+  ]);
   assert.deepEqual(S.SHEETS.Banadores, ['id', 'tipo', 'marca', 'modelo', 'activo', 'notas']);
 });
 

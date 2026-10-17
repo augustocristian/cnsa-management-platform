@@ -8,11 +8,32 @@ const GRUPOS = [
   { id: 'g2', nombre: 'Alevín', entrenador: 'jorge@club.es' },
   { id: 'g3', nombre: 'Absoluto', entrenador: 'Otro Entrenador' },
 ];
-const ses = (id, fecha, hora, grupoId, extra = {}) => ({ id, fecha, hora, duracionMin: 60, grupoId, titulo: 'S' + id, descripcion: '', estado: 'planificado', piscina: '25', volumenMin: '', volumenMax: '', enfoque: '', ...extra });
+const ses = (id, fecha, hora, grupoId, extra = {}) => ({
+  id,
+  fecha,
+  hora,
+  duracionMin: 60,
+  grupoId,
+  titulo: 'S' + id,
+  descripcion: '',
+  estado: 'planificado',
+  piscina: '25',
+  volumenMin: '',
+  volumenMax: '',
+  enfoque: '',
+  ...extra,
+});
 const DATOS = {
   Grupos: GRUPOS,
-  Nadadores: [{ id: 'n1', grupoId: 'g1', email: '' }, { id: 'n2', grupoId: 'g2', email: 'otro@x.es' }],
-  Entrenamientos: [ses('e1', '2026-10-20', '17:30', 'g1'), ses('e2', '2026-10-21', '18:30', 'g2'), ses('e3', '2026-10-22', '19:00', '')],
+  Nadadores: [
+    { id: 'n1', grupoId: 'g1', email: '' },
+    { id: 'n2', grupoId: 'g2', email: 'otro@x.es' },
+  ],
+  Entrenamientos: [
+    ses('e1', '2026-10-20', '17:30', 'g1'),
+    ses('e2', '2026-10-21', '18:30', 'g2'),
+    ses('e3', '2026-10-22', '19:00', ''),
+  ],
   Piscinas: [{ id: 'p1', nombre: 'Piscina Lugones', longitudM: 25 }],
   AsignacionesCalle: [],
 };
@@ -38,16 +59,42 @@ test('rangoPredefinido: month, season (Sep-Aug) and next 90 days', () => {
 // ---------- sources and recurrences ----------
 test('sessions: only those in the range, with group and computed end', () => {
   const evs = D.eventosEnRango(DATOS, { desde: '2026-10-20', hasta: '2026-10-21' });
-  assert.deepEqual(evs.map((e) => e.id), ['ses-e1', 'ses-e2']);
+  assert.deepEqual(
+    evs.map((e) => e.id),
+    ['ses-e1', 'ses-e2'],
+  );
   assert.equal(evs[0].grupoNombre, 'Promoción');
   assert.deepEqual(D.finEvento(evs[0]), { fecha: '2026-10-20', hora: '18:30' });
-  assert.deepEqual(D.finEvento({ fecha: '2026-10-20', hora: '23:30', duracionMin: 60 }), { fecha: '2026-10-21', hora: '00:30' });
+  assert.deepEqual(D.finEvento({ fecha: '2026-10-20', hora: '23:30', duracionMin: 60 }), {
+    fecha: '2026-10-21',
+    hora: '00:30',
+  });
 });
 
 test('weekly assignments: expanded to concrete dates with lane number', () => {
-  const datos = { ...DATOS, Entrenamientos: [], AsignacionesCalle: [{ id: 'a1', piscinaId: 'p1', dia: 2, fecha: '', horaInicio: '18:00', horaFin: '19:30', calleDesde: 3, calleHasta: 4, grupoId: 'g1', notas: 'n' }] };
+  const datos = {
+    ...DATOS,
+    Entrenamientos: [],
+    AsignacionesCalle: [
+      {
+        id: 'a1',
+        piscinaId: 'p1',
+        dia: 2,
+        fecha: '',
+        horaInicio: '18:00',
+        horaFin: '19:30',
+        calleDesde: 3,
+        calleHasta: 4,
+        grupoId: 'g1',
+        notas: 'n',
+      },
+    ],
+  };
   const evs = D.eventosEnRango(datos, RANGO);
-  assert.deepEqual(evs.map((e) => e.fecha), ['2026-10-06', '2026-10-13', '2026-10-20', '2026-10-27']); // Tuesday
+  assert.deepEqual(
+    evs.map((e) => e.fecha),
+    ['2026-10-06', '2026-10-13', '2026-10-20', '2026-10-27'],
+  ); // Tuesday
   assert.equal(evs[0].calle, '3-4');
   assert.equal(evs[0].duracionMin, 90);
   assert.equal(evs[0].piscina, '25');
@@ -60,9 +107,39 @@ test('assignments: dates with a concrete session of the same group are skipped a
     ...DATOS,
     Entrenamientos: [ses('e1', '2026-10-20', '17:30', 'g1')],
     AsignacionesCalle: [
-      { id: 'a1', piscinaId: 'p1', dia: 2, fecha: '', horaInicio: '18:00', horaFin: '19:00', calleDesde: 1, calleHasta: 1, grupoId: 'g1' },
-      { id: 'a2', piscinaId: 'p1', dia: 2, fecha: '2026-10-13', horaInicio: '20:00', horaFin: '21:00', calleDesde: 5, calleHasta: 5, grupoId: 'g1' },
-      { id: 'a3', piscinaId: 'p1', dia: 2, fecha: '', horaInicio: '18:00', horaFin: '19:00', calleDesde: 2, calleHasta: 2, grupoId: 'g2' },
+      {
+        id: 'a1',
+        piscinaId: 'p1',
+        dia: 2,
+        fecha: '',
+        horaInicio: '18:00',
+        horaFin: '19:00',
+        calleDesde: 1,
+        calleHasta: 1,
+        grupoId: 'g1',
+      },
+      {
+        id: 'a2',
+        piscinaId: 'p1',
+        dia: 2,
+        fecha: '2026-10-13',
+        horaInicio: '20:00',
+        horaFin: '21:00',
+        calleDesde: 5,
+        calleHasta: 5,
+        grupoId: 'g1',
+      },
+      {
+        id: 'a3',
+        piscinaId: 'p1',
+        dia: 2,
+        fecha: '',
+        horaInicio: '18:00',
+        horaFin: '19:00',
+        calleDesde: 2,
+        calleHasta: 2,
+        grupoId: 'g2',
+      },
     ],
   };
   const calle = D.eventosEnRango(datos, RANGO).filter((e) => e.origen === 'calle');
@@ -72,8 +149,21 @@ test('assignments: dates with a concrete session of the same group are skipped a
 });
 
 test('sources: registrarFuente extension point and a broken source does not bring down the rest', () => {
-  const fuentes = [...D.FUENTES_EVENTOS, { id: 'rota', genera: () => { throw new Error('x'); } },
-    { id: 'extra', genera: () => [{ id: 'x-1', origen: 'extra', fecha: '2026-10-05', hora: '', titulo: 'Extra', grupoId: '', grupoNombre: '' }] }];
+  const fuentes = [
+    ...D.FUENTES_EVENTOS,
+    {
+      id: 'rota',
+      genera: () => {
+        throw new Error('x');
+      },
+    },
+    {
+      id: 'extra',
+      genera: () => [
+        { id: 'x-1', origen: 'extra', fecha: '2026-10-05', hora: '', titulo: 'Extra', grupoId: '', grupoNombre: '' },
+      ],
+    },
+  ];
   const evs = D.eventosEnRango(DATOS, RANGO, { fuentes });
   assert.ok(evs.some((e) => e.id === 'x-1'));
   assert.ok(evs.some((e) => e.id === 'ses-e1'));
@@ -86,7 +176,10 @@ test('there is no role scope (the coach sees everything and filters by group)', 
 
 test('filtrarEventos: by groups (general events always) and by pool', () => {
   const evs = D.eventosEnRango(DATOS, RANGO);
-  assert.deepEqual(D.filtrarEventos(evs, { grupoIds: ['g1'] }).map((e) => e.id), ['ses-e1', 'ses-e3']);
+  assert.deepEqual(
+    D.filtrarEventos(evs, { grupoIds: ['g1'] }).map((e) => e.id),
+    ['ses-e1', 'ses-e3'],
+  );
   assert.equal(D.filtrarEventos(evs, { grupoIds: null }).length, 3);
   assert.equal(D.filtrarEventos(evs, { piscina: '50' }).length, 0);
 });
@@ -110,15 +203,30 @@ test('plegarLinea: <= 75 octets, continuation with a space and without splitting
   const trozos = plegada.split('\r\n');
   assert.ok(trozos.length > 1);
   const enc = new TextEncoder();
-  trozos.forEach((l, i) => { assert.ok(enc.encode(l).length <= 75, `line ${i}`); if (i) assert.ok(l.startsWith(' ')); });
+  trozos.forEach((l, i) => {
+    assert.ok(enc.encode(l).length <= 75, `line ${i}`);
+    if (i) assert.ok(l.startsWith(' '));
+  });
   assert.equal(trozos.map((l, i) => (i ? l.slice(1) : l)).join(''), larga); // unfolding = original
   assert.equal(D.plegarLinea('corta'), 'corta');
 });
 
 const AHORA = new Date(Date.UTC(2026, 9, 15, 10, 30, 0));
-function ics(eventos, extra = {}) { return D.generarICS(eventos, { nombreCalendario: 'CNL – Club, "Test"', zona: 'Europe/Madrid', ahora: AHORA, secuencia: 7, ...extra }); }
+function ics(eventos, extra = {}) {
+  return D.generarICS(eventos, {
+    nombreCalendario: 'CNL – Club, "Test"',
+    zona: 'Europe/Madrid',
+    ahora: AHORA,
+    secuencia: 7,
+    ...extra,
+  });
+}
 // Unfolds the .ics and returns the logical lines.
-const lineas = (txt) => txt.replace(/\r\n[ \t]/g, '').split('\r\n').filter(Boolean);
+const lineas = (txt) =>
+  txt
+    .replace(/\r\n[ \t]/g, '')
+    .split('\r\n')
+    .filter(Boolean);
 
 test('generarICS: RFC 5545 structure, CRLF, stable UID, TZID, DTSTAMP and SEQUENCE', () => {
   const evs = D.eventosEnRango(DATOS, RANGO).slice(0, 2);
@@ -142,7 +250,10 @@ test('generarICS: RFC 5545 structure, CRLF, stable UID, TZID, DTSTAMP and SEQUEN
   assert.ok(ls.includes('CATEGORIES:Promoción'));
   // balanced begin/end
   const pila = [];
-  ls.forEach((l) => { if (l.startsWith('BEGIN:')) pila.push(l.slice(6)); else if (l.startsWith('END:')) assert.equal(pila.pop(), l.slice(4)); });
+  ls.forEach((l) => {
+    if (l.startsWith('BEGIN:')) pila.push(l.slice(6));
+    else if (l.startsWith('END:')) assert.equal(pila.pop(), l.slice(4));
+  });
   assert.equal(pila.length, 0);
 });
 
@@ -153,8 +264,10 @@ test('generarICS: the UID is identical across exports (re-importing updates, doe
 });
 
 test('generarICS: Europe/Madrid VTIMEZONE with the real transitions and matching TZID', () => {
-  const evs = [{ id: 'a', fecha: '2026-03-20', hora: '10:00', duracionMin: 60, titulo: 'x', grupoId: '', grupoNombre: '' },
-    { id: 'b', fecha: '2026-11-02', hora: '10:00', duracionMin: 60, titulo: 'y', grupoId: '', grupoNombre: '' }];
+  const evs = [
+    { id: 'a', fecha: '2026-03-20', hora: '10:00', duracionMin: 60, titulo: 'x', grupoId: '', grupoNombre: '' },
+    { id: 'b', fecha: '2026-11-02', hora: '10:00', duracionMin: 60, titulo: 'y', grupoId: '', grupoNombre: '' },
+  ];
   const ls = lineas(ics(evs));
   const i = ls.indexOf('BEGIN:VTIMEZONE');
   assert.ok(i >= 0);
@@ -167,8 +280,12 @@ test('generarICS: Europe/Madrid VTIMEZONE with the real transitions and matching
 });
 
 test('generarICS: zone without DST, and an invalid zone falls back to Europe/Madrid', () => {
-  const ev = [{ id: 'a', fecha: '2026-06-10', hora: '10:00', duracionMin: 30, titulo: 'x', grupoId: '', grupoNombre: '' }];
-  assert.ok(lineas(ics(ev, { zona: 'Atlantic/Reykjavik' })).includes('DTSTART;TZID=Atlantic/Reykjavik:20260610T100000'));
+  const ev = [
+    { id: 'a', fecha: '2026-06-10', hora: '10:00', duracionMin: 30, titulo: 'x', grupoId: '', grupoNombre: '' },
+  ];
+  assert.ok(
+    lineas(ics(ev, { zona: 'Atlantic/Reykjavik' })).includes('DTSTART;TZID=Atlantic/Reykjavik:20260610T100000'),
+  );
   assert.ok(lineas(ics(ev, { zona: 'No/Existe' })).includes('DTSTART;TZID=Europe/Madrid:20260610T100000'));
   assert.equal(D.zonaValida('America/Argentina/Buenos_Aires'), true);
   assert.equal(D.offsetMin('Europe/Madrid', Date.UTC(2026, 6, 1)), 120);
@@ -177,8 +294,33 @@ test('generarICS: zone without DST, and an invalid zone falls back to Europe/Mad
 
 test('generarICS: optional VALARM, all-day event and escapes in fields', () => {
   const evs = [
-    { id: 'a', origen: 'sesion', fecha: '2026-10-20', hora: '17:30', duracionMin: 60, titulo: 'Series; 4x100, "mixtas"', grupoId: 'g1', grupoNombre: 'A, B', piscina: '25', piscinaNombre: '', calle: '2', enfoque: 'Velocidad', volumenMin: '1800', volumenMax: '2200', descripcion: 'Línea1\nLínea2' },
-    { id: 'b', origen: 'sesion', fecha: '2026-10-21', hora: '', duracionMin: '', titulo: 'Día libre', grupoId: '', grupoNombre: '' },
+    {
+      id: 'a',
+      origen: 'sesion',
+      fecha: '2026-10-20',
+      hora: '17:30',
+      duracionMin: 60,
+      titulo: 'Series; 4x100, "mixtas"',
+      grupoId: 'g1',
+      grupoNombre: 'A, B',
+      piscina: '25',
+      piscinaNombre: '',
+      calle: '2',
+      enfoque: 'Velocidad',
+      volumenMin: '1800',
+      volumenMax: '2200',
+      descripcion: 'Línea1\nLínea2',
+    },
+    {
+      id: 'b',
+      origen: 'sesion',
+      fecha: '2026-10-21',
+      hora: '',
+      duracionMin: '',
+      titulo: 'Día libre',
+      grupoId: '',
+      grupoNombre: '',
+    },
   ];
   const sin = lineas(ics(evs));
   assert.ok(!sin.includes('BEGIN:VALARM'));
@@ -189,7 +331,11 @@ test('generarICS: optional VALARM, all-day event and escapes in fields', () => {
   assert.ok(con.includes('SUMMARY:Series\\; 4x100\\, "mixtas"'));
   assert.ok(con.includes('CATEGORIES:A\\, B'));
   assert.ok(con.includes('LOCATION:Piscina 25 m\\, Calle 2'));
-  assert.ok(con.some((l) => l.startsWith('DESCRIPTION:') && l.includes('Volumen: 1800-2200 m') && l.includes('Línea1\\nLínea2')));
+  assert.ok(
+    con.some(
+      (l) => l.startsWith('DESCRIPTION:') && l.includes('Volumen: 1800-2200 m') && l.includes('Línea1\\nLínea2'),
+    ),
+  );
   assert.ok(con.includes('DTSTART;VALUE=DATE:20261021'));
   assert.ok(con.includes('DTEND;VALUE=DATE:20261022'));
 });
@@ -206,7 +352,21 @@ test('nombreFicheroICS: no accents or odd characters', () => {
 });
 
 // ---------- Google / sync ----------
-const evGoogle = { id: 'ses-e1', fecha: '2026-10-20', hora: '17:30', duracionMin: 60, titulo: 'T', grupoId: 'g1', grupoNombre: 'Promoción', piscina: '25', calle: '', enfoque: '', volumenMin: '', volumenMax: '', descripcion: '' };
+const evGoogle = {
+  id: 'ses-e1',
+  fecha: '2026-10-20',
+  hora: '17:30',
+  duracionMin: 60,
+  titulo: 'T',
+  grupoId: 'g1',
+  grupoNombre: 'Promoción',
+  piscina: '25',
+  calle: '',
+  enfoque: '',
+  volumenMin: '',
+  volumenMax: '',
+  descripcion: '',
+};
 
 test('aEventoGoogle: dateTime with zone, reminder and cnlId/cnlClub marker', () => {
   const b = D.aEventoGoogle(evGoogle, { zona: 'Europe/Madrid', alarmaMin: 60, clubId: 'club1' });
@@ -219,7 +379,11 @@ test('aEventoGoogle: dateTime with zone, reminder and cnlId/cnlClub marker', () 
 });
 
 test('diffSync: creates, updates, deletes future ones and keeps past ones', () => {
-  const mk = (id, fecha, titulo) => ({ id, fecha, cuerpo: D.aEventoGoogle({ ...evGoogle, id, fecha, titulo }, { clubId: 'c' }) });
+  const mk = (id, fecha, titulo) => ({
+    id,
+    fecha,
+    cuerpo: D.aEventoGoogle({ ...evGoogle, id, fecha, titulo }, { clubId: 'c' }),
+  });
   const nuevo = mk('n', '2026-10-25', 'N');
   const igual = mk('i', '2026-10-26', 'I');
   const cambia = mk('c', '2026-10-27', 'C2');
@@ -231,12 +395,25 @@ test('diffSync: creates, updates, deletes future ones and keeps past ones', () =
     pasado: { gid: 'gp', huella: 'x', fecha: '2026-09-01' },
   };
   const d = D.diffSync([nuevo, igual, cambia], mapa, '2026-10-15');
-  assert.deepEqual(d.crear.map((x) => x.id), ['n']);
-  assert.deepEqual(d.actualizar.map((x) => [x.id, x.gid]), [['c', 'gc']]);
-  assert.deepEqual(d.borrar.map((x) => x.gid), ['gb']); // 'pasado' stays untouched
+  assert.deepEqual(
+    d.crear.map((x) => x.id),
+    ['n'],
+  );
+  assert.deepEqual(
+    d.actualizar.map((x) => [x.id, x.gid]),
+    [['c', 'gc']],
+  );
+  assert.deepEqual(
+    d.borrar.map((x) => x.gid),
+    ['gb'],
+  ); // 'pasado' stays untouched
   assert.equal(d.iguales, 1);
   // idempotent: with the resulting map there is nothing to do
-  const mapa2 = { n: { gid: 'gn', huella: D.huella(nuevo.cuerpo), fecha: nuevo.fecha }, i: mapa.i, c: { gid: 'gc', huella: D.huella(cambia.cuerpo), fecha: cambia.fecha } };
+  const mapa2 = {
+    n: { gid: 'gn', huella: D.huella(nuevo.cuerpo), fecha: nuevo.fecha },
+    i: mapa.i,
+    c: { gid: 'gc', huella: D.huella(cambia.cuerpo), fecha: cambia.fecha },
+  };
   const d2 = D.diffSync([nuevo, igual, cambia], mapa2, '2026-10-15');
   assert.equal(d2.crear.length + d2.actualizar.length + d2.borrar.length, 0);
 });

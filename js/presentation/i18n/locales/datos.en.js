@@ -1,47 +1,56 @@
 // Data integrity, backups, GDPR and sync error texts (dat. / gerr. prefixes).
 export default {
-  'gerr.timeout': 'Google is not responding (timed out). Your changes are still saved on this device; it will be retried.',
+  'gerr.timeout':
+    'Google is not responding (timed out). Your changes are still saved on this device; it will be retried.',
   'gerr.cuota-drive': 'Your Google Drive is full: free up space so changes can be saved.',
 
   'dat.sesion-caducada': 'Drive connection expired: reconnect to keep saving your changes to Drive.',
   'dat.reconectar': 'Reconnect',
   'dat.reconectado': 'Drive connection renewed.',
   'dat.reconectar-error': 'Could not reconnect: {msg}',
-  'dat.solo-lectura': 'This club was saved by a newer version of the app (version {version}). Update the app to edit it; meanwhile it is read-only.',
+  'dat.solo-lectura':
+    'This club was saved by a newer version of the app (version {version}). Update the app to edit it; meanwhile it is read-only.',
   'dat.recargar': 'Reload the app',
   'dat.cache-llena': 'No local space left: do not close this tab until your changes are uploaded to Drive.',
-  'dat.avisos-lectura': 'The club file had {n} row(s) with a repeated or missing id: the last one of each id was kept and rows without id were discarded.',
+  'dat.avisos-lectura':
+    'The club file had {n} row(s) with a repeated or missing id: the last one of each id was kept and rows without id were discarded.',
   'dat.entendido': 'Got it',
-  'dat.privacidad': 'Your swimmers\' data (including minors) is stored only in your Google Drive and on this device. You are the data controller: get the families\' consent. Nothing is sent to third parties here.',
+  'dat.privacidad':
+    "Your swimmers' data (including minors) is stored only in your Google Drive and on this device. You are the data controller: get the families' consent. Nothing is sent to third parties here.",
 
   'dat.error-shell-titulo': 'The app could not be displayed',
-  'dat.error-shell-texto': 'An error occurred while opening the club. Your data has not been modified. You can retry or download a backup copy.',
+  'dat.error-shell-texto':
+    'An error occurred while opening the club. Your data has not been modified. You can retry or download a backup copy.',
   'dat.reintentar': 'Retry',
   'dat.descargar-copia': 'Download copy',
 
   'dat.logout.titulo': 'There are changes not uploaded to Drive',
-  'dat.logout.texto': 'The latest changes could not be uploaded. If you disconnect Drive they will be lost from this device. Download a copy before leaving.',
+  'dat.logout.texto':
+    'The latest changes could not be uploaded. If you disconnect Drive they will be lost from this device. Download a copy before leaving.',
   'dat.logout.descargar': 'Download copy (.xlsx)',
   'dat.logout.descartar': 'Discard and disconnect',
   'dat.logout.cancelar': 'Cancel',
   'dat.logout.subiendo': 'Uploading changes…',
 
   'dat.danado.titulo': 'Damaged file',
-  'dat.danado.texto': 'The club file in Drive cannot be read (it is not valid JSON). Nothing has been modified. Choose how to recover it.',
+  'dat.danado.texto':
+    'The club file in Drive cannot be read (it is not valid JSON). Nothing has been modified. Choose how to recover it.',
   'dat.vacio.titulo': 'The club file is empty',
-  'dat.vacio.texto': 'The club file in Drive is empty but used to contain data. It is not treated as a new club so that nothing is lost: choose how to recover it.',
+  'dat.vacio.texto':
+    'The club file in Drive is empty but used to contain data. It is not treated as a new club so that nothing is lost: choose how to recover it.',
   'dat.restaurar-local': 'Restore local copy',
   'dat.restaurar-backup': 'Restore latest backup',
   'dat.abrir-drive': 'Open in Drive',
   'dat.empezar-vacio': 'Start with an empty club',
-  'dat.confirmar-local': 'The Drive file will be overwritten with this device\'s data. Continue?',
+  'dat.confirmar-local': "The Drive file will be overwritten with this device's data. Continue?",
   'dat.confirmar-backup': 'The Drive file will be overwritten with the latest backup. Continue?',
   'dat.confirmar-vacio': 'The file content will be replaced by an empty club. Continue?',
   'dat.sin-local': 'There is no data for this club on this device.',
   'dat.sin-backup': 'There are no backups of this club in Drive.',
 
   'dat.import.titulo': 'Import from Excel',
-  'dat.import.texto': 'The club data will be replaced by the file\'s. A copy is saved first in the cnl/backups folder of your Drive.',
+  'dat.import.texto':
+    "The club data will be replaced by the file's. A copy is saved first in the cnl/backups folder of your Drive.",
   'dat.import.hoja': 'Sheet',
   'dat.import.nuevas': 'In the file',
   'dat.import.actuales': 'Now',
@@ -62,15 +71,21 @@ export default {
   'dat.val.fuera-de-rango': 'value out of range',
 
   'dat.rgpd.titulo': 'Data protection (GDPR)',
-  'dat.rgpd.texto': 'Your swimmers\' data (including minors) is stored only in your Google Drive and on this device; nothing is sent to third parties. You are the data controller and must obtain the families\' consent.',
-  'dat.rgpd.derechos': 'People\'s rights (access, rectification, erasure, portability and objection): from each swimmer\'s profile you can export all their data and delete them with all their data.',
-  'dat.rgpd.revisiones': 'Google Drive keeps old versions of files for a while, and deleted files stay 30 days in the bin. The app deletes the old versions of the club file when a swimmer is erased; to check or delete them by hand: Drive, right-click the file, "Manage versions", and empty the bin.',
+  'dat.rgpd.texto':
+    "Your swimmers' data (including minors) is stored only in your Google Drive and on this device; nothing is sent to third parties. You are the data controller and must obtain the families' consent.",
+  'dat.rgpd.derechos':
+    "People's rights (access, rectification, erasure, portability and objection): from each swimmer's profile you can export all their data and delete them with all their data.",
+  'dat.rgpd.revisiones':
+    'Google Drive keeps old versions of files for a while, and deleted files stay 30 days in the bin. The app deletes the old versions of the club file when a swimmer is erased; to check or delete them by hand: Drive, right-click the file, "Manage versions", and empty the bin.',
   'dat.nad.exportar': 'Export their data',
   'dat.nad.purgar': 'Delete swimmer and all their data',
-  'dat.nad.purgar-confirmar': 'The profile of {nombre} and all their data (attendance, loads, times and swimsuit) will be permanently deleted, together with the .xlsx copies and the backups of this club in Drive. This cannot be undone.',
+  'dat.nad.purgar-confirmar':
+    'The profile of {nombre} and all their data (attendance, loads, times and swimsuit) will be permanently deleted, together with the .xlsx copies and the backups of this club in Drive. This cannot be undone.',
   'dat.nad.purgado': 'Data of {nombre} deleted ({n} rows).',
-  'dat.nad.purgado-revisiones': 'Drive may keep old versions of the club file. {n} were deleted; check "Manage versions" and the Drive bin.',
-  'dat.nad.purgado-pendiente': 'The data was deleted on this device but could not be uploaded to Drive yet: reconnect and sync.',
+  'dat.nad.purgado-revisiones':
+    'Drive may keep old versions of the club file. {n} were deleted; check "Manage versions" and the Drive bin.',
+  'dat.nad.purgado-pendiente':
+    'The data was deleted on this device but could not be uploaded to Drive yet: reconnect and sync.',
   'dat.nad.demo-nota': 'You are in the demo: the data is erased from this device only; there are no copies in Drive.',
   'dat.notas.aviso': 'Avoid health data unless it is essential.',
 };

@@ -30,25 +30,32 @@ export async function libroABlob(datos) {
 // Normalises types (phone/licence to text, Excel serial dates to ISO) and rejects huge files.
 // `actuales` = { club: number of club keys now, filas: (sheet) => number of rows now, hoy: 'YYYY-MM-DD' } (preview counts and the date checks).
 export async function leerLibro(file, actuales) {
-  if (file && Number(file.size) > MAX_IMPORT_BYTES) throw Object.assign(new Error('El fichero supera los 20 MB.'), { code: 'import-demasiado-grande' });
+  if (file && Number(file.size) > MAX_IMPORT_BYTES)
+    throw Object.assign(new Error('El fichero supera los 20 MB.'), { code: 'import-demasiado-grande' });
   const XLSX = await loadXLSX();
   const wb = XLSX.read(await file.arrayBuffer(), { type: 'array' });
   const data = { db: emptyDb(), club: {} };
-  const rowsOf = (name) => (wb.Sheets[name] ? XLSX.utils.sheet_to_json(wb.Sheets[name], { defval: '', raw: true }) : []);
+  const rowsOf = (name) =>
+    wb.Sheets[name] ? XLSX.utils.sheet_to_json(wb.Sheets[name], { defval: '', raw: true }) : [];
   const hojas = [];
   const duplicados = [];
   let total = 0;
   let invalidas = 0;
-  rowsOf('Club').forEach((r) => { if (r.clave) data.club[String(r.clave)] = normalizarClub(r.valor); });
+  rowsOf('Club').forEach((r) => {
+    if (r.clave) data.club[String(r.clave)] = normalizarClub(r.valor);
+  });
   hojas.push({ nombre: 'Club', filas: Object.keys(data.club).length, actuales: actuales.club });
   ENTITY_SHEETS.forEach((s) => {
     const crudas = rowsOf(s);
     total += crudas.length;
-    if (total > MAX_IMPORT_FILAS) throw Object.assign(new Error('El fichero tiene más de 50.000 filas.'), { code: 'import-demasiadas-filas' });
+    if (total > MAX_IMPORT_FILAS)
+      throw Object.assign(new Error('El fichero tiene más de 50.000 filas.'), { code: 'import-demasiadas-filas' });
     const porId = new Map();
     crudas.forEach((r) => {
       const o = {};
-      SHEETS[s].forEach((c) => { o[c] = normalizarValor(c, r[c]); });
+      SHEETS[s].forEach((c) => {
+        o[c] = normalizarValor(c, r[c]);
+      });
       if (o.id === '') return;
       o.id = String(o.id);
       if (porId.has(o.id)) duplicados.push({ hoja: s, id: o.id });

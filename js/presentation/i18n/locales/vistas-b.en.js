@@ -67,7 +67,8 @@ export default {
   'asist.sin-nadadores-grupo': 'There are no active swimmers in this group.',
   'asist.todos-grupos': 'All groups',
   'asist.grupo': 'Group',
-  'asist.ayuda-historial': '% = sessions attended out of sessions with attendance recorded. Press a name to see the details.',
+  'asist.ayuda-historial':
+    '% = sessions attended out of sessions with attendance recorded. Press a name to see the details.',
   'asist.th-nadador': 'Swimmer',
   'asist.th-pres': 'Pres.',
   'asist.th-aus': 'Abs.',
@@ -182,7 +183,7 @@ export default {
   'marcas.th-banador': 'Swimsuit',
   'marcas.sin-marcas': 'There are no times with these filters yet.',
   'marcas.vacio-titulo': 'No times yet',
-  'marcas.vacio-texto': 'Log a swimmer\'s first time to see personal bests and progress.',
+  'marcas.vacio-texto': "Log a swimmer's first time to see personal bests and progress.",
   'marcas.evolucion': 'Progress',
   'marcas.evol-de': '{nombre} · {prueba} · {piscina} m pool',
   'marcas.evol-vacio': 'No times for this selection.',
@@ -209,5 +210,5 @@ export default {
   'marcas.f-todas': 'All',
   'marcas.chips-aria': 'Active filters',
   'marcas.chip-quitar': 'Remove filter: {f}',
-  'marcas.limpiar-filtros': 'Clear all filters'
+  'marcas.limpiar-filtros': 'Clear all filters',
 };

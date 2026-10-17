@@ -2,14 +2,29 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import * as D from '../../js/domain/cargas.js';
 
-const ids = () => { let n = 0; return () => 'x' + (++n); };
+const ids = () => {
+  let n = 0;
+  return () => 'x' + ++n;
+};
 const sembrado = () => D.sembrarCatalogo([]).map((t) => ({ ...t }));
 
 test('default catalogue: 10 unique contents, stable ids, valid colours and known categories', () => {
   assert.equal(D.CATALOGO_PREDEFINIDO.length, 10);
-  assert.deepEqual(D.CATALOGO_PREDEFINIDO.map((c) => c.nombre), [
-    'Aeróbico ligero', 'Aeróbico medio / Umbral anaeróbico', 'Aeróbico intenso / Potencia aeróbica', 'Anaeróbico / Tolerancia al lactato',
-    'Aláctico / Sprint', 'Piernas', 'Brazos', 'Técnica', 'Salidas', 'Virajes/volteos']);
+  assert.deepEqual(
+    D.CATALOGO_PREDEFINIDO.map((c) => c.nombre),
+    [
+      'Aeróbico ligero',
+      'Aeróbico medio / Umbral anaeróbico',
+      'Aeróbico intenso / Potencia aeróbica',
+      'Anaeróbico / Tolerancia al lactato',
+      'Aláctico / Sprint',
+      'Piernas',
+      'Brazos',
+      'Técnica',
+      'Salidas',
+      'Virajes/volteos',
+    ],
+  );
   assert.equal(new Set(D.CATALOGO_PREDEFINIDO.map((c) => c.id)).size, 10);
   assert.equal(new Set(D.CATALOGO_PREDEFINIDO.map((c) => c.color)).size, 10, 'each content has its own colour');
   for (const c of D.CATALOGO_PREDEFINIDO) {
@@ -28,8 +43,30 @@ test('normalizarNombre: no accents, capitals or extra spaces', () => {
 });
 
 test('normalizarTipo and filaTipo: round trip, default values and targets 0 = no target', () => {
-  const t = D.normalizarTipo({ id: 5, nombre: ' X ', color: 'zzz', categoria: 'rara', orden: '', activo: '', predefinido: 'TRUE', minSemanalM: 0, maxSemanalM: '1500' });
-  assert.deepEqual(t, { id: '5', nombre: 'X', descripcion: '', color: D.COLOR_SIN_TIPO, categoria: 'personalizado', orden: 999, activo: true, predefinido: true, min: null, max: 1500, alias: [] });
+  const t = D.normalizarTipo({
+    id: 5,
+    nombre: ' X ',
+    color: 'zzz',
+    categoria: 'rara',
+    orden: '',
+    activo: '',
+    predefinido: 'TRUE',
+    minSemanalM: 0,
+    maxSemanalM: '1500',
+  });
+  assert.deepEqual(t, {
+    id: '5',
+    nombre: 'X',
+    descripcion: '',
+    color: D.COLOR_SIN_TIPO,
+    categoria: 'personalizado',
+    orden: 999,
+    activo: true,
+    predefinido: true,
+    min: null,
+    max: 1500,
+    alias: [],
+  });
   const f = D.filaTipo(t);
   assert.deepEqual([f.activo, f.predefinido, f.minSemanalM, f.maxSemanalM], ['true', 'true', '', 1500]);
   assert.equal(D.normalizarTipo({ id: 'a', nombre: 'a', activo: 'FALSE' }).activo, false);
@@ -42,13 +79,17 @@ test('validarTipo: mandatory name, unique (ignoring case and accents), length, t
   assert.deepEqual(codigos({ nombre: '  ' }), ['nombre-vacio']);
   assert.deepEqual(codigos({ nombre: 'AEROBICO LIGERO' }), ['nombre-duplicado']);
   assert.deepEqual(codigos({ nombre: 'virajes / VOLTEOS' }), ['nombre-duplicado']);
-  assert.deepEqual(codigos({ nombre: 'Aeróbico ligero' }, { id: 'tc-aerobico-ligero' }), [], 'editing itself is not a duplicate');
+  assert.deepEqual(
+    codigos({ nombre: 'Aeróbico ligero' }, { id: 'tc-aerobico-ligero' }),
+    [],
+    'editing itself is not a duplicate',
+  );
   assert.deepEqual(codigos({ nombre: 'x'.repeat(61) }), ['nombre-largo']);
   assert.deepEqual(codigos({ nombre: 'Nuevo', color: 'rojo' }), ['color-invalido']);
   assert.deepEqual(codigos({ nombre: 'Nuevo', min: '-5' }), ['objetivo-invalido']);
   assert.deepEqual(codigos({ nombre: 'Nuevo', min: 'abc' }), ['objetivo-invalido']);
   assert.deepEqual(codigos({ nombre: 'Nuevo', min: '3000', max: '1000' }), ['minmax']);
-  assert.deepEqual(codigos({ nombre: 'Nuevo', min: '1000', max: '' , color: '#aabbcc' }), []);
+  assert.deepEqual(codigos({ nombre: 'Nuevo', min: '1000', max: '', color: '#aabbcc' }), []);
   assert.deepEqual(codigos({ nombre: 'Nuevo', descripcion: 'd'.repeat(241) }), ['descripcion-larga']);
 });
 
@@ -57,9 +98,14 @@ test('sembrarCatalogo: idempotent, does not duplicate or overwrite edits, respec
   assert.equal(primero.length, 10);
   assert.deepEqual(D.sembrarCatalogo(primero), []);
   // the user edited a default and deleted another (e.g. by hand in the sheet): only the missing one is restored
-  const editado = primero.filter((t) => t.id !== 'tc-brazos').map((t) => (t.id === 'tc-piernas' ? { ...t, color: '#123456', descripcion: 'Mía' } : t));
+  const editado = primero
+    .filter((t) => t.id !== 'tc-brazos')
+    .map((t) => (t.id === 'tc-piernas' ? { ...t, color: '#123456', descripcion: 'Mía' } : t));
   const falta = D.sembrarCatalogo(editado);
-  assert.deepEqual(falta.map((t) => t.id), ['tc-brazos']);
+  assert.deepEqual(
+    falta.map((t) => t.id),
+    ['tc-brazos'],
+  );
   assert.equal(editado.find((t) => t.id === 'tc-piernas').color, '#123456');
   // custom content with the same name as a default: the duplicate is not seeded
   const propio = [{ id: 'mio', nombre: 'BRAZOS', categoria: 'personalizado', orden: 50, activo: true }];
@@ -69,8 +115,14 @@ test('sembrarCatalogo: idempotent, does not duplicate or overwrite edits, respec
 test('migration: old types kept as custom, Piernas/Técnica use the default, targets moved', () => {
   const tipos = sembrado();
   const cargas = [
-    { id: 'c1', tipo: 'Aeróbico' }, { id: 'c2', tipo: 'aerobico' }, { id: 'c3', tipo: 'Velocidad' }, { id: 'c4', tipo: 'Piernas' },
-    { id: 'c5', tipo: 'Técnica' }, { id: 'c6', tipo: 'Fuerza' }, { id: 'c7', tipo: '' }, { id: 'c8', tipo: 'Aláctico / Sprint' },
+    { id: 'c1', tipo: 'Aeróbico' },
+    { id: 'c2', tipo: 'aerobico' },
+    { id: 'c3', tipo: 'Velocidad' },
+    { id: 'c4', tipo: 'Piernas' },
+    { id: 'c5', tipo: 'Técnica' },
+    { id: 'c6', tipo: 'Fuerza' },
+    { id: 'c7', tipo: '' },
+    { id: 'c8', tipo: 'Aláctico / Sprint' },
   ];
   const objetivos = [
     { id: 'o1', tipo: 'Aeróbico', minSemanalM: 6000, maxSemanalM: 12000 },
@@ -83,13 +135,20 @@ test('migration: old types kept as custom, Piernas/Técnica use the default, tar
   for (const t of r.crear) assert.deepEqual([t.categoria, t.predefinido, t.activo], ['personalizado', false, true]);
   const aero = r.crear.find((t) => t.nombre === 'Aeróbico');
   assert.deepEqual([aero.min, aero.max], [6000, 12000]);
-  assert.deepEqual(r.actualizar.map((t) => [t.id, t.min, t.max]).sort(), [['tc-piernas', 1000, 2500], ['tc-tecnica', null, 4000]]);
+  assert.deepEqual(r.actualizar.map((t) => [t.id, t.min, t.max]).sort(), [
+    ['tc-piernas', 1000, 2500],
+    ['tc-tecnica', null, 4000],
+  ]);
   assert.deepEqual(r.eliminarObjetivos, ['o1', 'o2', 'o3', 'o4']);
 });
 
 test('migration: does not overwrite targets already defined and is idempotent (prepararCatalogo)', () => {
   const ya = sembrado().map((t) => (t.id === 'tc-piernas' ? { ...t, min: 300, max: 600 } : t));
-  const r = D.migrarHeredados({ tipos: ya, objetivos: [{ id: 'o', tipo: 'Piernas', minSemanalM: 1, maxSemanalM: 2 }], generarId: ids() });
+  const r = D.migrarHeredados({
+    tipos: ya,
+    objetivos: [{ id: 'o', tipo: 'Piernas', minSemanalM: 1, maxSemanalM: 2 }],
+    generarId: ids(),
+  });
   assert.deepEqual(r.actualizar, []);
   assert.deepEqual(r.eliminarObjetivos, ['o']);
 
@@ -103,22 +162,27 @@ test('migration: does not overwrite targets already defined and is idempotent (p
 });
 
 test('resolverTipo, ordenarTipos and agruparPorCategoria', () => {
-  const tipos = sembrado().concat([{ ...sembrado()[0], id: 'p1', nombre: 'Aguas abiertas', categoria: 'personalizado', predefinido: false, orden: 11 }]);
+  const tipos = sembrado().concat([
+    { ...sembrado()[0], id: 'p1', nombre: 'Aguas abiertas', categoria: 'personalizado', predefinido: false, orden: 11 },
+  ]);
   assert.equal(D.resolverTipo('  piernas', tipos).id, 'tc-piernas');
   assert.equal(D.resolverTipo('nada', tipos), null);
   const g = D.agruparPorCategoria(tipos);
-  assert.deepEqual(g.map((x) => x.categoria), ['intensidad', 'especifico', 'personalizado']);
+  assert.deepEqual(
+    g.map((x) => x.categoria),
+    ['intensidad', 'especifico', 'personalizado'],
+  );
   assert.equal(g[0].tipos[0].id, 'tc-aerobico-ligero');
   assert.deepEqual(D.agruparPorCategoria([]), []);
   assert.equal(D.siguienteOrden(tipos), 12);
 });
 
 const cargas = [
-  { nadadorId: 'a', fecha: '2026-10-12', metros: 2000, tipo: 'Piernas' },       // Monday
-  { nadadorId: 'a', fecha: '2026-10-14', metros: 1000, tipo: 'piernas' },       // Wednesday
+  { nadadorId: 'a', fecha: '2026-10-12', metros: 2000, tipo: 'Piernas' }, // Monday
+  { nadadorId: 'a', fecha: '2026-10-14', metros: 1000, tipo: 'piernas' }, // Wednesday
   { nadadorId: 'b', fecha: '2026-10-14', metros: 3000, tipo: 'Aláctico / Sprint' },
-  { nadadorId: 'b', fecha: '2026-10-18', metros: 500, tipo: 'Misterioso' },     // Sunday, unclassified
-  { nadadorId: 'b', fecha: '2026-10-19', metros: 9999, tipo: 'Piernas' },       // another week
+  { nadadorId: 'b', fecha: '2026-10-18', metros: 500, tipo: 'Misterioso' }, // Sunday, unclassified
+  { nadadorId: 'b', fecha: '2026-10-19', metros: 9999, tipo: 'Piernas' }, // another week
 ];
 
 test('agregarSemana: average per swimmer with load, per content and per day; unclassified apart', () => {
@@ -152,9 +216,18 @@ test('evaluarObjetivo and evaluarSemana: high, low, ok, no target; only active o
   });
   const a = D.agregarSemana({ cargas, tipos, desde: '2026-10-12', hasta: '2026-10-18' });
   const ev = D.evaluarSemana(a, tipos);
-  assert.deepEqual(ev.map((e) => [e.tipo.id, e.estado, e.diferencia]), [['tc-alactico', 'alto', 500], ['tc-piernas', 'bajo', 500]]);
+  assert.deepEqual(
+    ev.map((e) => [e.tipo.id, e.estado, e.diferencia]),
+    [
+      ['tc-alactico', 'alto', 500],
+      ['tc-piernas', 'bajo', 500],
+    ],
+  );
   assert.deepEqual(D.objetivoTotal(tipos), { min: 2000, max: 5000 });
-  assert.ok(D.tiposVisibles(a, tipos).every((t) => t.activo), 'inactive ones without metres are not shown');
+  assert.ok(
+    D.tiposVisibles(a, tipos).every((t) => t.activo),
+    'inactive ones without metres are not shown',
+  );
   assert.ok(!D.tiposVisibles(a, tipos).some((t) => t.id === 'tc-brazos'));
 });
 

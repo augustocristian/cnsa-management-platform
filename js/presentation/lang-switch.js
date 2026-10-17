@@ -32,7 +32,14 @@ const FLAGS = {
 
 export function flagIcon(code, size = 22) {
   const draw = FLAGS[code];
-  const svg = el('svg', { viewBox: '0 0 30 20', width: size, height: Math.round((size * 2) / 3), 'aria-hidden': 'true', focusable: 'false', class: 'flag' });
+  const svg = el('svg', {
+    viewBox: '0 0 30 20',
+    width: size,
+    height: Math.round((size * 2) / 3),
+    'aria-hidden': 'true',
+    focusable: 'false',
+    class: 'flag',
+  });
   const id = `flag-clip-${code}`;
   svg.append(el('defs', {}, el('clipPath', { id }, el('rect', { width: 30, height: 20, rx: 3 }))));
   const g = el('g', { 'clip-path': `url(#${id})` });

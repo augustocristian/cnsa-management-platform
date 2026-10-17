@@ -3,23 +3,108 @@ import { CATALOGO_PREDEFINIDO } from './cargas.js';
 
 export const SHEETS = {
   Club: ['clave', 'valor'], // nombre, lema, logo(dataURL), colorPrimario, colorSecundario
-  Nadadores: ['id', 'nombre', 'apellidos', 'fechaNacimiento', 'sexo', 'categoria', 'grupoId', 'email', 'telefono', 'tutor', 'licencia', 'notas', 'activo', 'licenciaMaster', 'categoriaManual'], // categoria = current materialised category (computed from year of birth, sex and season: domain/categorias.js); categoriaManual (text) wins over the calculation; licenciaMaster = 'true'|'false'
+  Nadadores: [
+    'id',
+    'nombre',
+    'apellidos',
+    'fechaNacimiento',
+    'sexo',
+    'categoria',
+    'grupoId',
+    'email',
+    'telefono',
+    'tutor',
+    'licencia',
+    'notas',
+    'activo',
+    'licenciaMaster',
+    'categoriaManual',
+  ], // categoria = current materialised category (computed from year of birth, sex and season: domain/categorias.js); categoriaManual (text) wins over the calculation; licenciaMaster = 'true'|'false'
   Grupos: ['id', 'nombre', 'categoria', 'entrenador'],
-  Entrenamientos: ['id', 'fecha', 'hora', 'duracionMin', 'grupoId', 'titulo', 'descripcion', 'estado', 'piscina', 'volumenMin', 'volumenMax', 'enfoque', 'tipoSesion', 'materialDia', 'notasGenerales'],
-  EntrenoLineas: ['id', 'entrenamientoId', 'set', 'orden', 'tiempoMin', 'objetivo', 'bloque', 'series', 'distancia', 'salida', 'ejercicio', 'material', 'notas', 'componentes', 'estilo'], // detailed plan of the session: rows grouped by set; componentes = JSON [{contenido, metrosPorRep, modo, pct?}] (split of the per-repetition distance among contents); estilo = name or JSON [{estilo, metrosPorRep}]
+  Entrenamientos: [
+    'id',
+    'fecha',
+    'hora',
+    'duracionMin',
+    'grupoId',
+    'titulo',
+    'descripcion',
+    'estado',
+    'piscina',
+    'volumenMin',
+    'volumenMax',
+    'enfoque',
+    'tipoSesion',
+    'materialDia',
+    'notasGenerales',
+  ],
+  EntrenoLineas: [
+    'id',
+    'entrenamientoId',
+    'set',
+    'orden',
+    'tiempoMin',
+    'objetivo',
+    'bloque',
+    'series',
+    'distancia',
+    'salida',
+    'ejercicio',
+    'material',
+    'notas',
+    'componentes',
+    'estilo',
+  ], // detailed plan of the session: rows grouped by set; componentes = JSON [{contenido, metrosPorRep, modo, pct?}] (split of the per-repetition distance among contents); estilo = name or JSON [{estilo, metrosPorRep}]
   Asistencia: ['id', 'entrenamientoId', 'nadadorId', 'estado', 'nota'],
   Cargas: ['id', 'entrenamientoId', 'nadadorId', 'fecha', 'metros', 'rpe', 'minutos', 'tipo', 'notas'],
   Marcas: ['id', 'nadadorId', 'fecha', 'prueba', 'piscina', 'tiempoMs', 'competicion', 'notas', 'banadorId'], // banadorId = swimsuit used when the mark was achieved (optional; soft reference to Banadores, no cascade)
   Comunicaciones: ['id', 'fecha', 'titulo', 'texto', 'grupoId', 'autor'],
   ObjetivosCarga: ['id', 'tipo', 'minSemanalM', 'maxSemanalM'], // LEGACY: migrated to TiposCarga.minSemanalM/maxSemanalM when the club is opened
-  TiposCarga: ['id', 'nombre', 'descripcion', 'color', 'categoria', 'orden', 'activo', 'predefinido', 'minSemanalM', 'maxSemanalM', 'alias'], // training contents; alias = comma-separated abbreviations (AeL, Tope...); categoria = intensidad|especifico|personalizado
+  TiposCarga: [
+    'id',
+    'nombre',
+    'descripcion',
+    'color',
+    'categoria',
+    'orden',
+    'activo',
+    'predefinido',
+    'minSemanalM',
+    'maxSemanalM',
+    'alias',
+  ], // training contents; alias = comma-separated abbreviations (AeL, Tope...); categoria = intensidad|especifico|personalizado
   Banadores: ['id', 'tipo', 'marca', 'modelo', 'activo', 'notas'], // club catalogue (not personal data): tipo = entrenamiento|competicion (competicion = tech suit / fast skin); activo = 'true'|'false'
   Piscinas: ['id', 'nombre', 'longitudM', 'numCalles', 'intervaloMin', 'maxPorCalle', 'horario'], // horario = JSON per day {"1":{"abre":"07:00","cierra":"22:00"},...,"7":null}
-  AsignacionesCalle: ['id', 'piscinaId', 'dia', 'fecha', 'horaInicio', 'horaFin', 'calleDesde', 'calleHasta', 'grupoId', 'entrenadorId', 'notas'], // dia 1=Monday..7=Sunday; fecha (optional) = one-off exception
+  AsignacionesCalle: [
+    'id',
+    'piscinaId',
+    'dia',
+    'fecha',
+    'horaInicio',
+    'horaFin',
+    'calleDesde',
+    'calleHasta',
+    'grupoId',
+    'entrenadorId',
+    'notas',
+  ], // dia 1=Monday..7=Sunday; fecha (optional) = one-off exception
   Temporadas: ['id', 'nombre', 'fechaInicio', 'fechaFin', 'activa', 'grupoId', 'notas'], // season planning; one active
   Fases: ['id', 'temporadaId', 'nombre', 'tipo', 'fechaInicio', 'fechaFin', 'objetivo', 'color', 'orden'], // fases (macrociclos)
   SemanasPlan: ['id', 'temporadaId', 'lunes', 'volumenPrevisto', 'contenidos', 'intensidad', 'objetivo', 'notas'], // semanas (microciclos) editadas; contenidos = JSON {tipoId: metros}
-  EventosTemporada: ['id', 'temporadaId', 'tipo', 'nombre', 'fechaInicio', 'fechaFin', 'lugar', 'prioridad', 'pruebas', 'categoria', 'grupoId', 'notas'], // competiciones, concentraciones, tests, descansos...
+  EventosTemporada: [
+    'id',
+    'temporadaId',
+    'tipo',
+    'nombre',
+    'fechaInicio',
+    'fechaFin',
+    'lugar',
+    'prioridad',
+    'pruebas',
+    'categoria',
+    'grupoId',
+    'notas',
+  ], // competiciones, concentraciones, tests, descansos...
 };
 
 // Sheets that no longer exist: if an old file contains them they are dropped when read and are not written again.

@@ -2,12 +2,15 @@
 export default {
   'shell.sync.sincronizado': 'Synced',
   'acceso.login.google': 'Connect Google Drive',
-  'acceso.login.nota': 'The app only asks for permission over the files it creates itself in the "cnl" folder of your Drive. No server, no database.',
+  'acceso.login.nota':
+    'The app only asks for permission over the files it creates itself in the "cnl" folder of your Drive. No server, no database.',
   'acceso.tutorial': 'How to set up Google (tutorial)',
 
   'cfgreq.titulo': 'Setup required',
-  'cfgreq.texto': 'This copy of the app does not have a Google client ID yet. Without it you cannot connect Google Drive or save your data.',
-  'cfgreq.quien': 'It is set once by whoever publishes the app (a constant in js/infrastructure/config.js). Everyone else will only see "Connect Google Drive".',
+  'cfgreq.texto':
+    'This copy of the app does not have a Google client ID yet. Without it you cannot connect Google Drive or save your data.',
+  'cfgreq.quien':
+    'It is set once by whoever publishes the app (a constant in js/infrastructure/config.js). Everyone else will only see "Connect Google Drive".',
   'cfgreq.tutorial': 'Open the tutorial (5 minutes)',
   'cfgreq.tutorial-id': 'Go straight to the client ID step',
   'cfgreq.ayuda-titulo': 'Help for whoever sets up the app',
@@ -15,21 +18,27 @@ export default {
   'cfgreq.campo': 'Google client ID',
   'cfgreq.demo-titulo': 'Want to look around first?',
   'cfgreq.demo-activa-titulo': 'Your demo is still open',
-  'cfgreq.demo-activa': 'You can go back to it any time. If you connect Google Drive, the demo is closed and its sample data is erased.',
+  'cfgreq.demo-activa':
+    'You can go back to it any time. If you connect Google Drive, the demo is closed and its sample data is erased.',
   'cfgreq.demo-volver': 'Back to the demo',
   'cfgreq.cierra-demo': 'Connecting Google Drive closes the demo and erases its sample data from this browser.',
   'cfgreq.probar': 'Test and save',
   'cfgreq.probando': 'Opening Google…',
   'cfgreq.invalido': 'The ID does not look valid: it must end in .apps.googleusercontent.com',
-  'cfgreq.nota-guardado': 'If the connection works, the ID is saved only in this browser until you set it in js/infrastructure/config.js.',
+  'cfgreq.nota-guardado':
+    'If the connection works, the ID is saved only in this browser until you set it in js/infrastructure/config.js.',
   'gerr.popup-bloqueado': 'The browser blocked the Google window. Allow pop-ups for this site and try again.',
-  'gerr.popup-cerrado': 'The Google window was closed before finishing. If you saw "Access blocked" or "app not verified", your email must be added as a test user; if you saw "origin_mismatch", authorize this page\'s origin.',
-  'gerr.acceso-denegado': 'Google denied access. While the app is in "Testing" mode, your email must be listed as a test user on the consent screen.',
-  'gerr.origen-no-autorizado': 'This origin is not authorized for the client ID. Add it under "Authorized JavaScript origins" in the credentials.',
+  'gerr.popup-cerrado':
+    'The Google window was closed before finishing. If you saw "Access blocked" or "app not verified", your email must be added as a test user; if you saw "origin_mismatch", authorize this page\'s origin.',
+  'gerr.acceso-denegado':
+    'Google denied access. While the app is in "Testing" mode, your email must be listed as a test user on the consent screen.',
+  'gerr.origen-no-autorizado':
+    'This origin is not authorized for the client ID. Add it under "Authorized JavaScript origins" in the credentials.',
   'gerr.sin-gis': 'Google could not be loaded (offline, or blocked by an extension?).',
   'gerr.sin-conexion': 'No connection to Google. Check your network; your cached data is still available.',
   'gerr.api-desactivada': 'The Google Drive API is not enabled in the Google Cloud project.',
-  'gerr.sin-permiso': 'Google denied access to your Drive. Disconnect Drive, connect it again and accept the files permission.',
+  'gerr.sin-permiso':
+    'Google denied access to your Drive. Disconnect Drive, connect it again and accept the files permission.',
   'gerr.sesion-caducada': 'The connection to Google Drive has expired. Please connect it again.',
   'gerr.limite': 'Google is rate limiting requests: wait a moment and retry.',
   'gerr.no-encontrado': 'The file was not found in your Drive (deleted or in the trash?).',
@@ -41,7 +50,8 @@ export default {
   'gerr.detalle': 'Technical detail: {msg}',
 
   'asistente.titulo': 'Create your club',
-  'asistente.bienvenida': 'Welcome. We will create your club in two steps; your data will be saved in a file inside the "cnl" folder of your Google Drive.',
+  'asistente.bienvenida':
+    'Welcome. We will create your club in two steps; your data will be saved in a file inside the "cnl" folder of your Google Drive.',
   'asistente.paso': 'Step {n} of {total}',
   'asistente.nombre': 'Club name',
   'asistente.nombre-ph': 'Swimming Club…',
@@ -53,8 +63,10 @@ export default {
   'asistente.atras': 'Back',
   'asistente.crear': 'Create my club',
   'asistente.creando': 'Creating your club in Drive…',
-  'asistente.nota-carpeta': 'The app creates (or reuses) its own "cnl" folder in your Drive. If you already had a "cnl" folder made by hand, the app cannot see it (it only accesses what it creates itself): it will create its own and you can move yours from Drive.',
-  'asistente.nota-vacio': 'The club starts empty, without sample data. Afterwards you can add groups, swimmers and sessions.',
+  'asistente.nota-carpeta':
+    'The app creates (or reuses) its own "cnl" folder in your Drive. If you already had a "cnl" folder made by hand, the app cannot see it (it only accesses what it creates itself): it will create its own and you can move yours from Drive.',
+  'asistente.nota-vacio':
+    'The club starts empty, without sample data. Afterwards you can add groups, swimmers and sessions.',
   'asistente.err.nombre-vacio': 'Enter the club name.',
   'asistente.err.nombre-corto': 'The name is too short.',
   'asistente.err.nombre-largo': 'The name is too long (60 characters max).',
@@ -71,13 +83,15 @@ export default {
   'primeros.sesion': 'Schedule your first session',
 
   'club.dondeTitulo': 'Where your data is stored',
-  'club.dondeTexto': 'Everything is in the "cnl" folder of your Google Drive: the club file ({nombre}.json), your preferences (preferencias.json), training PDFs (entrenos/) and Excel copies. There is no server and no database.',
+  'club.dondeTexto':
+    'Everything is in the "cnl" folder of your Google Drive: the club file ({nombre}.json), your preferences (preferencias.json), training PDFs (entrenos/) and Excel copies. There is no server and no database.',
   'club.abrirFichero': 'Open the club file in Drive',
   'club.abrirCarpeta': 'Open the cnl folder',
   'club.guardarXlsx': 'Save an Excel copy in Drive',
   'club.xlsxGuardado': 'Copy saved to cnl/{nombre}',
   'club.prefsTitulo': 'Your preferences',
-  'club.prefsTexto': 'Language, tutorial progress, calendar view and Google Calendar sync are stored in cnl/preferencias.json and follow you to any device.',
+  'club.prefsTexto':
+    'Language, tutorial progress, calendar view and Google Calendar sync are stored in cnl/preferencias.json and follow you to any device.',
   'club.prefsEstado': 'Preferences status: {estado}',
   'club.prefsSincronizar': 'Sync preferences',
   'club.prefsSincronizadas': 'Preferences synced',
@@ -91,7 +105,8 @@ export default {
   'prefs.estado.sin-sesion': 'signed out',
 
   'tutorial.titulo': 'Set up Google in 5 minutes',
-  'tutorial.intro': 'Done once by whoever publishes the app; everyone else just connects their Google Drive. Each person has their own data in their own Drive (so they have it on all their devices) and the app shares data with nobody. There are {total} steps: the app only asks for the "drive.file" permission (files it creates itself in your Drive), which is not sensitive and needs no Google verification.',
+  'tutorial.intro':
+    'Done once by whoever publishes the app; everyone else just connects their Google Drive. Each person has their own data in their own Drive (so they have it on all their devices) and the app shares data with nobody. There are {total} steps: the app only asks for the "drive.file" permission (files it creates itself in your Drive), which is not sensitive and needs no Google verification.',
   'tutorial.progreso': '{hecho} of {total} steps completed',
   'tutorial.paso-n': 'Step {n} of {total}',
   'tutorial.marcar': 'Mark as done',
@@ -106,8 +121,10 @@ export default {
   'tutorial.enlaces': 'Useful links',
   'tutorial.valores': 'Values to copy',
   'tutorial.aviso.titulo': 'Unverified app and test users',
-  'tutorial.aviso.texto': 'While the consent screen is in "Testing" mode, only accounts added as test users (up to 100) can sign in. If your email is missing, Google shows "Access blocked" or "app not verified". With the drive.file permission you can click "Publish app" without going through Google verification.',
-  'tutorial.aviso.caducidad': 'In Testing mode the Google session may expire after 7 days and you will need to sign in again.',
+  'tutorial.aviso.texto':
+    'While the consent screen is in "Testing" mode, only accounts added as test users (up to 100) can sign in. If your email is missing, Google shows "Access blocked" or "app not verified". With the drive.file permission you can click "Publish app" without going through Google verification.',
+  'tutorial.aviso.caducidad':
+    'In Testing mode the Google session may expire after 7 days and you will need to sign in again.',
 
   'tutorial.paso1.titulo': 'Create a project in Google Cloud Console',
   'tutorial.paso1.intro': 'A project groups the APIs and credentials of the app. It is free for this use.',
@@ -116,29 +133,36 @@ export default {
   'tutorial.paso1.i3': 'Give it a name (for example "CNL Platform"), click "Create" and select it.',
 
   'tutorial.paso2.titulo': 'Enable the Google Drive API',
-  'tutorial.paso2.intro': 'The app stores your data in files inside your own Drive. Only the Drive API is needed (no Google Sheets).',
+  'tutorial.paso2.intro':
+    'The app stores your data in files inside your own Drive. Only the Drive API is needed (no Google Sheets).',
   'tutorial.paso2.i1': 'Open the Google Drive API page and click "Enable".',
-  'tutorial.paso2.i2': '(Optional) If you will sync the calendar with Google Calendar, also enable the Google Calendar API.',
+  'tutorial.paso2.i2':
+    '(Optional) If you will sync the calendar with Google Calendar, also enable the Google Calendar API.',
   'tutorial.paso2.i3': 'Check that it appears under "Enabled APIs and services" in the project.',
 
   'tutorial.paso3.titulo': 'Set up the consent screen',
   'tutorial.paso3.intro': 'This is the screen you will see when authorizing the app.',
   'tutorial.paso3.i1': 'Open the consent screen and choose the user type "External".',
   'tutorial.paso3.i2': 'Fill in the app name, your support email and the contact email.',
-  'tutorial.paso3.i3': 'Under "Scopes" add only drive.file (value below). Do not add openid, email or profile: the app asks for no identity.',
+  'tutorial.paso3.i3':
+    'Under "Scopes" add only drive.file (value below). Do not add openid, email or profile: the app asks for no identity.',
   'tutorial.paso3.i4': 'Under "Test users" add your Google email. Without it Google will block access.',
-  'tutorial.paso3.i5': 'Save. You can leave it in "Testing" or click "Publish app" (no verification needed with this permission).',
+  'tutorial.paso3.i5':
+    'Save. You can leave it in "Testing" or click "Publish app" (no verification needed with this permission).',
 
   'tutorial.paso4.titulo': 'Create the OAuth client ID (Web application)',
-  'tutorial.paso4.intro': 'The client ID identifies your app to Google. It is not secret, but it only works from authorized origins.',
+  'tutorial.paso4.intro':
+    'The client ID identifies your app to Google. It is not secret, but it only works from authorized origins.',
   'tutorial.paso4.i1': 'Open "Credentials" and click "Create credentials" > "OAuth client ID".',
   'tutorial.paso4.i2': 'Application type: "Web application". No "redirect URI" is needed.',
-  'tutorial.paso4.i3': 'Under "Authorized JavaScript origins" add the GitHub Pages origin (value below) and, if you develop, the local one. The origin of the page you are on is also shown below.',
+  'tutorial.paso4.i3':
+    'Under "Authorized JavaScript origins" add the GitHub Pages origin (value below) and, if you develop, the local one. The origin of the page you are on is also shown below.',
   'tutorial.paso4.i4': 'Click "Create" and copy the client ID (it ends in .apps.googleusercontent.com).',
 
   'tutorial.paso5.titulo': 'Paste the client ID into the app',
   'tutorial.paso5.intro': 'This is the only code change and it is done once.',
-  'tutorial.paso5.i1': 'Open js/infrastructure/config.js, paste the ID between the quotes of BUILTIN_CLIENT_ID and push the change to the repository. From then on users only see "Connect Google Drive".',
+  'tutorial.paso5.i1':
+    'Open js/infrastructure/config.js, paste the ID between the quotes of BUILTIN_CLIENT_ID and push the change to the repository. From then on users only see "Connect Google Drive".',
   'tutorial.paso5.i2': 'To try it before publishing, paste it in the field below: it is saved only in this browser.',
   'tutorial.paso5.campo': 'Google client ID',
   'tutorial.paso5.guardar': 'Save in this browser',
@@ -149,12 +173,17 @@ export default {
   'tutorial.paso5.recargar': 'Reload',
 
   'tutorial.paso6.titulo': 'Connect Drive and basic use',
-  'tutorial.paso6.intro': 'This is how the app is used day to day. It is a single-person app: no roles, no other users, no data sharing.',
-  'tutorial.paso6.i1': 'Click "Connect Google Drive" and accept the permission for files created by the app (if Google warns "app not verified", click "Advanced" and "Continue"). Before setting up Google you can try the app with sample data from "Try the demo" (it is only offered while there is no client ID).',
+  'tutorial.paso6.intro':
+    'This is how the app is used day to day. It is a single-person app: no roles, no other users, no data sharing.',
+  'tutorial.paso6.i1':
+    'Click "Connect Google Drive" and accept the permission for files created by the app (if Google warns "app not verified", click "Advanced" and "Continue"). Before setting up Google you can try the app with sample data from "Try the demo" (it is only offered while there is no client ID).',
   'tutorial.paso6.i2': 'The first time, a two-step wizard creates your empty club (name, colours and time zone).',
-  'tutorial.paso6.i3': 'Everything stays in the "cnl" folder of your Drive: <Club>.json, preferencias.json, entrenos/ and Excel copies. If you already had a "cnl" folder made by hand, the app creates its own (it only sees what it creates). Your data is saved in your Drive so you have it on all your devices (computer and phone); the app shares data with nobody.',
-  'tutorial.paso6.i4': 'Add groups, swimmers and sessions: changes are saved automatically ("Synced" indicator) and work offline.',
-  'tutorial.paso6.i5': 'In Settings you can export or import Excel as a backup. "Disconnect Drive" revokes the permission and clears the local data of this device.',
+  'tutorial.paso6.i3':
+    'Everything stays in the "cnl" folder of your Drive: <Club>.json, preferencias.json, entrenos/ and Excel copies. If you already had a "cnl" folder made by hand, the app creates its own (it only sees what it creates). Your data is saved in your Drive so you have it on all your devices (computer and phone); the app shares data with nobody.',
+  'tutorial.paso6.i4':
+    'Add groups, swimmers and sessions: changes are saved automatically ("Synced" indicator) and work offline.',
+  'tutorial.paso6.i5':
+    'In Settings you can export or import Excel as a backup. "Disconnect Drive" revokes the permission and clears the local data of this device.',
 
   'tutorial.link.crear-proyecto': 'Create project',
   'tutorial.link.drive-api': 'Google Drive API',
@@ -168,7 +197,7 @@ export default {
   'tutorial.copy.scope-drive': 'Permission: files created by the app (drive.file)',
   'tutorial.copy.config': 'Line in js/infrastructure/config.js',
 
-  'acceso.propuesta': 'Plan training, take attendance and track your club\'s loads, on your phone or computer.',
+  'acceso.propuesta': "Plan training, take attendance and track your club's loads, on your phone or computer.",
   'acceso.privacidad': 'Your data stays in your own Google Drive; nothing is shared with anyone.',
   'acceso.demo': 'Try the demo',
   'acceso.demo-nota': 'Sample data saved only on this device; nothing is sent to Drive.',

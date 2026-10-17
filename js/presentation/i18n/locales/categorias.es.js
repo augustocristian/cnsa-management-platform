@@ -1,7 +1,8 @@
 // Textos de las categorías por temporada (es). Prefijo `categorias.` (no `cat.`, reservado a los nombres de categoría de tCat).
 export default {
   'categorias.titulo': 'Categorías de la temporada {temporada}',
-  'categorias.intro': 'Se calculan automáticamente por año de nacimiento y sexo, y se actualizan al cambiar de temporada (empieza el 1 de septiembre).',
+  'categorias.intro':
+    'Se calculan automáticamente por año de nacimiento y sexo, y se actualizan al cambiar de temporada (empieza el 1 de septiembre).',
   'categorias.tabla-aria': 'Años de nacimiento de cada categoría en la temporada {temporada}',
   'categorias.col-categoria': 'Categoría',
   'categorias.col-nacidos': 'Nacidos en',
@@ -15,13 +16,15 @@ export default {
   'categorias.f-elegida': 'Categoría elegida',
   'categorias.f-master': 'Licencia máster',
   'categorias.vivo.sin-fecha': 'Indica la fecha de nacimiento para calcular la categoría.',
-  'categorias.vivo.sin-sexo': 'Indica el sexo para calcular la categoría (las tablas de femenino y masculino son distintas).',
+  'categorias.vivo.sin-sexo':
+    'Indica el sexo para calcular la categoría (las tablas de femenino y masculino son distintas).',
   'categorias.vivo.auto': '{categoria} · nacidos en {rango} · temporada {temporada}',
   'categorias.vivo.master': '{categoria} · licencia máster y {edad} años o más · temporada {temporada}',
   'categorias.vivo.manual': '{categoria} · fijada manualmente (la automática sería {auto})',
   'categorias.vivo.manual-sola': '{categoria} · fijada manualmente',
   'categorias.aviso.por-debajo': 'Por debajo de la edad mínima de la tabla: se asigna {categoria}.',
-  'categorias.aviso.master-edad': 'La licencia máster requiere {edad} años o más en la temporada: se usa la categoría por año de nacimiento.',
+  'categorias.aviso.master-edad':
+    'La licencia máster requiere {edad} años o más en la temporada: se usa la categoría por año de nacimiento.',
   'categorias.manual': 'manual',
   'categorias.manual-titulo': 'Categoría fijada manualmente: no cambia con la temporada',
   'categorias.d-master': 'Licencia máster',
@@ -47,7 +50,8 @@ export default {
   'categorias.cambio.aplicar': 'Aplicar cambio de temporada',
   'categorias.cambio.aplicado': 'Temporada {temporada} aplicada: {n} cambio(s) de categoría.',
   'categorias.reglas.titulo': 'Reglas por sexo',
-  'categorias.reglas.intro': 'Edad = año de inicio de la temporada − año de nacimiento. Cada tabla debe ser continua y Absoluto no tiene límite superior. Master exige además licencia máster.',
+  'categorias.reglas.intro':
+    'Edad = año de inicio de la temporada − año de nacimiento. Cada tabla debe ser continua y Absoluto no tiene límite superior. Master exige además licencia máster.',
   'categorias.reglas.desde': 'Edad desde',
   'categorias.reglas.hasta': 'Edad hasta',
   'categorias.reglas.master-edad': 'Edad mínima para Master',

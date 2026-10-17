@@ -2,16 +2,23 @@
 import { When, Then } from '@cucumber/cucumber';
 import assert from 'node:assert/strict';
 
-const card = (world, title) => world.view.locator('section.card').filter({ has: world.page.getByRole('heading', { name: title, level: 2 }) });
+const card = (world, title) =>
+  world.view.locator('section.card').filter({ has: world.page.getByRole('heading', { name: title, level: 2 }) });
 
 Then('the panel banner shows the club name {string}', async function (name) {
-  await this.expectVisible(this.view.locator('.ini-banner').getByRole('heading', { level: 1, name }), `The banner does not show "${name}"`);
+  await this.expectVisible(
+    this.view.locator('.ini-banner').getByRole('heading', { level: 1, name }),
+    `The banner does not show "${name}"`,
+  );
 });
 
 Then('the panel banner summarises the sessions of today', async function () {
   await this.eventually(async () => {
     const txt = (await this.view.locator('.ini-headline').innerText()).trim();
-    assert.match(txt, /^(Hoy: \d+ (sesión|sesiones) · \d+ (nadador|nadadores) (esperado|esperados)|Hoy no hay sesiones)/);
+    assert.match(
+      txt,
+      /^(Hoy: \d+ (sesión|sesiones) · \d+ (nadador|nadadores) (esperado|esperados)|Hoy no hay sesiones)/,
+    );
   });
 });
 
@@ -43,13 +50,17 @@ Then('the panel cards fill each row without gaps', async function () {
       return { width: grid.width, rows: [...rows.values()] };
     });
     assert.ok(r.rows.length >= 2 && r.rows.length <= 4, `rows: ${r.rows.length}`);
-    for (const w of r.rows) assert.ok(w >= r.width * 0.85, `incomplete row: ${Math.round(w)} of ${Math.round(r.width)}`);
+    for (const w of r.rows)
+      assert.ok(w >= r.width * 0.85, `incomplete row: ${Math.round(w)} of ${Math.round(r.width)}`);
   });
 });
 
 Then('the panel has no horizontal scroll', async function () {
   await this.expectVisible(this.view.locator('.ini-grid').first());
-  const r = await this.page.evaluate(() => ({ scroll: document.documentElement.scrollWidth, width: window.innerWidth }));
+  const r = await this.page.evaluate(() => ({
+    scroll: document.documentElement.scrollWidth,
+    width: window.innerWidth,
+  }));
   assert.ok(r.scroll <= r.width + 1, `The page overflows: ${r.scroll} > ${r.width}`);
 });
 

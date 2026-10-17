@@ -16,7 +16,10 @@ export function crearBanadoresService(repo, { generarId } = {}) {
     grupos: () => D.agruparBanadores(banadores()),
     // Active suits plus the one a mark already has (even if inactive): options of the suit selector of a mark.
     disponiblesParaMarca: (banadorIdActual = '') => D.disponiblesParaMarca(banadores(), banadorIdActual),
-    banador(id) { const r = repo.get(HOJA_BANADORES, id); return r ? D.normalizarBanador(r) : null; },
+    banador(id) {
+      const r = repo.get(HOJA_BANADORES, id);
+      return r ? D.normalizarBanador(r) : null;
+    },
     etiqueta: (id, etiquetasTipo) => D.etiquetaBanador(svc.banador(id), etiquetasTipo),
 
     // ----- Marks that used a suit -----
@@ -33,8 +36,16 @@ export function crearBanadoresService(repo, { generarId } = {}) {
       const errores = D.validarBanador(data, banadores());
       if (errores.length) return { ok: false, errores };
       const fila = D.filaBanador({
-        id: generarId(), tipo: D.normalizarTipoBanador(data.tipo), marca: String(data.marca ?? '').trim().replace(/\s+/g, ' '),
-        modelo: String(data.modelo ?? '').trim().replace(/\s+/g, ' '), activo: true, notas: String(data.notas ?? '').trim(),
+        id: generarId(),
+        tipo: D.normalizarTipoBanador(data.tipo),
+        marca: String(data.marca ?? '')
+          .trim()
+          .replace(/\s+/g, ' '),
+        modelo: String(data.modelo ?? '')
+          .trim()
+          .replace(/\s+/g, ' '),
+        activo: true,
+        notas: String(data.notas ?? '').trim(),
       });
       return { ok: true, banador: D.normalizarBanador(repo.upsert(HOJA_BANADORES, fila)) };
     },
@@ -43,18 +54,29 @@ export function crearBanadoresService(repo, { generarId } = {}) {
     editar(id, data) {
       const actual = svc.banador(id);
       if (!actual) return err('id', 'no-existe');
-      const propuesta = { tipo: 'tipo' in data ? data.tipo : actual.tipo, marca: 'marca' in data ? data.marca : actual.marca,
-        modelo: 'modelo' in data ? data.modelo : actual.modelo, notas: 'notas' in data ? data.notas : actual.notas };
+      const propuesta = {
+        tipo: 'tipo' in data ? data.tipo : actual.tipo,
+        marca: 'marca' in data ? data.marca : actual.marca,
+        modelo: 'modelo' in data ? data.modelo : actual.modelo,
+        notas: 'notas' in data ? data.notas : actual.notas,
+      };
       const errores = D.validarBanador(propuesta, banadores(), { id });
       if (errores.length) return { ok: false, errores };
-      const nuevo = D.normalizarBanador({ ...actual, ...propuesta, activo: 'activo' in data ? !!data.activo : actual.activo });
+      const nuevo = D.normalizarBanador({
+        ...actual,
+        ...propuesta,
+        activo: 'activo' in data ? !!data.activo : actual.activo,
+      });
       return { ok: true, banador: D.normalizarBanador(repo.upsert(HOJA_BANADORES, D.filaBanador(nuevo))) };
     },
 
     activar(id, activo = true) {
       const b = svc.banador(id);
       if (!b) return err('id', 'no-existe');
-      return { ok: true, banador: D.normalizarBanador(repo.upsert(HOJA_BANADORES, D.filaBanador({ ...b, activo: !!activo }))) };
+      return {
+        ok: true,
+        banador: D.normalizarBanador(repo.upsert(HOJA_BANADORES, D.filaBanador({ ...b, activo: !!activo }))),
+      };
     },
     desactivar: (id) => svc.activar(id, false),
 
@@ -74,7 +96,10 @@ export function crearBanadoresService(repo, { generarId } = {}) {
       if (svc.banador(banador.id)) return { ok: true, banador: svc.banador(banador.id) };
       const errores = D.validarBanador(banador, banadores());
       if (errores.length) return { ok: false, errores };
-      return { ok: true, banador: D.normalizarBanador(repo.upsert(HOJA_BANADORES, D.filaBanador(D.normalizarBanador(banador)))) };
+      return {
+        ok: true,
+        banador: D.normalizarBanador(repo.upsert(HOJA_BANADORES, D.filaBanador(D.normalizarBanador(banador)))),
+      };
     },
 
     // Reassigns the marks of the suit `origenId` to `destinoId` and deletes the origin (duplicates, typos). -> {ok, reasignadas}

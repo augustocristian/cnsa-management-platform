@@ -5,13 +5,18 @@ import { temporadaDe, etiquetaTemporada } from '../../js/domain/categorias.js';
 
 let c;
 // Each test starts with a clean DOM and the store seeded with the demo; the season is fixed in the club so it does not depend on the clock.
-const test = (name, fn) => base(name, async (t) => {
-  c = await fresh();
-  c.store.setClub({ ...c.store.club, temporadaActual: '2026-2027', temporadaAplicada: '2026-2027' });
-  return fn(t);
-});
+const test = (name, fn) =>
+  base(name, async (t) => {
+    c = await fresh();
+    c.store.setClub({ ...c.store.club, temporadaActual: '2026-2027', temporadaAplicada: '2026-2027' });
+    return fn(t);
+  });
 
-const marcar = (el, valor) => { el.checked = valor; el.dispatchEvent(new window.Event('input', { bubbles: true })); el.dispatchEvent(new window.Event('change', { bubbles: true })); };
+const marcar = (el, valor) => {
+  el.checked = valor;
+  el.dispatchEvent(new window.Event('input', { bubbles: true }));
+  el.dispatchEvent(new window.Event('change', { bubbles: true }));
+};
 const abrirAlta = async () => {
   await renderView('nadadores', c.container, [], c);
   buttonByText(c.container, 'Nuevo nadador').click();
@@ -21,7 +26,20 @@ const vivo = (ov) => ov.querySelector('[data-testid=categoria-auto]').textConten
 const porNombre = (n) => c.store.list('Nadadores').find((x) => x.nombre === n);
 
 test('demo data: the 12 swimmers fall into the expected categories and no recalculation is needed', async () => {
-  const esperado = { 'Lucía': 'Pre-Benjamín', 'Martina': 'Benjamín', 'Pelayo': 'Benjamín', 'Carla': 'Alevín', 'Álvaro': 'Alevín', 'Noa': 'Infantil', 'Iker': 'Infantil', 'Paula': 'Junior', 'Marcos': 'Junior', 'Claudia': 'Absoluto', 'Daniel': 'Absoluto', 'Javier': 'Master' };
+  const esperado = {
+    Lucía: 'Pre-Benjamín',
+    Martina: 'Benjamín',
+    Pelayo: 'Benjamín',
+    Carla: 'Alevín',
+    Álvaro: 'Alevín',
+    Noa: 'Infantil',
+    Iker: 'Infantil',
+    Paula: 'Junior',
+    Marcos: 'Junior',
+    Claudia: 'Absoluto',
+    Daniel: 'Absoluto',
+    Javier: 'Master',
+  };
   for (const [nombre, cat] of Object.entries(esperado)) assert.equal(porNombre(nombre).categoria, cat, nombre);
   assert.equal(porNombre('Javier').licenciaMaster, 'true');
   assert.equal(porNombre('Daniel').licenciaMaster, 'false', 'Daniel is 25 but has no master licence');
@@ -147,14 +165,27 @@ test('list: season years table, filter and sort by category order', async () => 
   assert.match(det.querySelector('summary').textContent, /Categorías de la temporada 2026-2027/);
   const filas = [...det.querySelectorAll('tbody tr')].map((r) => [...r.children].map((x) => x.textContent));
   assert.deepEqual(filas.slice(0, 6), [
-    ['Pre-Benjamín', '2018'], ['Benjamín', '2016-2017'], ['Alevín', '2014-2015'], ['Infantil', '2012-2013'], ['Junior', '2009-2011'], ['Absoluto', '2008 y anteriores'],
+    ['Pre-Benjamín', '2018'],
+    ['Benjamín', '2016-2017'],
+    ['Alevín', '2014-2015'],
+    ['Infantil', '2012-2013'],
+    ['Junior', '2009-2011'],
+    ['Absoluto', '2008 y anteriores'],
   ]);
   assert.match(filas[6][1], /Licencia máster y 25 años o más \(2001 y anteriores\)/);
-  const cats = [...c.container.querySelectorAll('tr.nad-row td:nth-child(2) .badge:first-child')].map((x) => x.textContent);
+  const cats = [...c.container.querySelectorAll('tr.nad-row td:nth-child(2) .badge:first-child')].map(
+    (x) => x.textContent,
+  );
   const orden = ['Pre-Benjamín', 'Benjamín', 'Alevín', 'Infantil', 'Junior', 'Absoluto', 'Master'];
-  assert.deepEqual(cats, [...cats].sort((a, b) => orden.indexOf(a) - orden.indexOf(b)));
+  assert.deepEqual(
+    cats,
+    [...cats].sort((a, b) => orden.indexOf(a) - orden.indexOf(b)),
+  );
   const sel = c.container.querySelectorAll('.nad-filters select')[0];
-  assert.deepEqual([...sel.options].slice(1).map((o) => o.textContent), orden);
+  assert.deepEqual(
+    [...sel.options].slice(1).map((o) => o.textContent),
+    orden,
+  );
 });
 
 // ---------- Settings: categories panel ----------
@@ -220,7 +251,10 @@ test('on-demand recalculation fixes outdated categories', async () => {
 
 test('rules by sex: validation, saving and recalculation', async () => {
   await renderView('club', c.container, [], c);
-  const inp = (sexo, cat, i) => panel().querySelector(`input[aria-label="${cat} (${sexo === 'F' ? 'Femenino' : 'Masculino'}): ${i === 0 ? 'Edad desde' : 'Edad hasta'}"]`);
+  const inp = (sexo, cat, i) =>
+    panel().querySelector(
+      `input[aria-label="${cat} (${sexo === 'F' ? 'Femenino' : 'Masculino'}): ${i === 0 ? 'Edad desde' : 'Edad hasta'}"]`,
+    );
   // gap between Junior and Absoluto -> error and nothing saved
   setValue(inp('M', 'Junior', 1), '18');
   panel().querySelector('#catp-guardar-reglas').click();
@@ -249,7 +283,15 @@ test('rules by sex: validation, saving and recalculation', async () => {
 test('schema: Nadadores includes licenciaMaster and categoriaManual and an old club without them reads fine', async () => {
   const { SHEETS } = await import('../../js/domain/schema.js');
   assert.ok(SHEETS.Nadadores.includes('licenciaMaster') && SHEETS.Nadadores.includes('categoriaManual'));
-  const antiguo = { id: 'old1', nombre: 'Vieja', apellidos: 'Fila', fechaNacimiento: '2013-02-02', sexo: 'F', categoria: 'Alevín', grupoId: '' };
+  const antiguo = {
+    id: 'old1',
+    nombre: 'Vieja',
+    apellidos: 'Fila',
+    fechaNacimiento: '2013-02-02',
+    sexo: 'F',
+    categoria: 'Alevín',
+    grupoId: '',
+  };
   const guardada = c.store.upsert('Nadadores', antiguo);
   assert.equal(guardada.licenciaMaster, '');
   assert.equal(guardada.categoriaManual, '');

@@ -12,7 +12,9 @@ export function zonaDelNavegador() {
   try {
     const z = Intl.DateTimeFormat().resolvedOptions().timeZone;
     return z && zonaValida(z) ? z : TZ_DEFECTO;
-  } catch (e) { return TZ_DEFECTO; }
+  } catch (e) {
+    return TZ_DEFECTO;
+  }
 }
 
 // -> {ok, errores: {campo: codigo}} (the codes are translated with 'asistente.err.<codigo>')
@@ -48,7 +50,12 @@ export function datosDelClub(d) {
 // Creates the club file in cnl/ and returns {ref, club}; opening it (store.init + store.setClub) is up to the caller.
 export async function crearClub({ drive, datos }) {
   const v = validar(datos);
-  if (!v.ok) { const e = new Error('datos-invalidos'); e.code = 'datos-invalidos'; e.errores = v.errores; throw e; }
+  if (!v.ok) {
+    const e = new Error('datos-invalidos');
+    e.code = 'datos-invalidos';
+    e.errores = v.errores;
+    throw e;
+  }
   const club = datosDelClub(datos);
   const ref = await drive.createClub(club.nombre);
   return { ref: { id: ref.id, name: ref.name, url: ref.url }, club };

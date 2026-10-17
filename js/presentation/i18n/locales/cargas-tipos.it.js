@@ -1,7 +1,8 @@
 // Testi dei contenuti di allenamento (catalogo dei carichi) e del loro gestore (italiano).
 export default {
   'tc.aerobico-ligero.nombre': 'Aerobico leggero',
-  'tc.aerobico-ligero.desc': 'Sforzo leggero (<60-75 % della FC o Borg 4-5/10), durata lunga; ideale per riscaldamento e recupero.',
+  'tc.aerobico-ligero.desc':
+    'Sforzo leggero (<60-75 % della FC o Borg 4-5/10), durata lunga; ideale per riscaldamento e recupero.',
   'tc.aerobico-medio.nombre': 'Aerobico medio / Soglia anaerobica',
   'tc.aerobico-medio.desc': 'Ritmo sostenuto (tipo CSS, Critical Swim Speed), base della resistenza aerobica.',
   'tc.aerobico-intenso.nombre': 'Aerobico intenso / Potenza aerobica',
@@ -24,7 +25,8 @@ export default {
   'tc.cat.especifico': 'Lavoro specifico',
   'tc.cat.personalizado': 'Personalizzati',
   'tc.titulo': 'Contenuti di allenamento',
-  'tc.intro': 'Contenuti con cui si registrano i carichi. Quelli predefiniti si possono disattivare e adattare (descrizione, colore e obiettivi) ma non eliminare; quelli personalizzati li definisci tu.',
+  'tc.intro':
+    'Contenuti con cui si registrano i carichi. Quelli predefiniti si possono disattivare e adattare (descrizione, colore e obiettivi) ma non eliminare; quelli personalizzati li definisci tu.',
   'tc.mostrar': 'Contenuti di allenamento',
   'tc.ocultar': 'Nascondi contenuti',
   'tc.nuevo': 'Nuovo contenuto',
@@ -86,7 +88,8 @@ export default {
   'tc.err.minutos': 'I minuti devono essere maggiori di 0',
   'tc.borrar.confirmar': 'Eliminare il contenuto «{nombre}»?',
   'tc.borrar.en-uso-titulo': 'Non si può eliminare',
-  'tc.borrar.en-uso': '«{nombre}» ha {n} carichi registrati, quindi non si può eliminare. Puoi disattivarlo (non viene più proposto nella registrazione dei carichi) o unirlo a un altro contenuto (i suoi carichi passano a quello).',
+  'tc.borrar.en-uso':
+    '«{nombre}» ha {n} carichi registrati, quindi non si può eliminare. Puoi disattivarlo (non viene più proposto nella registrazione dei carichi) o unirlo a un altro contenuto (i suoi carichi passano a quello).',
   'tc.borrar.fusionar-con': 'Unisci a',
   'tc.borrar.fusionar': 'Unisci ed elimina',
   'tc.borrar.desactivar': 'Disattiva',
@@ -102,7 +105,8 @@ export default {
   'tc.chart.objetivo-max': 'obiettivo ≤ {max} m',
   'tc.mie.por-contenido': 'Per contenuto',
   'tc.f.alias': 'Alias (abbreviazioni)',
-  'tc.f.alias-ayuda': 'Come lo abbrevia l\'allenatore scrivendo un esercizio (AeL, Tope, Pn…), separati da virgole. Servono a ripartire i metri in automatico.',
+  'tc.f.alias-ayuda':
+    "Come lo abbrevia l'allenatore scrivendo un esercizio (AeL, Tope, Pn…), separati da virgole. Servono a ripartire i metri in automatico.",
   'tc.alias-lista': 'Alias: {alias}',
   'tc.err.alias-duplicado': 'Un altro contenuto usa già questo alias',
   'tc.err.alias-largo': 'Ogni alias può avere al massimo 24 caratteri',

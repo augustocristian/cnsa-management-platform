@@ -1,12 +1,62 @@
 /* Settings view. Tokens only. */
-.clb-wrap { display: grid; gap: var(--sp-4); max-width: 900px; }
-.clb-card h2 { margin-bottom: var(--sp-3); }
-.clb-card [hidden] { display: none !important; }
-.clb-card > p, .clb-card > .form-grid, .clb-card > .alert { margin-top: 0; margin-bottom: var(--sp-3); }
-.clb-botones { display: flex; flex-wrap: wrap; align-items: center; gap: var(--sp-2); margin-bottom: var(--sp-2); }
-.clb-logo-fila { display: flex; flex-wrap: wrap; align-items: center; gap: var(--sp-4); margin: var(--sp-4) 0; }
-.clb-logo { width: 72px; height: 72px; flex: none; border-radius: var(--r-md); border: 1px solid var(--border); object-fit: contain; background: var(--surface-2); }
-.clb-logo-acciones { display: grid; gap: var(--sp-1); min-width: 0; }
-.clb-logo-acciones p { margin: 0; }
-.clb-contenidos > summary { cursor: pointer; min-height: var(--touch); display: flex; align-items: center; font-weight: 600; color: var(--c-accent); }
-.clb-card input[type="color"] { width: 100%; max-width: 120px; min-height: var(--control-h); }
+.clb-wrap {
+  display: grid;
+  gap: var(--sp-4);
+  max-width: 900px;
+}
+.clb-card h2 {
+  margin-bottom: var(--sp-3);
+}
+.clb-card [hidden] {
+  display: none !important;
+}
+.clb-card > p,
+.clb-card > .form-grid,
+.clb-card > .alert {
+  margin-top: 0;
+  margin-bottom: var(--sp-3);
+}
+.clb-botones {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--sp-2);
+  margin-bottom: var(--sp-2);
+}
+.clb-logo-fila {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--sp-4);
+  margin: var(--sp-4) 0;
+}
+.clb-logo {
+  width: 72px;
+  height: 72px;
+  flex: none;
+  border-radius: var(--r-md);
+  border: 1px solid var(--border);
+  object-fit: contain;
+  background: var(--surface-2);
+}
+.clb-logo-acciones {
+  display: grid;
+  gap: var(--sp-1);
+  min-width: 0;
+}
+.clb-logo-acciones p {
+  margin: 0;
+}
+.clb-contenidos > summary {
+  cursor: pointer;
+  min-height: var(--touch);
+  display: flex;
+  align-items: center;
+  font-weight: 600;
+  color: var(--c-accent);
+}
+.clb-card input[type='color'] {
+  width: 100%;
+  max-width: 120px;
+  min-height: var(--control-h);
+}

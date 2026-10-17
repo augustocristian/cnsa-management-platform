@@ -7,7 +7,10 @@ const DATOS = new Set(['change', 'remote', 'init']);
 export function repintarAlCambiar(store, container, draw, hojas = null) {
   if (!store || !store.on) return undefined;
   const off = store.on((e) => {
-    if (!container.isConnected) { off(); return; }
+    if (!container.isConnected) {
+      off();
+      return;
+    }
     if (!e || !DATOS.has(e.type)) return;
     if (e.type === 'change' && hojas && e.sheet && !hojas.includes(e.sheet)) return;
     draw();

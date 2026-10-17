@@ -16,19 +16,33 @@ export function crearOperacionesDatos({ s, h, deps }) {
     const puerto = s.puerto;
     try {
       const fid = await puerto.ensureFolder();
-      for (const nombre of new Set([nombreArchivo(s.club.nombre || s.ref.name, '.xlsx'), String(s.ref.name) + '.xlsx'])) {
+      for (const nombre of new Set([
+        nombreArchivo(s.club.nombre || s.ref.name, '.xlsx'),
+        String(s.ref.name) + '.xlsx',
+      ])) {
         const f = await puerto.findFile(nombre, fid);
-        if (f) { await puerto.eliminarDefinitivo(f.id); res.copiasBorradas++; }
+        if (f) {
+          await puerto.eliminarDefinitivo(f.id);
+          res.copiasBorradas++;
+        }
       }
-      for (const b of await puerto.listarBackups(s.ref.name, { todos: true })) { await puerto.eliminarDefinitivo(b.id); res.copiasBorradas++; }
+      for (const b of await puerto.listarBackups(s.ref.name, { todos: true })) {
+        await puerto.eliminarDefinitivo(b.id);
+        res.copiasBorradas++;
+      }
       res.revisionesBorradas = await puerto.borrarRevisionesAntiguas(s.ref.id);
-    } catch (e) { res.errores.push(e.message || String(e)); }
+    } catch (e) {
+      res.errores.push(e.message || String(e));
+    }
   }
 
   return {
     // ---------- Full backup / restore support (application/backupService.js) ----------
     // The whole club document as it is written to Drive (entity sheets, unknown sheets/columns/keys and the sync metadata).
-    documento() { h.reconciliarMeta(); return dataToDoc(completo()); },
+    documento() {
+      h.reconciliarMeta();
+      return dataToDoc(completo());
+    },
 
     // Runs the on-open migrations (content catalogue, legacy objectives) after data was replaced. -> true if something changed
     migrar() {
@@ -48,7 +62,10 @@ export function crearOperacionesDatos({ s, h, deps }) {
       const siguiente = reemplazar
         ? { top: { ...n.top }, hojas: { ...n.hojas }, cols: JSON.parse(JSON.stringify(n.cols || {})) }
         : { top: { ...extra.top, ...n.top }, hojas: { ...extra.hojas, ...n.hojas }, cols: { ...extra.cols } };
-      if (!reemplazar) Object.keys(n.cols || {}).forEach((sheet) => { siguiente.cols[sheet] = { ...extra.cols[sheet], ...n.cols[sheet] }; });
+      if (!reemplazar)
+        Object.keys(n.cols || {}).forEach((sheet) => {
+          siguiente.cols[sheet] = { ...extra.cols[sheet], ...n.cols[sheet] };
+        });
       if (JSON.stringify(siguiente) === JSON.stringify(extra)) return false;
       s.extra = siguiente;
       h.markDirty();
@@ -61,12 +78,21 @@ export function crearOperacionesDatos({ s, h, deps }) {
     async reemplazarDatos(nuevo, { sinCopia = false } = {}) {
       h.guardaEscritura();
       if (!sinCopia) {
-        try { await s.puerto.backupClub(s.ref.name, dataToDoc(completo()), { etiqueta: 'import' }); } catch (e) {
-          throw Object.assign(new Error('No se pudo guardar la copia previa a la importación; no se ha importado nada. ' + (e.message || '')), { code: 'import-sin-copia', causa: e });
+        try {
+          await s.puerto.backupClub(s.ref.name, dataToDoc(completo()), { etiqueta: 'import' });
+        } catch (e) {
+          throw Object.assign(
+            new Error(
+              'No se pudo guardar la copia previa a la importación; no se ha importado nada. ' + (e.message || ''),
+            ),
+            { code: 'import-sin-copia', causa: e },
+          );
         }
       }
       s.db = emptyDb();
-      ENTITY_SHEETS.forEach((sheet) => { s.db[sheet] = nuevo.db[sheet]; });
+      ENTITY_SHEETS.forEach((sheet) => {
+        s.db[sheet] = nuevo.db[sheet];
+      });
       s.club = nuevo.club;
       h.ensureCatalog();
       if (!s.club.nombre) s.club.nombre = s.ref.name;
@@ -107,18 +133,34 @@ export function crearOperacionesDatos({ s, h, deps }) {
       const quitadas = [];
       RELACIONES.filter(([, , padre]) => padre === 'Nadadores').forEach(([hijo, col]) => {
         const ids = s.db[hijo].filter((r) => r[col] === n.id).map((r) => r.id);
-        if (ids.length) { filas += st.removeMany(hijo, ids); ids.forEach((x) => quitadas.push([hijo, x])); }
+        if (ids.length) {
+          filas += st.removeMany(hijo, ids);
+          ids.forEach((x) => quitadas.push([hijo, x]));
+        }
       });
       filas += st.removeMany('Nadadores', [n.id]);
       quitadas.push(['Nadadores', n.id]);
       h.reconciliarMeta();
-      quitadas.forEach(([sheet, x]) => { (s.meta.lapidas[sheet] ||= {})[x] = { s: h.tick(), h: 1 }; }); // permanent tombstone
+      quitadas.forEach(([sheet, x]) => {
+        (s.meta.lapidas[sheet] ||= {})[x] = { s: h.tick(), h: 1 };
+      }); // permanent tombstone
       s.omitirRespaldo = true; // the daily backup uses the PREVIOUS state, which would still contain the swimmer
-      const res = { filas, sincronizado: false, copiasBorradas: 0, revisionesBorradas: 0, avisoRevisiones: true, errores: [] };
+      const res = {
+        filas,
+        sincronizado: false,
+        copiasBorradas: 0,
+        revisionesBorradas: 0,
+        avisoRevisiones: true,
+        errores: [],
+      };
       try {
         await st.sync();
         res.sincronizado = !s.dirty;
-      } catch (e) { res.errores.push(e.message || String(e)); } finally { s.omitirRespaldo = false; }
+      } catch (e) {
+        res.errores.push(e.message || String(e));
+      } finally {
+        s.omitirRespaldo = false;
+      }
       if (borrarEnDrive && res.sincronizado && s.modo === 'drive') await borrarCopiasEnDrive(res);
       return res;
     },
@@ -130,15 +172,23 @@ export function crearOperacionesDatos({ s, h, deps }) {
       const p = s.problema;
       const puerto = s.puerto;
       const m = await puerto.meta(s.ref.id);
-      if (p.raw) { try { await puerto.backupClub(s.ref.name, { ficheroDanado: p.raw }, { etiqueta: 'danado' }); } catch (e) { log.warn('Could not save the damaged file', e); } }
+      if (p.raw) {
+        try {
+          await puerto.backupClub(s.ref.name, { ficheroDanado: p.raw }, { etiqueta: 'danado' });
+        } catch (e) {
+          log.warn('Could not save the damaged file', e);
+        }
+      }
       if (accion === 'backup') {
         const lista = await puerto.listarBackups(s.ref.name);
-        if (!lista.length) throw Object.assign(new Error('No hay copias de seguridad de este club en Drive.'), { code: 'sin-backups' });
+        if (!lista.length)
+          throw Object.assign(new Error('No hay copias de seguridad de este club en Drive.'), { code: 'sin-backups' });
         h.applyData(docToData(await puerto.leerFichero(lista[0].id)));
       } else if (accion === 'vacio') {
         h.applyData({ db: emptyDb(), club: {} });
         s.club.nombre = s.ref.name;
-      } else if (!p.tieneCopiaLocal) throw Object.assign(new Error('No hay copia local en este dispositivo.'), { code: 'sin-copia-local' });
+      } else if (!p.tieneCopiaLocal)
+        throw Object.assign(new Error('No hay copia local en este dispositivo.'), { code: 'sin-copia-local' });
       s.problema = null;
       s.lastRev = m.rev; // do not read the unreadable file again: it gets overwritten
       s.lastVersion = m.version;
@@ -151,7 +201,9 @@ export function crearOperacionesDatos({ s, h, deps }) {
     },
 
     // Backups of this club in Drive, most recent first -> [{id, name}]
-    listarBackups() { return s.puerto.listarBackups(s.ref.name); },
+    listarBackups() {
+      return s.puerto.listarBackups(s.ref.name);
+    },
 
     // ---------- Demo data ----------
     // Adds (without touching the rest) sample conflicts to the pool planning: several errors and warnings.

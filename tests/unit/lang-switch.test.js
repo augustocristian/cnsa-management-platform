@@ -11,7 +11,10 @@ test('langSwitch renders one radio button per language with flag SVGs, no select
   const root = langSwitch();
   const buttons = [...root.querySelectorAll('button[role=radio]')];
   assert.equal(root.getAttribute('role'), 'radiogroup');
-  assert.deepEqual(buttons.map((b) => b.dataset.lang), LANGS.map((l) => l.code));
+  assert.deepEqual(
+    buttons.map((b) => b.dataset.lang),
+    LANGS.map((l) => l.code),
+  );
   assert.equal(root.querySelector('select'), null);
   for (const b of buttons) {
     assert.ok(b.querySelector('svg.flag'), 'flag icon present');

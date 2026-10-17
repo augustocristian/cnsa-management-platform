@@ -60,9 +60,11 @@ export default {
   'entreno.av.numero-negativo': 'No se admiten números negativos.',
   'entreno.av.salida-invalida': 'La salida "{salida}" no se reconoce; usa por ejemplo C/1\'10" o d/15".',
   'entreno.av.sin-distancia': 'Hay series pero falta la distancia.',
-  'entreno.av.distancia-difiere-carga': 'La distancia total ({total} m) difiere de la carga registrada ({registrada} m de media).',
+  'entreno.av.distancia-difiere-carga':
+    'La distancia total ({total} m) difiere de la carga registrada ({registrada} m de media).',
   'entreno.av.fuera-volumen-objetivo': 'La distancia total ({total} m) queda fuera del volumen objetivo de la sesión.',
-  'entreno.av.tiempo-supera-duracion': 'El tiempo total ({total} min) supera la duración de la sesión ({duracion} min).',
+  'entreno.av.tiempo-supera-duracion':
+    'El tiempo total ({total} min) supera la duración de la sesión ({duracion} min).',
   'entreno.av.sesion-inexistente': 'La sesión ya no existe.',
   'entreno.generar-pdf': 'Generar PDF',
   'entreno.vista-previa': 'Vista previa',
@@ -113,8 +115,10 @@ export default {
   'entreno.cont.autocompletar': 'Autocompletar desde el texto',
   'entreno.cont.autocompletar-aria': 'Autocompletar desde el texto ({pos})',
   'entreno.cont.autocompletado': 'Autocompletado desde el texto (contenidos: {n}, estilos: {e})',
-  'entreno.cont.nada-texto': 'No se reconoce ningún contenido ni estilo en el texto del ejercicio. Prueba con un formato como «4x100 Crol. 75 AeL-25 Tope».',
-  'entreno.cont.varios-bloques': 'El texto tiene varios bloques (2x100 … + 3x50 …): divide el ejercicio en una fila por bloque.',
+  'entreno.cont.nada-texto':
+    'No se reconoce ningún contenido ni estilo en el texto del ejercicio. Prueba con un formato como «4x100 Crol. 75 AeL-25 Tope».',
+  'entreno.cont.varios-bloques':
+    'El texto tiene varios bloques (2x100 … + 3x50 …): divide el ejercicio en una fila por bloque.',
   'entreno.cont.valor-aria': 'Metros por repetición de {nombre} ({pos})',
   'entreno.cont.valor-pct-aria': 'Porcentaje de {nombre} ({pos})',
   'entreno.cont.unidad-aria': 'Unidad de {nombre} ({pos})',
@@ -158,13 +162,17 @@ export default {
   'entreno.res.copiado': 'Resumen copiado al portapapeles',
   'entreno.res.err-copiar': 'No se pudo copiar el resumen',
   'entreno.res.registrar': 'Registrar cargas desde el plan',
-  'entreno.res.registrar-confirmar': 'Se guardará el plan y se registrará una carga por contenido y nadador con los metros del plan (sin duplicar las ya registradas). ¿Continuar?',
+  'entreno.res.registrar-confirmar':
+    'Se guardará el plan y se registrará una carga por contenido y nadador con los metros del plan (sin duplicar las ya registradas). ¿Continuar?',
   'entreno.res.registrado': 'Cargas registradas: {n} ({omitidas} ya existían)',
   'entreno.res.registrado-ya': 'Las cargas de este plan ya estaban registradas ({omitidas})',
   'entreno.res.registrar-nada': 'No hay contenidos asignados en el plan que registrar',
-  'entreno.res.registrar-sin-nadadores': 'No hay nadadores a quienes registrar cargas (grupo sin nadadores o sin asistencia)',
-  'entreno.av.reparto-incompleto': 'Reparto de contenidos incompleto: faltan {resto} m por repetición (de {distancia} m).',
-  'entreno.av.reparto-excede': 'El reparto de contenidos se pasa {exceso} m por repetición (distancia {distancia} m); los totales se ajustan proporcionalmente.',
+  'entreno.res.registrar-sin-nadadores':
+    'No hay nadadores a quienes registrar cargas (grupo sin nadadores o sin asistencia)',
+  'entreno.av.reparto-incompleto':
+    'Reparto de contenidos incompleto: faltan {resto} m por repetición (de {distancia} m).',
+  'entreno.av.reparto-excede':
+    'El reparto de contenidos se pasa {exceso} m por repetición (distancia {distancia} m); los totales se ajustan proporcionalmente.',
   'entreno.av.reparto-sin-distancia': 'Hay contenidos o estilos repartidos pero falta la distancia.',
   'entreno.av.estilo-incompleto': 'Reparto de estilos incompleto: faltan {resto} m por repetición (de {distancia} m).',
   'entreno.av.estilo-excede': 'El reparto de estilos se pasa {exceso} m por repetición (distancia {distancia} m).',
@@ -191,8 +199,10 @@ export default {
   'entreno.estado.guardado': 'Todo guardado',
   'entreno.pdf-descargar': 'Descargar PDF',
   'entreno.pdf-compartir': 'Compartir PDF',
-  'entreno.pdf-vacio-confirmar': 'El plan no tiene filas con contenido y el PDF saldrá en blanco. ¿Generarlo igualmente?',
-  'entreno.pdf-vacio-semana-confirmar': 'Ninguna sesión de la semana tiene plan detallado y el PDF solo mostrará la cabecera de cada sesión. ¿Generarlo igualmente?',
+  'entreno.pdf-vacio-confirmar':
+    'El plan no tiene filas con contenido y el PDF saldrá en blanco. ¿Generarlo igualmente?',
+  'entreno.pdf-vacio-semana-confirmar':
+    'Ninguna sesión de la semana tiene plan detallado y el PDF solo mostrará la cabecera de cada sesión. ¿Generarlo igualmente?',
   'entreno.pdf-compartido': 'PDF compartido: {n}',
   'entreno.pdf-abierto': 'PDF abierto en otra pestaña',
   'entreno.pdf-bloqueado': 'El navegador ha bloqueado la pestaña nueva.',

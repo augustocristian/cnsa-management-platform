@@ -1,5 +1,12 @@
 // Use cases about notices and notes. The repository (list/get/upsert/remove) and the clock are injected.
-import { filtrarAvisos, ordenarAvisos, validarAviso, nuevoAviso, textoParaCopiar, fechaRelativa } from '../domain/comunicaciones.js';
+import {
+  filtrarAvisos,
+  ordenarAvisos,
+  validarAviso,
+  nuevoAviso,
+  textoParaCopiar,
+  fechaRelativa,
+} from '../domain/comunicaciones.js';
 import { fechaDeDate } from '../domain/calendario.js';
 
 export const HOJA = 'Comunicaciones';
@@ -28,6 +35,8 @@ export function crearComunicacionesService(repo, { ahora } = {}) {
       repo.remove(HOJA, id);
       return fila;
     },
-    restaurar(fila) { if (fila) repo.upsert(HOJA, fila); },
+    restaurar(fila) {
+      if (fila) repo.upsert(HOJA, fila);
+    },
   };
 }

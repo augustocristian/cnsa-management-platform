@@ -2,7 +2,17 @@
 // The repository (list/get/upsert/upsertMany/remove/removeMany + club/setClub, e.g. the store) and the clock are injected:
 // no DOM, no storage, no Date.now().
 import { crearCategoriasService } from './categoriasService.js';
-import { filtrarNadadores, ordenarNadadores, validarNadador, edadDe, resumenAsistencia, asistenciaReciente, resumenCargas, cargasRecientes, marcasPorPrueba } from '../domain/nadadores.js';
+import {
+  filtrarNadadores,
+  ordenarNadadores,
+  validarNadador,
+  edadDe,
+  resumenAsistencia,
+  asistenciaReciente,
+  resumenCargas,
+  cargasRecientes,
+  marcasPorPrueba,
+} from '../domain/nadadores.js';
 import { fechaDeDate } from '../domain/calendario.js';
 
 export const HOJA = 'Nadadores';
@@ -44,7 +54,10 @@ export function crearNadadoresService(repo, { ahora, categorias } = {}) {
       HOJAS_DEPENDIENTES.forEach((hoja) => {
         const rows = dependientes(id, hoja);
         if (rows.length) filas[hoja] = rows;
-        repo.removeMany(hoja, rows.map((r) => r.id));
+        repo.removeMany(
+          hoja,
+          rows.map((r) => r.id),
+        );
       });
       repo.remove(HOJA, id);
       return { nadador, filas };
@@ -67,7 +80,10 @@ export function crearNadadoresService(repo, { ahora, categorias } = {}) {
         nadador,
         grupo: nadador.grupoId ? repo.get('Grupos', nadador.grupoId) : null,
         edad: edadDe(nadador, hoy()),
-        asistencia: { resumen: resumenAsistencia(asistencia), recientes: asistenciaReciente(asistencia, repo.list('Entrenamientos')) },
+        asistencia: {
+          resumen: resumenAsistencia(asistencia),
+          recientes: asistenciaReciente(asistencia, repo.list('Entrenamientos')),
+        },
         cargas: { resumen: resumenCargas(cargas), recientes: cargasRecientes(cargas) },
         marcas: marcasPorPrueba(dependientes(id, 'Marcas')),
       };

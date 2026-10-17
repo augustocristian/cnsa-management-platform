@@ -1,7 +1,13 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { fmtTiempo, maskTiempo, parseTiempo, interpretarTiempo } from '../../js/domain/tiempos.js';
-import { claveBusqueda, coincideBusqueda, nombreCompleto, nombreApellidosPrimero, ordenarPorApellidos } from '../../js/domain/nombres.js';
+import {
+  claveBusqueda,
+  coincideBusqueda,
+  nombreCompleto,
+  nombreApellidosPrimero,
+  ordenarPorApellidos,
+} from '../../js/domain/nombres.js';
 import * as ui from '../../js/presentation/ui.js';
 
 test('fmtTiempo formats milliseconds as mm:ss.cc and rejects invalid values', () => {
@@ -31,7 +37,8 @@ test('parseTiempo accepts the mask, mm:ss.cc, ss.cc and comma decimals; invalid 
   assert.ok(Number.isNaN(parseTiempo('17550')), '75 seconds with minutes is invalid');
   assert.ok(Number.isNaN(parseTiempo(maskTiempo('17550'))), 'the masked text 1:75.50 is invalid too');
   assert.equal(parseTiempo('62.34'), 62340, 'seconds beyond 59 are fine without minutes');
-  for (const mala of ['', 'abc', '1:2:3', '-5', null, undefined]) assert.ok(Number.isNaN(parseTiempo(mala)), String(mala));
+  for (const mala of ['', 'abc', '1:2:3', '-5', null, undefined])
+    assert.ok(Number.isNaN(parseTiempo(mala)), String(mala));
 });
 
 test('parseTiempo(fmtTiempo(ms)) round-trips and the mask output always parses', () => {
@@ -59,5 +66,11 @@ test('nombres: search key ignores accents, case and extra spaces; every word mus
   assert.ok(!coincideBusqueda('Lucía Fernández Roces', 'noa'));
   assert.equal(nombreCompleto({ nombre: 'Noa', apellidos: 'Díaz Llano' }), 'Noa Díaz Llano');
   assert.equal(nombreApellidosPrimero({ nombre: 'Noa', apellidos: 'Díaz Llano' }), 'Díaz Llano, Noa');
-  assert.deepEqual(ordenarPorApellidos([{ nombre: 'B', apellidos: 'Zeta' }, { nombre: 'A', apellidos: 'Álvarez' }]).map((n) => n.apellidos), ['Álvarez', 'Zeta']);
+  assert.deepEqual(
+    ordenarPorApellidos([
+      { nombre: 'B', apellidos: 'Zeta' },
+      { nombre: 'A', apellidos: 'Álvarez' },
+    ]).map((n) => n.apellidos),
+    ['Álvarez', 'Zeta'],
+  );
 });

@@ -48,7 +48,8 @@ export default {
   'asist.justificados': '{n} justificados',
   'asist.sin-marcar-n': '{n} sin marcar',
   'asist.marcados': '{x} de {n} marcados',
-  'asist.ayuda-lista': 'Toca Presente o Ausente. Para justificar una falta o añadir una nota, usa el botón de más opciones.',
+  'asist.ayuda-lista':
+    'Toca Presente o Ausente. Para justificar una falta o añadir una nota, usa el botón de más opciones.',
   'asist.mas': 'Más opciones de {nombre}',
   'asist.detalle-titulo': 'Asistencia de {nombre}',
   'asist.estado': 'Estado',
@@ -67,7 +68,8 @@ export default {
   'asist.sin-nadadores-grupo': 'No hay nadadores activos en este grupo.',
   'asist.todos-grupos': 'Todos los grupos',
   'asist.grupo': 'Grupo',
-  'asist.ayuda-historial': '% = sesiones presentes sobre sesiones con asistencia registrada. Pulsa el nombre para ver el detalle.',
+  'asist.ayuda-historial':
+    '% = sesiones presentes sobre sesiones con asistencia registrada. Pulsa el nombre para ver el detalle.',
   'asist.th-nadador': 'Nadador',
   'asist.th-pres': 'Pres.',
   'asist.th-aus': 'Aus.',
@@ -209,5 +211,5 @@ export default {
   'marcas.f-todas': 'Todas',
   'marcas.chips-aria': 'Filtros activos',
   'marcas.chip-quitar': 'Quitar filtro: {f}',
-  'marcas.limpiar-filtros': 'Quitar todos los filtros'
+  'marcas.limpiar-filtros': 'Quitar todos los filtros',
 };

@@ -12,24 +12,37 @@ export function protegerSalida({ haySinGuardar, pedirSalida, alSalir }) {
   let activo = true;
   let preguntando = false;
 
-  const antesDeCerrar = (e) => { if (haySinGuardar()) { e.preventDefault(); e.returnValue = ''; } };
+  const antesDeCerrar = (e) => {
+    if (haySinGuardar()) {
+      e.preventDefault();
+      e.returnValue = '';
+    }
+  };
   const salir = async (alRechazar) => {
     if (preguntando || !activo || document !== doc) return;
     preguntando = true;
     try {
       if (!haySinGuardar() || (await pedirSalida())) alSalir();
       else alRechazar();
-    } finally { preguntando = false; }
+    } finally {
+      preguntando = false;
+    }
   };
   const alVolver = () => {
     salir(() => window.history.pushState({ enpGuard: token }, ''));
   };
   const alCambiarHash = () => {
     if (location.hash === hashInicial) return;
-    salir(() => { location.hash = hashInicial; }); // stay: go back to the route the editor was opened from
+    salir(() => {
+      location.hash = hashInicial;
+    }); // stay: go back to the route the editor was opened from
   };
 
-  try { window.history.pushState({ enpGuard: token }, ''); } catch (e) { /* history unavailable: no Back handling */ }
+  try {
+    window.history.pushState({ enpGuard: token }, '');
+  } catch (e) {
+    /* history unavailable: no Back handling */
+  }
   window.addEventListener('beforeunload', antesDeCerrar);
   window.addEventListener('popstate', alVolver);
   window.addEventListener('hashchange', alCambiarHash);
@@ -42,7 +55,13 @@ export function protegerSalida({ haySinGuardar, pedirSalida, alSalir }) {
       window.removeEventListener('popstate', alVolver);
       window.removeEventListener('hashchange', alCambiarHash);
       // drop our history entry, but only if we are still on it
-      if (window.history.state && window.history.state.enpGuard === token) { try { window.history.back(); } catch (e) { /* ignore */ } }
+      if (window.history.state && window.history.state.enpGuard === token) {
+        try {
+          window.history.back();
+        } catch (e) {
+          /* ignore */
+        }
+      }
     },
   };
 }

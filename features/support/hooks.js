@@ -15,17 +15,28 @@ function freePort() {
   return new Promise((ok, ko) => {
     const s = createServer();
     s.once('error', ko);
-    s.listen(0, '127.0.0.1', () => { const { port } = s.address(); s.close(() => ok(port)); });
+    s.listen(0, '127.0.0.1', () => {
+      const { port } = s.address();
+      s.close(() => ok(port));
+    });
   });
 }
 
 BeforeAll(async function () {
   const port = await freePort();
   baseURL = `http://localhost:${port}`;
-  server = spawn(process.execPath, ['scripts/serve.mjs', String(port)], { cwd: ROOT, stdio: ['ignore', 'pipe', 'inherit'] });
+  server = spawn(process.execPath, ['scripts/serve.mjs', String(port)], {
+    cwd: ROOT,
+    stdio: ['ignore', 'pipe', 'inherit'],
+  });
   await new Promise((ok, ko) => {
     const t = setTimeout(() => ko(new Error('The static server did not start')), 10_000);
-    server.stdout.on('data', (d) => { if (String(d).includes('http://')) { clearTimeout(t); ok(); } });
+    server.stdout.on('data', (d) => {
+      if (String(d).includes('http://')) {
+        clearTimeout(t);
+        ok();
+      }
+    });
     server.once('exit', (c) => ko(new Error('The server exited with code ' + c)));
   });
   browser = await chromium.launch();
@@ -33,7 +44,10 @@ BeforeAll(async function () {
 
 AfterAll(async function () {
   await browser?.close();
-  if (server) { server.removeAllListeners('exit'); server.kill(); }
+  if (server) {
+    server.removeAllListeners('exit');
+    server.kill();
+  }
 });
 
 Before(async function () {
@@ -42,9 +56,13 @@ Before(async function () {
   this.page = await this.context.newPage();
   this.page.setDefaultTimeout(8000);
   this.errors = [];
-  this.page.on('console', (m) => { if (m.type() === 'error') this.errors.push(`console: ${m.text()}`); });
+  this.page.on('console', (m) => {
+    if (m.type() === 'error') this.errors.push(`console: ${m.text()}`);
+  });
   this.page.on('pageerror', (e) => this.errors.push(`pageerror: ${e}`));
-  this.page.on('response', (r) => { if (r.url().startsWith(baseURL) && r.status() >= 400) this.errors.push(`HTTP ${r.status()} ${r.url()}`); });
+  this.page.on('response', (r) => {
+    if (r.url().startsWith(baseURL) && r.status() >= 400) this.errors.push(`HTTP ${r.status()} ${r.url()}`);
+  });
 });
 
 After(async function ({ result, pickle }) {

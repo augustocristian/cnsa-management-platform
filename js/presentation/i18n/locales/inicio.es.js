@@ -42,7 +42,8 @@ export default {
 
   'home.alertas.titulo': 'Alertas de cargas',
   'home.alertas.sin-objetivos': 'Sin objetivos de carga',
-  'home.alertas.sin-objetivos-texto': 'Define objetivos semanales por contenido para recibir alertas cuando una carga se desvíe.',
+  'home.alertas.sin-objetivos-texto':
+    'Define objetivos semanales por contenido para recibir alertas cuando una carga se desvíe.',
   'home.alertas.definir': 'Definir objetivos',
   'home.alertas.sin-cargas': 'Aún no hay cargas esta semana',
   'home.alertas.sin-cargas-texto': 'Las alertas aparecen en cuanto registres la primera carga.',

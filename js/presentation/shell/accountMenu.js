@@ -16,7 +16,13 @@ export function estadoVisible(rt) {
   return ['sincronizado', 'pendiente', 'error', 'offline'].includes(st) ? st : 'sincronizado';
 }
 export const textoEstado = (estado) => t('shell.drive.' + estado);
-const ICONO_ESTADO = { sincronizado: 'nube', pendiente: 'refrescar', error: 'aviso', offline: 'sin-conexion', demo: 'info' };
+const ICONO_ESTADO = {
+  sincronizado: 'nube',
+  pendiente: 'refrescar',
+  error: 'aviso',
+  offline: 'sin-conexion',
+  demo: 'info',
+};
 
 export function crearMenuCuenta(rt) {
   let abierto = false;
@@ -25,23 +31,56 @@ export function crearMenuCuenta(rt) {
 
   const punto = h('span', { class: 'account-dot', 'aria-hidden': 'true' });
   const texto = h('span', { class: 'account-text' });
-  const boton = h('button', {
-    type: 'button', class: 'account-btn', 'aria-expanded': 'false', 'aria-controls': idPanel, 'aria-haspopup': 'true',
-    onclick: () => (abierto ? cerrar({ foco: true }) : abrir()),
-  }, h('span', { class: 'account-icon' }, icon('nube', { size: 22 }), punto), texto, icon('chevron-abajo', { size: 16, class: 'account-chevron' }));
+  const boton = h(
+    'button',
+    {
+      type: 'button',
+      class: 'account-btn',
+      'aria-expanded': 'false',
+      'aria-controls': idPanel,
+      'aria-haspopup': 'true',
+      onclick: () => (abierto ? cerrar({ foco: true }) : abrir()),
+    },
+    h('span', { class: 'account-icon' }, icon('nube', { size: 22 }), punto),
+    texto,
+    icon('chevron-abajo', { size: 16, class: 'account-chevron' }),
+  );
   const panel = h('div', { id: idPanel, class: 'account-panel', role: 'group', tabindex: '-1', hidden: true });
   const raiz = h('div', { class: 'account' }, boton, panel);
 
   const filaEstado = () => {
     const estado = estadoVisible(rt);
-    const cuerpo = [icon(ICONO_ESTADO[estado], { size: 22, class: 'status-icon' }),
-      h('span', { class: 'status-body' }, h('span', { class: 'status-text' }, textoEstado(estado)),
-        h('small', { class: 'status-hint' }, estado === 'demo' ? t('shell.demo.texto') : t('shell.drive.sincronizar-ahora')))];
+    const cuerpo = [
+      icon(ICONO_ESTADO[estado], { size: 22, class: 'status-icon' }),
+      h(
+        'span',
+        { class: 'status-body' },
+        h('span', { class: 'status-text' }, textoEstado(estado)),
+        h(
+          'small',
+          { class: 'status-hint' },
+          estado === 'demo' ? t('shell.demo.texto') : t('shell.drive.sincronizar-ahora'),
+        ),
+      ),
+    ];
     if (estado === 'demo') return h('div', { class: 'status-chip st-demo status-row' }, cuerpo);
-    return h('button', {
-      type: 'button', class: `status-chip st-${estado} status-row`, title: t('common.sincronizar'),
-      onclick: async () => { try { await rt.sincronizar(); toast(t('shell.sync-ok')); } catch (e) { toast.error(t('shell.sync-fallo')); } },
-    }, cuerpo);
+    return h(
+      'button',
+      {
+        type: 'button',
+        class: `status-chip st-${estado} status-row`,
+        title: t('common.sincronizar'),
+        onclick: async () => {
+          try {
+            await rt.sincronizar();
+            toast(t('shell.sync-ok'));
+          } catch (e) {
+            toast.error(t('shell.sync-fallo'));
+          }
+        },
+      },
+      cuerpo,
+    );
   };
 
   function contenido() {
@@ -49,17 +88,68 @@ export function crearMenuCuenta(rt) {
     panel.replaceChildren(
       h('section', { class: 'account-sec' }, h('p', { class: 'account-label' }, t('shell.menu.estado')), filaEstado()),
       h('section', { class: 'account-sec' }, h('p', { class: 'account-label' }, t('lang.etiqueta')), lang),
-      h('section', { class: 'account-sec' }, h('label', { class: 'account-field' }, h('span', { class: 'account-label' }, t('tema.etiqueta')), themeSelect())),
-      h('section', { class: 'account-sec account-sec--actions' },
-        demo ? h('button', { type: 'button', class: 'btn btn--primary account-action', onclick: () => { cerrar(); accionDriveEnDemo(rt.conexion)[1](); } }, icon('nube', { size: 18 }), accionDriveEnDemo(rt.conexion)[0]) : null,
+      h(
+        'section',
+        { class: 'account-sec' },
+        h(
+          'label',
+          { class: 'account-field' },
+          h('span', { class: 'account-label' }, t('tema.etiqueta')),
+          themeSelect(),
+        ),
+      ),
+      h(
+        'section',
+        { class: 'account-sec account-sec--actions' },
         demo
-          ? h('button', { type: 'button', class: 'btn account-action', onclick: () => { cerrar(); rt.conexion.salirDeDemo(); } }, icon('salir', { size: 18 }), t('shell.demo.salir'))
-          : h('button', { type: 'button', class: 'btn account-action account-disconnect', onclick: desconectar }, icon('salir', { size: 18 }), t('shell.desconectar'))));
+          ? h(
+              'button',
+              {
+                type: 'button',
+                class: 'btn btn--primary account-action',
+                onclick: () => {
+                  cerrar();
+                  accionDriveEnDemo(rt.conexion)[1]();
+                },
+              },
+              icon('nube', { size: 18 }),
+              accionDriveEnDemo(rt.conexion)[0],
+            )
+          : null,
+        demo
+          ? h(
+              'button',
+              {
+                type: 'button',
+                class: 'btn account-action',
+                onclick: () => {
+                  cerrar();
+                  rt.conexion.salirDeDemo();
+                },
+              },
+              icon('salir', { size: 18 }),
+              t('shell.demo.salir'),
+            )
+          : h(
+              'button',
+              { type: 'button', class: 'btn account-action account-disconnect', onclick: desconectar },
+              icon('salir', { size: 18 }),
+              t('shell.desconectar'),
+            ),
+      ),
+    );
   }
 
   async function desconectar() {
-    const ok = await confirmDialog(t('shell.desconectar.texto'), { danger: true, okLabel: t('shell.desconectar'), title: t('shell.desconectar.titulo') });
-    if (ok) { cerrar(); rt.logout(); }
+    const ok = await confirmDialog(t('shell.desconectar.texto'), {
+      danger: true,
+      okLabel: t('shell.desconectar'),
+      title: t('shell.desconectar.titulo'),
+    });
+    if (ok) {
+      cerrar();
+      rt.logout();
+    }
   }
 
   function actualizar() {
@@ -68,7 +158,11 @@ export function crearMenuCuenta(rt) {
     texto.textContent = textoEstado(estado);
     boton.setAttribute('aria-label', `${t('shell.menu-conexion')}: ${textoEstado(estado)}`);
     boton.querySelector('.account-icon .icon')?.replaceWith(icon(ICONO_ESTADO[estado], { size: 22 }));
-    if (abierto) { const foco = panel.contains(document.activeElement) ? document.activeElement : null; if (!foco) contenido(); else refrescarEstado(); }
+    if (abierto) {
+      const foco = panel.contains(document.activeElement) ? document.activeElement : null;
+      if (!foco) contenido();
+      else refrescarEstado();
+    }
   }
   // Updates only the status row while the panel is open (keeps focus where the user is).
   function refrescarEstado() {
@@ -81,9 +175,19 @@ export function crearMenuCuenta(rt) {
     if (tenia) nueva.focus?.();
   }
 
-  const fuera = (e) => { if (abierto && !raiz.contains(e.target)) cerrar(); };
-  const tecla = (e) => { if (abierto && e.key === 'Escape' && !document.querySelector('.sheet-overlay')) { e.stopPropagation(); cerrar({ foco: true }); } };
-  const salio = () => setTimeout(() => { if (abierto && !raiz.contains(document.activeElement) && !document.querySelector('.sheet-overlay')) cerrar(); }, 0);
+  const fuera = (e) => {
+    if (abierto && !raiz.contains(e.target)) cerrar();
+  };
+  const tecla = (e) => {
+    if (abierto && e.key === 'Escape' && !document.querySelector('.sheet-overlay')) {
+      e.stopPropagation();
+      cerrar({ foco: true });
+    }
+  };
+  const salio = () =>
+    setTimeout(() => {
+      if (abierto && !raiz.contains(document.activeElement) && !document.querySelector('.sheet-overlay')) cerrar();
+    }, 0);
 
   function abrir({ foco } = {}) {
     if (abierto) return;
@@ -108,6 +212,9 @@ export function crearMenuCuenta(rt) {
   }
 
   actualizar();
-  const destruir = () => { cerrar(); lang._dispose?.(); };
+  const destruir = () => {
+    cerrar();
+    lang._dispose?.();
+  };
   return { el: raiz, abrir, cerrar, actualizar, destruir, estaAbierto: () => abierto };
 }

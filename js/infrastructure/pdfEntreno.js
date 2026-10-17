@@ -17,14 +17,20 @@ let promesa = null;
 let override = null;
 
 // For tests: injects { jsPDF, autoTable(doc, options) } and skips loading the scripts.
-export function usarLibreria(lib) { override = lib; promesa = null; }
+export function usarLibreria(lib) {
+  override = lib;
+  promesa = null;
+}
 
 async function cargarScript(src) {
   const sri = await integridad(src.split('/').pop()); // SRI: vendor/integrity.json (scripts/vendor.mjs)
   return new Promise((ok, ko) => {
     const s = document.createElement('script');
     s.src = src;
-    if (sri) { s.integrity = sri; s.crossOrigin = 'anonymous'; }
+    if (sri) {
+      s.integrity = sri;
+      s.crossOrigin = 'anonymous';
+    }
     s.async = true;
     s.onload = () => ok();
     s.onerror = () => ko(new Error('Could not load ' + src));
@@ -48,7 +54,10 @@ export function cargarLibreria() {
     const lib = libGlobal();
     if (!lib) throw new Error('jsPDF no disponible');
     return lib;
-  })().catch((e) => { promesa = null; throw e; });
+  })().catch((e) => {
+    promesa = null;
+    throw e;
+  });
   return promesa;
 }
 
@@ -61,7 +70,10 @@ function parseHex(c) {
 }
 const mezcla = (a, b, k) => a.map((v, i) => Math.round(v + (b[i] - v) * k));
 const luminancia = ([r, g, b]) => {
-  const f = (v) => { v /= 255; return v <= 0.03928 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4; };
+  const f = (v) => {
+    v /= 255;
+    return v <= 0.03928 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4;
+  };
   return 0.2126 * f(r) + 0.7152 * f(g) + 0.0722 * f(b);
 };
 const textoSobre = (fondo) => (luminancia(fondo) > 0.45 ? [25, 30, 40] : [255, 255, 255]);
@@ -69,7 +81,9 @@ const textoSobre = (fondo) => (luminancia(fondo) > 0.45 ? [25, 30, 40] : [255, 2
 // The standard PDF fonts only cover Latin-1 (+ some WinAnsi signs): anything else is replaced.
 const EXTRA = new Set('–—‘’“”•€…'.split(''));
 export function limpiar(s) {
-  return String(s ?? '').replace(/\r/g, '').replace(/[^\n\x20-\x7e\xa0-\xff]/gu, (c) => (EXTRA.has(c) ? c : '?'));
+  return String(s ?? '')
+    .replace(/\r/g, '')
+    .replace(/[^\n\x20-\x7e\xa0-\xff]/gu, (c) => (EXTRA.has(c) ? c : '?'));
 }
 
 function paleta(club) {
@@ -77,10 +91,17 @@ function paleta(club) {
   const s = parseHex(club && club.colorSecundario) || [11, 61, 145];
   const claro = mezcla(p, [255, 255, 255], 0.88);
   return {
-    primario: p, secundario: s, claro,
-    textoPrimario: textoSobre(p), textoSecundario: textoSobre(s),
+    primario: p,
+    secundario: s,
+    claro,
+    textoPrimario: textoSobre(p),
+    textoSecundario: textoSobre(s),
     tenue: mezcla(p, [255, 255, 255], 0.8), // labels over the band
-    linea: [190, 197, 208], gruesa: mezcla(s, [0, 0, 0], 0.15), zebra: [247, 249, 252], texto: [30, 36, 48], gris: [100, 108, 120],
+    linea: [190, 197, 208],
+    gruesa: mezcla(s, [0, 0, 0], 0.15),
+    zebra: [247, 249, 252],
+    texto: [30, 36, 48],
+    gris: [100, 108, 120],
   };
 }
 
@@ -95,7 +116,9 @@ const nf = (n) => (Number.isFinite(n) && n !== 0 ? String(Math.round(n * 100) / 
 function dibujarCabecera(doc, ficha, c, L, loc) {
   const { sesion, club } = ficha;
   const W = MM_PAGINA.w;
-  const x0 = MARGEN, y0 = MARGEN, w = W - 2 * MARGEN;
+  const x0 = MARGEN,
+    y0 = MARGEN,
+    w = W - 2 * MARGEN;
   doc.setFillColor(...c.primario);
   doc.roundedRect(x0, y0, w, ALTO_CABECERA, 2, 2, 'F');
   let x = x0 + 4;
@@ -106,16 +129,28 @@ function dibujarCabecera(doc, ficha, c, L, loc) {
       const props = doc.getImageProperties(logo);
       const caja = 19;
       const k = Math.min(caja / props.width, caja / props.height);
-      const iw = props.width * k, ih = props.height * k;
+      const iw = props.width * k,
+        ih = props.height * k;
       doc.setFillColor(255, 255, 255);
       doc.roundedRect(x, y0 + 3.5, caja + 2, caja + 2, 1.5, 1.5, 'F');
-      doc.addImage(logo, /png/i.test(logo.slice(0, 20)) ? 'PNG' : 'JPEG', x + 1 + (caja - iw) / 2, y0 + 4.5 + (caja - ih) / 2, iw, ih);
+      doc.addImage(
+        logo,
+        /png/i.test(logo.slice(0, 20)) ? 'PNG' : 'JPEG',
+        x + 1 + (caja - iw) / 2,
+        y0 + 4.5 + (caja - ih) / 2,
+        iw,
+        ih,
+      );
       x += caja + 6;
-    } catch (e) { /* unreadable logo: skipped */ }
+    } catch (e) {
+      /* unreadable logo: skipped */
+    }
   }
   const f = fechaDe(sesion.fecha);
   const dia = f ? new Intl.DateTimeFormat(loc, { weekday: 'long' }).format(f).toLocaleUpperCase(loc) : '';
-  const fechaTxt = f ? new Intl.DateTimeFormat(loc, { day: '2-digit', month: '2-digit', year: 'numeric' }).format(f) : '';
+  const fechaTxt = f
+    ? new Intl.DateTimeFormat(loc, { day: '2-digit', month: '2-digit', year: 'numeric' }).format(f)
+    : '';
   doc.setTextColor(...c.textoPrimario);
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(7);
@@ -132,8 +167,11 @@ function dibujarCabecera(doc, ficha, c, L, loc) {
   // Data cells
   const derecha = x0 + w - 4;
   const fijas = [
-    [L.hora, sesion.hora, 16], [L.grupo, sesion.grupo, 38], [L.tipo, sesion.tipoSesion, 30],
-    [L.piscina, sesion.piscina, 18], [L.materialDia, sesion.materialDia, 36],
+    [L.hora, sesion.hora, 16],
+    [L.grupo, sesion.grupo, 38],
+    [L.tipo, sesion.tipoSesion, 30],
+    [L.piscina, sesion.piscina, 18],
+    [L.materialDia, sesion.materialDia, 36],
   ];
   const resto = derecha - x - fijas.reduce((a, [, , ww]) => a + ww, 0);
   const celdas = fijas.concat([[L.notasGenerales, sesion.notasGenerales, Math.max(30, resto)]]);
@@ -141,7 +179,8 @@ function dibujarCabecera(doc, ficha, c, L, loc) {
     doc.setDrawColor(...mezcla(c.primario, c.textoPrimario, 0.35));
     doc.setLineWidth(0.2);
     doc.line(x, y0 + 4, x, y0 + ALTO_CABECERA - 4);
-    const tx = x + 2.5, tw = ww - 4;
+    const tx = x + 2.5,
+      tw = ww - 4;
     doc.setFont('helvetica', 'bold');
     doc.setFontSize(6.5);
     doc.setTextColor(...(luminancia(c.primario) > 0.45 ? mezcla(c.primario, [0, 0, 0], 0.55) : c.tenue));
@@ -155,14 +194,15 @@ function dibujarCabecera(doc, ficha, c, L, loc) {
       lineas = doc.splitTextToSize(txt, tw);
       if (lineas.length * fs * 0.3528 * 1.15 <= ALTO_CABECERA - 12) break;
     }
-    doc.text(lineas.slice(0, 3), tx, y0 + 12.5 + (fs * 0.3528) * 0.6, { lineHeightFactor: 1.15 });
+    doc.text(lineas.slice(0, 3), tx, y0 + 12.5 + fs * 0.3528 * 0.6, { lineHeightFactor: 1.15 });
     x += ww;
   });
 }
 
 function dibujarPies(doc, ficha, c, ahoraTxt, paginasTotal, L) {
   const club = ficha.club || {};
-  const W = MM_PAGINA.w, H = MM_PAGINA.h;
+  const W = MM_PAGINA.w,
+    H = MM_PAGINA.h;
   doc.setDrawColor(...c.linea);
   doc.setLineWidth(0.2);
   doc.line(MARGEN, H - MARGEN - 5.5, W - MARGEN, H - MARGEN - 5.5);
@@ -178,7 +218,10 @@ function dibujarPies(doc, ficha, c, ahoraTxt, paginasTotal, L) {
 function dibujarSesion(doc, lib, ficha, c, L, loc, tam, paginas) {
   const topTabla = MARGEN + ALTO_CABECERA + (ficha.sesion.titulo ? 9 : 4);
   const margen = { left: MARGEN, right: MARGEN, top: topTabla, bottom: MARGEN + ALTO_PIE };
-  const marcarPagina = () => { const n = doc.getCurrentPageInfo().pageNumber; if (!paginas.has(n)) paginas.set(n, ficha); };
+  const marcarPagina = () => {
+    const n = doc.getCurrentPageInfo().pageNumber;
+    if (!paginas.has(n)) paginas.set(n, ficha);
+  };
   const cabeceraYTitulo = () => {
     marcarPagina();
     dibujarCabecera(doc, ficha, c, L, loc);
@@ -212,27 +255,38 @@ function dibujarSesion(doc, lib, ficha, c, L, loc, tam, paginas) {
       body.push({
         meta: { fin, set: si },
         celdas: [
-          nf(Number(l.tiempoMin)) || (String(l.tiempoMin) && !Number.isFinite(Number(l.tiempoMin)) ? String(l.tiempoMin) : ''),
-          limpiar(l.objetivo), limpiar(l.bloque), l.series === '' ? '' : limpiar(String(l.series)), l.distancia === '' ? '' : limpiar(String(l.distancia)),
-          limpiar(l.salida), limpiar(textoEjercicioPdf(l, ficha, L)),
+          nf(Number(l.tiempoMin)) ||
+            (String(l.tiempoMin) && !Number.isFinite(Number(l.tiempoMin)) ? String(l.tiempoMin) : ''),
+          limpiar(l.objetivo),
+          limpiar(l.bloque),
+          l.series === '' ? '' : limpiar(String(l.series)),
+          l.distancia === '' ? '' : limpiar(String(l.distancia)),
+          limpiar(l.salida),
+          limpiar(textoEjercicioPdf(l, ficha, L)),
           nf(l.distBloque),
           fin ? nf(s.distSet) : '',
-          limpiar(l.material), limpiar(l.notas),
+          limpiar(l.material),
+          limpiar(l.notas),
         ],
       });
     });
   });
   const tot = ficha.totales;
   const centro = { halign: 'center' };
-  const foot = [[
-    { content: limpiar(L.totales.toLocaleUpperCase(loc)), styles: { halign: 'left' } },
-    { content: nf(tot.tiempoMin) || '0', styles: centro },
-    { content: '', colSpan: 4 },
-    { content: limpiar(`${L.sets(tot.sets)}  ·  ${L.filas(tot.filas)}`), styles: { fontStyle: 'normal', fontSize: Math.max(7, tam - 2), textColor: c.gris } },
-    { content: nf(tot.metros) || '0', styles: centro },
-    { content: nf(tot.metros) || '0', styles: centro },
-    { content: '', colSpan: 2 },
-  ]];
+  const foot = [
+    [
+      { content: limpiar(L.totales.toLocaleUpperCase(loc)), styles: { halign: 'left' } },
+      { content: nf(tot.tiempoMin) || '0', styles: centro },
+      { content: '', colSpan: 4 },
+      {
+        content: limpiar(`${L.sets(tot.sets)}  ·  ${L.filas(tot.filas)}`),
+        styles: { fontStyle: 'normal', fontSize: Math.max(7, tam - 2), textColor: c.gris },
+      },
+      { content: nf(tot.metros) || '0', styles: centro },
+      { content: nf(tot.metros) || '0', styles: centro },
+      { content: '', colSpan: 2 },
+    ],
+  ];
 
   const anchos = [21, 33, 24, 15, 22, 20, 0, 18, 17, 23, 0]; // exercise and notes share the rest
   const util = MM_PAGINA.w - 2 * MARGEN;
@@ -241,8 +295,12 @@ function dibujarSesion(doc, lib, ficha, c, L, loc, tam, paginas) {
   anchos[6] = Math.round(libre * 0.58 * 10) / 10;
   anchos[10] = Math.round((libre - anchos[6]) * 10) / 10;
   const columnStyles = {};
-  anchos.forEach((w, i) => { columnStyles[i] = { cellWidth: w }; });
-  [0, 3, 4, 5, 7, 8].forEach((i) => { columnStyles[i].halign = 'center'; });
+  anchos.forEach((w, i) => {
+    columnStyles[i] = { cellWidth: w };
+  });
+  [0, 3, 4, 5, 7, 8].forEach((i) => {
+    columnStyles[i].halign = 'center';
+  });
   columnStyles[8].fontStyle = 'bold';
 
   const gruesas = new Map(); // page -> [y]
@@ -258,8 +316,24 @@ function dibujarSesion(doc, lib, ficha, c, L, loc, tam, paginas) {
     showFoot: 'lastPage',
     rowPageBreak: 'avoid',
     columnStyles,
-    styles: { font: 'helvetica', fontSize: tam, cellPadding: { top: 1.6, bottom: 1.6, left: 1.8, right: 1.8 }, lineColor: c.linea, lineWidth: 0.15, valign: 'middle', textColor: c.texto, overflow: 'linebreak' },
-    headStyles: { fillColor: c.secundario, textColor: c.textoSecundario, fontStyle: 'bold', fontSize: Math.max(7, tam - 2.5), halign: 'center', lineColor: c.secundario },
+    styles: {
+      font: 'helvetica',
+      fontSize: tam,
+      cellPadding: { top: 1.6, bottom: 1.6, left: 1.8, right: 1.8 },
+      lineColor: c.linea,
+      lineWidth: 0.15,
+      valign: 'middle',
+      textColor: c.texto,
+      overflow: 'linebreak',
+    },
+    headStyles: {
+      fillColor: c.secundario,
+      textColor: c.textoSecundario,
+      fontStyle: 'bold',
+      fontSize: Math.max(7, tam - 2.5),
+      halign: 'center',
+      lineColor: c.secundario,
+    },
     footStyles: { fillColor: c.claro, textColor: c.texto, fontStyle: 'bold', fontSize: tam - 0.5, lineColor: c.gruesa },
     didParseCell(d) {
       if (d.section !== 'body') return;
@@ -328,10 +402,11 @@ function alturaResumen(d, tam) {
 }
 
 function dibujarResumen(doc, d, c, L, loc, y0, tam) {
-  const nf = new Intl.NumberFormat(loc, { maximumFractionDigits: 1 });
-  const m = (v) => limpiar(nf.format(Math.round(v * 10) / 10)) + ' m';
-  const pc = (v) => limpiar(nf.format(v)) + ' %';
-  const x0 = MARGEN, w = MM_PAGINA.w - 2 * MARGEN;
+  const formatoNum = new Intl.NumberFormat(loc, { maximumFractionDigits: 1 });
+  const m = (v) => limpiar(formatoNum.format(Math.round(v * 10) / 10)) + ' m';
+  const pc = (v) => limpiar(formatoNum.format(v)) + ' %';
+  const x0 = MARGEN,
+    w = MM_PAGINA.w - 2 * MARGEN;
   const alto = alturaResumen(d, tam);
   doc.setFillColor(...c.claro);
   doc.setDrawColor(...c.gruesa);
@@ -384,9 +459,27 @@ function dibujarResumen(doc, d, c, L, loc, y0, tam) {
       doc.text(pc(it.pct), cx + cw - 4, cy, { align: 'right' });
     });
   };
-  const anchoC = 168, anchoE = w - 8 - anchoC - 8;
-  grupo(L.resContenidos, d.porContenido, x0 + 4, anchoC, COLS_CONT, (it) => it.color || '#9aa4b2', (it) => nombreContenidoPdf(it, L));
-  if (d.porEstilo.length) grupo(L.resEstilos, d.porEstilo, x0 + 4 + anchoC + 8, anchoE, COLS_EST, (it) => G.colorEstilo(it.estilo), (it) => nombreEstiloPdf(it.estilo, L));
+  const anchoC = 168,
+    anchoE = w - 8 - anchoC - 8;
+  grupo(
+    L.resContenidos,
+    d.porContenido,
+    x0 + 4,
+    anchoC,
+    COLS_CONT,
+    (it) => it.color || '#9aa4b2',
+    (it) => nombreContenidoPdf(it, L),
+  );
+  if (d.porEstilo.length)
+    grupo(
+      L.resEstilos,
+      d.porEstilo,
+      x0 + 4 + anchoC + 8,
+      anchoE,
+      COLS_EST,
+      (it) => G.colorEstilo(it.estilo),
+      (it) => nombreEstiloPdf(it.estilo, L),
+    );
 }
 
 // ---------- API (PdfPort) ----------
@@ -400,7 +493,13 @@ export async function generar(fichas, etiquetas, { lib = null } = {}) {
   const club = fichas[0].club || {};
   const c = paleta(club);
   const loc = typeof L.locale === 'string' ? L.locale : 'es-ES';
-  const ahoraTxt = new Intl.DateTimeFormat(loc, { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' }).format(L.ahora);
+  const ahoraTxt = new Intl.DateTimeFormat(loc, {
+    day: '2-digit',
+    month: '2-digit',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+  }).format(L.ahora);
 
   const nuevo = () => new L0.jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4', compress: true });
   // Largest font size at which each session fits on one page (never below the smallest of TAMANOS)
@@ -429,10 +528,14 @@ export async function generar(fichas, etiquetas, { lib = null } = {}) {
   try {
     doc.setProperties({
       title: limpiar(L.titulo || (fichas.length === 1 ? `${f0.grupo || ''} ${f0.fecha}`.trim() : L.tituloSemana)),
-      subject: L.tituloDoc, author: limpiar(club.nombre || ''), creator: 'CNL Plataforma',
+      subject: L.tituloDoc,
+      author: limpiar(club.nombre || ''),
+      creator: 'CNL Plataforma',
     });
     doc.setLanguage(loc);
-  } catch (e) { /* ignore */ }
+  } catch (e) {
+    /* ignore */
+  }
   const bytes = doc.output('arraybuffer');
   return { blob: new Blob([bytes], { type: 'application/pdf' }), bytes, paginas: total };
 }

@@ -27,19 +27,36 @@ export function abrirEditor({ ctx, sesionId }) {
   useStyles('entreno-editor');
   estiloContenidos();
   const abridor = document.activeElement;
-  const uid = 'enp' + (++secuencia);
-  const borrador = crearBorradorPlan({ tipoSesion: ses.tipoSesion, materialDia: ses.materialDia, notasGenerales: ses.notasGenerales, lineas: svc.lineas(sesionId) });
+  const uid = 'enp' + ++secuencia;
+  const borrador = crearBorradorPlan({
+    tipoSesion: ses.tipoSesion,
+    materialDia: ses.materialDia,
+    notasGenerales: ses.notasGenerales,
+    lineas: svc.lineas(sesionId),
+  });
   let tipos = svc.tipos();
 
   // ---- shared context of the sub-views ----
   const env = {
-    ctx, svc, sesionId, uid, borrador, refs: [], setRefs: new Map(), setCont: new Map(),
+    ctx,
+    svc,
+    sesionId,
+    uid,
+    borrador,
+    refs: [],
+    setRefs: new Map(),
+    setCont: new Map(),
     cambio: () => borrador.cambio(),
     tipos: () => tipos,
-    recargarTipos: () => { tipos = svc.tipos(); },
+    recargarTipos: () => {
+      tipos = svc.tipos();
+    },
     catalogoActivo: () => (tipos.length ? tipos : G.catalogoBase()).filter((x) => x.activo),
     tipoDe: (nombre) => G.resolverContenido(nombre, tipos),
-    nombreDe: (nombre) => { const tp = G.resolverContenido(nombre, tipos); return tp ? tContenido(tp) : nombre; },
+    nombreDe: (nombre) => {
+      const tp = G.resolverContenido(nombre, tipos);
+      return tp ? tContenido(tp) : nombre;
+    },
     refDe: (l) => env.refs.find((r) => r.fila === l),
     hayErrores: () => D.hayErrores(svc.validar(sesionId, borrador.estado.lineas, { ...ses })),
     repintar: () => pintar(),
@@ -53,7 +70,14 @@ export function abrirEditor({ ctx, sesionId }) {
       if (!r) return;
       r.abrir(campo);
       const el = r.inputs[campo] || Object.values(r.inputs)[0];
-      if (el) { el.focus(); try { el.select?.(); } catch (e) { /* ignore */ } }
+      if (el) {
+        el.focus();
+        try {
+          el.select?.();
+        } catch (e) {
+          /* ignore */
+        }
+      }
     },
     guardar: () => guardar(),
   };
@@ -63,8 +87,13 @@ export function abrirEditor({ ctx, sesionId }) {
   const resumen = crearResumen(env);
   const { metaEl, toolsEl } = crearDatos(env);
   const acciones = {
-    pdf: () => pdf('enviar'), previa: () => pdf('previa'), imprimir: () => pdf('imprimir'), drive: () => pdf('drive'),
-    driveDisponible: driveConectado(ctx), registrar: () => resumen.registrar(), copiar: () => resumen.copiar(),
+    pdf: () => pdf('enviar'),
+    previa: () => pdf('previa'),
+    imprimir: () => pdf('imprimir'),
+    drive: () => pdf('drive'),
+    driveDisponible: driveConectado(ctx),
+    registrar: () => resumen.registrar(),
+    copiar: () => resumen.copiar(),
   };
   const barra = crearBarra(env, acciones);
 
@@ -74,17 +103,46 @@ export function abrirEditor({ ctx, sesionId }) {
     env.refs.forEach((r) => r.actualizar());
     const lineas = borrador.estado.lineas;
     const porSet = new Map(D.totalesPorSet(lineas).map((s) => [s.set, s]));
-    env.setRefs.forEach((el, s) => { const e = porSet.get(s) || { metros: 0, tiempoMin: 0 }; el.textContent = t('entreno.set-total', { m: fmt(e.metros), min: fmt(e.tiempoMin) }); });
+    env.setRefs.forEach((el, s) => {
+      const e = porSet.get(s) || { metros: 0, tiempoMin: 0 };
+      el.textContent = t('entreno.set-total', { m: fmt(e.metros), min: fmt(e.tiempoMin) });
+    });
     const des = svc.desglose(sesionId, lineas);
     env.setCont.forEach((el, st) => {
       const ps = des.porSet.find((x) => x.set === st);
-      el.textContent = ps ? ps.porContenido.slice(0, 4).map((c) => `${c.contenido ? c.corto : t('entreno.cont.sin-contenido')} ${pctTxt(c.pct)}`).join(' · ') : '';
+      el.textContent = ps
+        ? ps.porContenido
+            .slice(0, 4)
+            .map((c) => `${c.contenido ? c.corto : t('entreno.cont.sin-contenido')} ${pctTxt(c.pct)}`)
+            .join(' · ')
+        : '';
     });
     resumen.pintar(des);
     const av = svc.validar(sesionId, lineas, { ...ses });
-    env.refs.forEach((r) => r.marcar(new Set(av.filter((a) => a.campo && a.severidad === 'error' && a.set === r.fila.set && a.orden === r.fila.orden).map((a) => a.campo))));
-    avisosEl.replaceChildren(...av.map((a) => h('li', { class: a.severidad === 'error' ? 'enp-err' : '' }, icon('aviso', { size: 16 }),
-      h('span', null, (a.set ? t('entreno.av-pos', { set: a.set, fila: a.orden }) + ' ' : '') + t('entreno.av.' + a.codigo, a.params || {})))));
+    env.refs.forEach((r) =>
+      r.marcar(
+        new Set(
+          av
+            .filter((a) => a.campo && a.severidad === 'error' && a.set === r.fila.set && a.orden === r.fila.orden)
+            .map((a) => a.campo),
+        ),
+      ),
+    );
+    avisosEl.replaceChildren(
+      ...av.map((a) =>
+        h(
+          'li',
+          { class: a.severidad === 'error' ? 'enp-err' : '' },
+          icon('aviso', { size: 16 }),
+          h(
+            'span',
+            null,
+            (a.set ? t('entreno.av-pos', { set: a.set, fila: a.orden }) + ' ' : '') +
+              t('entreno.av.' + a.codigo, a.params || {}),
+          ),
+        ),
+      ),
+    );
     barra.actualizar();
   }
   borrador.alCambiar(refrescar);
@@ -95,49 +153,134 @@ export function abrirEditor({ ctx, sesionId }) {
     env.setRefs = new Map();
     env.setCont = new Map();
     const sets = [...new Set(borrador.estado.lineas.map((l) => l.set))].sort((a, b) => a - b);
-    setsEl.replaceChildren(...(sets.length ? sets.map((s, i) => crearSet(env, s, { ultimo: i === sets.length - 1 })) : [h('p', { class: 'enp-vacio' }, t('entreno.sin-lineas'))]));
+    setsEl.replaceChildren(
+      ...(sets.length
+        ? sets.map((s, i) => crearSet(env, s, { ultimo: i === sets.length - 1 }))
+        : [h('p', { class: 'enp-vacio' }, t('entreno.sin-lineas'))]),
+    );
     refrescar();
   }
 
   function datalists() {
-    const mk = (campo, extra) => h('datalist', { id: `enp-dl-${campo}` }, ...svc.sugerencias(campo, extra).map((v) => h('option', { value: v })));
-    return h('div', { hidden: true }, mk('objetivo', lista('entreno.sug.objetivo')), mk('bloque', lista('entreno.sug.bloque')), mk('salida', lista('entreno.sug.salida')),
-      mk('ejercicio', lista('entreno.sug.ejercicio')), mk('material', lista('entreno.sug.material')),
-      h('datalist', { id: 'enp-dl-distancia' }, ...[25, 50, 75, 100, 150, 200, 300, 400, 500, 800, 1000].map((v) => h('option', { value: String(v) }))));
+    const mk = (campo, extra) =>
+      h('datalist', { id: `enp-dl-${campo}` }, ...svc.sugerencias(campo, extra).map((v) => h('option', { value: v })));
+    return h(
+      'div',
+      { hidden: true },
+      mk('objetivo', lista('entreno.sug.objetivo')),
+      mk('bloque', lista('entreno.sug.bloque')),
+      mk('salida', lista('entreno.sug.salida')),
+      mk('ejercicio', lista('entreno.sug.ejercicio')),
+      mk('material', lista('entreno.sug.material')),
+      h(
+        'datalist',
+        { id: 'enp-dl-distancia' },
+        ...[25, 50, 75, 100, 150, 200, 300, 400, 500, 800, 1000].map((v) => h('option', { value: String(v) })),
+      ),
+    );
   }
 
   // ---- actions ----
   function guardar() {
     const r = svc.guardarPlan(sesionId, borrador.estado);
-    if (!r.ok) { toast.error(t('entreno.err-guardar')); refrescar(); return false; }
+    if (!r.ok) {
+      toast.error(t('entreno.err-guardar'));
+      refrescar();
+      return false;
+    }
     // rows saved for the first time get their id, so the next save updates them instead of recreating them
-    const llenas = borrador.estado.lineas.filter((l) => !D.filaVacia(l)).sort((x, y) => x.set - y.set || x.orden - y.orden);
-    llenas.forEach((l, i) => { if (!l.id && r.lineas[i]) l.id = r.lineas[i].id; });
+    const llenas = borrador.estado.lineas
+      .filter((l) => !D.filaVacia(l))
+      .sort((x, y) => x.set - y.set || x.orden - y.orden);
+    llenas.forEach((l, i) => {
+      if (!l.id && r.lineas[i]) l.id = r.lineas[i].id;
+    });
     borrador.marcarGuardado();
     toast(t('entreno.plan-guardado'));
     return true;
   }
   async function pdf(accion) {
-    if (env.hayErrores()) { toast(t('entreno.err-corrige')); return; }
+    if (env.hayErrores()) {
+      toast(t('entreno.err-corrige'));
+      return;
+    }
     await pdfSesion(ctx, sesionId, { accion, borrador: borrador.estado });
   }
 
   // ---- panel ----
   const grupoSes = (ctx.store.get('Grupos', ses.grupoId) || {}).nombre || '';
-  const tituloSesion = [tDate(String(ses.fecha).slice(0, 10), 'long'), ses.hora ? D.horaTexto(ses.hora) : '', String(ses.titulo || '').includes(grupoSes) ? '' : grupoSes, ses.titulo].filter(Boolean).join(' · ');
-  const panel = h('div', { class: 'enp-panel', role: 'dialog', 'aria-modal': 'true', 'aria-labelledby': uid + '-t', tabindex: '-1' },
-    h('div', { class: 'enp-head' },
-      h('div', null, h('h2', { id: uid + '-t' }, t('entreno.editor.titulo')), h('p', { class: 'enp-sub' }, tituloSesion)),
-      h('button', { type: 'button', class: 'icon-btn', 'aria-label': t('common.cerrar'), onclick: () => cerrar() }, icon('cerrar', { size: 18 }))),
-    h('div', { class: 'enp-body' }, metaEl, toolsEl, resumen.barEl, resumen.panelEl, setsEl,
-      h('button', { type: 'button', class: 'btn enp-anadir-set', onclick: () => env.op((ls) => D.anadirSet(ls), { set: borrador.estado.lineas.reduce((a, l) => Math.max(a, l.set), 0) + 1, orden: 1 }) }, icon('mas', { size: 16 }), ' ' + t('entreno.anadir-set')),
-      avisosEl, datalists()),
-    barra.el);
-  const ov = h('div', { class: 'enp-ov', onmousedown: (e) => { if (e.target === ov) cerrar(); } }, panel);
+  const tituloSesion = [
+    tDate(String(ses.fecha).slice(0, 10), 'long'),
+    ses.hora ? D.horaTexto(ses.hora) : '',
+    String(ses.titulo || '').includes(grupoSes) ? '' : grupoSes,
+    ses.titulo,
+  ]
+    .filter(Boolean)
+    .join(' · ');
+  const panel = h(
+    'div',
+    { class: 'enp-panel', role: 'dialog', 'aria-modal': 'true', 'aria-labelledby': uid + '-t', tabindex: '-1' },
+    h(
+      'div',
+      { class: 'enp-head' },
+      h(
+        'div',
+        null,
+        h('h2', { id: uid + '-t' }, t('entreno.editor.titulo')),
+        h('p', { class: 'enp-sub' }, tituloSesion),
+      ),
+      h(
+        'button',
+        { type: 'button', class: 'icon-btn', 'aria-label': t('common.cerrar'), onclick: () => cerrar() },
+        icon('cerrar', { size: 18 }),
+      ),
+    ),
+    h(
+      'div',
+      { class: 'enp-body' },
+      metaEl,
+      toolsEl,
+      resumen.barEl,
+      resumen.panelEl,
+      setsEl,
+      h(
+        'button',
+        {
+          type: 'button',
+          class: 'btn enp-anadir-set',
+          onclick: () =>
+            env.op((ls) => D.anadirSet(ls), {
+              set: borrador.estado.lineas.reduce((a, l) => Math.max(a, l.set), 0) + 1,
+              orden: 1,
+            }),
+        },
+        icon('mas', { size: 16 }),
+        ' ' + t('entreno.anadir-set'),
+      ),
+      avisosEl,
+      datalists(),
+    ),
+    barra.el,
+  );
+  const ov = h(
+    'div',
+    {
+      class: 'enp-ov',
+      onmousedown: (e) => {
+        if (e.target === ov) cerrar();
+      },
+    },
+    panel,
+  );
 
   // The rest of the page is inert while the editor is open (it is a modal dialog)
   const inertados = [];
-  [...document.body.children].forEach((e) => { if (!/^(SCRIPT|STYLE|LINK)$/.test(e.tagName) && e.id !== 'toasts' && !e.hasAttribute('inert')) { e.setAttribute('inert', ''); inertados.push(e); } });
+  [...document.body.children].forEach((e) => {
+    if (!/^(SCRIPT|STYLE|LINK)$/.test(e.tagName) && e.id !== 'toasts' && !e.hasAttribute('inert')) {
+      e.setAttribute('inert', '');
+      inertados.push(e);
+    }
+  });
   const prevOverflow = document.body.style.overflow;
   document.body.style.overflow = 'hidden';
   document.body.appendChild(ov);

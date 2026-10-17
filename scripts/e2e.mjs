@@ -7,7 +7,10 @@ const extra = process.argv.slice(2);
 let failed = false;
 for (const viewport of ['desktop', 'mobile']) {
   console.log(`\n=== E2E (${viewport}) ===`);
-  const r = spawnSync(process.execPath, [bin, ...extra], { stdio: 'inherit', env: { ...process.env, VIEWPORT: viewport } });
+  const r = spawnSync(process.execPath, [bin, ...extra], {
+    stdio: 'inherit',
+    env: { ...process.env, VIEWPORT: viewport },
+  });
   if (r.status !== 0) failed = true;
 }
 process.exit(failed ? 1 : 0);

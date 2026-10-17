@@ -67,17 +67,21 @@ export default {
   'plan.panel.avisos': 'Warnings',
   'plan.panel.huecos': 'Free slots',
   'plan.panel.vacio': 'No errors or warnings detected.',
-  'plan.c.calle-solapada': 'At {piscina}, "{a}" and "{b}" use {calles} at the same time on {dia} from {desdeHora} to {hastaHora}.',
+  'plan.c.calle-solapada':
+    'At {piscina}, "{a}" and "{b}" use {calles} at the same time on {dia} from {desdeHora} to {hastaHora}.',
   'plan.c.grupo-doble': '"{a}" is assigned to two places at once on {dia} from {desdeHora} to {hastaHora}.',
-  'plan.c.entrenador-doble': '{entrenador} has two sessions at once on {dia} from {desdeHora} to {hastaHora} ("{a}" and "{b}").',
+  'plan.c.entrenador-doble':
+    '{entrenador} has two sessions at once on {dia} from {desdeHora} to {hastaHora} ("{a}" and "{b}").',
   'plan.c.calle-fuera-rango': '"{grupo}" uses {calles}, but {piscina} only has {numCalles} lanes.',
-  'plan.c.fuera-horario': '"{grupo}" ({dia}, {horaInicio}–{horaFin}) is outside the opening hours of {piscina} ({abre}–{cierra}).',
+  'plan.c.fuera-horario':
+    '"{grupo}" ({dia}, {horaInicio}–{horaFin}) is outside the opening hours of {piscina} ({abre}–{cierra}).',
   'plan.c.fuera-horario-cerrado': '"{grupo}": {piscina} is closed on {dia}.',
   'plan.c.hora-invalida': '"{grupo}": the end time must be after the start time ({horaInicio}–{horaFin}).',
   'plan.c.dia-invalido': '"{grupo}": the day of the week is not valid.',
   'plan.c.piscina-inexistente': 'An assignment points to a pool that does not exist.',
   'plan.c.sin-grupo': 'The course is missing in the assignment on {dia} ({horaInicio}–{horaFin}).',
-  'plan.c.capacidad': '"{grupo}": {nadadores} swimmers in {calles} ({porCalle} per lane) exceed the maximum of {max} per lane.',
+  'plan.c.capacidad':
+    '"{grupo}": {nadadores} swimmers in {calles} ({porCalle} per lane) exceed the maximum of {max} per lane.',
   'plan.c.sin-entrenador': '"{grupo}" on {dia} ({horaInicio}–{horaFin}) has no coach assigned.',
   'plan.c.grupo-inexistente': 'The course of the assignment on {dia} ({horaInicio}–{horaFin}) no longer exists.',
   'plan.c.hueco-libre': 'Free slot at {piscina}: {calles}, on {dia} from {horaInicio} to {horaFin}.',
@@ -93,7 +97,8 @@ export default {
   'plan.cfg.cierra': 'Closes',
   'plan.cfg.guardada': 'Pool saved',
   'plan.cfg.guardada-recorte': 'Pool saved. Assignments trimmed: {recortadas}; out of range: {fuera}.',
-  'plan.cfg.recorte-confirm': 'Reducing the lanes will trim {recortadas} assignments and leave {fuera} out of range (they will show as errors until you move them). Continue?',
+  'plan.cfg.recorte-confirm':
+    'Reducing the lanes will trim {recortadas} assignments and leave {fuera} out of range (they will show as errors until you move them). Continue?',
   'plan.cfg.eliminar': 'Delete pool',
   'plan.cfg.eliminar-confirm': 'The pool and its {n} assignments will be deleted. Continue?',
   'plan.cfg.eliminada': 'Pool deleted',
@@ -104,7 +109,8 @@ export default {
   'plan.err.max-por-calle': 'The maximum per lane must be between 1 and 99.',
   'plan.err.horario': 'On each open day, closing must be after opening.',
   'plan.err.sin-dias': 'Open at least one day.',
-  'plan.sug.intro': 'Places the courses that have no slot yet that day into free lanes, based on their number of swimmers and without creating conflicts.',
+  'plan.sug.intro':
+    'Places the courses that have no slot yet that day into free lanes, based on their number of swimmers and without creating conflicts.',
   'plan.sug.dia': 'Day',
   'plan.sug.duracion': 'Duration (min)',
   'plan.sug.grupos': 'Courses to place',

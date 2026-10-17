@@ -14,11 +14,17 @@ export function crearAvisosService({ listar, ahora, visto = SIN_MARCA, ventanaDi
       try {
         const desde = desdeIso(ahora(), ventanaDias);
         return contarNoLeidos(listar(), { desde, visto: visto.leer() || null });
-      } catch (e) { return 0; }
+      } catch (e) {
+        return 0;
+      }
     },
     // The user opened the notices view: everything up to today counts as read.
     marcarVistos() {
-      try { visto.escribir(aIso(ahora())); } catch (e) { /* the marker is a convenience */ }
+      try {
+        visto.escribir(aIso(ahora()));
+      } catch (e) {
+        /* the marker is a convenience */
+      }
     },
   };
 }

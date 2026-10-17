@@ -5,7 +5,14 @@ export function teclasTabs(lista) {
     const tabs = [...lista.querySelectorAll('[role="tab"]:not([disabled])')];
     const i = tabs.indexOf(e.target.closest?.('[role="tab"]'));
     if (i < 0) return;
-    const ir = { ArrowRight: (i + 1) % tabs.length, ArrowDown: (i + 1) % tabs.length, ArrowLeft: (i - 1 + tabs.length) % tabs.length, ArrowUp: (i - 1 + tabs.length) % tabs.length, Home: 0, End: tabs.length - 1 }[e.key];
+    const ir = {
+      ArrowRight: (i + 1) % tabs.length,
+      ArrowDown: (i + 1) % tabs.length,
+      ArrowLeft: (i - 1 + tabs.length) % tabs.length,
+      ArrowUp: (i - 1 + tabs.length) % tabs.length,
+      Home: 0,
+      End: tabs.length - 1,
+    }[e.key];
     if (ir === undefined) return;
     e.preventDefault();
     tabs[ir].click();

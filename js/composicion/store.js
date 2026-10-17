@@ -20,7 +20,11 @@ const cacheClub = {
   guardar: (clave, objeto) => cache.guardar(clave, objeto),
   leer: (clave) => cache.leer(clave),
   existe(clave) {
-    try { return localStorage.getItem(clave) !== null || cache._enIdb.has(clave); } catch (e) { return false; }
+    try {
+      return localStorage.getItem(clave) !== null || cache._enIdb.has(clave);
+    } catch (e) {
+      return false;
+    }
   },
 };
 const timers = {
@@ -41,7 +45,9 @@ const ventana = {
     window.addEventListener('pagehide', () => h.cerrando());
     window.addEventListener('storage', (ev) => h.otraPestana({ clave: ev.key, valor: ev.newValue }));
     if (typeof document !== 'undefined' && document.addEventListener) {
-      document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'hidden') h.oculta(); });
+      document.addEventListener('visibilitychange', () => {
+        if (document.visibilityState === 'hidden') h.oculta();
+      });
     }
   },
   oculta: () => typeof document !== 'undefined' && document.visibilityState === 'hidden',
@@ -53,8 +59,18 @@ const bloqueo = (nombre, fn) => {
 };
 
 export const store = crearClubStore({
-  drive, demo: demoStorage, cache: cacheClub, prefijos: { drive: 'cnl:club:', demo: DEMO_CACHE_PREFIX },
-  genId: newId, dispositivo: nuevoDispositivo(), ahora, red, timers, ventana, bloqueo, log: console,
+  drive,
+  demo: demoStorage,
+  cache: cacheClub,
+  prefijos: { drive: 'cnl:club:', demo: DEMO_CACHE_PREFIX },
+  genId: newId,
+  dispositivo: nuevoDispositivo(),
+  ahora,
+  red,
+  timers,
+  ventana,
+  bloqueo,
+  log: console,
 });
 
 const datos = () => ({ club: store.club, db: Object.fromEntries(ENTITY_SHEETS.map((s) => [s, store.list(s)])) });
@@ -78,7 +94,8 @@ Object.assign(store, {
 
   // Saves an .xlsx copy in the cnl folder in Drive (overwrites the previous one for the same club).
   async guardarXlsxEnDrive() {
-    if (store.mode === 'demo') throw Object.assign(new Error('Demo mode does not use Google Drive.'), { code: 'demo-sin-drive' });
+    if (store.mode === 'demo')
+      throw Object.assign(new Error('Demo mode does not use Google Drive.'), { code: 'demo-sin-drive' });
     const puerto = store.puerto;
     const name = nombreXlsx();
     const body = await libroABlob(datos());
@@ -89,7 +106,11 @@ Object.assign(store, {
 
   // Preview of an .xlsx (changes nothing): per-sheet count against the current data, duplicates and doubtful rows.
   previsualizarXlsx(file) {
-    return leerLibro(file, { club: Object.keys(store.club).length, filas: (s) => store.list(s).length, hoy: fechaIsoLocal(ahora()) });
+    return leerLibro(file, {
+      club: Object.keys(store.club).length,
+      filas: (s) => store.list(s).length,
+      hoy: fechaIsoLocal(ahora()),
+    });
   },
 
   // Replaces the data with that of an .xlsx (File/Blob) or of an already computed preview. First saves a copy
@@ -105,9 +126,21 @@ Object.assign(store, {
   exportNadador(id, { descargar = true } = {}) {
     const d = store.datosNadador(id);
     if (!d) throw new Error('Nadador no encontrado');
-    const exportado = { version: DOC_VERSION, tipo: 'nadador', exportadoEl: ahora().toISOString(), club: store.club.nombre || '', ...d };
+    const exportado = {
+      version: DOC_VERSION,
+      tipo: 'nadador',
+      exportadoEl: ahora().toISOString(),
+      club: store.club.nombre || '',
+      ...d,
+    };
     const blob = new Blob([JSON.stringify(exportado, null, 2)], { type: 'application/json' });
-    const nombre = ('nadador-' + [d.nadador.nombre, d.nadador.apellidos].filter(Boolean).join('-').replace(/[\/:*?"<>|\s]+/g, '-') + '.json');
+    const nombre =
+      'nadador-' +
+      [d.nadador.nombre, d.nadador.apellidos]
+        .filter(Boolean)
+        .join('-')
+        .replace(/[/:*?"<>|\s]+/g, '-') +
+      '.json';
     if (descargar) descargarBlob(blob, nombre);
     return { datos: exportado, blob, nombre };
   },

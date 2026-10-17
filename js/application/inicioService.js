@@ -9,7 +9,10 @@ import { crearCargasService } from './cargasService.js';
 const CLAVE_PASOS_OCULTOS = 'inicio.pasosOcultos.';
 
 // opciones: {ahora: () => Date, cargas?: loads service, prefs?: {get(clave, def), set(clave, valor)}, clubId?: () => string}
-export function crearInicioService(repo, { ahora, cargas = crearCargasService(repo), prefs = null, clubId = () => repo.clubRef?.id || '' } = {}) {
+export function crearInicioService(
+  repo,
+  { ahora, cargas = crearCargasService(repo), prefs = null, clubId = () => repo.clubRef?.id || '' } = {},
+) {
   const claveOculto = () => CLAVE_PASOS_OCULTOS + clubId();
   const listar = (hoja) => repo.list(hoja) || [];
 
@@ -18,7 +21,9 @@ export function crearInicioService(repo, { ahora, cargas = crearCargasService(re
 
   return {
     pasosOcultos,
-    ocultarPasos(oculto = true) { if (prefs) prefs.set(claveOculto(), oculto === true ? true : null); },
+    ocultarPasos(oculto = true) {
+      if (prefs) prefs.set(claveOculto(), oculto === true ? true : null);
+    },
 
     panel() {
       const ahoraD = ahora();
@@ -33,7 +38,11 @@ export function crearInicioService(repo, { ahora, cargas = crearCargasService(re
       // Today and the next session
       const sesionesHoy = D.sesionesDeHoy(entrenos, ahoraD);
       const asistenciaHoy = D.asistenciaDeHoy(sesionesHoy, nadadores, asistencias);
-      const hoyDetalle = sesionesHoy.map((s, i) => ({ ...s, grupoNombre: nombreGrupo(s.grupoId), asistencia: asistenciaHoy.sesiones[i] }));
+      const hoyDetalle = sesionesHoy.map((s, i) => ({
+        ...s,
+        grupoNombre: nombreGrupo(s.grupoId),
+        asistencia: asistenciaHoy.sesiones[i],
+      }));
       const foco = D.sesionParaAsistencia(sesionesHoy);
       const proxima = D.proximaSesion(entrenos, ahoraD);
       const lunes = C.lunesDe(ahoraD);
@@ -43,18 +52,26 @@ export function crearInicioService(repo, { ahora, cargas = crearCargasService(re
       const sem = cargas.semana(lunes);
       const objetivoSemanal = C.objetivoTotal(sem.tipos);
       const serie = D.serieSemanal({
-        agregado: sem.agregado, lunes, ahora: ahoraD, ordenTipos: C.tiposVisibles(sem.agregado, sem.tipos).map((x) => x.id), objetivoSemanal,
+        agregado: sem.agregado,
+        lunes,
+        ahora: ahoraD,
+        ordenTipos: C.tiposVisibles(sem.agregado, sem.tipos).map((x) => x.id),
+        objetivoSemanal,
       });
       const hayObjetivos = sem.tipos.some((x) => x.activo && (x.min || x.max));
 
       // Season, notes, first steps
       const pasos = D.pasosIniciales({
-        grupos: grupos.length, nadadores: nadadores.length, piscinas: listar('Piscinas').length, sesiones: entrenos.length,
+        grupos: grupos.length,
+        nadadores: nadadores.length,
+        piscinas: listar('Piscinas').length,
+        sesiones: entrenos.length,
       });
       const esperadosHoy = asistenciaHoy.total.esperados;
 
       return {
-        hoy, club: { nombre: String(repo.club?.nombre ?? '').trim(), lema: String(repo.club?.lema ?? '').trim() },
+        hoy,
+        club: { nombre: String(repo.club?.nombre ?? '').trim(), lema: String(repo.club?.lema ?? '').trim() },
         kpis: { nadadoresActivos: activos.length, semana: D.sesionesDeLaSemana(entrenos, lunesIso) },
         titular: { sesiones: sesionesHoy.length, esperados: esperadosHoy },
         hoySesiones: hoyDetalle,
@@ -62,8 +79,12 @@ export function crearInicioService(repo, { ahora, cargas = crearCargasService(re
         proxima: proxima ? { ...proxima, grupoNombre: nombreGrupo(proxima.grupoId) } : null,
         asistencia: { ...asistenciaHoy, hayNadadores: nadadores.length > 0 },
         carga: {
-          serie, tipos: C.tiposVisibles(sem.agregado, sem.tipos), objetivoSemanal, hayObjetivos,
-          alertas: D.alertasDeCarga(sem.evaluacion), evaluados: sem.evaluacion.length,
+          serie,
+          tipos: C.tiposVisibles(sem.agregado, sem.tipos),
+          objetivoSemanal,
+          hayObjetivos,
+          alertas: D.alertasDeCarga(sem.evaluacion),
+          evaluados: sem.evaluacion.length,
         },
         avisos: D.avisosRecientes(listar('Comunicaciones'), grupos, ahoraD),
         evento: D.proximoEvento(listar('EventosTemporada'), ahoraD),

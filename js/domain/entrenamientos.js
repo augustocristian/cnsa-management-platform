@@ -15,19 +15,25 @@ export const diasDeSemana = (lunes) => Array.from({ length: 7 }, (_, i) => sumar
 
 // Sessions sorted by date, then time, then title (copy).
 export function ordenarSesiones(sesiones) {
-  return (sesiones || []).slice().sort((a, b) =>
-    dia10(a.fecha).localeCompare(dia10(b.fecha))
-    || horaTexto(a.hora).localeCompare(horaTexto(b.hora))
-    || String(a.titulo ?? '').localeCompare(String(b.titulo ?? '')));
+  return (sesiones || [])
+    .slice()
+    .sort(
+      (a, b) =>
+        dia10(a.fecha).localeCompare(dia10(b.fecha)) ||
+        horaTexto(a.hora).localeCompare(horaTexto(b.hora)) ||
+        String(a.titulo ?? '').localeCompare(String(b.titulo ?? '')),
+    );
 }
 
 // Sessions of the week starting at `lunes` (optionally of one group), ordered.
 export function sesionesDeSemana(sesiones, lunes, { grupoId = '' } = {}) {
   const fin = finSemana(lunes);
-  return ordenarSesiones((sesiones || []).filter((s) => {
-    const f = dia10(s.fecha);
-    return f >= lunes && f <= fin && (!grupoId || s.grupoId === grupoId);
-  }));
+  return ordenarSesiones(
+    (sesiones || []).filter((s) => {
+      const f = dia10(s.fecha);
+      return f >= lunes && f <= fin && (!grupoId || s.grupoId === grupoId);
+    }),
+  );
 }
 
 // Week model for the list: { lunes, fin, total, dias: [{ fecha, esHoy, sesiones }] }.
@@ -37,7 +43,11 @@ export function armarSemana(sesiones, lunes, { grupoId = '', hoy = '' } = {}) {
     lunes,
     fin: finSemana(lunes),
     total: delaSemana.length,
-    dias: diasDeSemana(lunes).map((fecha) => ({ fecha, esHoy: fecha === hoy, sesiones: delaSemana.filter((s) => dia10(s.fecha) === fecha) })),
+    dias: diasDeSemana(lunes).map((fecha) => ({
+      fecha,
+      esHoy: fecha === hoy,
+      sesiones: delaSemana.filter((s) => dia10(s.fecha) === fecha),
+    })),
   };
 }
 
@@ -46,9 +56,11 @@ export function metaSesion(s, resumenPlan = null) {
   const meta = [];
   if (s.duracionMin) meta.push({ clave: 'entre.meta-min', params: { n: s.duracionMin } });
   if (s.piscina) meta.push({ clave: 'entre.meta-piscina', params: { n: s.piscina } });
-  if (s.volumenMin || s.volumenMax) meta.push({ clave: 'entre.meta-vol', params: { min: s.volumenMin || '?', max: s.volumenMax || '?' } });
+  if (s.volumenMin || s.volumenMax)
+    meta.push({ clave: 'entre.meta-vol', params: { min: s.volumenMin || '?', max: s.volumenMax || '?' } });
   if (s.enfoque) meta.push({ clave: 'entre.meta-enfoque', params: { v: s.enfoque } });
-  if (resumenPlan && resumenPlan.metros) meta.push({ clave: 'entreno.chip', params: { m: resumenPlan.metros, min: resumenPlan.tiempoMin } });
+  if (resumenPlan && resumenPlan.metros)
+    meta.push({ clave: 'entreno.chip', params: { m: resumenPlan.metros, min: resumenPlan.tiempoMin } });
   return meta;
 }
 
@@ -64,7 +76,14 @@ export function validarFormulario(v = {}) {
   for (const c of ['duracionMin', 'volumenMin', 'volumenMax']) {
     if (!vacio(v[c]) && !(Number.isFinite(num(v[c])) && num(v[c]) >= 0)) e[c] = 'numero-invalido';
   }
-  if (!e.volumenMin && !e.volumenMax && !vacio(v.volumenMin) && !vacio(v.volumenMax) && num(v.volumenMin) > num(v.volumenMax)) e.volumenMax = 'volumen-rango';
+  if (
+    !e.volumenMin &&
+    !e.volumenMax &&
+    !vacio(v.volumenMin) &&
+    !vacio(v.volumenMax) &&
+    num(v.volumenMin) > num(v.volumenMax)
+  )
+    e.volumenMax = 'volumen-rango';
   return e;
 }
 

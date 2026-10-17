@@ -1,7 +1,8 @@
 // Season-based category texts (en).
 export default {
   'categorias.titulo': 'Categories for the {temporada} season',
-  'categorias.intro': 'They are calculated automatically from the year of birth and sex, and updated when the season changes (it starts on 1 September).',
+  'categorias.intro':
+    'They are calculated automatically from the year of birth and sex, and updated when the season changes (it starts on 1 September).',
   'categorias.tabla-aria': 'Birth years of each category in the {temporada} season',
   'categorias.col-categoria': 'Category',
   'categorias.col-nacidos': 'Born in',
@@ -21,13 +22,14 @@ export default {
   'categorias.vivo.manual': '{categoria} · set manually (the automatic one would be {auto})',
   'categorias.vivo.manual-sola': '{categoria} · set manually',
   'categorias.aviso.por-debajo': 'Below the minimum age of the table: {categoria} is assigned.',
-  'categorias.aviso.master-edad': 'A Masters licence requires {edad} or older in the season: the category by year of birth is used.',
+  'categorias.aviso.master-edad':
+    'A Masters licence requires {edad} or older in the season: the category by year of birth is used.',
   'categorias.manual': 'manual',
   'categorias.manual-titulo': 'Category set manually: it does not change with the season',
   'categorias.d-master': 'Masters licence',
   'categorias.ficha-regla': '{temporada} season: born in {rango}',
   'categorias.panel.vigente': 'Current season: {temporada}',
-  'categorias.panel.automatica': 'Automatic, based on today\'s date',
+  'categorias.panel.automatica': "Automatic, based on today's date",
   'categorias.panel.fijada': 'Set manually',
   'categorias.panel.f-temporada': 'Season',
   'categorias.panel.opcion-auto': 'Automatic ({temporada})',
@@ -47,7 +49,8 @@ export default {
   'categorias.cambio.aplicar': 'Apply season change',
   'categorias.cambio.aplicado': '{temporada} season applied: {n} category change(s).',
   'categorias.reglas.titulo': 'Rules by sex',
-  'categorias.reglas.intro': 'Age = start year of the season − year of birth. Each table must be continuous and Senior has no upper limit. Masters also requires a Masters licence.',
+  'categorias.reglas.intro':
+    'Age = start year of the season − year of birth. Each table must be continuous and Senior has no upper limit. Masters also requires a Masters licence.',
   'categorias.reglas.desde': 'Age from',
   'categorias.reglas.hasta': 'Age to',
   'categorias.reglas.master-edad': 'Minimum age for Masters',

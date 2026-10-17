@@ -1,7 +1,8 @@
 // Testi delle categorie per stagione (it).
 export default {
   'categorias.titulo': 'Categorie della stagione {temporada}',
-  'categorias.intro': 'Si calcolano automaticamente in base all\'anno di nascita e al sesso e si aggiornano al cambio di stagione (inizia il 1° settembre).',
+  'categorias.intro':
+    "Si calcolano automaticamente in base all'anno di nascita e al sesso e si aggiornano al cambio di stagione (inizia il 1° settembre).",
   'categorias.tabla-aria': 'Anni di nascita di ogni categoria nella stagione {temporada}',
   'categorias.col-categoria': 'Categoria',
   'categorias.col-nacidos': 'Nati nel',
@@ -15,13 +16,15 @@ export default {
   'categorias.f-elegida': 'Categoria scelta',
   'categorias.f-master': 'Tessera master',
   'categorias.vivo.sin-fecha': 'Inserisci la data di nascita per calcolare la categoria.',
-  'categorias.vivo.sin-sexo': 'Inserisci il sesso per calcolare la categoria (le tabelle femminile e maschile sono diverse).',
+  'categorias.vivo.sin-sexo':
+    'Inserisci il sesso per calcolare la categoria (le tabelle femminile e maschile sono diverse).',
   'categorias.vivo.auto': '{categoria} · nati nel {rango} · stagione {temporada}',
   'categorias.vivo.master': '{categoria} · tessera master e {edad} anni o più · stagione {temporada}',
   'categorias.vivo.manual': '{categoria} · impostata manualmente (quella automatica sarebbe {auto})',
   'categorias.vivo.manual-sola': '{categoria} · impostata manualmente',
-  'categorias.aviso.por-debajo': 'Sotto l\'età minima della tabella: viene assegnata {categoria}.',
-  'categorias.aviso.master-edad': 'La tessera master richiede {edad} anni o più nella stagione: si usa la categoria per anno di nascita.',
+  'categorias.aviso.por-debajo': "Sotto l'età minima della tabella: viene assegnata {categoria}.",
+  'categorias.aviso.master-edad':
+    'La tessera master richiede {edad} anni o più nella stagione: si usa la categoria per anno di nascita.',
   'categorias.manual': 'manuale',
   'categorias.manual-titulo': 'Categoria impostata manualmente: non cambia con la stagione',
   'categorias.d-master': 'Tessera master',
@@ -47,7 +50,8 @@ export default {
   'categorias.cambio.aplicar': 'Applica il cambio di stagione',
   'categorias.cambio.aplicado': 'Stagione {temporada} applicata: {n} cambi di categoria.',
   'categorias.reglas.titulo': 'Regole per sesso',
-  'categorias.reglas.intro': 'Età = anno di inizio della stagione − anno di nascita. Ogni tabella deve essere continua e Assoluti non ha limite superiore. Master richiede anche la tessera master.',
+  'categorias.reglas.intro':
+    'Età = anno di inizio della stagione − anno di nascita. Ogni tabella deve essere continua e Assoluti non ha limite superiore. Master richiede anche la tessera master.',
   'categorias.reglas.desde': 'Età da',
   'categorias.reglas.hasta': 'Età fino a',
   'categorias.reglas.master-edad': 'Età minima per Master',
@@ -57,8 +61,8 @@ export default {
   'categorias.reglas.restablecidas': 'Regole ripristinate; categorie ricalcolate ({n} modifiche).',
   'categorias.reglas.err.edad-invalida': 'Età non valida in {categoria} ({sexo}).',
   'categorias.reglas.err.no-contigua': '{categoria} ({sexo}) deve iniziare subito dopo la categoria precedente.',
-  'categorias.reglas.err.rango-invalido': 'L\'età massima di {categoria} ({sexo}) non è valida.',
-  'categorias.reglas.err.ultima-abierta': '{categoria} ({sexo}) non può avere un\'età massima.',
+  'categorias.reglas.err.rango-invalido': "L'età massima di {categoria} ({sexo}) non è valida.",
+  'categorias.reglas.err.ultima-abierta': "{categoria} ({sexo}) non può avere un'età massima.",
   'categorias.reglas.err.tabla-invalida': 'La tabella {sexo} non è valida.',
-  'categorias.reglas.err.edad-master-invalida': 'L\'età minima per Master deve essere compresa tra 18 e 120.',
+  'categorias.reglas.err.edad-master-invalida': "L'età minima per Master deve essere compresa tra 18 e 120.",
 };

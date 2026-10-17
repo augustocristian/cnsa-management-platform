@@ -18,14 +18,26 @@ function arbol(ficheros) {
 }
 const reglas = (ficheros) => {
   const raiz = arbol(ficheros);
-  try { return analizar(raiz); } finally { rmSync(raiz, { recursive: true, force: true }); }
+  try {
+    return analizar(raiz);
+  } finally {
+    rmSync(raiz, { recursive: true, force: true });
+  }
 };
 const ids = (r) => r.errores.map((e) => e.regla);
 
 test('the real tree has no architecture violation beyond the baseline (ratchet)', () => {
   const r = comprobar();
-  assert.deepEqual(r.nuevos.map((e) => e.msg), [], 'new violations: fix them, do not add them to the baseline');
-  assert.deepEqual(r.obsoletos, [], 'fixed violations still in scripts/arch-baseline.json: run node scripts/check-arch.mjs --update-baseline');
+  assert.deepEqual(
+    r.nuevos.map((e) => e.msg),
+    [],
+    'new violations: fix them, do not add them to the baseline',
+  );
+  assert.deepEqual(
+    r.obsoletos,
+    [],
+    'fixed violations still in scripts/arch-baseline.json: run node scripts/check-arch.mjs --update-baseline',
+  );
 });
 
 test('the baseline is a sorted list without duplicates', () => {
@@ -52,7 +64,10 @@ test('scanner: comments, strings, templates and regexes do not produce code', ()
     "const m = await import('./dyn.js');",
   ].join('\n');
   const { code, imports } = scan(src);
-  assert.deepEqual(imports.map((i) => i.spec), ['./a.js', './dyn.js']);
+  assert.deepEqual(
+    imports.map((i) => i.spec),
+    ['./a.js', './dyn.js'],
+  );
   assert.equal(imports[1].dynamic, true);
   assert.ok(!/localStorage|Date\.now/.test(code));
   assert.ok(/window/.test(code), 'the code inside ${} is still code');
@@ -85,20 +100,39 @@ test('allowed directions pass', () => {
 test('R2: cycles', () => {
   const r = reglas({ 'js/domain/a.js': "import './b.js';", 'js/domain/b.js': "import './a.js';" });
   assert.deepEqual(ids(r), ['R2']);
-  assert.deepEqual(ciclos(new Map([['a', new Set(['b'])], ['b', new Set(['c'])], ['c', new Set()]])), []);
+  assert.deepEqual(
+    ciclos(
+      new Map([
+        ['a', new Set(['b'])],
+        ['b', new Set(['c'])],
+        ['c', new Set()],
+      ]),
+    ),
+    [],
+  );
 });
 
 test('R3: forbidden globals in domain/application, strings and properties are ignored', () => {
   const r = reglas({
-    'js/domain/ok.js': "export const a = 'document fetch'; // window\nexport const f = (o) => o.fetch + o.window; export const d = new Date(2026, 1, 1);",
-    'js/domain/bad.js': 'export const a = () => Date.now() + Math.random(); export const b = () => localStorage.getItem("x"); export const c = new Date();',
+    'js/domain/ok.js':
+      "export const a = 'document fetch'; // window\nexport const f = (o) => o.fetch + o.window; export const d = new Date(2026, 1, 1);",
+    'js/domain/bad.js':
+      'export const a = () => Date.now() + Math.random(); export const b = () => localStorage.getItem("x"); export const c = new Date();',
     'js/application/bad.js': 'export const a = () => { setTimeout(() => console.log(1), 5); return document.title; };',
   });
   const claves = r.errores.map((e) => e.clave).sort();
-  assert.deepEqual(claves, [
-    'R3 js/application/bad.js: console', 'R3 js/application/bad.js: document', 'R3 js/application/bad.js: setTimeout',
-    'R3 js/domain/bad.js: Date.now()', 'R3 js/domain/bad.js: Math.random()', 'R3 js/domain/bad.js: localStorage', 'R3 js/domain/bad.js: new Date()',
-  ].sort());
+  assert.deepEqual(
+    claves,
+    [
+      'R3 js/application/bad.js: console',
+      'R3 js/application/bad.js: document',
+      'R3 js/application/bad.js: setTimeout',
+      'R3 js/domain/bad.js: Date.now()',
+      'R3 js/domain/bad.js: Math.random()',
+      'R3 js/domain/bad.js: localStorage',
+      'R3 js/domain/bad.js: new Date()',
+    ].sort(),
+  );
 });
 
 test('R5/R7/R8: locales, ports and composition root', () => {
@@ -114,12 +148,13 @@ test('R5/R7/R8: locales, ports and composition root', () => {
 });
 
 test('R9: size, R10: <style>, R11: warning, R12: unresolved or without .js', () => {
-  const grande = Array.from({ length: 620 }, (_, i) => `export const v${i} = ${i};`).join('\n');
-  const medio = Array.from({ length: 500 }, (_, i) => `export const v${i} = ${i};`).join('\n');
+  const grande = Array.from({ length: 850 }, (_, i) => `export const v${i} = ${i};`).join('\n');
+  const medio = Array.from({ length: 600 }, (_, i) => `export const v${i} = ${i};`).join('\n');
   const r = reglas({
     'js/domain/grande.js': grande,
     'js/domain/medio.js': medio,
-    'js/presentation/views/v.js': "export const a = () => { const s = document.createElement('style'); store.upsert('X', {}); };",
+    'js/presentation/views/v.js':
+      "export const a = () => { const s = document.createElement('style'); store.upsert('X', {}); };",
     'js/presentation/views/w.js': "import './no-existe.js'; import './v';",
   });
   assert.deepEqual(ids(r).sort(), ['R10', 'R12', 'R12', 'R9']);
@@ -128,7 +163,10 @@ test('R9: size, R10: <style>, R11: warning, R12: unresolved or without .js', () 
 });
 
 test('ratchet: a new violation fails, a stale baseline entry fails', () => {
-  const raiz = arbol({ 'js/domain/a.js': "import '../presentation/x.js';", 'js/presentation/x.js': 'export const x = 1;' });
+  const raiz = arbol({
+    'js/domain/a.js': "import '../presentation/x.js';",
+    'js/presentation/x.js': 'export const x = 1;',
+  });
   try {
     const sin = comprobar(raiz, []);
     assert.equal(sin.nuevos.length, 1);
@@ -138,13 +176,19 @@ test('ratchet: a new violation fails, a stale baseline entry fails', () => {
     assert.equal(con.tolerados, 1);
     const obsoleto = comprobar(raiz, [clave, 'R1 js/zzz.js -> js/yyy.js']);
     assert.deepEqual(obsoleto.obsoletos, ['R1 js/zzz.js -> js/yyy.js']);
-  } finally { rmSync(raiz, { recursive: true, force: true }); }
+  } finally {
+    rmSync(raiz, { recursive: true, force: true });
+  }
 });
 
 test('R12: a dynamic import with a template must point to an existing folder', () => {
   const r = reglas({
     'js/presentation/views/a.js': 'export const a = 1;',
-    'js/presentation/shell/s.js': 'export const l = (n) => import(`../views/${n}.js`); export const m = (n) => import(`../vistas/${n}.js`);',
+    'js/presentation/shell/s.js':
+      'export const l = (n) => import(`../views/${n}.js`); export const m = (n) => import(`../vistas/${n}.js`);',
   });
-  assert.deepEqual(r.errores.map((e) => e.clave), ['R12 js/presentation/shell/s.js -> ../vistas/... (missing folder)']);
+  assert.deepEqual(
+    r.errores.map((e) => e.clave),
+    ['R12 js/presentation/shell/s.js -> ../vistas/... (missing folder)'],
+  );
 });

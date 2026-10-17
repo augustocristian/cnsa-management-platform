@@ -4,23 +4,36 @@ import { fresh, renderView, tick, fieldByLabel, buttonByText, setValue } from '.
 import { importApp } from '../helpers/env.js';
 
 let c;
-const test = (name, fn) => base(name, async (t) => { c = await fresh(); return fn(t); });
+const test = (name, fn) =>
+  base(name, async (t) => {
+    c = await fresh();
+    return fn(t);
+  });
 
 const modal = () => document.querySelector('.modal');
 const cell = (calle, hora) => c.container.querySelector(`button.pl-cell[data-calle="${calle}"][data-hora="${hora}"]`);
-const click = async (el) => { el.click(); await tick(); };
-const lunes = async () => { // the view opens on the current day: switch to Monday deterministically
+const click = async (el) => {
+  el.click();
+  await tick();
+};
+const lunes = async () => {
+  // the view opens on the current day: switch to Monday deterministically
   await click(c.container.querySelector('.pl-dias [role=tab]'));
 };
 // Infrequent actions: the «Más acciones» (More actions) menu in the page header
 const abrirMenu = async (etiqueta) => {
   await click(c.container.querySelector('.page-head-actions .enp-mn-btn'));
-  const item = [...document.querySelectorAll('[role=menuitem]')].find((b) => b.textContent.trim() === etiqueta);
+  const find = () => [...document.querySelectorAll('[role=menuitem]')].find((b) => b.textContent.trim() === etiqueta);
+  // The menu opens asynchronously: wait for the option instead of assuming one tick is enough (flaky under CI load).
+  for (let i = 0; i < 40 && !find(); i++) await tick();
+  const item = find();
   if (!item) throw new Error('No menu option: ' + etiqueta);
   await click(item);
 };
 const asignaciones = () => c.store.list('AsignacionesCalle');
-const guardarAsignacion = async () => { await click(buttonByText(modal(), 'Guardar')); };
+const guardarAsignacion = async () => {
+  await click(buttonByText(modal(), 'Guardar'));
+};
 
 test('demo data: 6-lane pool and consistent assignments with no errors', async () => {
   const D = await importApp('js/domain/planificacion.js');
@@ -28,12 +41,25 @@ test('demo data: 6-lane pool and consistent assignments with no errors', async (
   assert.equal(p.length, 1);
   assert.equal(p[0].numCalles, 6);
   assert.ok(c.store.list('AsignacionesCalle').length >= 10);
-  const r = D.detectarConflictos({ piscinas: p, asignaciones: asignaciones(), grupos: c.store.list('Grupos'), nadadores: c.store.list('Nadadores') });
+  const r = D.detectarConflictos({
+    piscinas: p,
+    asignaciones: asignaciones(),
+    grupos: c.store.list('Grupos'),
+    nadadores: c.store.list('Nadadores'),
+  });
   assert.equal(r.filter((x) => x.severidad === 'error').length, 0);
-  assert.ok(r.some((x) => x.tipo === 'sin-entrenador'), 'intentional demo warning');
+  assert.ok(
+    r.some((x) => x.tipo === 'sin-entrenador'),
+    'intentional demo warning',
+  );
   // the optional second set adds errors
   c.store.seedPlanificacionConflictos();
-  const r2 = D.detectarConflictos({ piscinas: p, asignaciones: asignaciones(), grupos: c.store.list('Grupos'), nadadores: c.store.list('Nadadores') });
+  const r2 = D.detectarConflictos({
+    piscinas: p,
+    asignaciones: asignaciones(),
+    grupos: c.store.list('Grupos'),
+    nadadores: c.store.list('Nadadores'),
+  });
   assert.ok(r2.some((x) => x.severidad === 'error'));
 });
 
@@ -42,7 +68,8 @@ test('the view draws the grid with lanes, Monday blocks, legend and panel', asyn
   await lunes();
   assert.match(c.container.textContent, /Planificación de la piscina/);
   assert.match(c.container.textContent, /Piscina Lugones/);
-  for (let i = 1; i <= 6; i++) assert.ok([...c.container.querySelectorAll('.pl-head')].some((x) => x.textContent === `Calle ${i}`));
+  for (let i = 1; i <= 6; i++)
+    assert.ok([...c.container.querySelectorAll('.pl-head')].some((x) => x.textContent === `Calle ${i}`));
   const bloques = c.container.querySelectorAll('.pl-gridwrap .pl-block');
   assert.equal(bloques.length, 2); // Promoción and Infantil-Junior
   assert.ok([...bloques].every((b) => b.getAttribute('aria-label')));
@@ -51,9 +78,17 @@ test('the view draws the grid with lanes, Monday blocks, legend and panel', asyn
   assert.match(c.container.querySelector('.pl-chip').textContent, /0 errores · 1 avisos/);
   assert.ok(c.container.querySelectorAll('.pl-dias [role=tab]').length === 7);
   assert.equal(c.container.querySelectorAll('h1').length, 1, 'a single h1 (page header)');
-  assert.equal(c.container.querySelector('.pl-gridwrap').getAttribute('role'), 'region', 'the grid scrolls inside a named region');
+  assert.equal(
+    c.container.querySelector('.pl-gridwrap').getAttribute('role'),
+    'region',
+    'the grid scrolls inside a named region',
+  );
   assert.ok(c.container.querySelector('.pl-gridwrap').getAttribute('aria-label'));
-  assert.match(c.container.querySelector('.pl-panel .alert--warn .alert-title').textContent, /Avisos \(1\)/, 'the panel uses alerts with a count');
+  assert.match(
+    c.container.querySelector('.pl-panel .alert--warn .alert-title').textContent,
+    /Avisos \(1\)/,
+    'the panel uses alerts with a count',
+  );
 });
 
 test('full-week mode lists the courses of every day', async () => {
@@ -145,7 +180,19 @@ test('duplicate opens a new form with the same data', async () => {
 
 test('changing the number of lanes trims the assignments and warns about those left out', async () => {
   const antes = asignaciones().length;
-  c.store.upsert('AsignacionesCalle', { id: 'parcial', piscinaId: 'p1', dia: 2, fecha: '', horaInicio: '10:00', horaFin: '11:00', calleDesde: 3, calleHasta: 6, grupoId: 'g1', entrenadorId: 'Marta Valdés', notas: '' });
+  c.store.upsert('AsignacionesCalle', {
+    id: 'parcial',
+    piscinaId: 'p1',
+    dia: 2,
+    fecha: '',
+    horaInicio: '10:00',
+    horaFin: '11:00',
+    calleDesde: 3,
+    calleHasta: 6,
+    grupoId: 'g1',
+    entrenadorId: 'Marta Valdés',
+    notas: '',
+  });
   await renderView('planificacion', c.container, ['piscina'], c);
   await abrirMenu('Configurar piscina');
   assert.match(modal().textContent, /Configuración de la piscina/);
@@ -201,7 +248,9 @@ test('single user: planning is always editable (no read-only mode)', async () =>
   assert.ok(buttonByText(c.container, 'Sugerir distribución'));
   assert.ok(buttonByText(c.container, 'Nueva asignación'));
   await click(c.container.querySelector('.page-head-actions .enp-mn-btn'));
-  assert.ok([...document.querySelectorAll('[role=menuitem]')].some((b) => b.textContent.trim() === 'Configurar piscina'));
+  assert.ok(
+    [...document.querySelectorAll('[role=menuitem]')].some((b) => b.textContent.trim() === 'Configurar piscina'),
+  );
   assert.doesNotMatch(c.container.textContent, /solo lectura/);
   assert.ok(c.container.querySelectorAll('.pl-gridwrap .pl-block').length > 0);
 });
@@ -216,7 +265,12 @@ test('suggest distribution: proposes and applies with no errors', async () => {
   await click(buttonByText(modal(), 'Aplicar propuesta'));
   assert.equal(asignaciones().length, n0 + 2);
   const D = await importApp('js/domain/planificacion.js');
-  const r = D.detectarConflictos({ piscinas: c.store.list('Piscinas'), asignaciones: asignaciones(), grupos: c.store.list('Grupos'), nadadores: c.store.list('Nadadores') });
+  const r = D.detectarConflictos({
+    piscinas: c.store.list('Piscinas'),
+    asignaciones: asignaciones(),
+    grupos: c.store.list('Grupos'),
+    nadadores: c.store.list('Nadadores'),
+  });
   assert.equal(r.filter((x) => x.severidad === 'error').length, 0);
 });
 
@@ -252,7 +306,10 @@ test('the view includes the printable copy of the week', async () => {
   assert.equal(imp.querySelectorAll('.pl-day').length, 7);
   assert.ok(!document.getElementById('pl-style'), 'no injected <style>: the stylesheet is css/views/planificacion.css');
   assert.ok(imp.closest('.pl-root'));
-  const css = (await import('node:fs')).readFileSync(new URL('../../css/views/planificacion.css', import.meta.url), 'utf8');
+  const css = (await import('node:fs')).readFileSync(
+    new URL('../../css/views/planificacion.css', import.meta.url),
+    'utf8',
+  );
   assert.match(css, /@media print/);
   assert.match(css, /@page/);
   assert.ok(!c.container.querySelector('.pl-print button'), 'the printable copy has no controls');

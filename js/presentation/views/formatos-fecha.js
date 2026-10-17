@@ -4,7 +4,10 @@ import { locale } from '../i18n/i18n.js';
 import { parseFecha } from '../../domain/calendario.js';
 
 // Local Date at midnight for a 'YYYY-MM-DD' (the zone never matters because only the calendar fields are formatted)
-const aDate = (f) => { const p = parseFecha(f); return p ? new Date(p.y, p.m - 1, p.d) : new Date(Number.NaN); };
+const aDate = (f) => {
+  const p = parseFecha(f);
+  return p ? new Date(p.y, p.m - 1, p.d) : new Date(Number.NaN);
+};
 export const intl = (f, opts) => new Intl.DateTimeFormat(locale(), opts).format(aDate(f));
 
 export const fmtCorta = (f) => intl(f, { day: 'numeric', month: 'short' }); // 5 oct

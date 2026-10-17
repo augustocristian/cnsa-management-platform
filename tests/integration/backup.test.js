@@ -5,7 +5,11 @@ import { importApp } from '../helpers/env.js';
 import { crearBackupCrypto } from '../../js/infrastructure/backupCrypto.js';
 
 let c;
-const test = (name, fn) => base(name, async (t) => { c = await fresh(); return fn(t); });
+const test = (name, fn) =>
+  base(name, async (t) => {
+    c = await fresh();
+    return fn(t);
+  });
 
 const AHORA = new Date(2026, 9, 16, 15, 30, 12);
 
@@ -14,7 +18,14 @@ async function montar({ modoDemo = false } = {}) {
   const { crearServicioBackupApp } = await importApp('js/composicion/backup.js');
   const { renderBackupPanel } = await importApp('js/presentation/views/backup-panel.js');
   const descargas = [];
-  const svc = crearServicioBackupApp({ store: c.store, ahora: () => AHORA, descargar: (blob, nombre) => { descargas.push({ blob, nombre }); }, cripto: crearBackupCrypto({ iteraciones: 1000 }) });
+  const svc = crearServicioBackupApp({
+    store: c.store,
+    ahora: () => AHORA,
+    descargar: (blob, nombre) => {
+      descargas.push({ blob, nombre });
+    },
+    cripto: crearBackupCrypto({ iteraciones: 1000 }),
+  });
   const pintar = () => {
     c.container.replaceChildren(renderBackupPanel({ store: c.store, ui: c.ui, backup: svc, recargar: pintar }));
     return c.container;
@@ -32,7 +43,18 @@ const archivoElegido = async (panel, texto, nombre = 'copia.json') => {
   input.dispatchEvent(new window.Event('change', { bubbles: true }));
   for (let i = 0; i < 40 && !panel.querySelector('#backup-restaurar, .alert--danger'); i++) await tick(5);
 };
-const hojasConDatos = () => ['Nadadores', 'Grupos', 'Entrenamientos', 'Asistencia', 'Cargas', 'Marcas', 'Comunicaciones', 'Banadores', 'Piscinas', 'TiposCarga'];
+const hojasConDatos = () => [
+  'Nadadores',
+  'Grupos',
+  'Entrenamientos',
+  'Asistencia',
+  'Cargas',
+  'Marcas',
+  'Comunicaciones',
+  'Banadores',
+  'Piscinas',
+  'TiposCarga',
+];
 const foto = () => JSON.stringify(hojasConDatos().map((s) => c.store.list(s).sort((a, b) => a.id.localeCompare(b.id)))); // row order is not part of the data
 
 test('Settings mounts the backup panel', async () => {
@@ -74,7 +96,8 @@ test('download with password: validates the confirmation and encrypts the file',
   await tick(5);
   assert.equal(descargas.length, 0);
   assert.match(panel.textContent, /al menos 8 caracteres/);
-  p1.value = 'una-clave-larga-1'; p2.value = 'otra-distinta-123';
+  p1.value = 'una-clave-larga-1';
+  p2.value = 'otra-distinta-123';
   p1.dispatchEvent(new window.Event('input', { bubbles: true }));
   assert.match(panel.querySelector('#backup-fuerza').textContent, /Fortaleza/);
   panel.querySelector('#backup-descargar').click();
@@ -95,14 +118,22 @@ test('restore from file: preview, confirmation gate and the data comes back', as
   await svc.descargarBackup();
   const texto = await descargas[0].blob.text();
   // modify: delete swimmers and edit the club
-  c.store.removeMany('Nadadores', c.store.list('Nadadores').slice(0, 3).map((n) => n.id));
+  c.store.removeMany(
+    'Nadadores',
+    c.store
+      .list('Nadadores')
+      .slice(0, 3)
+      .map((n) => n.id),
+  );
   c.store.setClub({ lema: 'Cambiado' });
   assert.notEqual(foto(), original);
   const panel = c.container;
   await archivoElegido(panel, texto);
   assert.ok(panel.querySelector('#backup-restaurar'), 'valid backup shows the Restore button');
   assert.match(panel.querySelector('.alert--ok').textContent, /Copia válida/);
-  const filaNad = [...panel.querySelectorAll('#backup-tabla tbody tr')].find((tr) => tr.firstChild.textContent === 'Nadadores');
+  const filaNad = [...panel.querySelectorAll('#backup-tabla tbody tr')].find(
+    (tr) => tr.firstChild.textContent === 'Nadadores',
+  );
   assert.equal(filaNad.children[3].textContent, '3'); // 3 new rows
   // Replace is the default
   assert.equal(panel.querySelector('input[name="backup-modo"]:checked').value, 'replace');
@@ -145,7 +176,10 @@ test('the deletion tombstone reaches the Drive file when restoring in replace mo
   assert.equal(c.store.get('Grupos', 'extra-g'), null);
   const enDrive = (await c.drive.read(c.ref.id)).doc;
   assert.ok(enDrive.sync.lapidas.Grupos['extra-g'], 'the removed row left a tombstone in the synced file');
-  assert.equal(enDrive.hojas.Grupos.some((g) => g.id === 'extra-g'), false);
+  assert.equal(
+    enDrive.hojas.Grupos.some((g) => g.id === 'extra-g'),
+    false,
+  );
   // the safety copy exists in cnl/backups
   const copias = await c.drive.listarBackups(c.store.clubRef.name, { todos: true });
   assert.ok(copias.some((b) => /-restore-\d{14}\.json$/.test(b.name)));
@@ -187,8 +221,18 @@ test('encrypted backup: asks for the passphrase and a wrong one is flagged on th
 
 test('backups in Drive: lists those in cnl/backups and allows restoring one', async () => {
   const { svc } = await montar();
-  await c.drive.backupClub(c.store.clubRef.name, await (async () => { const d = c.store.documento(); return d; })(), { fecha: new Date(2026, 9, 14) });
-  c.store.removeMany('Nadadores', c.store.list('Nadadores').map((n) => n.id));
+  await c.drive.backupClub(
+    c.store.clubRef.name,
+    await (async () => {
+      const d = c.store.documento();
+      return d;
+    })(),
+    { fecha: new Date(2026, 9, 14) },
+  );
+  c.store.removeMany(
+    'Nadadores',
+    c.store.list('Nadadores').map((n) => n.id),
+  );
   const panel = c.container;
   panel.replaceChildren();
   const { renderBackupPanel } = await importApp('js/presentation/views/backup-panel.js');
@@ -202,7 +246,9 @@ test('backups in Drive: lists those in cnl/backups and allows restoring one', as
   buttonByText(filas[0], 'Restaurar').click();
   for (let i = 0; i < 60 && !panel.querySelector('#backup-restaurar'); i++) await tick(10);
   assert.ok(panel.querySelector('#backup-restaurar'));
-  const r = await svc.restaurar((await svc.leerBackupDrive((await svc.listarBackupsDrive())[0].id)).doc, { modo: 'merge' });
+  const r = await svc.restaurar((await svc.leerBackupDrive((await svc.listarBackupsDrive())[0].id)).doc, {
+    modo: 'merge',
+  });
   assert.equal(r.total.nuevas > 0, true);
   assert.equal(c.store.list('Nadadores').length, 12);
 });
@@ -221,7 +267,10 @@ test('demo mode: download and restore work; Drive backups are explained and disa
   assert.equal(descargas.length, 1);
   const nombres = c.store.list('Nadadores').length;
   assert.ok(nombres > 0);
-  c.store.removeMany('Nadadores', c.store.list('Nadadores').map((n) => n.id));
+  c.store.removeMany(
+    'Nadadores',
+    c.store.list('Nadadores').map((n) => n.id),
+  );
   const r = await svc.restaurar((await svc.leerBackup(descargas[0].blob)).doc);
   assert.equal(r.seguridad.destino, 'sesion');
   assert.equal(c.store.list('Nadadores').length, nombres);

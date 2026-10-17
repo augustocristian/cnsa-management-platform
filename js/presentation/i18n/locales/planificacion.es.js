@@ -39,7 +39,8 @@ export default {
   'plan.f.piscina': 'Piscina',
   'plan.f.dia': 'Día de la semana',
   'plan.f.fecha': 'Fecha concreta (excepción puntual)',
-  'plan.f.fecha-ayuda': 'Déjala vacía para que se repita todas las semanas. Con una fecha, la asignación solo vale ese día.',
+  'plan.f.fecha-ayuda':
+    'Déjala vacía para que se repita todas las semanas. Con una fecha, la asignación solo vale ese día.',
   'plan.f.inicio': 'Hora de inicio',
   'plan.f.fin': 'Hora de fin',
   'plan.f.desde': 'Calle desde',
@@ -67,17 +68,21 @@ export default {
   'plan.panel.avisos': 'Avisos',
   'plan.panel.huecos': 'Huecos libres',
   'plan.panel.vacio': 'No se han detectado errores ni avisos.',
-  'plan.c.calle-solapada': 'En {piscina}, «{a}» y «{b}» ocupan a la vez {calles} el {dia} de {desdeHora} a {hastaHora}.',
+  'plan.c.calle-solapada':
+    'En {piscina}, «{a}» y «{b}» ocupan a la vez {calles} el {dia} de {desdeHora} a {hastaHora}.',
   'plan.c.grupo-doble': '«{a}» está asignado a dos sitios a la vez el {dia} de {desdeHora} a {hastaHora}.',
-  'plan.c.entrenador-doble': '{entrenador} tiene dos clases a la vez el {dia} de {desdeHora} a {hastaHora} («{a}» y «{b}»).',
+  'plan.c.entrenador-doble':
+    '{entrenador} tiene dos clases a la vez el {dia} de {desdeHora} a {hastaHora} («{a}» y «{b}»).',
   'plan.c.calle-fuera-rango': '«{grupo}» usa {calles}, pero {piscina} solo tiene {numCalles} calles.',
-  'plan.c.fuera-horario': '«{grupo}» ({dia}, {horaInicio}–{horaFin}) queda fuera del horario de {piscina} ({abre}–{cierra}).',
+  'plan.c.fuera-horario':
+    '«{grupo}» ({dia}, {horaInicio}–{horaFin}) queda fuera del horario de {piscina} ({abre}–{cierra}).',
   'plan.c.fuera-horario-cerrado': '«{grupo}»: {piscina} está cerrada el {dia}.',
   'plan.c.hora-invalida': '«{grupo}»: la hora de fin debe ser posterior a la de inicio ({horaInicio}–{horaFin}).',
   'plan.c.dia-invalido': '«{grupo}»: el día de la semana no es válido.',
   'plan.c.piscina-inexistente': 'Una asignación apunta a una piscina que no existe.',
   'plan.c.sin-grupo': 'Falta elegir el curso de la asignación del {dia} ({horaInicio}–{horaFin}).',
-  'plan.c.capacidad': '«{grupo}»: {nadadores} nadadores en {calles} ({porCalle} por calle) superan el máximo de {max} por calle.',
+  'plan.c.capacidad':
+    '«{grupo}»: {nadadores} nadadores en {calles} ({porCalle} por calle) superan el máximo de {max} por calle.',
   'plan.c.sin-entrenador': '«{grupo}» el {dia} ({horaInicio}–{horaFin}) no tiene entrenador asignado.',
   'plan.c.grupo-inexistente': 'El curso de la asignación del {dia} ({horaInicio}–{horaFin}) ya no existe.',
   'plan.c.hueco-libre': 'Hueco libre en {piscina}: {calles}, el {dia} de {horaInicio} a {horaFin}.',
@@ -93,7 +98,8 @@ export default {
   'plan.cfg.cierra': 'Cierre',
   'plan.cfg.guardada': 'Piscina guardada',
   'plan.cfg.guardada-recorte': 'Piscina guardada. Asignaciones recortadas: {recortadas}; fuera de rango: {fuera}.',
-  'plan.cfg.recorte-confirm': 'Al reducir las calles se recortarán {recortadas} asignaciones y {fuera} quedarán fuera de rango (aparecerán como error hasta que las muevas). ¿Continuar?',
+  'plan.cfg.recorte-confirm':
+    'Al reducir las calles se recortarán {recortadas} asignaciones y {fuera} quedarán fuera de rango (aparecerán como error hasta que las muevas). ¿Continuar?',
   'plan.cfg.eliminar': 'Eliminar piscina',
   'plan.cfg.eliminar-confirm': 'Se eliminará la piscina y sus {n} asignaciones. ¿Continuar?',
   'plan.cfg.eliminada': 'Piscina eliminada',
@@ -104,7 +110,8 @@ export default {
   'plan.err.max-por-calle': 'El máximo por calle debe estar entre 1 y 99.',
   'plan.err.horario': 'En cada día abierto, el cierre debe ser posterior a la apertura.',
   'plan.err.sin-dias': 'Abre al menos un día.',
-  'plan.sug.intro': 'Reparte en calles libres los cursos que aún no tienen sitio ese día, según su número de nadadores y sin generar conflictos.',
+  'plan.sug.intro':
+    'Reparte en calles libres los cursos que aún no tienen sitio ese día, según su número de nadadores y sin generar conflictos.',
   'plan.sug.dia': 'Día',
   'plan.sug.duracion': 'Duración (min)',
   'plan.sug.grupos': 'Cursos a colocar',

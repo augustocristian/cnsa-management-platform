@@ -42,7 +42,8 @@ export default {
 
   'home.alertas.titulo': 'Avvisi sui carichi',
   'home.alertas.sin-objetivos': 'Nessun obiettivo di carico',
-  'home.alertas.sin-objetivos-texto': 'Definisci obiettivi settimanali per contenuto per ricevere avvisi quando un carico si discosta.',
+  'home.alertas.sin-objetivos-texto':
+    'Definisci obiettivi settimanali per contenuto per ricevere avvisi quando un carico si discosta.',
   'home.alertas.definir': 'Definisci obiettivi',
   'home.alertas.sin-cargas': 'Ancora nessun carico questa settimana',
   'home.alertas.sin-cargas-texto': 'Gli avvisi compaiono appena registri il primo carico.',

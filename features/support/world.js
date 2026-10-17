@@ -3,10 +3,18 @@ import assert from 'node:assert/strict';
 
 // Module name as shown in the (Spanish) UI -> route.
 export const MODULES = {
-  'Inicio': 'inicio', 'Nadadores': 'nadadores', 'Grupos': 'grupos',
-  'Entrenamientos': 'entrenamientos', 'Asistencia': 'asistencia', 'Cargas': 'cargas', 'Marcas': 'marcas',
-  'Avisos y notas': 'comunicaciones', 'Configuración': 'club',
-  'Planificación': 'planificacion', 'Calendario': 'calendario', 'Tutorial': 'tutorial',
+  Inicio: 'inicio',
+  Nadadores: 'nadadores',
+  Grupos: 'grupos',
+  Entrenamientos: 'entrenamientos',
+  Asistencia: 'asistencia',
+  Cargas: 'cargas',
+  Marcas: 'marcas',
+  'Avisos y notas': 'comunicaciones',
+  Configuración: 'club',
+  Planificación: 'planificacion',
+  Calendario: 'calendario',
+  Tutorial: 'tutorial',
 };
 export const DIALOG = '.nad-modal, .grp-modal, .ent-modal, .modal';
 const TIMEOUT = 8000;
@@ -19,7 +27,14 @@ export const route = (module) => {
 const esc = (p) => p.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 // Regex that requires all the words to appear (in any order)
 export const allWords = (text) =>
-  new RegExp(text.trim().split(/\s+/).map((p) => `(?=.*${esc(p)})`).join(''), 's');
+  new RegExp(
+    text
+      .trim()
+      .split(/\s+/)
+      .map((p) => `(?=.*${esc(p)})`)
+      .join(''),
+    's',
+  );
 export const textRegex = (t) => new RegExp(esc(t));
 
 class CnlWorld extends World {
@@ -29,7 +44,9 @@ class CnlWorld extends World {
     this.timeout = TIMEOUT;
   }
 
-  get view() { return this.page.locator('#view'); }
+  get view() {
+    return this.page.locator('#view');
+  }
 
   // Open dialog if there is one; otherwise the current view
   async scope() {
@@ -42,7 +59,15 @@ class CnlWorld extends World {
   // options: {session, demo, noClientId, user, loginError, failures, connected, connectionError} (translated to the keys of the fake). The flags are written only once per tab:
   // later reloads keep the simulated "Drive" (mirrored in localStorage) and the session.
   async openApp(options = {}) {
-    const KEYS = { session: 'sesion', noClientId: 'sinClientId', user: 'usuario', loginError: 'errorLogin', failures: 'fallos', connected: 'conectado', connectionError: 'errorConexion' };
+    const KEYS = {
+      session: 'sesion',
+      noClientId: 'sinClientId',
+      user: 'usuario',
+      loginError: 'errorLogin',
+      failures: 'fallos',
+      connected: 'conectado',
+      connectionError: 'errorConexion',
+    };
     const fakeOptions = {};
     for (const [k, v] of Object.entries(options)) if (v !== undefined) fakeOptions[KEYS[k] ?? k] = v;
     await this.page.addInitScript((o) => {
@@ -53,7 +78,9 @@ class CnlWorld extends World {
           localStorage.setItem('cnl:lang', 'es');
           sessionStorage.setItem('e2e-init', '1');
         }
-      } catch (e) { /* ignore */ }
+      } catch (e) {
+        /* ignore */
+      }
     }, fakeOptions);
     await this.page.goto('/');
   }
@@ -64,13 +91,23 @@ class CnlWorld extends World {
     await this.waitForShell();
   }
 
-  async waitForShell() { await this.page.locator('.topbar .brand-name').waitFor({ timeout: this.timeout }); }
+  async waitForShell() {
+    await this.page.locator('.topbar .brand-name').waitFor({ timeout: this.timeout });
+  }
 
   // State of the simulated Drive (clubs, prefs, files) as the page sees it.
-  async drive() { return this.page.evaluate(() => ({ clubs: window.__CNL_FAKE__.clubs(), prefs: window.__CNL_FAKE__.prefs(), files: window.__CNL_FAKE__.archivos() })); }
+  async drive() {
+    return this.page.evaluate(() => ({
+      clubs: window.__CNL_FAKE__.clubs(),
+      prefs: window.__CNL_FAKE__.prefs(),
+      files: window.__CNL_FAKE__.archivos(),
+    }));
+  }
 
   async goTo(r) {
-    await this.page.evaluate((x) => { location.hash = '#/' + x; }, r);
+    await this.page.evaluate((x) => {
+      location.hash = '#/' + x;
+    }, r);
     await this.waitForActiveRoute(r);
     await this.page.locator('#view .loading').waitFor({ state: 'detached', timeout: this.timeout });
   }
@@ -78,15 +115,22 @@ class CnlWorld extends World {
   // The nav item of the route is current. On mobile only 4 routes sit in the bottom bar, but every route keeps its (hidden)
   // .nav-item, so this works for both layouts; "More" also becomes active when the route lives in its sheet.
   async waitForActiveRoute(r) {
-    await this.page.locator(`.nav-item[data-route="${r}"].active[aria-current="page"]`).waitFor({ state: 'attached', timeout: this.timeout });
+    await this.page
+      .locator(`.nav-item[data-route="${r}"].active[aria-current="page"]`)
+      .waitFor({ state: 'attached', timeout: this.timeout });
   }
 
-  async isMobile() { return (this.page.viewportSize()?.width ?? 1280) <= 820; }
+  async isMobile() {
+    return (this.page.viewportSize()?.width ?? 1280) <= 820;
+  }
 
   // Clicks a module in the navigation the way a person does: directly if it is visible, otherwise through the "More" sheet.
   async clickInMenu(r) {
     const item = this.page.locator(`.nav-item[data-route="${r}"]`);
-    if (await item.isVisible()) { await item.click(); return; }
+    if (await item.isVisible()) {
+      await item.click();
+      return;
+    }
     await this.page.locator('.nav-more').click();
     await this.page.locator(`.sheet .mas-item[data-route="${r}"]`).click();
     await this.page.locator('.sheet-overlay').waitFor({ state: 'detached', timeout: this.timeout });
@@ -112,20 +156,31 @@ class CnlWorld extends World {
     const end = Date.now() + this.timeout;
     let last;
     for (;;) {
-      try { await fn(); return; } catch (e) { last = e; }
+      try {
+        await fn();
+        return;
+      } catch (e) {
+        last = e;
+      }
       if (Date.now() > end) throw new Error(`${message}: ${last?.message ?? last}`);
       await this.page.waitForTimeout(100);
     }
   }
 
   async expectVisible(locator, message) {
-    try { await locator.first().waitFor({ state: 'visible', timeout: this.timeout }); }
-    catch (e) { throw new Error(`${message || 'The expected element is not visible'}\n${e.message.split('\n')[0]}`); }
+    try {
+      await locator.first().waitFor({ state: 'visible', timeout: this.timeout });
+    } catch (e) {
+      throw new Error(`${message || 'The expected element is not visible'}\n${e.message.split('\n')[0]}`, { cause: e });
+    }
   }
 
   async expectHidden(locator, message) {
-    try { await locator.first().waitFor({ state: 'hidden', timeout: this.timeout }); }
-    catch (e) { throw new Error(`${message || 'The element should not be visible'}\n${e.message.split('\n')[0]}`); }
+    try {
+      await locator.first().waitFor({ state: 'hidden', timeout: this.timeout });
+    } catch (e) {
+      throw new Error(`${message || 'The element should not be visible'}\n${e.message.split('\n')[0]}`, { cause: e });
+    }
   }
 
   async fill(scope, label, value) {
@@ -135,9 +190,10 @@ class CnlWorld extends World {
     if (tag === 'select') {
       // exact label or, if there is none, the first option that contains it (e.g. sessions with the date in front)
       const options = (await field.locator('option').allInnerTexts()).map((o) => o.trim());
-      await field.selectOption({ label: options.find((o) => o === value) ?? options.find((o) => o.includes(value)) ?? value });
-    }
-    else await field.fill(value);
+      await field.selectOption({
+        label: options.find((o) => o === value) ?? options.find((o) => o.includes(value)) ?? value,
+      });
+    } else await field.fill(value);
   }
 
   async fillTable(scope, table) {

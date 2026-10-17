@@ -14,7 +14,10 @@ Given('I have created the club {string} with the wizard', async function (name) 
 Then('Drive contains the club {string}', async function (name) {
   await this.eventually(async () => {
     const d = await this.drive();
-    assert.ok(d.clubs.some((c) => c.name === name), `There is no club "${name}" in cnl: ${d.clubs.map((c) => c.name).join(', ')}`);
+    assert.ok(
+      d.clubs.some((c) => c.name === name),
+      `There is no club "${name}" in cnl: ${d.clubs.map((c) => c.name).join(', ')}`,
+    );
   });
 });
 
@@ -26,7 +29,8 @@ Then('the swimmers list is empty', async function () {
 Then('the home panel offers the first steps:', async function (table) {
   const card = this.view.locator('#primeros-pasos');
   await this.expectVisible(card, 'The first steps card is not visible');
-  for (const [step] of table.raw()) await this.expectVisible(card.getByRole('link', { name: step }), `The step "${step}" is missing`);
+  for (const [step] of table.raw())
+    await this.expectVisible(card.getByRole('link', { name: step }), `The step "${step}" is missing`);
 });
 
 Then('the field {string} contains {string}', async function (label, value) {
@@ -43,18 +47,26 @@ Then('the Drive preferences store {string} with the value {string}', async funct
 
 Then('I see the origin of this page to copy it', async function () {
   const origin = new URL(this.page.url()).origin;
-  await this.expectVisible(this.page.locator('[data-codigo] code', { hasText: origin }), `The origin ${origin} is not shown`);
+  await this.expectVisible(
+    this.page.locator('[data-codigo] code', { hasText: origin }),
+    `The origin ${origin} is not shown`,
+  );
 });
 
 Then('the club file in Drive does not contain the swimmer {string}', async function (name) {
   await this.page.waitForTimeout(2500); // longer than the upload debounce (1.5 s): if it were going to be uploaded it already would have
   const d = await this.drive();
-  assert.ok(!d.clubs.some((c) => (c.doc.hojas.Nadadores || []).some((n) => n.nombre === name)), `"${name}" should not be in Drive yet`);
+  assert.ok(
+    !d.clubs.some((c) => (c.doc.hojas.Nadadores || []).some((n) => n.nombre === name)),
+    `"${name}" should not be in Drive yet`,
+  );
 });
 
 Then('the sync indicator shows {string}', async function (text) {
   await this.openAccountMenu();
-  await this.eventually(async () => assert.equal((await this.page.locator('.status-chip .status-text').innerText()).trim(), text));
+  await this.eventually(async () =>
+    assert.equal((await this.page.locator('.status-chip .status-text').innerText()).trim(), text),
+  );
 });
 
 When('I recover the connection', async function () {
@@ -68,7 +80,8 @@ When('I choose the language {string}', async function (language) {
 
 Then('the start screen does not mention accounts or signing in', async function () {
   const txt = (await this.page.locator('main').innerText()).toLowerCase();
-  for (const word of ['iniciar sesión', 'inicia sesión', 'cuenta', 'correo', 'bienvenido de nuevo']) assert.ok(!txt.includes(word), `The screen mentions "${word}"`);
+  for (const word of ['iniciar sesión', 'inicia sesión', 'cuenta', 'correo', 'bienvenido de nuevo'])
+    assert.ok(!txt.includes(word), `The screen mentions "${word}"`);
 });
 
 Then('the language selector of the start screen is in the card footer', async function () {
@@ -93,13 +106,20 @@ Then('the origin of this page and its Copy button are aligned', async function (
   const r = await box.evaluate((el) => {
     const a = el.querySelector('code').getBoundingClientRect();
     const b = el.querySelector('button').getBoundingClientRect();
-    return { dy: Math.abs(a.top - b.top), dh: Math.abs(a.height - b.height), sameRow: a.bottom > b.top && b.bottom > a.top };
+    return {
+      dy: Math.abs(a.top - b.top),
+      dh: Math.abs(a.height - b.height),
+      sameRow: a.bottom > b.top && b.bottom > a.top,
+    };
   });
   assert.ok(r.sameRow && r.dy <= 1 && r.dh <= 1, `Field and button are misaligned: ${JSON.stringify(r)}`);
 });
 
 Then('the club preview uses the chosen colour', async function () {
-  await this.page.locator('#as-color1').evaluate((el) => { el.value = '#d81b60'; el.dispatchEvent(new Event('input', { bubbles: true })); });
+  await this.page.locator('#as-color1').evaluate((el) => {
+    el.value = '#d81b60';
+    el.dispatchEvent(new Event('input', { bubbles: true }));
+  });
   await this.eventually(async () => {
     const v = await this.page.locator('.acc-prev').evaluate((el) => el.style.getPropertyValue('--c-action'));
     assert.match(v, /^#[0-9a-f]{6}$/i);

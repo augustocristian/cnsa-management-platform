@@ -14,7 +14,14 @@
 //   - a single auto component gets the whole distance
 // Manual always wins: autocompleting from the text never touches manual components.
 import {
-  num, normalizarLinea, filaVacia, ordenarLineas, distanciaBloque, seriesEfectivas, leerComponentes, escribirComponentes,
+  num,
+  normalizarLinea,
+  filaVacia,
+  ordenarLineas,
+  distanciaBloque,
+  seriesEfectivas,
+  leerComponentes,
+  escribirComponentes,
 } from './entreno.js';
 import { normalizarNombre, CATALOGO_PREDEFINIDO, PREFIJO_ID } from './cargas.js';
 
@@ -41,15 +48,28 @@ export function canonicoEstilo(texto) {
 
 // ---------- Catalogue and alias dictionary ----------
 // Minimal catalogue when none is passed (tests, plans without an open club): the predefined ones with their factory aliases.
-export const catalogoBase = () => CATALOGO_PREDEFINIDO.map((c) => ({
-  id: c.id, nombre: c.nombre, alias: c.alias.slice(), color: c.color, activo: true, predefinido: true, categoria: c.categoria, orden: c.orden,
-}));
+export const catalogoBase = () =>
+  CATALOGO_PREDEFINIDO.map((c) => ({
+    id: c.id,
+    nombre: c.nombre,
+    alias: c.alias.slice(),
+    color: c.color,
+    activo: true,
+    predefinido: true,
+    categoria: c.categoria,
+    orden: c.orden,
+  }));
 const catalogo = (tipos) => (Array.isArray(tipos) && tipos.length ? tipos : catalogoBase());
 
 // Keys of a content: its name, each part of a name "A / B" and its aliases. -> [normalised key]
 export function clavesDeTipo(tipo) {
   const nombre = normalizarNombre(tipo.nombre);
-  const tramos = nombre.includes('/') ? nombre.split('/').map((x) => x.trim()).filter((x) => x.length >= 3) : [];
+  const tramos = nombre.includes('/')
+    ? nombre
+        .split('/')
+        .map((x) => x.trim())
+        .filter((x) => x.length >= 3)
+    : [];
   return [...new Set([nombre, ...tramos, ...(tipo.alias || []).map(normalizarNombre)].filter(Boolean))];
 }
 // Text -> catalogue content by exact name or alias (no accents, case-insensitive), or null.
@@ -60,13 +80,20 @@ export function resolverContenido(texto, tipos) {
   return cat.find((t) => clavesDeTipo(t).includes(k)) || null;
 }
 // Abbreviation for tight spaces (PDF, text summary): the first alias, or the name.
-export const nombreCorto = (tipo) => (tipo && tipo.alias && tipo.alias.length ? tipo.alias[0] : tipo ? tipo.nombre : '');
+export const nombreCorto = (tipo) =>
+  tipo && tipo.alias && tipo.alias.length ? tipo.alias[0] : tipo ? tipo.nombre : '';
 
 // Dictionary sorted from longest to shortest: [{ k, tipo } | { k, estilo }]
 function diccionario(tipos) {
   const mapa = new Map();
-  catalogo(tipos).forEach((t) => clavesDeTipo(t).forEach((k) => { if (!mapa.has(k)) mapa.set(k, { k, tipo: t }); }));
-  INDICE_ESTILO.forEach((estilo, k) => { if (!mapa.has(k)) mapa.set(k, { k, estilo }); });
+  catalogo(tipos).forEach((t) =>
+    clavesDeTipo(t).forEach((k) => {
+      if (!mapa.has(k)) mapa.set(k, { k, tipo: t });
+    }),
+  );
+  INDICE_ESTILO.forEach((estilo, k) => {
+    if (!mapa.has(k)) mapa.set(k, { k, estilo });
+  });
   return [...mapa.values()].sort((a, b) => b.k.length - a.k.length);
 }
 
@@ -83,12 +110,20 @@ export function repartir(items, D) {
   let fijo = 0;
   const libres = [];
   items.forEach((it, i) => {
-    if (it.pct > 0) { out[i] = r2(D * it.pct / 100); fijo += out[i]; } else if (it.metrosPorRep != null) { out[i] = it.metrosPorRep; fijo += out[i]; } else if (it.modo !== 'manual') libres.push(i);
+    if (it.pct > 0) {
+      out[i] = r2((D * it.pct) / 100);
+      fijo += out[i];
+    } else if (it.metrosPorRep != null) {
+      out[i] = it.metrosPorRep;
+      fijo += out[i];
+    } else if (it.modo !== 'manual') libres.push(i);
   });
   const sobrante = Math.max(0, r2(D - fijo));
   if (libres.length) {
     const parte = r2(sobrante / libres.length);
-    libres.forEach((i, k) => { out[i] = k === libres.length - 1 ? r2(sobrante - parte * (libres.length - 1)) : parte; });
+    libres.forEach((i, k) => {
+      out[i] = k === libres.length - 1 ? r2(sobrante - parte * (libres.length - 1)) : parte;
+    });
   }
   const asignado = r2(out.reduce((a, v) => a + v, 0));
   const dif = r2(D - asignado);
@@ -110,7 +145,10 @@ export function porcentajes(valores, dec = 1) {
 
 // ---------- Classification of free text (legacy lines without components) ----------
 const REGLAS_CONTENIDO = [
-  ['aerobico-ligero', /calentamiento|vuelta a la calma|recuperacion|regenerativ|suave|soltar|enfriamiento|activacion|ligero/],
+  [
+    'aerobico-ligero',
+    /calentamiento|vuelta a la calma|recuperacion|regenerativ|suave|soltar|enfriamiento|activacion|ligero/,
+  ],
   ['aerobico-intenso', /aerobico intenso|potencia aerobica|vo2/],
   ['anaerobico', /anaerobico|lactato|lactic/],
   ['alactico', /alactico|sprint|velocidad|explosiv|maxima/],
@@ -128,7 +166,10 @@ export function clasificarTexto(texto, tipos) {
   const cat = catalogo(tipos);
   const exacto = resolverContenido(k, cat);
   if (exacto) return exacto;
-  const propio = cat.find((t) => !t.predefinido && t.activo && normalizarNombre(t.nombre).length >= 3 && k.includes(normalizarNombre(t.nombre)));
+  const propio = cat.find(
+    (t) =>
+      !t.predefinido && t.activo && normalizarNombre(t.nombre).length >= 3 && k.includes(normalizarNombre(t.nombre)),
+  );
   if (propio) return propio;
   for (const [clave, re] of REGLAS_CONTENIDO) {
     if (re.test(k)) return cat.find((t) => t.id === PREFIJO_ID + clave) || null;
@@ -142,29 +183,55 @@ export function clasificarTexto(texto, tipos) {
 // A word without a number applies to the whole distance (or to the rest); a number before one or several
 // recognised words (contents or styles) assigns them those metres per repetition. Whatever is not recognised is ignored and listed.
 export function parsearEjercicio(texto, { tipos } = {}) {
-  const vacioR = (codigo) => ({ ok: false, codigo, series: null, distancia: null, componentes: [], estilos: [], sinReconocer: [] });
-  const s = String(texto ?? '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().replace(/[×*]/g, 'x').replace(/\s+/g, ' ').trim();
+  const vacioR = (codigo) => ({
+    ok: false,
+    codigo,
+    series: null,
+    distancia: null,
+    componentes: [],
+    estilos: [],
+    sinReconocer: [],
+  });
+  const s = String(texto ?? '')
+    .normalize('NFD')
+    .replace(/[̀-ͯ]/g, '')
+    .toLowerCase()
+    .replace(/[×*]/g, 'x')
+    .replace(/\s+/g, ' ')
+    .trim();
   if (!s) return vacioR('vacio');
   const dic = diccionario(tipos);
   const NUM = /^(\d+(?:[.,]\d+)?)\s*(?:m(?![a-z0-9]))?/;
-  let i = 0, series = null, distancia = null;
+  let i = 0,
+    series = null,
+    distancia = null;
   const pre = /^(\d+)\s*x\s*(?=[\d(])/.exec(s);
   if (pre) {
     series = Number(pre[1]);
     i = pre[0].length;
-    if (s[i] === '(') i++; // 3x(200 AeM + 100 AeI): the distance is the sum inside the parentheses
+    if (s[i] === '(')
+      i++; // 3x(200 AeM + 100 AeI): the distance is the sum inside the parentheses
     else {
       const dm = NUM.exec(s.slice(i));
-      if (dm) { distancia = Number(dm[1].replace(',', '.')); i += dm[0].length; }
+      if (dm) {
+        distancia = Number(dm[1].replace(',', '.'));
+        i += dm[0].length;
+      }
     }
     if (/\d\s*x\s*[\d(]/.test(s.slice(i))) return vacioR('varios-bloques');
   }
   const grupos = [];
   let cur = { numero: null, etiquetas: [], palabras: [] };
-  const cerrar = () => { if (cur.numero != null || cur.etiquetas.length || cur.palabras.length) grupos.push(cur); cur = { numero: null, etiquetas: [], palabras: [] }; };
+  const cerrar = () => {
+    if (cur.numero != null || cur.etiquetas.length || cur.palabras.length) grupos.push(cur);
+    cur = { numero: null, etiquetas: [], palabras: [] };
+  };
   while (i < s.length) {
     const c = s[i];
-    if (c === ' ') { i++; continue; }
+    if (c === ' ') {
+      i++;
+      continue;
+    }
     if (/\d/.test(c)) {
       const m = NUM.exec(s.slice(i));
       cerrar();
@@ -174,7 +241,11 @@ export function parsearEjercicio(texto, { tipos } = {}) {
     }
     if (/[a-z]/.test(c)) {
       const hit = dic.find((e) => s.startsWith(e.k, i) && !/[a-z0-9]/.test(s[i + e.k.length] || ''));
-      if (hit) { cur.etiquetas.push(hit); i += hit.k.length; continue; }
+      if (hit) {
+        cur.etiquetas.push(hit);
+        i += hit.k.length;
+        continue;
+      }
       const w = /^[a-z0-9]+/.exec(s.slice(i))[0];
       cur.palabras.push(w);
       i += w.length;
@@ -200,18 +271,36 @@ export function parsearEjercicio(texto, { tipos } = {}) {
     });
     if (g.numero != null && !g.etiquetas.length) sin.push(...g.palabras); // «25 flecha»: a number followed by something that is not known
   });
-  let componentes = [...comps.values()].map((c) => ({ contenido: c.contenido, metrosPorRep: c.metrosPorRep, modo: 'auto', pct: null }));
+  let componentes = [...comps.values()].map((c) => ({
+    contenido: c.contenido,
+    metrosPorRep: c.metrosPorRep,
+    modo: 'auto',
+    pct: null,
+  }));
   const estilos = [...ests.values()].map((e) => ({ estilo: e.estilo, metrosPorRep: e.metrosPorRep }));
   const suma = (l) => l.reduce((a, c) => a + (c.metrosPorRep || 0), 0);
   if (distancia == null) {
     const d = suma(componentes) || suma(estilos);
     if (d > 0) distancia = r2(d);
   }
-  if (componentes.length === 1 && componentes[0].metrosPorRep != null && distancia != null && Math.abs(componentes[0].metrosPorRep - distancia) > EPS) {
+  if (
+    componentes.length === 1 &&
+    componentes[0].metrosPorRep != null &&
+    distancia != null &&
+    Math.abs(componentes[0].metrosPorRep - distancia) > EPS
+  ) {
     componentes = [{ ...componentes[0], modo: 'manual' }]; // an explicit number different from the distance is respected
   }
   const ok = series != null || distancia != null || componentes.length > 0 || estilos.length > 0;
-  return { ok, codigo: ok ? '' : 'sin-datos', series, distancia, componentes, estilos, sinReconocer: [...new Set(sin)] };
+  return {
+    ok,
+    codigo: ok ? '' : 'sin-datos',
+    series,
+    distancia,
+    componentes,
+    estilos,
+    sinReconocer: [...new Set(sin)],
+  };
 }
 
 // Autocompletes a row from the text of its exercise. If the text starts with «NxM» (4x100), sets and distance come from there;
@@ -225,8 +314,14 @@ export function autocompletarLinea(linea, { tipos } = {}) {
   const cambios = { series: false, distancia: false, componentes: false, estilos: false };
   if (!p.ok) return { linea: out, parse: p, cambios };
   const explicito = p.series != null; // the text carries «NxM»: it wins over what is written in the row
-  if (p.series != null && (explicito || vacio(l.series)) && num(l.series) !== p.series) { out.series = p.series; cambios.series = true; }
-  if (p.distancia != null && (explicito || vacio(l.distancia)) && num(l.distancia) !== p.distancia) { out.distancia = p.distancia; cambios.distancia = true; }
+  if (p.series != null && (explicito || vacio(l.series)) && num(l.series) !== p.series) {
+    out.series = p.series;
+    cambios.series = true;
+  }
+  if (p.distancia != null && (explicito || vacio(l.distancia)) && num(l.distancia) !== p.distancia) {
+    out.distancia = p.distancia;
+    cambios.distancia = true;
+  }
   if (p.componentes.length) {
     const manuales = l.componentes.filter((c) => c.modo === 'manual');
     const claves = new Set(manuales.map((c) => normalizarNombre(c.contenido)));
@@ -234,7 +329,10 @@ export function autocompletarLinea(linea, { tipos } = {}) {
     out.componentes = [...manuales, ...nuevos];
     cambios.componentes = JSON.stringify(out.componentes) !== JSON.stringify(l.componentes);
   }
-  if (p.estilos.length && !l.estilos.length) { out.estilos = p.estilos; cambios.estilos = true; }
+  if (p.estilos.length && !l.estilos.length) {
+    out.estilos = p.estilos;
+    cambios.estilos = true;
+  }
   return { linea: out, parse: p, cambios };
 }
 
@@ -252,8 +350,11 @@ export function quitarComponente(componentes, contenido) {
 // Manually sets the metres per repetition (or the %) of a component: it is marked as manual.
 export function fijarComponente(componentes, contenido, { metrosPorRep = null, pct = null } = {}) {
   const k = normalizarNombre(contenido);
-  return leerComponentes(componentes).map((c) => (normalizarNombre(c.contenido) === k
-    ? { ...c, modo: 'manual', metrosPorRep: pct > 0 ? null : metrosPorRep, pct: pct > 0 ? pct : null } : c));
+  return leerComponentes(componentes).map((c) =>
+    normalizarNombre(c.contenido) === k
+      ? { ...c, modo: 'manual', metrosPorRep: pct > 0 ? null : metrosPorRep, pct: pct > 0 ? pct : null }
+      : c,
+  );
 }
 // Like fijarComponente, but the other AUTOMATIC components with metres (e.g. those taken from the text) are readjusted
 // proportionally to fill what is left of the distance: setting Sprint to 40 in «75 AeL + 25 Sprint» leaves AeL at 60.
@@ -262,7 +363,9 @@ export function fijarReequilibrando(linea, contenido, valor, { tipos } = {}) {
   const l = normalizarLinea(linea);
   const D = resolverLinea(l, { tipos }).distancia;
   const comps = fijarComponente(l.componentes, contenido, valor);
-  const explicitos = comps.map((c, i) => (c.modo !== 'manual' && c.metrosPorRep != null ? i : -1)).filter((i) => i >= 0);
+  const explicitos = comps
+    .map((c, i) => (c.modo !== 'manual' && c.metrosPorRep != null ? i : -1))
+    .filter((i) => i >= 0);
   if (!(D > 0) || !explicitos.length || comps.some((c) => c.modo !== 'manual' && c.metrosPorRep == null)) return comps;
   const m = repartir(comps, D).m;
   const resto = Math.max(0, r2(D - comps.reduce((a, c, i) => a + (c.modo === 'manual' ? m[i] : 0), 0)));
@@ -272,7 +375,7 @@ export function fijarReequilibrando(linea, contenido, valor, { tipos } = {}) {
   return comps.map((c, i) => {
     const k = explicitos.indexOf(i);
     if (k < 0) return c;
-    const v = k === explicitos.length - 1 ? r2(resto - acum) : r2(resto * pesos[k] / total);
+    const v = k === explicitos.length - 1 ? r2(resto - acum) : r2((resto * pesos[k]) / total);
     acum = r2(acum + v);
     return { ...c, metrosPorRep: v };
   });
@@ -280,7 +383,9 @@ export function fijarReequilibrando(linea, contenido, valor, { tipos } = {}) {
 // Returns a component to the automatic split (it gets its share of what is left).
 export function liberarComponente(componentes, contenido) {
   const k = normalizarNombre(contenido);
-  return leerComponentes(componentes).map((c) => (normalizarNombre(c.contenido) === k ? { ...c, modo: 'auto', metrosPorRep: null, pct: null } : c));
+  return leerComponentes(componentes).map((c) =>
+    normalizarNombre(c.contenido) === k ? { ...c, modo: 'auto', metrosPorRep: null, pct: null } : c,
+  );
 }
 // All automatic ones go back to equal parts (manual ones are not touched).
 export function repartirIgual(componentes) {
@@ -293,7 +398,12 @@ export function asignarResto(linea, contenido, { tipos } = {}) {
   if (!(r.resto > EPS)) return l.componentes;
   const k = normalizarNombre(contenido);
   const existe = r.componentes.find((c) => normalizarNombre(c.contenido) === k);
-  if (existe) return l.componentes.map((c) => (normalizarNombre(c.contenido) === k ? { ...c, modo: 'manual', pct: null, metrosPorRep: r2(existe.metrosPorRep + r.resto) } : c));
+  if (existe)
+    return l.componentes.map((c) =>
+      normalizarNombre(c.contenido) === k
+        ? { ...c, modo: 'manual', pct: null, metrosPorRep: r2(existe.metrosPorRep + r.resto) }
+        : c,
+    );
   return [...l.componentes, { contenido: String(contenido).trim(), metrosPorRep: r.resto, modo: 'manual', pct: null }];
 }
 
@@ -304,13 +414,26 @@ export function resolverLinea(linea, { tipos } = {}) {
   const l = normalizarLinea(linea);
   const D = Number.isFinite(num(l.distancia)) && num(l.distancia) > 0 ? num(l.distancia) : 0;
   const rc = repartir(l.componentes, D);
-  const re = repartir(l.estilos.map((e) => ({ metrosPorRep: e.metrosPorRep, pct: 0, modo: 'auto' })), D);
+  const re = repartir(
+    l.estilos.map((e) => ({ metrosPorRep: e.metrosPorRep, pct: 0, modo: 'auto' })),
+    D,
+  );
   return {
-    distancia: D, series: seriesEfectivas(l),
-    componentes: l.componentes.map((c, i) => ({ contenido: c.contenido, modo: c.modo, pct: c.pct, metrosPorRep: rc.m[i], tipo: resolverContenido(c.contenido, tipos) })),
+    distancia: D,
+    series: seriesEfectivas(l),
+    componentes: l.componentes.map((c, i) => ({
+      contenido: c.contenido,
+      modo: c.modo,
+      pct: c.pct,
+      metrosPorRep: rc.m[i],
+      tipo: resolverContenido(c.contenido, tipos),
+    })),
     estilos: l.estilos.map((e, i) => ({ estilo: canonicoEstilo(e.estilo), metrosPorRep: re.m[i] })),
-    asignado: rc.asignado, resto: l.componentes.length ? rc.resto : 0, exceso: l.componentes.length ? rc.exceso : 0,
-    restoEstilo: l.estilos.length ? re.resto : 0, excesoEstilo: l.estilos.length ? re.exceso : 0,
+    asignado: rc.asignado,
+    resto: l.componentes.length ? rc.resto : 0,
+    exceso: l.componentes.length ? rc.exceso : 0,
+    restoEstilo: l.estilos.length ? re.resto : 0,
+    excesoEstilo: l.estilos.length ? re.exceso : 0,
   };
 }
 
@@ -328,13 +451,20 @@ export function desgloseLinea(linea, { tipos, heredado = null } = {}) {
   let legacy = false;
   if (l.componentes.length) {
     const f = r.exceso > EPS && r.asignado > 0 ? r.distancia / r.asignado : 1; // exceeding the distance: adjusted proportionally
-    contenidos = r.componentes.filter((c) => c.metrosPorRep > 0).map((c) => ({
-      clave: claveContenido(c.tipo ? c.tipo.nombre : c.contenido, c.tipo), contenido: c.tipo ? c.tipo.nombre : c.contenido, tipo: c.tipo, metros: r2(S * c.metrosPorRep * f),
-    }));
+    contenidos = r.componentes
+      .filter((c) => c.metrosPorRep > 0)
+      .map((c) => ({
+        clave: claveContenido(c.tipo ? c.tipo.nombre : c.contenido, c.tipo),
+        contenido: c.tipo ? c.tipo.nombre : c.contenido,
+        tipo: c.tipo,
+        metros: r2(S * c.metrosPorRep * f),
+      }));
   } else if (total > 0) {
     legacy = true;
     const tipo = heredado || null;
-    contenidos = [{ clave: claveContenido(tipo ? tipo.nombre : '', tipo), contenido: tipo ? tipo.nombre : '', tipo, metros: total }];
+    contenidos = [
+      { clave: claveContenido(tipo ? tipo.nombre : '', tipo), contenido: tipo ? tipo.nombre : '', tipo, metros: total },
+    ];
   }
   const asignado = r2(contenidos.reduce((a, c) => a + c.metros, 0));
   const sinAsignarM = Math.max(0, r2(total - asignado));
@@ -343,7 +473,9 @@ export function desgloseLinea(linea, { tipos, heredado = null } = {}) {
   let estilos = [];
   if (l.estilos.length && total > 0) {
     const f = r.excesoEstilo > EPS ? r.distancia / (r.distancia + r.excesoEstilo) : 1;
-    estilos = r.estilos.filter((e) => e.metrosPorRep > 0).map((e) => ({ clave: normalizarNombre(e.estilo), estilo: e.estilo, metros: r2(S * e.metrosPorRep * f) }));
+    estilos = r.estilos
+      .filter((e) => e.metrosPorRep > 0)
+      .map((e) => ({ clave: normalizarNombre(e.estilo), estilo: e.estilo, metros: r2(S * e.metrosPorRep * f) }));
   }
   const conEstilo = r2(estilos.reduce((a, e) => a + e.metros, 0));
   if (total - conEstilo > EPS) estilos.push({ clave: '', estilo: '', metros: r2(total - conEstilo) });
@@ -354,27 +486,49 @@ export function desgloseLinea(linea, { tipos, heredado = null } = {}) {
 // the row with a goal sets the content of the rest of the set; if it has none, it uses its block, the inherited one or its exercise.
 function recorrer(lineas, tipos) {
   const out = [];
-  let setActual = null, heredado = null;
-  ordenarLineas((lineas || []).map(normalizarLinea)).filter((l) => !filaVacia(l)).forEach((l) => {
-    if (l.set !== setActual) { setActual = l.set; heredado = null; }
-    let tipo;
-    if (l.objetivo.trim()) { tipo = clasificarTexto(l.objetivo, tipos); heredado = tipo; } else tipo = clasificarTexto(l.bloque, tipos) || heredado || clasificarTexto(l.ejercicio, tipos);
-    out.push({ linea: l, desglose: desgloseLinea(l, { tipos, heredado: tipo }) });
-  });
+  let setActual = null,
+    heredado = null;
+  ordenarLineas((lineas || []).map(normalizarLinea))
+    .filter((l) => !filaVacia(l))
+    .forEach((l) => {
+      if (l.set !== setActual) {
+        setActual = l.set;
+        heredado = null;
+      }
+      let tipo;
+      if (l.objetivo.trim()) {
+        tipo = clasificarTexto(l.objetivo, tipos);
+        heredado = tipo;
+      } else tipo = clasificarTexto(l.bloque, tipos) || heredado || clasificarTexto(l.ejercicio, tipos);
+      out.push({ linea: l, desglose: desgloseLinea(l, { tipos, heredado: tipo }) });
+    });
   return out;
 }
 
 function agregar(items, tipos) {
   const cat = catalogo(tipos);
   const orden = new Map(cat.map((t, i) => [t.id, i]));
-  const cont = new Map(), est = new Map();
+  const cont = new Map(),
+    est = new Map();
   let totalM = 0;
   items.forEach(({ desglose: d }) => {
     totalM += d.totalM;
-    d.contenidos.forEach((c) => { const e = cont.get(c.clave) || { ...c, metros: 0 }; e.metros = r2(e.metros + c.metros); cont.set(c.clave, e); });
-    d.estilos.forEach((x) => { const e = est.get(x.clave) || { ...x, metros: 0 }; e.metros = r2(e.metros + x.metros); est.set(x.clave, e); });
+    d.contenidos.forEach((c) => {
+      const e = cont.get(c.clave) || { ...c, metros: 0 };
+      e.metros = r2(e.metros + c.metros);
+      cont.set(c.clave, e);
+    });
+    d.estilos.forEach((x) => {
+      const e = est.get(x.clave) || { ...x, metros: 0 };
+      e.metros = r2(e.metros + x.metros);
+      est.set(x.clave, e);
+    });
   });
-  const ordenar = (a, b) => (a.clave === '') - (b.clave === '') || b.metros - a.metros || (orden.get(a.clave) ?? 999) - (orden.get(b.clave) ?? 999) || String(a.clave).localeCompare(String(b.clave));
+  const ordenar = (a, b) =>
+    (a.clave === '') - (b.clave === '') ||
+    b.metros - a.metros ||
+    (orden.get(a.clave) ?? 999) - (orden.get(b.clave) ?? 999) ||
+    String(a.clave).localeCompare(String(b.clave));
   const cs = [...cont.values()].filter((c) => c.metros > 0).sort(ordenar);
   const es = [...est.values()].filter((c) => c.metros > 0).sort(ordenar);
   const pc = porcentajes(cs.map((c) => c.metros));
@@ -382,8 +536,13 @@ function agregar(items, tipos) {
   return {
     totalM: r2(totalM),
     porContenido: cs.map((c, i) => ({
-      contenido: c.contenido, tipoId: c.tipo ? c.tipo.id : '', color: c.tipo ? c.tipo.color : '', predefinido: !!(c.tipo && c.tipo.predefinido),
-      corto: c.tipo ? nombreCorto(c.tipo) : c.contenido, metros: c.metros, pct: pc[i],
+      contenido: c.contenido,
+      tipoId: c.tipo ? c.tipo.id : '',
+      color: c.tipo ? c.tipo.color : '',
+      predefinido: !!(c.tipo && c.tipo.predefinido),
+      corto: c.tipo ? nombreCorto(c.tipo) : c.contenido,
+      metros: c.metros,
+      pct: pc[i],
     })),
     porEstilo: es.map((e, i) => ({ estilo: e.estilo, metros: e.metros, pct: pe[i] })),
   };
@@ -398,7 +557,13 @@ export function desgloseSesion(lineas, { tipos } = {}) {
   const sets = [...new Set(items.map((x) => x.linea.set))];
   return {
     ...base,
-    porSet: sets.map((s) => ({ set: s, ...agregar(items.filter((x) => x.linea.set === s), tipos) })),
+    porSet: sets.map((s) => ({
+      set: s,
+      ...agregar(
+        items.filter((x) => x.linea.set === s),
+        tipos,
+      ),
+    })),
     filas: items.map((x) => ({ set: x.linea.set, orden: x.linea.orden, ...x.desglose })),
   };
 }
@@ -411,7 +576,10 @@ export function volumenPorContenido(sesiones, { tipos } = {}) {
   const base = agregar(items, tipos);
   const metros = {};
   let sinClasificar = 0;
-  base.porContenido.forEach((c) => { if (c.tipoId) metros[c.tipoId] = (metros[c.tipoId] || 0) + c.metros; else sinClasificar += c.metros; });
+  base.porContenido.forEach((c) => {
+    if (c.tipoId) metros[c.tipoId] = (metros[c.tipoId] || 0) + c.metros;
+    else sinClasificar += c.metros;
+  });
   return { ...base, metros, sinClasificar: r2(sinClasificar) };
 }
 
@@ -423,15 +591,48 @@ export function validarReparto(linea, { tipos } = {}) {
   const pos = { set: l.set, orden: l.orden };
   if (!l.componentes.length && !l.estilos.length) return out;
   const r = resolverLinea(l, { tipos });
-  if (!(r.distancia > 0)) { out.push({ severidad: 'aviso', codigo: 'reparto-sin-distancia', campo: 'componentes', ...pos }); return out; }
-  if (r.resto > EPS) out.push({ severidad: 'aviso', codigo: 'reparto-incompleto', campo: 'componentes', params: { resto: r.resto, distancia: r.distancia }, ...pos });
-  if (r.exceso > EPS) out.push({ severidad: 'aviso', codigo: 'reparto-excede', campo: 'componentes', params: { exceso: r.exceso, distancia: r.distancia }, ...pos });
-  if (r.restoEstilo > EPS) out.push({ severidad: 'aviso', codigo: 'estilo-incompleto', campo: 'estilos', params: { resto: r.restoEstilo, distancia: r.distancia }, ...pos });
-  if (r.excesoEstilo > EPS) out.push({ severidad: 'aviso', codigo: 'estilo-excede', campo: 'estilos', params: { exceso: r.excesoEstilo, distancia: r.distancia }, ...pos });
+  if (!(r.distancia > 0)) {
+    out.push({ severidad: 'aviso', codigo: 'reparto-sin-distancia', campo: 'componentes', ...pos });
+    return out;
+  }
+  if (r.resto > EPS)
+    out.push({
+      severidad: 'aviso',
+      codigo: 'reparto-incompleto',
+      campo: 'componentes',
+      params: { resto: r.resto, distancia: r.distancia },
+      ...pos,
+    });
+  if (r.exceso > EPS)
+    out.push({
+      severidad: 'aviso',
+      codigo: 'reparto-excede',
+      campo: 'componentes',
+      params: { exceso: r.exceso, distancia: r.distancia },
+      ...pos,
+    });
+  if (r.restoEstilo > EPS)
+    out.push({
+      severidad: 'aviso',
+      codigo: 'estilo-incompleto',
+      campo: 'estilos',
+      params: { resto: r.restoEstilo, distancia: r.distancia },
+      ...pos,
+    });
+  if (r.excesoEstilo > EPS)
+    out.push({
+      severidad: 'aviso',
+      codigo: 'estilo-excede',
+      campo: 'estilos',
+      params: { exceso: r.excesoEstilo, distancia: r.distancia },
+      ...pos,
+    });
   return out;
 }
 export function validarRepartoSesion(lineas, { tipos } = {}) {
-  return ordenarLineas((lineas || []).map(normalizarLinea)).filter((l) => !filaVacia(l)).flatMap((l) => validarReparto(l, { tipos }));
+  return ordenarLineas((lineas || []).map(normalizarLinea))
+    .filter((l) => !filaVacia(l))
+    .flatMap((l) => validarReparto(l, { tipos }));
 }
 
 // ---------- Text presentation (no i18n: labels arrive as a parameter) ----------
@@ -440,22 +641,56 @@ const defMetros = (n) => `${nfm(n)} m`;
 const defPct = (p) => `${String(p).replace('.', ',')} %`;
 
 // "75 AeL + 25 Sprint" (contents of a row per repetition); a single content: only its name. With style: " · Crol".
-export function textoEjercicio(linea, { tipos, etiqueta = (c) => (c.tipo ? nombreCorto(c.tipo) : c.contenido), etiquetaEstilo = (e) => e } = {}) {
+export function textoEjercicio(
+  linea,
+  { tipos, etiqueta = (c) => (c.tipo ? nombreCorto(c.tipo) : c.contenido), etiquetaEstilo = (e) => e } = {},
+) {
   const r = resolverLinea(linea, { tipos });
   const partes = [];
   if (r.componentes.length === 1) partes.push(etiqueta(r.componentes[0]));
   else if (r.componentes.length) {
-    partes.push(r.componentes.filter((c) => c.metrosPorRep > 0).map((c) => `${nfm(c.metrosPorRep)} ${etiqueta(c)}`).join(' + '));
+    partes.push(
+      r.componentes
+        .filter((c) => c.metrosPorRep > 0)
+        .map((c) => `${nfm(c.metrosPorRep)} ${etiqueta(c)}`)
+        .join(' + '),
+    );
   }
-  if (r.estilos.length) partes.push(r.estilos.filter((e) => e.metrosPorRep > 0).map((e) => (r.estilos.length > 1 ? `${nfm(e.metrosPorRep)} ${etiquetaEstilo(e.estilo)}` : etiquetaEstilo(e.estilo))).join(' + '));
+  if (r.estilos.length)
+    partes.push(
+      r.estilos
+        .filter((e) => e.metrosPorRep > 0)
+        .map((e) =>
+          r.estilos.length > 1 ? `${nfm(e.metrosPorRep)} ${etiquetaEstilo(e.estilo)}` : etiquetaEstilo(e.estilo),
+        )
+        .join(' + '),
+    );
   return partes.filter(Boolean).join('  ·  ');
 }
 
 // One-line summary like the coach's:
 //   "Volumen total: 400 m (AeL 300 m · Sprint 100 m) · Por estilo: Crol 400 m"
 // etq: { total, porEstilo, sinContenido, sinEstilo } ; nombre(item) / nombreEstilo(item): texto visible; metros(n) / pct(p): formato.
-export function textoResumen(d, { etq = {}, nombre = (c) => c.corto || c.contenido, nombreEstilo = (e) => e.estilo, metros = defMetros, pct = defPct, conPct = false } = {}) {
-  const e = { total: 'Volumen total', porEstilo: 'Por estilo', sinContenido: 'Sin contenido', sinEstilo: 'Sin estilo', pctContenido: '% por contenido', pctEstilo: '% por estilo', ...etq };
+export function textoResumen(
+  d,
+  {
+    etq = {},
+    nombre = (c) => c.corto || c.contenido,
+    nombreEstilo = (e) => e.estilo,
+    metros = defMetros,
+    pct = defPct,
+    conPct = false,
+  } = {},
+) {
+  const e = {
+    total: 'Volumen total',
+    porEstilo: 'Por estilo',
+    sinContenido: 'Sin contenido',
+    sinEstilo: 'Sin estilo',
+    pctContenido: '% por contenido',
+    pctEstilo: '% por estilo',
+    ...etq,
+  };
   const cont = d.porContenido.map((c) => `${c.contenido ? nombre(c) : e.sinContenido} ${metros(c.metros)}`);
   const est = d.porEstilo.map((x) => `${x.estilo ? nombreEstilo(x) : e.sinEstilo} ${metros(x.metros)}`);
   let linea = `${e.total}: ${metros(d.totalM)}`;
@@ -464,7 +699,9 @@ export function textoResumen(d, { etq = {}, nombre = (c) => c.corto || c.conteni
   if (!conPct) return linea;
   const pc = d.porContenido.map((c) => `${c.contenido ? nombre(c) : e.sinContenido} ${pct(c.pct)}`).join(' · ');
   const pe = d.porEstilo.map((x) => `${x.estilo ? nombreEstilo(x) : e.sinEstilo} ${pct(x.pct)}`).join(' · ');
-  return [linea, [pc && `${e.pctContenido}: ${pc}`, pe && `${e.pctEstilo}: ${pe}`].filter(Boolean).join(' · ')].filter(Boolean).join('\n');
+  return [linea, [pc && `${e.pctContenido}: ${pc}`, pe && `${e.pctEstilo}: ${pe}`].filter(Boolean).join(' · ')]
+    .filter(Boolean)
+    .join('\n');
 }
 
 // ---------- Rename / merge contents in already stored components ----------
@@ -477,9 +714,13 @@ export function renombrarEnComponentes(valor, de, a) {
   lista.forEach((c) => {
     const nuevo = normalizarNombre(c.contenido) === k ? { ...c, contenido: a } : c;
     const previo = out.find((x) => normalizarNombre(x.contenido) === normalizarNombre(nuevo.contenido));
-    if (!previo) { out.push(nuevo); return; }
+    if (!previo) {
+      out.push(nuevo);
+      return;
+    }
     // two components end up being the same content: their metres are added and manual mode is kept
-    if (nuevo.metrosPorRep != null || previo.metrosPorRep != null) previo.metrosPorRep = r2((previo.metrosPorRep || 0) + (nuevo.metrosPorRep || 0));
+    if (nuevo.metrosPorRep != null || previo.metrosPorRep != null)
+      previo.metrosPorRep = r2((previo.metrosPorRep || 0) + (nuevo.metrosPorRep || 0));
     if (nuevo.pct || previo.pct) previo.pct = r2((previo.pct || 0) + (nuevo.pct || 0));
     if (nuevo.modo === 'manual') previo.modo = 'manual';
   });
@@ -487,7 +728,13 @@ export function renombrarEnComponentes(valor, de, a) {
 }
 
 // ---------- Style colours (editor and PDF) ----------
-export const COLOR_ESTILO = { crol: '#1a73e8', espalda: '#00897b', braza: '#8d6e63', mariposa: '#d93025', estilos: '#7e57c2' };
+export const COLOR_ESTILO = {
+  crol: '#1a73e8',
+  espalda: '#00897b',
+  braza: '#8d6e63',
+  mariposa: '#d93025',
+  estilos: '#7e57c2',
+};
 export const COLOR_OTRO_ESTILO = '#6d4c9f';
 export const COLOR_SIN_ESTILO = '#9aa4b2';
 export const claveEstilo = (e) => normalizarNombre(e);

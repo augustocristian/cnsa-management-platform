@@ -3,16 +3,41 @@ import assert from 'node:assert/strict';
 import { fresh, renderView, tick, fieldByLabel, buttonByText, setValue } from '../helpers/app.js';
 
 let c;
-const test = (name, fn) => base(name, async (t) => { c = await fresh(); return fn(t); });
+const test = (name, fn) =>
+  base(name, async (t) => {
+    c = await fresh();
+    return fn(t);
+  });
 
 const today = () => c.ui.isoDate(new Date());
 const vista = () => renderView('marcas', c.container, [], c);
-const limpiar = () => c.store.removeMany('Marcas', c.store.list('Marcas').map((m) => m.id));
-const marca = (o) => c.store.upsert('Marcas', { nadadorId: 'n04', fecha: '2026-03-01', prueba: '100 Libre', piscina: '25', tiempoMs: 62000, competicion: '', notas: '', ...o });
+const limpiar = () =>
+  c.store.removeMany(
+    'Marcas',
+    c.store.list('Marcas').map((m) => m.id),
+  );
+const marca = (o) =>
+  c.store.upsert('Marcas', {
+    nadadorId: 'n04',
+    fecha: '2026-03-01',
+    prueba: '100 Libre',
+    piscina: '25',
+    tiempoMs: 62000,
+    competicion: '',
+    notas: '',
+    ...o,
+  });
 const filtro = (n) => c.container.querySelectorAll('.mc-filters select')[n];
 const opciones = (sel) => [...sel.options].map((o) => o.textContent);
-const filasHistorial = () => [...c.container.querySelectorAll('.card')].find((x) => x.querySelector('h2').textContent === 'Historial').querySelectorAll('tbody tr');
-const abrir = async () => { buttonByText(c.container, 'Registrar marca').click(); await tick(); return document.querySelector('.sheet'); };
+const filasHistorial = () =>
+  [...c.container.querySelectorAll('.card')]
+    .find((x) => x.querySelector('h2').textContent === 'Historial')
+    .querySelectorAll('tbody tr');
+const abrir = async () => {
+  buttonByText(c.container, 'Registrar marca').click();
+  await tick();
+  return document.querySelector('.sheet');
+};
 
 test('the event filter lists each event ONCE and selecting it shows its marks (lowercase legacy names included)', async () => {
   limpiar();
@@ -24,7 +49,14 @@ test('the event filter lists each event ONCE and selecting it shows its marks (l
   setValue(filtro(1), '100 Libre');
   assert.equal(filasHistorial().length, 2, 'both spellings are found');
   assert.doesNotMatch(c.container.textContent, /Sin marcas con estos filtros/);
-  assert.deepEqual(c.store.list('Marcas').map((m) => m.prueba).sort(), ['100 Libre', '100 Libre', '50 Espalda'], 'migrated to the canonical name');
+  assert.deepEqual(
+    c.store
+      .list('Marcas')
+      .map((m) => m.prueba)
+      .sort(),
+    ['100 Libre', '100 Libre', '50 Espalda'],
+    'migrated to the canonical name',
+  );
 });
 
 test('no stray "null" text without active filters', async () => {
@@ -34,13 +66,21 @@ test('no stray "null" text without active filters', async () => {
 
 test('the demo stores canonical event names', async () => {
   const nombres = new Set(c.store.list('Marcas').map((m) => m.prueba));
-  assert.ok([...nombres].every((p) => /^\d+ [A-Z]/.test(p)), [...nombres].join());
+  assert.ok(
+    [...nombres].every((p) => /^\d+ [A-Z]/.test(p)),
+    [...nombres].join(),
+  );
 });
 
 test('the evolution chart is shown by default for the swimmer with most marks, with PB marked and a scroll box', async () => {
   limpiar();
   marca({ nadadorId: 'n01', prueba: '50 Libre', tiempoMs: 30000 });
-  for (const [f, ms] of [['2026-01-10', 64000], ['2026-02-10', 62000], ['2026-03-10', 63000]]) marca({ nadadorId: 'n02', fecha: f, tiempoMs: ms });
+  for (const [f, ms] of [
+    ['2026-01-10', 64000],
+    ['2026-02-10', 62000],
+    ['2026-03-10', 63000],
+  ])
+    marca({ nadadorId: 'n02', fecha: f, tiempoMs: ms });
   await vista();
   const svg = c.container.querySelector('svg.mc-svg');
   assert.ok(svg);
@@ -69,7 +109,18 @@ test('PB badge has accessible text and sits only on the best time of each swimme
 
 test('history is paginated 50 at a time with "Ver más"', async () => {
   limpiar();
-  c.store.upsertMany('Marcas', Array.from({ length: 120 }, (_, i) => ({ nadadorId: 'n04', fecha: `2025-${String(1 + (i % 12)).padStart(2, '0')}-${String(1 + (i % 28)).padStart(2, '0')}`, prueba: '100 Libre', piscina: '25', tiempoMs: 70000 + i * 10, competicion: '', notas: '' })));
+  c.store.upsertMany(
+    'Marcas',
+    Array.from({ length: 120 }, (_, i) => ({
+      nadadorId: 'n04',
+      fecha: `2025-${String(1 + (i % 12)).padStart(2, '0')}-${String(1 + (i % 28)).padStart(2, '0')}`,
+      prueba: '100 Libre',
+      piscina: '25',
+      tiempoMs: 70000 + i * 10,
+      competicion: '',
+      notas: '',
+    })),
+  );
   await vista();
   assert.equal(filasHistorial().length, 50);
   assert.match(c.container.textContent, /Mostrando 50 de 120/);
@@ -99,14 +150,20 @@ test('add-time sheet: inline validation, numeric mask with live interpretation a
   const d = await abrir();
   buttonByText(d, 'Registrar').click();
   await tick();
-  assert.deepEqual([...d.querySelectorAll('.field-error')].map((e) => e.textContent.trim()), ['Elige un nadador de la lista', 'Indica el tiempo (por ejemplo 1:02.45)']);
+  assert.deepEqual(
+    [...d.querySelectorAll('.field-error')].map((e) => e.textContent.trim()),
+    ['Elige un nadador de la lista', 'Indica el tiempo (por ejemplo 1:02.45)'],
+  );
   const tiempo = fieldByLabel(d, 'Tiempo');
   assert.equal(tiempo.getAttribute('inputmode'), 'numeric');
   setValue(tiempo, '10245');
   assert.equal(tiempo.value, '1:02.45');
   assert.match(d.querySelector('.mc-live').textContent, /Se guardará como 01:02\.45/);
   const sel = fieldByLabel(d, 'Bañador');
-  assert.deepEqual([...sel.querySelectorAll('optgroup')].map((g) => g.label.length > 0), [true, true]);
+  assert.deepEqual(
+    [...sel.querySelectorAll('optgroup')].map((g) => g.label.length > 0),
+    [true, true],
+  );
   assert.equal(sel.options[0].textContent, 'Sin indicar');
   assert.equal(sel.options[sel.options.length - 1].textContent, 'Añadir bañador…');
   setValue(fieldByLabel(d, 'Nadador'), 'Carla Menéndez');
@@ -130,7 +187,10 @@ test('swimsuit filters: type, brand and model cascade, show as chips and drive t
   const pbs = () => [...c.container.querySelectorAll('.mc-pb')].map((b) => b.closest('tr').dataset.id);
   assert.deepEqual(pbs(), ['fast1']);
   const tipo = filtro(3);
-  assert.match(opciones(tipo).join('|'), /Todos.*bañador de entrenamiento \(1\).*bañador técnico \(competición\) \(2\).*Sin bañador indicado \(1\)/is);
+  assert.match(
+    opciones(tipo).join('|'),
+    /Todos.*bañador de entrenamiento \(1\).*bañador técnico \(competición\) \(2\).*Sin bañador indicado \(1\)/is,
+  );
 
   setValue(tipo, 'entrenamiento');
   assert.equal(filasHistorial().length, 1);
@@ -142,7 +202,12 @@ test('swimsuit filters: type, brand and model cascade, show as chips and drive t
   assert.equal(filasHistorial().length, 2);
   assert.deepEqual(pbs(), ['fast1']);
   const marcas = opciones(c.container.querySelectorAll('.mc-filters select')[4]);
-  assert.ok(marcas.some((x) => /^Arena/.test(x)) && marcas.some((x) => /^Speedo/.test(x)) && !marcas.some((x) => /^Mizuno/.test(x)), marcas.join());
+  assert.ok(
+    marcas.some((x) => /^Arena/.test(x)) &&
+      marcas.some((x) => /^Speedo/.test(x)) &&
+      !marcas.some((x) => /^Mizuno/.test(x)),
+    marcas.join(),
+  );
   setValue(c.container.querySelectorAll('.mc-filters select')[4], 'speedo');
   assert.equal(filasHistorial().length, 1);
   assert.deepEqual(pbs(), ['fast2']);

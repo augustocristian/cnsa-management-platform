@@ -17,8 +17,15 @@ export function combobox({ label, opciones, valor = '', placeholder = '', requer
   let filtradas = [];
 
   const input = h('input', {
-    type: 'text', role: 'combobox', 'aria-autocomplete': 'list', 'aria-expanded': 'false', 'aria-controls': listId,
-    autocomplete: 'off', spellcheck: 'false', placeholder, autocapitalize: 'off',
+    type: 'text',
+    role: 'combobox',
+    'aria-autocomplete': 'list',
+    'aria-expanded': 'false',
+    'aria-controls': listId,
+    autocomplete: 'off',
+    spellcheck: 'false',
+    placeholder,
+    autocapitalize: 'off',
   });
   const lista = h('ul', { id: listId, role: 'listbox', class: 'combo-list', 'aria-label': label, hidden: true });
   const el = field({ label, input, required: requerido });
@@ -36,12 +43,26 @@ export function combobox({ label, opciones, valor = '', placeholder = '', requer
   }
   function pintar() {
     filtradas = opciones.filter((o) => coincideBusqueda(o.label, input.value)).slice(0, MAX_VISIBLES);
-    lista.replaceChildren(...(filtradas.length
-      ? filtradas.map((o, i) => h('li', {
-        id: `${listId}-${i}`, role: 'option', class: 'combo-opt', 'aria-selected': String(o.value === elegido),
-        onmousedown: (e) => { e.preventDefault(); elegir(o); },
-      }, o.label))
-      : [h('li', { class: 'combo-vacio', role: 'presentation' }, '—')]));
+    lista.replaceChildren(
+      ...(filtradas.length
+        ? filtradas.map((o, i) =>
+            h(
+              'li',
+              {
+                id: `${listId}-${i}`,
+                role: 'option',
+                class: 'combo-opt',
+                'aria-selected': String(o.value === elegido),
+                onmousedown: (e) => {
+                  e.preventDefault();
+                  elegir(o);
+                },
+              },
+              o.label,
+            ),
+          )
+        : [h('li', { class: 'combo-vacio', role: 'presentation' }, '—')]),
+    );
     lista.hidden = false;
     input.setAttribute('aria-expanded', 'true');
     marcarActivo(filtradas.length === 1 ? 0 : -1);
@@ -49,8 +70,10 @@ export function combobox({ label, opciones, valor = '', placeholder = '', requer
   function marcarActivo(i) {
     activo = i;
     [...lista.children].forEach((li, k) => li.classList.toggle('is-active', k === i));
-    if (i >= 0) { input.setAttribute('aria-activedescendant', `${listId}-${i}`); lista.children[i]?.scrollIntoView?.({ block: 'nearest' }); }
-    else input.removeAttribute('aria-activedescendant');
+    if (i >= 0) {
+      input.setAttribute('aria-activedescendant', `${listId}-${i}`);
+      lista.children[i]?.scrollIntoView?.({ block: 'nearest' });
+    } else input.removeAttribute('aria-activedescendant');
   }
   function elegir(o) {
     elegido = o.value;
@@ -60,8 +83,12 @@ export function combobox({ label, opciones, valor = '', placeholder = '', requer
   }
 
   // The list opens on tap/typing/arrows, not on programmatic focus (sheets focus their first field when they open).
-  input.addEventListener('focus', () => { input.select?.(); });
-  input.addEventListener('click', () => { if (!abierta()) pintar(); });
+  input.addEventListener('focus', () => {
+    input.select?.();
+  });
+  input.addEventListener('click', () => {
+    if (!abierta()) pintar();
+  });
   input.addEventListener('input', () => {
     elegido = '';
     const exacta = opciones.find((o) => o.label.toLowerCase() === input.value.trim().toLowerCase());
@@ -86,24 +113,38 @@ export function combobox({ label, opciones, valor = '', placeholder = '', requer
   input.addEventListener('blur', () => {
     if (!elegido) {
       const unicas = opciones.filter((o) => coincideBusqueda(o.label, input.value));
-      if (input.value.trim() && unicas.length === 1) { elegido = unicas[0].value; input.value = unicas[0].label; input.dispatchEvent(new Event('change', { bubbles: true })); }
+      if (input.value.trim() && unicas.length === 1) {
+        elegido = unicas[0].value;
+        input.value = unicas[0].label;
+        input.dispatchEvent(new Event('change', { bubbles: true }));
+      }
     }
     cerrar();
   });
 
-  const fijar = (v) => { const o = porValor(v); elegido = o ? o.value : ''; input.value = o ? o.label : ''; };
+  const fijar = (v) => {
+    const o = porValor(v);
+    elegido = o ? o.value : '';
+    input.value = o ? o.label : '';
+  };
   fijar(valor);
 
   return {
-    el, input,
+    el,
+    input,
     // Value of the chosen option; a single remaining match counts as chosen (submit before blur).
     valor() {
       if (elegido) return elegido;
       const unicas = input.value.trim() ? opciones.filter((o) => coincideBusqueda(o.label, input.value)) : [];
-      if (unicas.length === 1) { fijar(unicas[0].value); return elegido; }
+      if (unicas.length === 1) {
+        fijar(unicas[0].value);
+        return elegido;
+      }
       return '';
     },
     fijar,
-    enfocar() { input.focus(); },
+    enfocar() {
+      input.focus();
+    },
   };
 }

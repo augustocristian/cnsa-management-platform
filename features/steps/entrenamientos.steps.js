@@ -6,7 +6,11 @@ import { textRegex } from '../support/world.js';
 // download switch Web Share off so the same steps work in both profiles (a dedicated scenario enables a fake share sheet).
 Before({ tags: '@training or @trainings or @training-pdf or @training-contents or @training-demo' }, async function () {
   await this.context.addInitScript(() => {
-    try { Object.defineProperty(Navigator.prototype, 'canShare', { value: undefined, configurable: true }); } catch (e) { /* ignore */ }
+    try {
+      Object.defineProperty(Navigator.prototype, 'canShare', { value: undefined, configurable: true });
+    } catch (e) {
+      /* ignore */
+    }
   });
 });
 
@@ -82,7 +86,11 @@ Then('there are {int} sessions named {string}', async function (n, title) {
 });
 
 Then('the session {string} appears as {string}', async function (title, status) {
-  await this.expectVisible(sessionCard(this, title).first().locator('.badge', { hasText: new RegExp(`^${status}$`) }));
+  await this.expectVisible(
+    sessionCard(this, title)
+      .first()
+      .locator('.badge', { hasText: new RegExp(`^${status}$`) }),
+  );
 });
 
 Then('the session {string} shows {string}', async function (title, text) {
@@ -93,11 +101,18 @@ Then('the session {string} has a single main action {string}', async function (t
   const row = sessionCard(this, title).first();
   await this.expectVisible(row.getByRole('button', { name: new RegExp(`^${action}`) }));
   assert.equal(await row.locator('.btn--primary').count(), 1);
-  assert.equal(await row.getByRole('button').count(), 2, 'There must be only the main action and the more-actions menu');
+  assert.equal(
+    await row.getByRole('button').count(),
+    2,
+    'There must be only the main action and the more-actions menu',
+  );
 });
 
 Then('the week shows {string} sessions', async function (status) {
-  await this.expectVisible(this.view.locator('.ent-sess .badge', { hasText: new RegExp(`^${status}$`) }), `No ${status} sessions`);
+  await this.expectVisible(
+    this.view.locator('.ent-sess .badge', { hasText: new RegExp(`^${status}$`) }),
+    `No ${status} sessions`,
+  );
 });
 
 Then('the planned sessions show their target volume', async function () {
@@ -108,7 +123,10 @@ Then('all the sessions shown are of the group {string}', async function (g) {
   await this.eventually(async () => {
     const groups = await this.view.locator('.ent-sess .ent-meta .badge:first-child').allInnerTexts();
     assert.ok(groups.length > 0, 'There are no sessions');
-    assert.ok(groups.every((x) => x.trim() === g), `Groups: ${[...new Set(groups)]}`);
+    assert.ok(
+      groups.every((x) => x.trim() === g),
+      `Groups: ${[...new Set(groups)]}`,
+    );
   });
 });
 

@@ -25,7 +25,8 @@ export default {
   'tp.sin-previsto': 'Not planned',
   'tp.sin-clasificar': 'Unclassified',
   'tp.sin-semanas': 'The season dates do not generate any week. Check the start and end.',
-  'tp.sin-fases-ayuda': 'There are no phases yet. Add a phase (general preparation, specific, competitive, tapering or transition) to assign the weeks.',
+  'tp.sin-fases-ayuda':
+    'There are no phases yet. Add a phase (general preparation, specific, competitive, tapering or transition) to assign the weeks.',
   'tp.fuera-temporada': 'outside the season',
   'tp.guardar-igualmente': 'Save anyway',
   'tp.fuente-real': 'Source of actual',
@@ -74,7 +75,8 @@ export default {
   'tp.temporada.eliminada': 'Season deleted',
   'tp.temporada.eliminar-confirm': 'Delete the season "{nombre}" with its phases, weeks and events?',
   'tp.vacio.titulo': 'There is no season yet',
-  'tp.vacio.texto': 'Create a season with its dates: the weeks (Monday to Sunday) are generated and you can add phases, planned volume and competitions.',
+  'tp.vacio.texto':
+    'Create a season with its dates: the weeks (Monday to Sunday) are generated and you can add phases, planned volume and competitions.',
   'tp.f.nombre': 'Name',
   'tp.f.inicio': 'Start date',
   'tp.f.fin': 'End date',
@@ -128,7 +130,8 @@ export default {
   'tp.g.previsto': 'Planned volume',
   'tp.g.planificado': 'Scheduled in sessions (dashed outline)',
   'tp.g.prioridad-leyenda': 'Priority {p} competition',
-  'tp.g.semana-aria': 'Week {n}, {fechas}. Phase: {fase}. Planned: {previsto}. Actual: {real}. Deviation {desv}, {estado}. Events: {eventos}',
+  'tp.g.semana-aria':
+    'Week {n}, {fechas}. Phase: {fase}. Planned: {previsto}. Actual: {real}. Deviation {desv}, {estado}. Events: {eventos}',
   'tp.lista-aria': 'Weeks of the season',
   'tp.tl.titulo': 'Timeline: phases and events',
   'tp.tl.aria': 'Season timeline: {fases} phases, {eventos} events, {semanas} weeks',
@@ -151,11 +154,16 @@ export default {
   'tp.sug.aplicar': 'Apply',
   'tp.sug.aplicada': 'Suggestion applied',
   'tp.sug.ver': 'See week {n}',
-  'tp.sug.contenido-bajo': 'You are {pct} % on {contenido} over the last {semanas} weeks ({real} m actual vs {previsto} m planned): add {metros} m to week {semana}.',
-  'tp.sug.contenido-alto': 'You are {pct} % on {contenido} over the last {semanas} weeks ({real} m actual vs {previsto} m planned): remove {metros} m in week {semana}.',
-  'tp.sug.previa-competicion': 'Week {semana} is the lead-up to "{evento}" (priority {prioridad}): reduce volume from {previsto} m to {objetivo} m ({pct} % of the {base} m average).',
-  'tp.sug.tapering': 'Tapering "{fase}": week {semana} should drop from {previsto} m to {objetivo} m ({pct} % of the {base} m average).',
-  'tp.sug.sin-previsto': '{n} future weeks have no planned volume (the first one is week {primera}). Apply a phase template.',
+  'tp.sug.contenido-bajo':
+    'You are {pct} % on {contenido} over the last {semanas} weeks ({real} m actual vs {previsto} m planned): add {metros} m to week {semana}.',
+  'tp.sug.contenido-alto':
+    'You are {pct} % on {contenido} over the last {semanas} weeks ({real} m actual vs {previsto} m planned): remove {metros} m in week {semana}.',
+  'tp.sug.previa-competicion':
+    'Week {semana} is the lead-up to "{evento}" (priority {prioridad}): reduce volume from {previsto} m to {objetivo} m ({pct} % of the {base} m average).',
+  'tp.sug.tapering':
+    'Tapering "{fase}": week {semana} should drop from {previsto} m to {objetivo} m ({pct} % of the {base} m average).',
+  'tp.sug.sin-previsto':
+    '{n} future weeks have no planned volume (the first one is week {primera}). Apply a phase template.',
   'tp.herr.titulo': 'Week tools',
   'tp.herr.copiar': 'Copy week',
   'tp.herr.copiar-titulo': 'Copy the plan of week {n}',
@@ -164,14 +172,16 @@ export default {
   'tp.herr.copiada': 'Week copied',
   'tp.herr.plantilla': 'Apply phase template',
   'tp.herr.plantilla-corta': 'Template',
-  'tp.herr.plantilla-ayuda': 'Fills the planned volume, split by content and intensity of every week in the phase with a typical wave for its type.',
+  'tp.herr.plantilla-ayuda':
+    'Fills the planned volume, split by content and intensity of every week in the phase with a typical wave for its type.',
   'tp.herr.fase': 'Phase',
   'tp.herr.base': 'Base volume per week (m)',
   'tp.herr.sin-base': 'Enter a base volume to calculate the template.',
   'tp.herr.aplicar': 'Apply',
   'tp.herr.aplicada': 'Template applied',
   'tp.herr.ajustar': 'Adjust volume of several weeks',
-  'tp.herr.ajustar-ayuda': 'Scale (± %) or shift by some weeks the planned volume in the chosen range. Check the preview before applying.',
+  'tp.herr.ajustar-ayuda':
+    'Scale (± %) or shift by some weeks the planned volume in the chosen range. Check the preview before applying.',
   'tp.herr.ajustado': '{n} weeks adjusted',
   'tp.herr.desde': 'From week',
   'tp.herr.hasta': 'To week',

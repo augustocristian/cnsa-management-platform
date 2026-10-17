@@ -22,7 +22,12 @@ export function descargaNavegador(blob, nombre) {
 }
 
 // opciones: {store, ahora?, descargar?, cripto?}  -> backup service
-export function crearServicioBackupApp({ store, ahora = () => new Date(), descargar = descargaNavegador, cripto } = {}) {
+export function crearServicioBackupApp({
+  store,
+  ahora = () => new Date(),
+  descargar = descargaNavegador,
+  cripto,
+} = {}) {
   const c = cripto || crearBackupCrypto();
   return crearBackupService({
     repo: store,

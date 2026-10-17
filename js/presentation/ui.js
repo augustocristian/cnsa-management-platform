@@ -30,7 +30,11 @@ export function h(tag, attrs, ...children) {
 
 let uidN = 0;
 const uid = (p = 'ui') => `${p}-${++uidN}`;
-const timer = (fn, ms) => { const id = setTimeout(fn, ms); if (id && id.unref) id.unref(); return id; };
+const timer = (fn, ms) => {
+  const id = setTimeout(fn, ms);
+  if (id && id.unref) id.unref();
+  return id;
+};
 
 // ---------- Toasts ----------
 // toast(msg, ms | {timeout, type:'error', action:{label,onClick}}) -> {close, el}
@@ -52,23 +56,52 @@ export function toast(msg, opts = {}) {
     clearTimeout(id);
     el.remove();
   };
-  const arrancar = () => { if (id != null || cerrado) return; desde = Date.now(); id = timer(close, Math.max(resto, 1000)); };
-  const pausar = () => { if (id == null) return; clearTimeout(id); id = null; resto -= Date.now() - desde; };
-  const el = h('div', { class: 'toast' + (error ? ' toast--error' : ''), role: error ? 'alert' : 'status', 'aria-atomic': 'true' },
+  const arrancar = () => {
+    if (id != null || cerrado) return;
+    desde = Date.now();
+    id = timer(close, Math.max(resto, 1000));
+  };
+  const pausar = () => {
+    if (id == null) return;
+    clearTimeout(id);
+    id = null;
+    resto -= Date.now() - desde;
+  };
+  const el = h(
+    'div',
+    { class: 'toast' + (error ? ' toast--error' : ''), role: error ? 'alert' : 'status', 'aria-atomic': 'true' },
     error ? icon('aviso', { size: 18 }) : null,
-    h('span', { class: 'toast-text' }, msg));
+    h('span', { class: 'toast-text' }, msg),
+  );
   if (opts.action) {
-    el.appendChild(h('button', {
-      type: 'button', class: 'toast-action',
-      onclick: async () => {
-        if (cerrado) return;
-        close();
-        try { await opts.action.onClick?.(); } catch (e) { console.error(e); }
-      },
-    }, opts.action.label));
+    el.appendChild(
+      h(
+        'button',
+        {
+          type: 'button',
+          class: 'toast-action',
+          onclick: async () => {
+            if (cerrado) return;
+            close();
+            try {
+              await opts.action.onClick?.();
+            } catch (e) {
+              console.error(e);
+            }
+          },
+        },
+        opts.action.label,
+      ),
+    );
   }
   if (error || opts.action) {
-    el.appendChild(h('button', { type: 'button', class: 'toast-action toast-close', 'aria-label': t('ui.cerrar-aviso'), onclick: close }, icon('cerrar', { size: 16 })));
+    el.appendChild(
+      h(
+        'button',
+        { type: 'button', class: 'toast-action toast-close', 'aria-label': t('ui.cerrar-aviso'), onclick: close },
+        icon('cerrar', { size: 16 }),
+      ),
+    );
   }
   el.addEventListener('mouseenter', pausar);
   el.addEventListener('focusin', pausar);
@@ -78,9 +111,11 @@ export function toast(msg, opts = {}) {
   arrancar();
   return { close, el };
 }
-toast.error = (msg, opts = {}) => toast(msg, { ...(typeof opts === 'number' ? { timeout: opts } : opts), type: 'error' });
+toast.error = (msg, opts = {}) =>
+  toast(msg, { ...(typeof opts === 'number' ? { timeout: opts } : opts), type: 'error' });
 // Delete with a safety net: toast.undo('Swimmer deleted', () => restore())
-toast.undo = (msg, onUndo, { timeout = 6000 } = {}) => toast(msg, { timeout, action: { label: t('ui.deshacer'), onClick: onUndo } });
+toast.undo = (msg, onUndo, { timeout = 6000 } = {}) =>
+  toast(msg, { timeout, action: { label: t('ui.deshacer'), onClick: onUndo } });
 
 // ---------- Sheet / modal ----------
 // sheet({title, body (Node|string), actions:[{label, primary, danger, autofocus, onClick(close)}], onClose}) -> {close, el, dialog}
@@ -89,7 +124,8 @@ toast.undo = (msg, onUndo, { timeout = 6000 } = {}) => toast(msg, { timeout, act
 //  - Focus trap: the rest of the page becomes `inert`, Tab/Shift+Tab cycle inside and focus returns on close.
 //  - Locks <body> scroll and always restores it (even if onClose throws).
 //  - If onClick returns false the sheet stays open (e.g. failed validation).
-const FOCUSABLE = 'a[href],button:not([disabled]),input:not([disabled]):not([type="hidden"]),select:not([disabled]),textarea:not([disabled]),[tabindex]:not([tabindex="-1"])';
+const FOCUSABLE =
+  'a[href],button:not([disabled]),input:not([disabled]):not([type="hidden"]),select:not([disabled]),textarea:not([disabled]),[tabindex]:not([tabindex="-1"])';
 const pila = [];
 let bloqueos = 0;
 let overflowPrevio = '';
@@ -102,11 +138,17 @@ function sincronizarInert() {
   if (!top) return;
   for (const e of document.body.children) {
     if (e === top.overlay || e.id === 'toasts' || /^(SCRIPT|STYLE|LINK)$/.test(e.tagName)) continue;
-    if (!e.hasAttribute('inert')) { e.setAttribute('inert', ''); inertados.add(e); }
+    if (!e.hasAttribute('inert')) {
+      e.setAttribute('inert', '');
+      inertados.add(e);
+    }
   }
 }
 function bloquearScroll() {
-  if (bloqueos++ === 0) { overflowPrevio = document.body.style.overflow; document.body.style.overflow = 'hidden'; }
+  if (bloqueos++ === 0) {
+    overflowPrevio = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+  }
 }
 function liberarScroll() {
   if (bloqueos > 0 && --bloqueos === 0) document.body.style.overflow = overflowPrevio;
@@ -132,22 +174,44 @@ export function sheet({ title, body, actions, onClose, className } = {}) {
     } finally {
       liberarScroll(); // always, even if something above or onClose fails
       const vuelta = previo && previo.isConnected && previo.focus ? previo : document.getElementById('view');
-      try { vuelta?.focus?.(); } catch (e) { /* ignore */ }
-      try { onClose?.(); } catch (e) { console.error(e); }
+      try {
+        vuelta?.focus?.();
+      } catch (e) {
+        /* ignore */
+      }
+      try {
+        onClose?.();
+      } catch (e) {
+        console.error(e);
+      }
     }
   };
   const esTop = () => pila[pila.length - 1] === entrada;
   function onKey(e) {
     if (!esTop()) return;
-    if (e.key === 'Escape') { e.stopPropagation(); e.preventDefault(); cerrar(); return; }
+    if (e.key === 'Escape') {
+      e.stopPropagation();
+      e.preventDefault();
+      cerrar();
+      return;
+    }
     if (e.key !== 'Tab') return;
     const f = enfocables(dialog);
-    if (!f.length) { e.preventDefault(); dialog.focus(); return; }
+    if (!f.length) {
+      e.preventDefault();
+      dialog.focus();
+      return;
+    }
     const primero = f[0];
     const ultimo = f[f.length - 1];
     const act = document.activeElement;
-    if (e.shiftKey && (act === primero || act === dialog || !dialog.contains(act))) { e.preventDefault(); ultimo.focus(); }
-    else if (!e.shiftKey && (act === ultimo || !dialog.contains(act))) { e.preventDefault(); primero.focus(); }
+    if (e.shiftKey && (act === primero || act === dialog || !dialog.contains(act))) {
+      e.preventDefault();
+      ultimo.focus();
+    } else if (!e.shiftKey && (act === ultimo || !dialog.contains(act))) {
+      e.preventDefault();
+      primero.focus();
+    }
   }
   // If focus escapes (browsers without inert, screen readers...) it is brought back to the dialog.
   function onFocusIn(e) {
@@ -156,31 +220,68 @@ export function sheet({ title, body, actions, onClose, className } = {}) {
   }
 
   const botones = (actions || [{ label: t('common.cerrar') }]).map((a) => {
-    const b = h('button', {
-      type: 'button',
-      class: 'btn' + (a.primary ? ' btn--primary btn-primary' : '') + (a.danger ? ' btn--danger btn-danger' : '') + (a.class ? ' ' + a.class : ''),
-      onclick: async () => {
-        if (b.getAttribute('aria-busy') === 'true') return;
-        b.setAttribute('aria-busy', 'true');
-        try {
-          const r = a.onClick ? await a.onClick(cerrar) : undefined;
-          if (r !== false) cerrar();
-        } catch (e) {
-          console.error(e);
-          toast.error(e && e.message ? e.message : t('common.error'));
-        } finally { b.removeAttribute('aria-busy'); }
+    const b = h(
+      'button',
+      {
+        type: 'button',
+        class:
+          'btn' +
+          (a.primary ? ' btn--primary btn-primary' : '') +
+          (a.danger ? ' btn--danger btn-danger' : '') +
+          (a.class ? ' ' + a.class : ''),
+        onclick: async () => {
+          if (b.getAttribute('aria-busy') === 'true') return;
+          b.setAttribute('aria-busy', 'true');
+          try {
+            const r = a.onClick ? await a.onClick(cerrar) : undefined;
+            if (r !== false) cerrar();
+          } catch (e) {
+            console.error(e);
+            toast.error(e && e.message ? e.message : t('common.error'));
+          } finally {
+            b.removeAttribute('aria-busy');
+          }
+        },
       },
-    }, a.label);
+      a.label,
+    );
     if (a.autofocus) b.dataset.autofocus = '1';
     return b;
   });
 
-  const dialog = h('div', { class: 'sheet modal' + (className ? ' ' + className : ''), role: 'dialog', 'aria-modal': 'true', 'aria-labelledby': idT, 'aria-describedby': idB, tabindex: '-1' },
-    h('div', { class: 'sheet-head modal-head' }, h('h2', { id: idT }, title || ''),
-      h('button', { type: 'button', class: 'icon-btn', 'aria-label': t('common.cerrar'), onclick: cerrar }, icon('cerrar', { size: 18 }))),
+  const dialog = h(
+    'div',
+    {
+      class: 'sheet modal' + (className ? ' ' + className : ''),
+      role: 'dialog',
+      'aria-modal': 'true',
+      'aria-labelledby': idT,
+      'aria-describedby': idB,
+      tabindex: '-1',
+    },
+    h(
+      'div',
+      { class: 'sheet-head modal-head' },
+      h('h2', { id: idT }, title || ''),
+      h(
+        'button',
+        { type: 'button', class: 'icon-btn', 'aria-label': t('common.cerrar'), onclick: cerrar },
+        icon('cerrar', { size: 18 }),
+      ),
+    ),
     h('div', { class: 'sheet-body modal-body', id: idB }, body),
-    h('div', { class: 'sheet-actions modal-actions' }, botones));
-  const overlay = h('div', { class: 'sheet-overlay modal-overlay', onmousedown: (e) => { if (e.target === overlay) cerrar(); } }, dialog);
+    h('div', { class: 'sheet-actions modal-actions' }, botones),
+  );
+  const overlay = h(
+    'div',
+    {
+      class: 'sheet-overlay modal-overlay',
+      onmousedown: (e) => {
+        if (e.target === overlay) cerrar();
+      },
+    },
+    dialog,
+  );
   const entrada = { overlay };
 
   bloquearScroll();
@@ -190,16 +291,19 @@ export function sheet({ title, body, actions, onClose, className } = {}) {
   document.addEventListener('keydown', onKey, true);
   document.addEventListener('focusin', onFocusIn, true);
   // Initial focus: button marked autofocus > first field > primary button > the dialog itself
-  const inicial = dialog.querySelector('[data-autofocus],[autofocus]')
-    || dialog.querySelector('.sheet-body input:not([type="hidden"]),.sheet-body select,.sheet-body textarea')
-    || dialog.querySelector('.sheet-actions .btn--primary')
-    || dialog;
+  const inicial =
+    dialog.querySelector('[data-autofocus],[autofocus]') ||
+    dialog.querySelector('.sheet-body input:not([type="hidden"]),.sheet-body select,.sheet-body textarea') ||
+    dialog.querySelector('.sheet-actions .btn--primary') ||
+    dialog;
   inicial.focus();
   return { close: cerrar, el: overlay, dialog };
 }
 
 // modal(...) = sheet(...): historical signature, same options. -> {close, el}
-export function modal(opts = {}) { return sheet(opts); }
+export function modal(opts = {}) {
+  return sheet(opts);
+}
 
 // -> Promise<boolean>. Initial focus is on Cancel; the destructive action is labelled 'Delete' (or okLabel).
 export function confirmDialog(msg, { okLabel, danger = false, title } = {}) {
@@ -211,7 +315,14 @@ export function confirmDialog(msg, { okLabel, danger = false, title } = {}) {
       onClose: () => resolve(result),
       actions: [
         { label: t('common.cancelar'), autofocus: true },
-        { label: okLabel || t(danger ? 'common.eliminar' : 'common.aceptar'), primary: !danger, danger, onClick: () => { result = true; } },
+        {
+          label: okLabel || t(danger ? 'common.eliminar' : 'common.aceptar'),
+          primary: !danger,
+          danger,
+          onClick: () => {
+            result = true;
+          },
+        },
       ],
     });
   });
@@ -224,11 +335,25 @@ export function field({ label, input, hint, error, required, id } = {}) {
   const control = input instanceof Node ? input : h('input', { type: 'text' });
   const fid = id || control.id || uid('f');
   control.id = fid;
-  if (required) { control.required = true; control.setAttribute('aria-required', 'true'); }
+  if (required) {
+    control.required = true;
+    control.setAttribute('aria-required', 'true');
+  }
   const el = h('div', { class: 'field' });
   if (label != null) {
-    el.appendChild(h('label', { class: 'field-control' },
-      h('span', { class: 'field-label' }, label, required ? h('span', { class: 'req', 'aria-hidden': 'true' }, ' *') : null), control));
+    el.appendChild(
+      h(
+        'label',
+        { class: 'field-control' },
+        h(
+          'span',
+          { class: 'field-label' },
+          label,
+          required ? h('span', { class: 'req', 'aria-hidden': 'true' }, ' *') : null,
+        ),
+        control,
+      ),
+    );
   } else el.appendChild(control);
   if (hint) {
     const hid = fid + '-hint';
@@ -242,7 +367,8 @@ export function field({ label, input, hint, error, required, id } = {}) {
 function describir(input, id, add) {
   const ids = new Set((input.getAttribute('aria-describedby') || '').split(/\s+/).filter(Boolean));
   add ? ids.add(id) : ids.delete(id);
-  if (ids.size) input.setAttribute('aria-describedby', [...ids].join(' ')); else input.removeAttribute('aria-describedby');
+  if (ids.size) input.setAttribute('aria-describedby', [...ids].join(' '));
+  else input.removeAttribute('aria-describedby');
 }
 
 // fieldError(input, 'Message') -> red border, message with icon below, aria-invalid and focus on the field.
@@ -262,7 +388,11 @@ export function fieldError(input, msg, { focus = true } = {}) {
     err = h('p', { class: 'field-error', id: eid });
     (caja || input.parentElement).appendChild(err);
     describir(input, eid, true);
-    const limpiar = () => { clearFieldError(input); input.removeEventListener('input', limpiar); input.removeEventListener('change', limpiar); };
+    const limpiar = () => {
+      clearFieldError(input);
+      input.removeEventListener('input', limpiar);
+      input.removeEventListener('change', limpiar);
+    };
     input.addEventListener('input', limpiar);
     input.addEventListener('change', limpiar);
   }
@@ -271,33 +401,55 @@ export function fieldError(input, msg, { focus = true } = {}) {
   if (focus) input.focus();
   return err;
 }
-export function clearFieldError(input) { fieldError(input, ''); }
+export function clearFieldError(input) {
+  fieldError(input, '');
+}
 
 // ---------- Empty states and small components ----------
 // empty({icon, title, text, action}) -> <div class="empty">. action: Node | {label, onClick, primary=true}
 export function empty({ icon: ic = 'info', title, text, action } = {}) {
   let cta = action;
   if (action && !(action instanceof Node)) {
-    cta = h('button', { type: 'button', class: 'btn ' + (action.primary === false ? '' : 'btn--primary btn-primary'), onclick: action.onClick }, action.label);
+    cta = h(
+      'button',
+      {
+        type: 'button',
+        class: 'btn ' + (action.primary === false ? '' : 'btn--primary btn-primary'),
+        onclick: action.onClick,
+      },
+      action.label,
+    );
   }
-  return h('div', { class: 'empty' },
+  return h(
+    'div',
+    { class: 'empty' },
     h('div', { class: 'empty-icon' }, icon(ic, { size: 28 })),
     title ? h('p', { class: 'empty-title' }, title) : null,
     text ? h('p', { class: 'empty-text' }, text) : null,
-    cta || null);
+    cta || null,
+  );
 }
 
 // badge('Present', 'ok'|'warn'|'danger'|'info'|'neutral') -> <span class="badge badge--ok"> (the dot is drawn by CSS)
-export function badge(texto, tono = 'neutral') { return h('span', { class: `badge badge--${tono}` }, texto); }
+export function badge(texto, tono = 'neutral') {
+  return h('span', { class: `badge badge--${tono}` }, texto);
+}
 
 // Initials of a name ('Martina Suárez' -> 'MS')
 export function iniciales(nombre) {
-  const p = String(nombre ?? '').trim().split(/\s+/).filter(Boolean);
+  const p = String(nombre ?? '')
+    .trim()
+    .split(/\s+/)
+    .filter(Boolean);
   if (!p.length) return '?';
   return ((p[0][0] || '') + (p.length > 1 ? p[p.length - 1][0] : '')).toUpperCase();
 }
 export function avatar(nombre, { size } = {}) {
-  return h('span', { class: 'avatar' + (size ? ` avatar--${size}` : ''), 'aria-hidden': 'true', title: nombre || null }, iniciales(nombre));
+  return h(
+    'span',
+    { class: 'avatar' + (size ? ` avatar--${size}` : ''), 'aria-hidden': 'true', title: nombre || null },
+    iniciales(nombre),
+  );
 }
 
 // formFields(def, values) -> {el, values(), validate(), inputs}
@@ -311,21 +463,39 @@ export function formFields(def, values = {}) {
     let input;
     if (f.type === 'textarea') input = h('textarea', { rows: 3, placeholder: f.placeholder }, String(v));
     else if (f.type === 'select') {
-      input = h('select', null, (f.options || []).map((o) => {
-        const ov = typeof o === 'object' ? o.value : o;
-        const ol = typeof o === 'object' ? o.label : o;
-        return h('option', { value: ov, selected: String(ov) === String(v) }, ol);
-      }));
+      input = h(
+        'select',
+        null,
+        (f.options || []).map((o) => {
+          const ov = typeof o === 'object' ? o.value : o;
+          const ol = typeof o === 'object' ? o.label : o;
+          return h('option', { value: ov, selected: String(ov) === String(v) }, ol);
+        }),
+      );
     } else if (f.type === 'checkbox') {
       input = h('input', { type: 'checkbox', checked: v === true || v === 'true' || v === 'TRUE' || v === 1 });
     } else {
-      input = h('input', { type: f.type || 'text', value: v, placeholder: f.placeholder, step: f.step, min: f.min, max: f.max });
+      input = h('input', {
+        type: f.type || 'text',
+        value: v,
+        placeholder: f.placeholder,
+        step: f.step,
+        min: f.min,
+        max: f.max,
+      });
     }
     if (f.required) input.required = true;
     inputs[f.name] = input;
     const rotulo = f.label || f.name;
     if (f.type === 'checkbox') {
-      el.appendChild(h('label', { class: 'field check' + (f.full ? ' full' : '') }, input, h('span', null, rotulo + (f.required ? ' *' : ''))));
+      el.appendChild(
+        h(
+          'label',
+          { class: 'field check' + (f.full ? ' full' : '') },
+          input,
+          h('span', null, rotulo + (f.required ? ' *' : '')),
+        ),
+      );
     } else {
       const campo = field({ label: rotulo, input, hint: f.hint, required: f.required });
       if (f.full || f.type === 'textarea') campo.classList.add('full');
@@ -336,9 +506,14 @@ export function formFields(def, values = {}) {
     const out = {};
     for (const f of def) {
       const i = inputs[f.name];
-      out[f.name] = f.type === 'checkbox' ? i.checked
-        : f.type === 'number' ? (i.value === '' ? '' : Number(i.value))
-        : i.value.trim();
+      out[f.name] =
+        f.type === 'checkbox'
+          ? i.checked
+          : f.type === 'number'
+            ? i.value === ''
+              ? ''
+              : Number(i.value)
+            : i.value.trim();
     }
     return out;
   };
@@ -349,7 +524,7 @@ export function formFields(def, values = {}) {
       clearFieldError(i);
       if (i.checkValidity?.() !== false && !(f.required && f.type !== 'checkbox' && i.value.trim() === '')) continue;
       const vacio = i.value.trim() === '';
-      fieldError(i, vacio ? t('ui.campo-obligatorio') : (i.validationMessage || t('common.error')), { focus: false });
+      fieldError(i, vacio ? t('ui.campo-obligatorio') : i.validationMessage || t('common.error'), { focus: false });
       primero ||= i;
     }
     primero?.focus();
@@ -368,7 +543,9 @@ function toDate(d) {
 }
 
 // fmtDate(d) -> according to language (tDate); 'long' -> with weekday
-export function fmtDate(d, mode) { return tDate(d, mode); }
+export function fmtDate(d, mode) {
+  return tDate(d, mode);
+}
 
 // Date|string -> "YYYY-MM-DD" (local time)
 export function isoDate(d = new Date()) {
@@ -386,6 +563,8 @@ export const parseTime = parseTiempo;
 export function timeInput(input) {
   input.setAttribute('inputmode', 'numeric');
   input.setAttribute('autocomplete', 'off');
-  input.addEventListener('input', () => { input.value = maskTime(input.value); });
+  input.addEventListener('input', () => {
+    input.value = maskTime(input.value);
+  });
   return input;
 }

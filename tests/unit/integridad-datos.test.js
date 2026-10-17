@@ -4,21 +4,46 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { SHEETS, ENTITY_SHEETS } from '../../js/domain/schema.js';
 import {
-  dataToDoc, docToData, mergeData, isEmptyData, pareceDocumentoClub, normalizarValor, normalizarClub, fechaDeSerieExcel,
-  metaVacia, purgarLapidas, cmpSello, DOC_VERSION,
+  dataToDoc,
+  docToData,
+  mergeData,
+  isEmptyData,
+  pareceDocumentoClub,
+  normalizarValor,
+  normalizarClub,
+  fechaDeSerieExcel,
+  metaVacia,
+  purgarLapidas,
+  cmpSello,
+  DOC_VERSION,
 } from '../../js/domain/sheetdata.js';
 import { validarFila, esFechaReal, edadEnAnios, idsDuplicados } from '../../js/domain/validacion.js';
 
-const vacio = () => { const d = docToData({}); d.meta = metaVacia(); return d; };
+const vacio = () => {
+  const d = docToData({});
+  d.meta = metaVacia();
+  return d;
+};
 const con = (hoja, filas, club = {}) => {
   const d = vacio();
-  d.db[hoja] = filas.map((f) => { const o = {}; SHEETS[hoja].forEach((c) => { o[c] = f[c] === undefined ? '' : f[c]; }); return o; });
+  d.db[hoja] = filas.map((f) => {
+    const o = {};
+    SHEETS[hoja].forEach((c) => {
+      o[c] = f[c] === undefined ? '' : f[c];
+    });
+    return o;
+  });
   d.club = club;
   return d;
 };
-const sellar = (d, hoja, id, sello) => { (d.meta.sellos[hoja] ||= {})[id] = sello; return d; };
-const lapida = (d, hoja, id, sello, h) => { (d.meta.lapidas[hoja] ||= {})[id] = { s: sello, ...(h ? { h: 1 } : {}) }; return d; };
-const ids = (d, hoja) => d.db[hoja].map((r) => r.id).sort();
+const sellar = (d, hoja, id, sello) => {
+  (d.meta.sellos[hoja] ||= {})[id] = sello;
+  return d;
+};
+const lapida = (d, hoja, id, sello, h) => {
+  (d.meta.lapidas[hoja] ||= {})[id] = { s: sello, ...(h ? { h: 1 } : {}) };
+  return d;
+};
 
 // ---------- P0-3: types ----------
 test('normalises types: phone/licence to text, club values text only, Excel serial date -> ISO, time fraction -> HH:MM', () => {
@@ -43,21 +68,38 @@ test('normalises types: phone/licence to text, club values text only, Excel seri
 
 test('docToData normalises a hand-edited file: numeric/object club name, phones and serial dates', () => {
   const d = docToData({
-    version: 1, club: { nombre: 4242, lema: { x: 1 }, logo: null },
-    hojas: { Nadadores: [{ id: 5, nombre: 'Ana', apellidos: 'P', telefono: 600111222, licencia: 99, fechaNacimiento: 44927, activo: true }] },
+    version: 1,
+    club: { nombre: 4242, lema: { x: 1 }, logo: null },
+    hojas: {
+      Nadadores: [
+        {
+          id: 5,
+          nombre: 'Ana',
+          apellidos: 'P',
+          telefono: 600111222,
+          licencia: 99,
+          fechaNacimiento: 44927,
+          activo: true,
+        },
+      ],
+    },
   });
   assert.equal(typeof d.club.nombre, 'string');
   assert.equal(d.club.nombre, '4242');
   assert.equal(typeof d.club.lema, 'string');
   assert.equal(d.club.logo, '');
   const n = d.db.Nadadores[0];
-  assert.deepEqual([n.id, n.telefono, n.licencia, n.fechaNacimiento, n.activo], ['5', '600111222', '99', '2023-01-01', 'true']);
+  assert.deepEqual(
+    [n.id, n.telefono, n.licencia, n.fechaNacimiento, n.activo],
+    ['5', '600111222', '99', '2023-01-01', 'true'],
+  );
 });
 
 // ---------- P0-2: future version and unknown data ----------
 test('future version: detected; unknown sheets, columns and keys make a lossless round trip', () => {
   const doc = {
-    version: DOC_VERSION + 1, club: { nombre: 'X' },
+    version: DOC_VERSION + 1,
+    club: { nombre: 'X' },
     hojas: {
       Nadadores: [{ id: 'n1', nombre: 'A', apellidos: 'B', futuraColumna: { deep: [1, 2] }, otra: 7 }],
       HojaFutura: [{ id: 'z', dato: 'valor' }],
@@ -73,12 +115,21 @@ test('future version: detected; unknown sheets, columns and keys make a lossless
   assert.deepEqual(vuelta.claveSuperior, { a: 1 });
   // the other known sheets are emitted empty but the unknown sheet and the extra columns survive
   assert.equal(JSON.stringify(docToData(vuelta).extra), JSON.stringify(d.extra));
-  assert.equal(isEmptyData(docToData({ version: 9, hojas: { HojaFutura: [{ id: 1 }] } })), false, 'unknown data counts as data');
+  assert.equal(
+    isEmptyData(docToData({ version: 9, hojas: { HojaFutura: [{ id: 1 }] } })),
+    false,
+    'unknown data counts as data',
+  );
 });
 
 test('read warnings: repeated ids (the last wins) and rows without id are reported, not lost silently', () => {
-  const d = docToData({ hojas: { Grupos: [{ nombre: 'sin id' }, { id: 1, nombre: 'Uno' }, { id: '1', nombre: 'Uno bis' }] } });
-  assert.deepEqual(d.db.Grupos.map((g) => g.nombre), ['Uno bis']);
+  const d = docToData({
+    hojas: { Grupos: [{ nombre: 'sin id' }, { id: 1, nombre: 'Uno' }, { id: '1', nombre: 'Uno bis' }] },
+  });
+  assert.deepEqual(
+    d.db.Grupos.map((g) => g.nombre),
+    ['Uno bis'],
+  );
   assert.deepEqual(d.avisos.map((a) => a.tipo).sort(), ['duplicado', 'sin-id']);
 });
 
@@ -96,7 +147,10 @@ test('merge: different fields of the SAME row are both kept', () => {
   const local = con('Nadadores', [{ ...fila, telefono: '999' }]);
   const remote = con('Nadadores', [{ ...fila, email: 'nuevo@a.es', nombre: 'Anita' }]);
   const m = mergeData(base, local, remote);
-  assert.deepEqual([m.db.Nadadores[0].telefono, m.db.Nadadores[0].email, m.db.Nadadores[0].nombre], ['999', 'nuevo@a.es', 'Anita']);
+  assert.deepEqual(
+    [m.db.Nadadores[0].telefono, m.db.Nadadores[0].email, m.db.Nadadores[0].nombre],
+    ['999', 'nuevo@a.es', 'Anita'],
+  );
 });
 
 test('merge: the same field edited on both sides is won by the highest logical stamp (no wall clock); without stamps, the local one', () => {
@@ -107,7 +161,11 @@ test('merge: the same field edited on both sides is won by the highest logical s
   assert.equal(mergeData(base, local, remote).db.Nadadores[0].nombre, 'REMOTO');
   const local2 = sellar(con('Nadadores', [{ ...fila, nombre: 'LOCAL' }]), 'Nadadores', 'n1', '12@a');
   assert.equal(mergeData(base, local2, remote).db.Nadadores[0].nombre, 'LOCAL');
-  assert.equal(mergeData(base, con('Nadadores', [{ ...fila, nombre: 'LOCAL' }]), con('Nadadores', [{ ...fila, nombre: 'REMOTO' }])).db.Nadadores[0].nombre, 'LOCAL');
+  assert.equal(
+    mergeData(base, con('Nadadores', [{ ...fila, nombre: 'LOCAL' }]), con('Nadadores', [{ ...fila, nombre: 'REMOTO' }]))
+      .db.Nadadores[0].nombre,
+    'LOCAL',
+  );
   assert.ok(cmpSello('10@a', '9@z') > 0 && cmpSello('9@a', '9@b') < 0, 'compared as numbers, the device breaks ties');
 });
 
@@ -117,7 +175,10 @@ test('merge: local deletion vs remote edit -> the edit is not lost', () => {
   const local = con('Nadadores', []); // local deletion
   const remote = con('Nadadores', [{ ...fila, telefono: '777' }]); // remote edit
   const m = mergeData(base, local, remote);
-  assert.deepEqual(m.db.Nadadores.map((n) => [n.id, n.telefono]), [['n1', '777']]);
+  assert.deepEqual(
+    m.db.Nadadores.map((n) => [n.id, n.telefono]),
+    [['n1', '777']],
+  );
 });
 
 test('merge: remote deletion vs local edit -> the edit is not lost', () => {
@@ -125,7 +186,10 @@ test('merge: remote deletion vs local edit -> the edit is not lost', () => {
   const base = con('Nadadores', [fila]);
   const local = con('Nadadores', [{ ...fila, telefono: '555' }]);
   const remote = con('Nadadores', []);
-  assert.deepEqual(mergeData(base, local, remote).db.Nadadores.map((n) => n.telefono), ['555']);
+  assert.deepEqual(
+    mergeData(base, local, remote).db.Nadadores.map((n) => n.telefono),
+    ['555'],
+  );
 });
 
 test('merge: a deletion without a competing edit is applied (both directions) and leaves a tombstone', () => {
@@ -142,14 +206,27 @@ test('merge: a deletion without a competing edit is applied (both directions) an
 test('merge without base: tombstones prevent resurrecting deleted rows; a later edit (higher stamp) overrides them', () => {
   const fila = { id: 'n1', nombre: 'Ana', apellidos: 'P' };
   const remote = lapida(con('Nadadores', []), 'Nadadores', 'n1', '8@b');
-  assert.deepEqual(mergeData(null, sellar(con('Nadadores', [fila]), 'Nadadores', 'n1', '3@a'), remote).db.Nadadores, [], 'the deletion is later');
-  assert.equal(mergeData(null, sellar(con('Nadadores', [{ ...fila, nombre: 'Nueva' }]), 'Nadadores', 'n1', '20@a'), remote).db.Nadadores[0].nombre, 'Nueva', 'edited after the deletion');
+  assert.deepEqual(
+    mergeData(null, sellar(con('Nadadores', [fila]), 'Nadadores', 'n1', '3@a'), remote).db.Nadadores,
+    [],
+    'the deletion is later',
+  );
+  assert.equal(
+    mergeData(null, sellar(con('Nadadores', [{ ...fila, nombre: 'Nueva' }]), 'Nadadores', 'n1', '20@a'), remote).db
+      .Nadadores[0].nombre,
+    'Nueva',
+    'edited after the deletion',
+  );
 });
 
 test('merge: a GDPR purge tombstone (h) is never resurrected, even by a later edit', () => {
   const fila = { id: 'n1', nombre: 'Ana', apellidos: 'P' };
   const remote = lapida(con('Nadadores', []), 'Nadadores', 'n1', '2@b', true);
-  const m = mergeData(con('Nadadores', [fila]), sellar(con('Nadadores', [{ ...fila, nombre: 'X' }]), 'Nadadores', 'n1', '99@a'), remote);
+  const m = mergeData(
+    con('Nadadores', [fila]),
+    sellar(con('Nadadores', [{ ...fila, nombre: 'X' }]), 'Nadadores', 'n1', '99@a'),
+    remote,
+  );
   assert.deepEqual(m.db.Nadadores, []);
   assert.equal(m.meta.lapidas.Nadadores.n1.h, 1, 'the permanent tombstone is kept');
 });
@@ -163,7 +240,10 @@ test('merge: orphans of a deleted parent are removed (loads, attendance, times, 
   lapida(remote, 'Nadadores', 'n1', '4@b');
   const local = vacio(); // this device added new data for that swimmer in the meantime
   local.db.Nadadores = base.db.Nadadores;
-  local.db.Cargas = con('Cargas', [{ id: 'c1', nadadorId: 'n1', metros: 100 }, { id: 'c2', nadadorId: 'n1', metros: 50 }]).db.Cargas;
+  local.db.Cargas = con('Cargas', [
+    { id: 'c1', nadadorId: 'n1', metros: 100 },
+    { id: 'c2', nadadorId: 'n1', metros: 50 },
+  ]).db.Cargas;
   local.db.Marcas = con('Marcas', [{ id: 'm1', nadadorId: 'n1', tiempoMs: 30000 }]).db.Marcas;
   local.db.Asistencia = con('Asistencia', [{ id: 'a1', nadadorId: 'n1', entrenamientoId: 'e9' }]).db.Asistencia;
   const m = mergeData(base, local, remote);
@@ -189,7 +269,7 @@ test('merge: the club merges key by key and the logical clock advances to the hi
   assert.ok(m.meta.reloj >= 40);
 });
 
-test('merge keeps the remote\'s unknown content (extra)', () => {
+test("merge keeps the remote's unknown content (extra)", () => {
   const remote = docToData({ version: 1, hojas: { HojaFutura: [{ id: 'z' }] }, otraClave: 1 });
   const m = mergeData(vacio(), vacio(), remote);
   assert.deepEqual(m.extra.hojas.HojaFutura, [{ id: 'z' }]);

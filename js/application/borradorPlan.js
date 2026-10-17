@@ -18,7 +18,10 @@ export function crearBorradorPlan(inicial = {}) {
   const b = {
     estado,
     // Applies a transformation to the lines (domain operations return new arrays) and notifies.
-    operar(fn) { estado.lineas = fn(estado.lineas); avisar(); },
+    operar(fn) {
+      estado.lineas = fn(estado.lineas);
+      avisar();
+    },
     // Something was edited in place (an input wrote into a line or a header field): notify.
     cambio: avisar,
     // Replaces header and lines (template, copy from another session).
@@ -30,9 +33,15 @@ export function crearBorradorPlan(inicial = {}) {
       avisar();
     },
     sucio: () => D.firmaPlan(estado) !== guardado,
-    marcarGuardado() { guardado = D.firmaPlan(estado); avisar(); },
+    marcarGuardado() {
+      guardado = D.firmaPlan(estado);
+      avisar();
+    },
     vacio: () => D.planVacio(estado.lineas),
-    alCambiar(fn) { oyentes.add(fn); return () => oyentes.delete(fn); },
+    alCambiar(fn) {
+      oyentes.add(fn);
+      return () => oyentes.delete(fn);
+    },
   };
   return b;
 }

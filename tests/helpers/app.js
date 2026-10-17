@@ -4,28 +4,53 @@ import { setupEnv, importApp, tick } from './env.js';
 
 export { tick };
 
-export const VIEWS = ['inicio', 'nadadores', 'grupos', 'entrenamientos', 'asistencia', 'cargas', 'marcas', 'comunicaciones', 'club'];
+export const VIEWS = [
+  'inicio',
+  'nadadores',
+  'grupos',
+  'entrenamientos',
+  'asistencia',
+  'cargas',
+  'marcas',
+  'comunicaciones',
+  'club',
+];
 
 let ctxCache = null;
 
 let booted = null;
-export function boot({ xlsx = false } = {}) {
-  return (booted ||= doBoot(xlsx));
+export function boot() {
+  return (booted ||= doBoot());
 }
 
-async function doBoot(xlsx) {
+async function doBoot() {
   setupEnv({ loadXlsx: true });
-  const [{ store }, { driveConnection: auth }, { drive }, config, ui, { instalarFakeGoogle }, { preferencias }, { serviciosDeVista }] = await Promise.all([
-    importApp('js/composicion/store.js'), importApp('js/infrastructure/driveConnection.js'), importApp('js/infrastructure/drive.js'), importApp('js/infrastructure/config.js'), importApp('js/presentation/ui.js'),
-    importApp('js/infrastructure/fakeGoogle.js'), importApp('js/composicion/preferencias.js'), importApp('js/composicion/contexto.js'),
+  const [
+    { store },
+    { driveConnection: auth },
+    { drive },
+    config,
+    ui,
+    { instalarFakeGoogle },
+    { preferencias },
+    { serviciosDeVista },
+  ] = await Promise.all([
+    importApp('js/composicion/store.js'),
+    importApp('js/infrastructure/driveConnection.js'),
+    importApp('js/infrastructure/drive.js'),
+    importApp('js/infrastructure/config.js'),
+    importApp('js/presentation/ui.js'),
+    importApp('js/infrastructure/fakeGoogle.js'),
+    importApp('js/composicion/preferencias.js'),
+    importApp('js/composicion/contexto.js'),
   ]);
   ctxCache = { store, auth, conexion: auth, drive, ui, config, instalarFakeGoogle, preferencias, serviciosDeVista };
   return ctxCache;
 }
 
 // Clean state: empty DOM, new simulated Drive already connected, one club open with the demo (or empty).
-export async function fresh({ demo = true, xlsx = false, club = 'Club Test' } = {}) {
-  await boot({ xlsx });
+export async function fresh({ demo = true, club = 'Club Test' } = {}) {
+  await boot();
   const ctx = ctxCache;
   document.body.replaceChildren();
   document.head.replaceChildren();
@@ -34,11 +59,17 @@ export async function fresh({ demo = true, xlsx = false, club = 'Club Test' } = 
   (await importApp('js/presentation/i18n/i18n.js')).setLang('es');
   location.hash = '';
   ctx.preferencias.desconectar();
-  const fake = ctx.instalarFakeGoogle({ auth: ctx.auth, drive: ctx.drive, config: ctx.config, opciones: { conectado: true } });
+  const fake = ctx.instalarFakeGoogle({
+    auth: ctx.auth,
+    drive: ctx.drive,
+    config: ctx.config,
+    opciones: { conectado: true },
+  });
   await ctx.auth.init();
   const ref = await ctx.drive.createClub(club);
   await ctx.store.init(ref);
-  if (demo) ctx.store.seedDemo(); else ctx.store.clear();
+  if (demo) ctx.store.seedDemo();
+  else ctx.store.clear();
   const container = document.createElement('main');
   document.body.appendChild(container);
   // servicios = what the composition root adds to every view context (preferences, PDF / Drive adapters, backup and calendar factories)
