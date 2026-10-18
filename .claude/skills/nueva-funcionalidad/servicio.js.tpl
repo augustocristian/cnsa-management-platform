@@ -3,9 +3,7 @@
 // store, nor the DOM, nor fetch, so it can be tested with an in-memory repository.
 import * as D from '../domain/<module>.js';
 
-export function crear<Module>Service(repo, { puedeEditar = () => true, ahora, genId } = {}) {
-  const exigirPermiso = () => { if (!puedeEditar()) throw new Error('sin-permiso'); };
-
+export function crear<Module>Service(repo, { ahora, genId } = {}) {
   return {
     listar: () => repo.list(D.HOJA).map(D.normalizar),
     obtener(id) { const f = repo.get(D.HOJA, id); return f ? D.normalizar(f) : null; },
@@ -15,7 +13,6 @@ export function crear<Module>Service(repo, { puedeEditar = () => true, ahora, ge
 
     // Saves. Errors -> throws {codigo:'validacion', errores}; warnings -> require forzar:true
     guardar(x, { forzar = false } = {}) {
-      exigirPermiso();
       const { errores, avisos } = this.validar(x);
       if (errores.length) throw Object.assign(new Error('validacion'), { codigo: 'validacion', errores });
       if (avisos.length && !forzar) throw Object.assign(new Error('avisos'), { codigo: 'avisos', avisos });
@@ -25,7 +22,6 @@ export function crear<Module>Service(repo, { puedeEditar = () => true, ahora, ge
     },
 
     eliminar(id) {
-      exigirPermiso();
       const previa = repo.get(D.HOJA, id);
       if (!previa) return null;
       repo.remove(D.HOJA, id);

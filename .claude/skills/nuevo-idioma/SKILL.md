@@ -13,13 +13,13 @@ Example with `fr` (Français, `fr-FR`). Structure reference: `js/presentation/i1
 ls js/presentation/i18n/locales/*.es.js js/presentation/i18n/locales/es.js
 ```
 
-Today: `es/en/it.js` (base), `vistas-a|b|c`, `planificacion`, `calendario`, `entreno`, `cargas-tipos`, `acceso`, `diseno`, `temporada`, `categorias`, `datos`. For every `X.en.js` create `X.fr.js` (`export default {...}`) with **exactly the same keys** as `X.es.js` and the same `{variables}`. The base `en.js` -> `fr.js`. Start by copying `en` and translate; leave no text in another language or empty (the test rejects it).
+Today: `es/en/it.js` (base), `vistas-a|b|c`, `planificacion`, `calendario`, `entreno`, `cargas-tipos`, `acceso`, `diseno`, `temporada`, `categorias`, `datos`, `backup`, `banadores`, `inicio`, `tutorial` (run the `ls` above: it is the source of truth). For every `X.en.js` create `X.fr.js` (`export default {...}`) with **exactly the same keys** as `X.es.js` and the same `{variables}`. The base `en.js` -> `fr.js`. Start by copying `en` and translate; leave no text in another language or empty (the test rejects it).
 
 ## 2. Code
 
 1. `js/presentation/i18n/i18n.js`: import `fr` from every file; add the `fr: { ...fr, ...vistasAfr, ... }` branch in `DICTS` (same spread order as `es`); `LANGS.push({ code: 'fr', label: 'Français' })`; `INTL.fr = 'fr-FR'`.
 2. `js/domain/preferencias.js`: `IDIOMAS = ['es', 'en', 'it', 'fr']` (otherwise the language preference saved in Drive is discarded as invalid).
-3. `sw.js`: all the new `*.fr.js` files in `SHELL` and `VERSION` bumped.
+3. `npm run build:sw`: the new `*.fr.js` files enter the generated precache list and `VERSION` changes (commit `sw.js`).
 4. `js/infrastructure/pdfEntreno.js` and `js/domain/calendario.js` receive texts/language by parameter from `entreno.fr.js`/`calendario.fr.js`: no new code, but check with a PDF and an `.ics` generated in `fr`.
 5. `manifest.webmanifest` and `index.html` keep `lang: es` (JS changes `document.documentElement.lang`).
 
@@ -37,8 +37,8 @@ Today: `es/en/it.js` (base), `vistas-a|b|c`, `planificacion`, `calendario`, `ent
 
 ## 5. e2e and screenshots
 
-A minimal scenario: switch language with the `.lang-select` selector and check a translated heading (look at `features/acceso.feature`, `features/diseno-movil.feature` and `features/steps/diseno-pwa.steps.js` for existing language steps; write it with the `nuevo-escenario-cucumber` skill and run it by tag, e.g. `npx cucumber-js --tags "@smoke"`). Screenshot in French: scenario `{ id: 'inicio-fr', idioma: 'fr', locale: 'fr-FR', ... }` in `ESCENARIOS` of `scripts/capturas.mjs` (like `inicio-en`) and `npm run capturas -- --solo=inicio-fr`. Check overflow of longer texts on mobile (`ux-a11y` agent).
+A minimal scenario: switch language with the `.lang-switch [data-lang="fr"]` button (the flag switch of `js/presentation/lang-switch.js`; add a flag drawing for the new code) and check a translated heading (look at `features/acceso.feature`, `features/diseno-movil.feature` and `features/steps/diseno-pwa.steps.js` for existing language steps; write it with the `nuevo-escenario-cucumber` skill and run it by tag, e.g. `npx cucumber-js --tags @smoke`). Screenshot in French: scenario `{ id: 'inicio-fr', idioma: 'fr', locale: 'fr-FR', ... }` in `ESCENARIOS` of `scripts/capturas.mjs` (like `inicio-en`) and `npm run capturas -- --solo=inicio-fr`. Check overflow of longer texts on mobile (`ux-a11y` agent).
 
 ## 6. Docs
 
-README (available languages), `docs/ARCHITECTURE.md` if the mechanism changes. Small commits: `feat(i18n): fr dictionaries`, `feat(i18n): register fr`, `test(i18n): fr parity`. Golden rule: check + unit + integration + relevant e2e before each commit; push when the milestone is done.
+README (available languages), `docs/ARCHITECTURE.md` if the mechanism changes. Small commits: `feat(i18n): fr dictionaries`, `feat(i18n): register fr`, `test(i18n): fr parity`. Golden rule: `npm run verify` + unit + integration + relevant e2e before each commit; push when the milestone is done.

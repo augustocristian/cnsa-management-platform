@@ -52,9 +52,9 @@ test('<module>: the service saves, requires forzar with warnings and deletes', (
   assert.equal(svc.obtener(g.id), null);
 });
 
-test('<module>: without permission nothing is written', () => {
+test('<module>: invalid data writes nothing', () => {
   const repo = repoMemoria();
-  const svc = crear<Module>Service(repo, { puedeEditar: () => false });
-  assert.throws(() => svc.guardar(valido), /sin-permiso/);
+  const svc = crear<Module>Service(repo);
+  assert.throws(() => svc.guardar({}), (e) => e.codigo === 'validacion');
   assert.equal(repo.list(D.HOJA).length, 0);
 });

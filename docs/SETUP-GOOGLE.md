@@ -12,7 +12,7 @@ While no client ID is set the app can still be shown and tried in **demo mode** 
 
 Everything is stored in the `cnl` folder of the user's Drive with **a single data permission, `drive.file`** (the app can only access the files it creates itself). That permission **is not sensitive**, does not require Google verification and **the Google Sheets API does not need to be enabled**: only the Drive API.
 
-The app's own interactive tutorial (the _Tutorial_ menu, or the link on the _Configuration required_ screen) walks through these same steps with copy buttons.
+The app's own interactive tutorial (the _Tutorial_ menu, or the link on the _Configuration needed_ screen) walks through these same steps with copy buttons.
 
 ## 1. Create the project
 
@@ -53,15 +53,15 @@ const BUILTIN_CLIENT_ID = '1234567890-abc.apps.googleusercontent.com';
 
 Push the change to GitHub Pages. The client ID is not a secret and can live in the repository.
 
-To try it **before** publishing, open the app: while the constant is empty you will see _Configuration required_, with a field to paste the ID and **Test and save** (it opens Google's consent window; if it works, the ID is kept only in that browser, in `localStorage['cnl:clientId']`). That screen also shows the page's **current origin** (copy it in step 4 if Google reports `origin_mismatch`).
+To try it **before** publishing, open the app: while the constant is empty you will see _Configuration needed_, with a field to paste the ID and **Test and save** (it opens Google's consent window; if it works, the ID is kept only in that browser, in `localStorage['cnl:clientId']`). That screen also shows the page's **current origin** (copy it in step 4 if Google reports `origin_mismatch`).
 
 ## 6. How it works for each user
 
 - The first time, a two-step wizard creates the person's **empty** club (no sample data) in `cnl/<ClubName>.json`.
-- The `cnl` folder in the person's Drive contains: `<Club>.json` (all the club's data and settings, one file per club), `preferencias.json` (language, last club, tutorial progress, calendar view and reminder, Google Calendar sync map), `entrenos/` (training PDFs) and, if created, the `<Club>.xlsx` copy.
+- The `cnl` folder in the person's Drive contains: `<Club>.json` (all the club's data and settings, one file per club), `preferencias.json` (language, last club, tutorial progress, calendar view and reminder, Google Calendar sync map), `entrenos/` (training PDFs), `backups/` (automatic safety copies: the last 14 daily ones, plus the ones taken before an Excel import or a backup restore) and, if created, the `<Club>.xlsx` copy.
 - **Existing `cnl` folder**: with `drive.file` the app cannot see folders or files it did not create. If the person already had a hand-made `cnl` folder, the app creates (and reuses) its own; they can move their files from Drive. It does not duplicate: if the app's folder already exists it is reused.
 - Changes are saved automatically (after a few seconds), with a local cache so the app works offline and a queue of pending changes that is uploaded when the network returns. If the same person edits from another device, the app detects the change (`md5Checksum`/`modifiedTime`) and merges field by field without losing anything.
-- **Backup**: _Configuration_ lets the person export/import `.xlsx` and save a copy in `cnl/`.
+- **Backup**: _Configuration_ lets the person export/import `.xlsx`, save a copy in `cnl/`, and make a complete **Backup** (one JSON file, optionally encrypted with a passphrase) that can be downloaded, stored in Drive and restored (replace or merge). Restoring always takes a safety copy first.
 - _Disconnect Drive_ **revokes** the permission granted to the app and clears the local cache on that device (it first uploads pending changes, or offers a downloadable copy).
 - **Demo mode** (_Try the demo_, only while there is no client ID) works without connecting: its data lives only in the browser (`localStorage` keys `cnl:demo:*`), a banner says so, and _Exit demo_ erases it. From the demo banner, _Set up Google Drive_ opens the _Configuration needed_ screen so the owner can paste the client ID; connecting then closes the demo and starts an empty real club; demo data never reaches Drive. Backups in Drive and Google Calendar sync are disabled in the demo.
 

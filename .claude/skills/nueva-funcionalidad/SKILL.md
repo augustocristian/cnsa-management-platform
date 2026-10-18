@@ -21,7 +21,7 @@ No DOM, network, storage, `i18n` or clock (dates by parameter). Export: constant
 
 ## 2. Service - `js/application/<module>Service.js` (template `servicio.js.tpl`)
 
-`crear<Module>Service(repo, { puedeEditar = () => true, ahora, genId } = {})`. The repository (`list/get/upsert/remove`) is injected; errors block saving, warnings require `forzar`; without permission it throws `Error('sin-permiso')`. Commit: `feat(<module>): service ...`.
+`crear<Module>Service(repo, { ahora, genId } = {})`. The repository (`list/get/upsert/remove`) is injected; errors block saving, warnings require `forzar`. There are no roles or permissions (individual use). Clock and ids are parameters. Commit: `feat(<module>): service ...`.
 
 ## 3. Data (only if there are new sheets or columns)
 
@@ -33,26 +33,27 @@ Own key prefix (`les.`), parity of keys and `{variables}`. Import and merge into
 
 ## 5. View - `js/presentation/views/<module>.js` (template `vista.js.tpl`)
 
-`export async function render(container, params, ctx)`. It only presents: `h()` from `js/presentation/ui.js`, components from `docs/DESIGN.md` (`.page-head` with one `h1`, `sheet()`, `field()`/`formFields()`, `empty()` with a CTA, `toast.undo`, `badge`, icons from `js/presentation/icons.js`), no emojis, no hard-coded colours, no new `<style>` (if a component is missing use the `nuevo-componente-ui` skill). If it is a new tab:
+`export async function render(container, params, ctx)`. It only presents: `h()` from `js/presentation/ui.js`, components from `docs/DESIGN.md` (`.page-head` with one `h1`, `sheet()`, `field()`/`formFields()`, `empty()` with a CTA, `toast.undo`, `badge`, icons from `js/presentation/icons.js`), no emojis, no hard-coded colours, no new `<style>` (if a component is missing use the `nuevo-componente-ui` skill). Imports are relative and end in `.js` (`../i18n/i18n.js`, `../../domain/<module>.js`, `../../application/<module>Service.js`). Per-view CSS: `css/views/<module>.css` + `useStyles('<module>')` from `../styles.js`; repaint on data changes with `repintarAlCambiar` from `./suscripcion.js`.
 A view NEVER imports `js/infrastructure/*` or `js/composicion/*` (rules R4/R8 of `scripts/check-arch.mjs`, part of `npm run check`): clock, ids, preferences, PDF / Drive / backup / calendar adapters come from `ctx` (`ahoraDe(ctx)`, `genIdDe(ctx)` from `js/presentation/contexto.js`; anything else is added to `serviciosDeVista` in `js/composicion/contexto.js`). The route is registered by the navigation model in `js/presentation/shell/navModel.js` (not in `main.js`).
 
-- `MENU` in `js/main.js` (`['<module>', 'Label']`), the `nav.<module>` key in `js/presentation/i18n/locales/{es,en,it}.js` (the menu uses `tNav(route)`) and an icon named after the route in `js/presentation/icons.js` (SVG path with `currentColor`, like `cargas` or `marcas`).
+If it is a new top-level module: add the route to a group of `GRUPOS` in `js/presentation/shell/navModel.js`, the `nav.<module>` key in `js/presentation/i18n/locales/{es,en,it}.js` (the menu uses `tNav(route)`) and an icon named after the route in `js/presentation/icons.js` (SVG path with `currentColor`, like `cargas` or `marcas`).
+
 - `MODULES` in `features/support/world.js` (menu label -> route) and `VIEWS` in `tests/helpers/app.js` if applicable.
 - If it is not a tab (sub-view/panel), call it from the parent view.
 
 ## 6. Tests (templates `test-unit.test.js.tpl`, `test-integracion.test.js.tpl`)
 
-- Unit: domain and service with an in-memory repository; edge cases and `sin-permiso`; **never depending on today's date**.
+- Unit: domain and service with an in-memory repository; edge cases and error codes; **never depending on today's date**.
 - Integration: `fresh()` + `renderView('<module>', c.container, [], c)`; forms with `fieldByLabel`/`setValue`/`buttonByText`; empty state, inline error and saving.
 - Run: `node --test tests/unit/<module>.test.js tests/unit/<module>Service.test.js tests/integration/<module>.test.js`, then `npm run test:unit && npm run test:integration`.
 
 ## 7. Cucumber feature
 
-Skill `nuevo-escenario-cucumber` (templates in its folder). Minimum: one happy-path `@smoke` plus a validation/delete-with-undo flow. Run by area tag (a bare path runs ALL features): `npx cucumber-js --tags "@<module> and not @google and not @pending"` and the same with `VIEWPORT=mobile` (`$env:VIEWPORT='mobile'` in PowerShell) plus `and not @desktop`.
+Skill `nuevo-escenario-cucumber` (templates in its folder). Minimum: one happy-path `@smoke` plus a validation/delete-with-undo flow. Run by area tag (a bare path runs ALL features): `npx cucumber-js --tags @<module>` and the same with `VIEWPORT=mobile` (`$env:VIEWPORT='mobile'` in PowerShell) plus `and not @desktop`.
 
 ## 8. Service worker
 
-In `sw.js`: add to `SHELL` **all** new files (`./js/domain/<module>.js`, `./js/application/<module>Service.js`, `./js/presentation/views/<module>.js`, the 3 locales, CSS if any) and bump `VERSION` (`'vN'` -> `'vN+1'`). Outside `SHELL` it does not work offline. If the app needs a new folder at runtime, add it to the `cp` of the `build` job in `.github/workflows/pages.yml`.
+Run `npm run build:sw`: the precache list and `VERSION` of `sw.js` are generated from the files on disk (domain, service, view, locales, `css/views/*.css`). Commit `sw.js`; `npm run check` fails when it is stale or when an import / `useStyles` stylesheet is missing. If the app needs a new folder at runtime, add it to the `cp` of the `build` job in `.github/workflows/pages.yml`.
 
 ## 9. Docs and screenshots
 
@@ -62,14 +63,14 @@ In `sw.js`: add to `SHELL` **all** new files (`./js/domain/<module>.js`, `./js/a
 
 ## 10. Review and close
 
-`ux-a11y` (contrast, focus, mobile, dark), `seguridad-rgpd` if there is personal data or exports, `arquitecto` if layers were touched. Then the `preparar-release` skill: `npm run verify && npm run test:unit && npm run test:integration && npm run test:e2e`, commit and milestone push.
+`ux-a11y` (contrast, focus, mobile, dark), `seguridad-rgpd` if there is personal data or exports, `arquitecto` if layers were touched. Then the `preparar-release` skill: `npm run verify && npm run test:unit && npm run test:integration && npm run test:e2e`, commit and milestone push; watch CI with `gh run watch`.
 
 ## Final checklist
 
 - [ ] Domain free of DOM/network/storage/clock; service with injected repository
 - [ ] Texts through `t()` in es/en/it, parity green
 - [ ] One `h1`, visible labels, 44 px touch targets, no emojis or hard-coded colours
-- [ ] New files in `SHELL` and `VERSION` bumped
+- [ ] `npm run build:sw` run and `sw.js` committed
 - [ ] Unit + integration + feature tests (desktop and mobile)
 - [ ] Docs and screenshot updated
 - [ ] Small commits, `check` + tests green, milestone push

@@ -1,14 +1,18 @@
 // <Module> view: presentation only. Logic lives in js/domain/<module>.js and orchestration in js/application/<module>Service.js.
-// UI texts go through t('<pre>.key') (es/en/it in js/presentation/i18n/locales/<module>.*.js).
-import { t, tDate } from '../i18n.js';
+// Never import js/infrastructure or js/composicion (rules R4/R8): take adapters from ctx. UI texts go through t('<pre>.key') (es/en/it in js/presentation/i18n/locales/<module>.*.js).
+import { t, tDate } from '../i18n/i18n.js';
 import { h, sheet, formFields, empty, badge, toast } from '../ui.js';
 import { icon } from '../icons.js';
-import * as D from '../domain/<module>.js';
-import { crear<Module>Service } from '../application/<module>Service.js';
+import { useStyles } from '../styles.js';
+import * as D from '../../domain/<module>.js';
+import { crear<Module>Service } from '../../application/<module>Service.js';
+import { ahoraDe, genIdDe } from '../contexto.js';
+import { repintarAlCambiar } from './suscripcion.js';
 
 export async function render(container, params, ctx) {
   const { store } = ctx;
-  const svc = crear<Module>Service(store);
+  useStyles('<module>'); // css/views/<module>.css (create it only if the shared components are not enough)
+  const svc = crear<Module>Service(store, { ahora: ahoraDe(ctx), genId: genIdDe(ctx) });
 
   function pintar() {
     const filas = svc.listar();
@@ -75,6 +79,6 @@ export async function render(container, params, ctx) {
   }
 
   pintar();
-  // Repaint when changes arrive (other device, sync); unsubscribe once the view is no longer in the DOM
-  const off = store.on(() => { if (container.isConnected) pintar(); else off(); });
+  // Repaint when the data changes (other device, sync); unsubscribes itself once the view leaves the DOM
+  repintarAlCambiar(store, container, pintar, [D.HOJA]);
 }

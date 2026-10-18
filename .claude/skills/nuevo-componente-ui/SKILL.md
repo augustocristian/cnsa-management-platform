@@ -35,7 +35,7 @@ In `js/presentation/ui.js`: `export function <name>({ ... } = {})` returning a n
 
 - Unit (`tests/unit/ui-diseno.test.js` pattern, jsdom): the helper produces the right roles/attributes, escapes text (`<img onerror>` stays text), wires `aria-describedby`.
 - `tests/unit/diseno-estatico.test.js` stays green (token contrast). If you add colour tokens, add their contrast assertions there.
-- e2e if there is interaction: `features/diseno-sistema.feature` pattern (steps in `features/steps/diseno-sistema.steps.js`); run it by tag: `npx cucumber-js --tags "@design and not @google and not @pending"` and with `VIEWPORT=mobile`.
+- e2e if there is interaction: `features/diseno-sistema.feature` pattern (steps in `features/steps/diseno-sistema.steps.js`); run it by tag: `npx cucumber-js --tags @design` and with `VIEWPORT=mobile`.
 
 ## 7. Verify visually
 
@@ -43,4 +43,4 @@ Use the `ux-a11y` agent: screenshots at 390x844 and 1366x850, light and dark, wi
 
 ## 8. Service worker and wrap-up
 
-If you created a new CSS/JS file add it to `SHELL` in `sw.js`; bump `VERSION` whenever any cached file changed (CSS counts). Then `npm run check && npm run test:unit && npm run test:integration`, the design e2e area, and a small commit `feat(ui): <component> component`. Migrating a view off its private `<style>`: do one view per commit and delete the matching rules from block 11 only when no view needs them.
+Run `npm run build:sw` (the precache list and `VERSION` are generated; any CSS/JS change alters `VERSION`) and commit `sw.js`. Then `npm run verify && npm run test:unit && npm run test:integration`, the design e2e area, and a small commit `feat(ui): <component> component`. Views must not inject `<style>` (rule R10); view-specific CSS lives in `css/views/<name>.css` loaded with `useStyles`. When migrating a view from hard-coded colours to tokens, do one view per commit and delete the matching rules from block 11 only when no view needs them.

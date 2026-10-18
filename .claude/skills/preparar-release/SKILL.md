@@ -13,7 +13,7 @@ description: Milestone checklist for CNL Plataforma - full verification (check, 
 
 ## 2. Pre-flight checks
 
-- New `js/`/`css/` files listed in `SHELL` of `sw.js`; `VERSION` bumped if any cached file changed.
+- `npm run build:sw` run if any file under `js/ css/ icons/ vendor/` or `index.html` changed (the precache list and `VERSION` are generated); `sw.js` committed.
 - All import paths relative; no secrets; no real minors' data in fixtures or screenshots.
 - UI texts through `t()` with es/en/it parity; docs (`README.md`, `docs/ARCHITECTURE.md`, `docs/DESIGN.md`) reflect the change; screenshots regenerated if the UI changed (skill `regenerar-capturas`).
 - New runtime folder/file needed by the app? Add it to the `cp` in the `build` job of `.github/workflows/pages.yml`.
@@ -29,7 +29,7 @@ npm audit --omit=dev --audit-level=high
 npm ci && git diff --exit-code -- vendor/     # only when dependencies changed (vendor in sync)
 ```
 
-During development, per commit, the relevant e2e area is enough: `npx cucumber-js --tags "@<area> and not @google and not @pending"` (a bare feature path would run ALL scenarios, see `nuevo-escenario-cucumber`), and again with `VIEWPORT=mobile` (`$env:VIEWPORT='mobile'` in PowerShell) when the UI changed. Red tests are fixed at the cause, never skipped. A red e2e that cannot be explained by your change may come from another agent's unfinished work: re-run the area, inspect `reports/screenshots/`, and report it instead of committing over it.
+During development, per commit, the relevant e2e area is enough: `npx cucumber-js --tags @<area>` (a bare feature path would run ALL scenarios, see `nuevo-escenario-cucumber`), and again with `VIEWPORT=mobile` (`$env:VIEWPORT='mobile'` in PowerShell) when the UI changed. Red tests are fixed at the cause, never skipped. A red e2e that cannot be explained by your change may come from another agent's unfinished work: re-run the area, inspect `reports/screenshots/`, and report it instead of committing over it.
 
 ## 4. Commits
 
@@ -39,11 +39,11 @@ Stage by path: `git add js/domain/x.js tests/unit/x.test.js ...`; check `git dif
 
 ## 5. Push the milestone
 
-`git push` (never `--force`/`-f`). Then watch CI: `gh run list --limit 3`, `gh run watch <id>`; on failure `gh run view <id> --log-failed`, reproduce locally and fix forward in a new small commit (or `git revert <sha>`). CI order: validate -> unit + integration -> e2e -> build -> deploy (main only) -> smoke test against https://augustocristian.github.io/cnsa-management-platform/.
+`git push` (never `--force`/`-f`). Then watch CI: `gh run list --limit 3`, `gh run watch <id>`; on failure `gh run view <id> --log-failed`, reproduce locally and fix forward in a new small commit (or `git revert <sha>`). If it is red follow the `diagnosticar-ci` skill. CI order: validate ("Static validation": verify, arch check, audit, vendor sync) -> unit + integration -> e2e -> build -> deploy (main only; Pages source must be "GitHub Actions") -> smoke test against https://augustocristian.github.io/cnsa-management-platform/.
 
 ## 6. Post-deploy
 
-Open the public URL, hard-reload (the service worker is cache-first: a bumped `VERSION` activates the new shell), check the start screen (Connect Google Drive, or Configuration needed with Try the demo while no Client ID is set) loads without console errors. Report: commands and results, commit shas, CI status, URL status, and any residual risk.
+Open the public URL, hard-reload (the service worker waits until the user clicks "Reload" in the update banner; a regenerated `VERSION` activates the new shell), check the start screen (Connect Google Drive, or Configuration needed with Try the demo while no Client ID is set) loads without console errors. Report: commands and results, commit shas, CI status, URL status, and any residual risk.
 
 ## Dependabot PRs
 

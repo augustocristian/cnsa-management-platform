@@ -7,7 +7,7 @@ description: Regenerates the real application screenshots in docs/screenshots wi
 
 `scripts/capturas.mjs` starts `scripts/serve.mjs` on a free port, opens the app with Playwright/Chromium using the simulated Google (`js/infrastructure/fakeGoogle.js`, `localStorage['cnl:test']`) and the demo data (`store.seedDemo`), exactly like the e2e. Output: `docs/screenshots/<device>-<id>.png`, where device is `escritorio` (1366x850, scale 1) or `movil` (390x844, scale 2, touch).
 
-Reproducibility is built in: fixed clock (Wednesday 14-Oct-2026 10:30 Madrid), time zone `Europe/Madrid`, Spanish unless the scenario says otherwise, reduced motion, no service worker, animations and caret disabled. A screenshot is **rejected and not written** if there are console errors, 4xx/5xx responses, the view is still "Cargando", or the PNG is suspiciously small (< 6000 bytes); the process exits with code 1 if any fails. Files heavier than 250 KB (`MAX_KB`) are flagged.
+Another agent may own `docs/screenshots` and `README.md` during a docs rewrite: check before overwriting. Reproducibility is built in: fixed clock (Wednesday 14-Oct-2026 10:30 Madrid), time zone `Europe/Madrid`, Spanish unless the scenario says otherwise, reduced motion, no service worker, animations and caret disabled. A screenshot is **rejected and not written** if there are console errors, 4xx/5xx responses, the view is still "Cargando", or the PNG is suspiciously small (< 6000 bytes); the process exits with code 1 if any fails. Files heavier than 250 KB (`MAX_KB`) are flagged.
 
 ## Commands (verified in the script header)
 

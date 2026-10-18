@@ -7,7 +7,7 @@ Load order: `tokens.css` → `app.css` → `components.css`.
 ## Rules
 
 1. **One `<h1>` per view**, inside `.page-head` (actions on the right). Blocks use `h2`/`h3`.
-2. **Do not inject `<style>` in views.** Everything you need comes from the tokens and components; if something reusable is missing, add it to `components.css`. Old views with `<style>` keep working; block 11 of `components.css` (`!important`, temporary) keeps them readable in dark mode and will be deleted once none is left.
+2. **Do not inject `<style>` in views** (rule R10 of `scripts/check-arch.mjs` fails the build). Everything you need comes from the tokens and components; if something reusable is missing, add it to `components.css`. View-specific rules go in `css/views/<name>.css`, loaded with `useStyles('<name>')` (`js/presentation/styles.js`); `npm run build:sw` precaches them. Block 11 of `components.css` (`!important`, temporary) is a dark-mode bridge for older views that still use hard-coded colours; it will be deleted once none is left.
 3. **No hard-coded colours** (`#fff`, `#1a73e8`...): use `var(--surface)`, `var(--text)`, `var(--c-accent)`... so dark mode and the club colour work on their own.
 4. **Inline validation**: `fieldError(input, msg)` next to the field (red border, message with icon, `aria-invalid`, focus). Never `alert()` or native bubbles (`formFields().validate()` already does this).
 5. **Tables** in `.table-wrap > .table`; on mobile use `.table--cards` with `data-label` on every `td`. Numbers with `class="num"` (right-aligned, tabular figures).
@@ -158,7 +158,7 @@ Load order: `tokens.css` → `app.css` → `components.css`.
 
 ## Security and PWA
 
-- **CSP** (meta in `index.html`): `default-src 'none'`, scripts only from self + Google Identity; no `unsafe-inline` for scripts (hence `js/presentation/theme-boot.js` is a file). Injected `<style>` needs `'unsafe-inline'` for styles until the views are migrated.
+- **CSP** (meta in `index.html`): `default-src 'none'`, scripts only from self + Google Identity; no `unsafe-inline` for scripts (hence `js/presentation/theme-boot.js` is a file). `style-src` still allows `'unsafe-inline'` (known debt: inline `style=""` attributes such as `--value` on `.progress` and the Google Identity stylesheet); no view injects `<style>` any more.
 - **SRI**: `scripts/vendor.mjs` generates `vendor/integrity.json` (sha384); `js/infrastructure/vendorIntegridad.js` (`integridad(name)`) applies it to `jsPDF`/`autotable` (`pdfEntreno.js`) and SheetJS (`lazy.js`). Any new `vendor/` script must be loaded the same way. Google Identity does not support SRI.
 - **Icons**: `scripts/iconos.mjs` generates `apple-touch-icon.png` (180, opaque) and `icon-maskable-512.png` (motif inside the safe zone).
 - When adding new CSS/JS files run `npm run build:sw` (the precache list and `VERSION` are generated from the disk; `npm run check` fails if they are stale).
@@ -177,4 +177,5 @@ Files: `css/app.css`, `js/presentation/shell/*.js`. The markup uses the shared c
 
 ## Pending for other work
 
-- **Views**: migrate their `<style>` blocks to the components and remove block 11 of `components.css`.
+- **Dark mode bridge**: migrate the remaining hard-coded colours of older views to tokens and remove block 11 of `components.css`.
+- **CSP**: drop `'unsafe-inline'` from `style-src` once inline `style` attributes are replaced by classes.

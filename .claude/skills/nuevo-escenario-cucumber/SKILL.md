@@ -13,13 +13,13 @@ The e2e suite lives in `features/*.feature` (Gherkin), `features/steps/*.steps.j
 grep -hn "^\(Given\|When\|Then\)(" features/steps/*.js | cut -c1-140
 ```
 
-Reuse the common steps (`features/steps/comunes.steps.js`: club with demo data / empty club / Drive not connected (the generic starts in `conexion.steps.js`: `a club with Drive connected and demo data`, `an empty club with Drive connected`, `the app has just been opened without Drive connected`), open a module, press a button, fill a field, choose in a select, see text/heading/toast, accept confirmation...) **using their exact current wording** (copy the sentence from the step file, do not guess). Step definitions are global across files: a second definition with the same text makes Cucumber fail with "Multiple step definitions match" - if you need a step that already exists elsewhere, move it to `comunes.steps.js` instead of duplicating it.
+Reuse the common steps (`features/steps/comunes.steps.js`: club with demo data / empty club / Drive not connected (more starts in `conexion.steps.js`: `a club with Drive connected and demo data`, `an empty club with Drive connected`, `the app has just been opened without Drive connected`; the older wordings `the app has just been opened without a session` and `the app is open without a Google Client ID` also exist and are widely used), open a module, press a button, fill a field, choose in a select, see text/heading/toast, accept confirmation...) **using their exact current wording** (copy the sentence from the step file, do not guess). Step definitions are global across files: a second definition with the same text makes Cucumber fail with "Multiple step definitions match" - if you need a step that already exists elsewhere, move it to `comunes.steps.js` instead of duplicating it.
 
 ## 2. Write the feature (template `feature.tpl`)
 
-- First lines: `# language: en`, then the **area tag** (`@<area>`), then `Feature:`. The area tag is what lets you run only this area (see 4); give new features one, e.g. `@lesiones`.
+- First lines: `# language: en`, then the **area tag** (`@<area>`, English: `@season`, `@swimmers`, `@training-pdf`...), then `Feature:`. The area tag is what lets you run only this area (see 4); give new features one, e.g. `@injuries`. Tags in use: `@home @swimmers @attendance @loads @times @club @communications @season @planning @calendar @categories @swimsuits @training @training-pdf @training-contents @training-demo @trainings @backup @data-integrity @single-user @demo @access @tutorial @pwa @navigation @theme @design @accessibility @toasts @sheet`.
 - `Background:` with `Given a club with demo data` (or the empty-club Given for first-run flows).
-- One `@smoke` scenario per area with the happy path; further scenarios for validation, deletion with Undo, empty state, and mobile-specific behaviour. Tag desktop-only scenarios `@desktop` (excluded from the mobile profile); scenarios needing a real Google account `@google @pending` (documented but excluded).
+- One `@smoke` scenario per area with the happy path; further scenarios for validation, deletion with Undo, empty state, and mobile-specific behaviour. Tag desktop-only scenarios `@desktop` (excluded from the mobile profile); scenarios needing a real Google account `@google @pending` (documented but excluded by `cucumber.js`; none exist today).
 - Each scenario independent and **date-independent**: use relative-date steps (e.g. the "date N days from now" step defined in `features/steps/temporada.steps.js`, helper `localDate`) and the demo data, which is seeded relative to today. Never hard-code a calendar date whose meaning changes with the season.
 - One business behaviour per scenario; Gherkin describes behaviour from the coach's point of view, not CSS selectors.
 
@@ -32,13 +32,14 @@ Reuse the common steps (`features/steps/comunes.steps.js`: club with demo data /
 
 ## 4. Run
 
-`npm run test:e2e` runs everything (desktop then mobile, 8-10 min: background it). To run only your area **use its tag and repeat the config exclusions** (a bare feature path is merged with `cucumber.js` `paths` and still runs ALL scenarios; `--tags` replaces the configured tag expression):
+`npm run test:e2e` runs everything (desktop then mobile, 8-10 min: background it). To run only your area **use its tag** (a bare feature path, even `file.feature:12`, is merged with `cucumber.js` `paths` and still runs ALL scenarios; `--tags` replaces the configured exclusions, which only matter if you add `@google`/`@pending` scenarios):
 
 ```bash
-npx cucumber-js --tags "@lesiones and not @google and not @pending"
-VIEWPORT=mobile npx cucumber-js --tags "@lesiones and not @google and not @pending and not @desktop"   # PowerShell: $env:VIEWPORT='mobile'; npx cucumber-js ...
-npx cucumber-js --tags "@lesiones and not @google and not @pending" --dry-run --format summary          # parse check / count, runs nothing
-npx cucumber-js --tags "@smoke"                                                                            # all essential scenarios
+npx cucumber-js --tags @lesiones
+VIEWPORT=mobile npx cucumber-js --tags "@lesiones and not @desktop"   # PowerShell: $env:VIEWPORT='mobile'; npx cucumber-js ...
+npx cucumber-js --tags @lesiones --dry-run                           # parse check / count, runs nothing
+npx cucumber-js --tags @smoke                                        # all essential scenarios (62)
+npx cucumber-js --name "part of a scenario name"                     # by name
 ```
 
 First time on a machine: `npx playwright install chromium`. Reports in `reports/` (`cucumber.html`, `cucumber.xml`, `reports/screenshots/*.png` for failures). `npm run e2e:resumen` prints a Markdown summary of the JUnit files.
