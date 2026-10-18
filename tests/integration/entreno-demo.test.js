@@ -18,12 +18,15 @@ const hoyIso = () => {
   return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
 };
 
-test("seedDemo: today's and upcoming sessions come with a detailed plan consistent with their volume; past ones do not", async () => {
+test('seedDemo: sessions of the current week and later come with a detailed plan consistent with their volume; earlier ones do not', async () => {
   const D = await importApp('js/domain/entreno.js');
-  const hoy = hoyIso();
+  // The demo plans every session of the current week (Monday onwards, so it never opens on an empty week) and later ones.
+  const d = new Date();
+  d.setDate(d.getDate() - ((d.getDay() + 6) % 7));
+  const lunes = `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
   const sesiones = c.store.list('Entrenamientos');
-  const futuras = sesiones.filter((s) => String(s.fecha) >= hoy);
-  const pasadas = sesiones.filter((s) => String(s.fecha) < hoy);
+  const futuras = sesiones.filter((s) => String(s.fecha) >= lunes);
+  const pasadas = sesiones.filter((s) => String(s.fecha) < lunes);
   assert.ok(futuras.length >= 6 && pasadas.length > 0);
   const lineas = c.store.list('EntrenoLineas');
   for (const s of futuras) {
@@ -59,8 +62,10 @@ test('today there is a session with a complete plan and its PDF is generated wit
   const { crearEntrenoService } = await importApp('js/application/entrenoService.js');
   const P = await importApp('js/infrastructure/pdfEntreno.js');
   const hoy = hoyIso();
-  const delDia = c.store.list('Entrenamientos').filter((s) => String(s.fecha) === hoy);
-  assert.ok(delDia.length >= 1, 'there are sessions today in the demo');
+  // Date-independent: the demo has no session on some weekdays (e.g. Sunday), so take sessions that have a plan.
+  const conPlan = new Set(c.store.list('EntrenoLineas').map((l) => l.entrenamientoId));
+  const delDia = c.store.list('Entrenamientos').filter((s) => conPlan.has(s.id));
+  assert.ok(delDia.length >= 1, 'the demo has sessions with a complete plan');
   const svc = crearEntrenoService(c.store, { genId: newId, club: () => c.store.club });
   const ficha = svc.ficha(delDia[0].id);
   assert.ok(ficha.sets.length >= 4);

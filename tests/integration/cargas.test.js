@@ -352,7 +352,18 @@ test('targets: ONE single button saves all changes (all or nothing) and the aler
   assert.deepEqual([b.minSemanalM, b.maxSemanalM], [100, 900]);
   assert.match(document.getElementById('toasts').textContent, /Objetivos guardados/);
 
-  // unreachable target: the same shortfall must show in both views
+  // unreachable target: the same shortfall must show in both views.
+  // Home only shows alerts once the week has a load, and on a Monday the demo has none yet: log one (date-independent).
+  const hoy = new Date();
+  const iso = `${hoy.getFullYear()}-${String(hoy.getMonth() + 1).padStart(2, '0')}-${String(hoy.getDate()).padStart(2, '0')}`;
+  c.store.upsert('Cargas', {
+    nadadorId: c.store.list('Nadadores')[0].id,
+    fecha: iso,
+    tipo: 'Piernas',
+    metros: 500,
+    rpe: 5,
+    minutos: 60,
+  });
   const lunes = new Date();
   lunes.setHours(0, 0, 0, 0);
   lunes.setDate(lunes.getDate() - ((lunes.getDay() + 6) % 7));

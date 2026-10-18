@@ -53,11 +53,11 @@ Feature: Times
   Scenario: The performance of the season is seen in the swimmer profile
     Given I have logged the times of "Iker Pérez Naves" in "50 Espalda":
       | date       | time     |
-      | 2026-02-01 | 00:41.20 |
-      | 2026-05-30 | 00:39.80 |
+      | 2026-02-01 | 00:25.20 |
+      | 2026-05-30 | 00:24.80 |
     When I open the "Nadadores" module
     And I open the profile of "Iker Pérez"
-    Then the profile shows the best time "00:39.80" in "50 Espalda"
+    Then the profile shows the best time "00:24.80" in "50 Espalda"
 
   Scenario: Each event appears only once in the filter and choosing it shows its times
     Given I have logged the times of "Noa Díaz Llano" in "200 Libre":

@@ -25,7 +25,7 @@ const abrirMenu = async (etiqueta) => {
   await click(c.container.querySelector('.page-head-actions .enp-mn-btn'));
   const find = () => [...document.querySelectorAll('[role=menuitem]')].find((b) => b.textContent.trim() === etiqueta);
   // The menu opens asynchronously: wait for the option instead of assuming one tick is enough (flaky under CI load).
-  for (let i = 0; i < 40 && !find(); i++) await tick();
+  for (let i = 0; i < 200 && !find(); i++) await new Promise((r) => setTimeout(r, 10));
   const item = find();
   if (!item) throw new Error('No menu option: ' + etiqueta);
   await click(item);

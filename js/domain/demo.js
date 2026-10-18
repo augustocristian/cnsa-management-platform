@@ -210,8 +210,9 @@ export function construirDemo({
           materialDia: '',
           notasGenerales: '',
         });
-        if (!pasada) {
-          // today's and upcoming sessions: realistic detailed plan (see domain/entreno.js)
+        if (w >= 0 || !pasada) {
+          // every session of the current week (past days included, so the demo never opens on an empty week) and later:
+          // realistic detailed plan (see domain/entreno.js)
           const plan = planDemo(ne, vol, g.dur);
           Object.assign(out.Entrenamientos[out.Entrenamientos.length - 1], {
             tipoSesion: plan.tipoSesion,

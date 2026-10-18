@@ -124,7 +124,15 @@ test('swimmer form: "Guardar y añadir otro" saves, keeps the sheet open and cle
 });
 
 test('swimmer file: sections are cards, best marks come from the domain, delete asks no dialog and can be undone', async () => {
-  await renderView('nadadores', c.container, ['n04'], c);
+  // The demo marks come from a seeded random generator whose draws shift with the date: pick a swimmer that has at least
+  // two marks of the same event and pool (otherwise the evolution chart is legitimately absent).
+  const conteo = new Map();
+  for (const m of c.store.list('Marcas')) {
+    const k = `${m.nadadorId}|${m.prueba}|${m.piscina}`;
+    conteo.set(k, (conteo.get(k) || 0) + 1);
+  }
+  const idNadador = [...conteo].find(([, n]) => n >= 2)[0].split('|')[0];
+  await renderView('nadadores', c.container, [idNadador], c);
   assert.equal(c.container.querySelectorAll('h1').length, 1);
   assert.ok(c.container.querySelectorAll('section.card h2').length >= 4);
   assert.ok(c.container.querySelector('.nad-stat .stat-value'));
