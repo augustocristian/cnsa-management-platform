@@ -535,19 +535,19 @@ export function temporadaDemo({ hoy, grupoId = '', tipos = [], desdeFecha = '' }
     });
   const eventos = [
     ev('et1', 'otro', 'Reunión con las familias', 1, 3, 1, {
-      lugar: 'Piscina Lugones',
+      lugar: 'Piscina Municipal',
       notas: 'Presentación de la temporada.',
     }),
-    ev('et2', 'competicion', 'Torneo Social Lugones', 6, 5, 1, {
+    ev('et2', 'competicion', 'Torneo Social del Club', 6, 5, 1, {
       prioridad: 'C',
-      lugar: 'Piscina Lugones',
+      lugar: 'Piscina Municipal',
       pruebas: '50 libre, 50 espalda, 100 estilos',
       categoria: 'Infantil',
       grupoId: grupoId,
       notas: 'Competición de preparación sin descarga.',
     }),
     ev('et3', 'test', 'Test de umbral 5x400', 9, 2, 1, {
-      lugar: 'Piscina Lugones',
+      lugar: 'Piscina Municipal',
       notas: 'Referencia para las zonas de ritmo.',
     }),
     ev('et4', 'competicion', 'Trofeo Ciudad de Gijón', 11, 5, 2, {

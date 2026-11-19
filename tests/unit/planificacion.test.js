@@ -10,7 +10,7 @@ const it = (await importApp('js/presentation/i18n/locales/planificacion.it.js'))
 
 const piscina = (o = {}) => ({
   id: 'p1',
-  nombre: 'Lugones',
+  nombre: 'Municipal',
   longitudM: 25,
   numCalles: 6,
   intervaloMin: 30,

@@ -75,7 +75,7 @@ test('download: delivers a file with valid content and shows the latest backup',
   panel.querySelector('#backup-descargar').click();
   for (let i = 0; i < 40 && !descargas.length; i++) await tick(5);
   assert.equal(descargas.length, 1);
-  assert.equal(descargas[0].nombre, 'cnl-backup-club-natacion-lugones-2026-10-16-1530.json');
+  assert.equal(descargas[0].nombre, 'cnl-backup-club-natacion-ejemplo-2026-10-16-1530.json');
   const doc = JSON.parse(await descargas[0].blob.text());
   assert.equal(doc.format, 'cnl-backup');
   assert.equal(doc.sheets.Nadadores.length, c.store.list('Nadadores').length);

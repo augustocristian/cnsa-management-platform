@@ -213,7 +213,7 @@ export function crearOperacionesDatos({ s, h, deps }) {
       return filas.length;
     },
 
-    // Replaces the data with a demo of Club Natación Lugones. `hoy` (Date) = demo clock: all dates are relative to it.
+    // Replaces the data with a demo of Club Natación Ejemplo. `hoy` (Date) = demo clock: all dates are relative to it.
     seedDemo({ hoy } = {}) {
       const reloj = hoy instanceof Date && !Number.isNaN(hoy.getTime()) ? hoy : ahora();
       const d = construirDemo({ hoy: reloj, genId });

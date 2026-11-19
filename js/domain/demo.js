@@ -1,4 +1,4 @@
-// Demo data of Club Natación Lugones (pure): swimmers, groups, sessions with detailed plans, attendance, loads, times, pool
+// Demo data of Club Natación Ejemplo (pure): swimmers, groups, sessions with detailed plans, attendance, loads, times, pool
 // planning and season planning, all relative to the clock `hoy` (a Date received as a parameter). Deterministic: the random
 // numbers come from a seeded generator (mulberry32), so the same `hoy` always gives the same club.
 import { normalizarTipo, filaTipo, sembrarCatalogo } from './cargas.js';
@@ -41,7 +41,7 @@ export function construirDemo({
 
   const out = emptyDb();
   const clubObj = {
-    nombre: 'Club Natación Lugones',
+    nombre: 'Club Natación Ejemplo',
     lema: 'Pequeño gran club',
     logo: '',
     colorPrimario: '#1a73e8',
@@ -290,7 +290,7 @@ export function construirDemo({
   const entreno = out.Banadores.filter((b) => b.tipo === 'entrenamiento');
   const tecnicos = out.Banadores.filter((b) => b.tipo === 'competicion');
   // Four competitions and, as a fifth option, a control test in training (no competition, training suit).
-  const comps = ['Trofeo Ciudad de Gijón', 'Campeonato Asturias', 'Copa Federación', 'Torneo Lugones', ''];
+  const comps = ['Trofeo Ciudad de Gijón', 'Campeonato Asturias', 'Copa Federación', 'Torneo Social', ''];
   let nm = 0;
   out.Nadadores.forEach((n) => {
     const ps = [0, 1, 2, 3, 4, 5].sort(() => rnd() - 0.5).slice(0, 3);
@@ -335,7 +335,7 @@ export function construirDemo({
   });
   out.Piscinas.push({
     id: 'p1',
-    nombre: 'Piscina Lugones',
+    nombre: 'Piscina Municipal',
     longitudM: 25,
     numCalles: 6,
     intervaloMin: 30,
@@ -403,7 +403,7 @@ export function construirDemo({
       id: 'k2',
       fecha: ymd(addDays(today, -4)),
       titulo: 'Competición en Gijón',
-      texto: 'Salida en autobús a las 8:00 desde la piscina de Lugones.',
+      texto: 'Salida en autobús a las 8:00 desde la piscina.',
       grupoId: 'g3',
       autor: 'Marta Valdés',
     },

@@ -13,7 +13,7 @@
 //   errorConexion  error code ('popup-cerrado', 'acceso-denegado'...) that connect() throws in interactive mode. Alias: errorLogin
 //   demo           true  -> the simulated Drive already holds a club with demo data (store.seedDemo). It is NOT the product's demo
 //                           mode (js/infrastructure/demoStorage.js): it is a test Drive with a sample club.
-//   club           name of that demo club (default "Club Natación Lugones")
+//   club           name of that demo club (default "Club Natación Ejemplo")
 //   sinClientId    true  -> simulates that js/infrastructure/config.js has no Client ID ("Configuración necesaria" screen)
 //   fallos         { listarClubs: 'offline'|'api', escribir: ... }  forced errors for resilience tests
 // The old option `usuario` no longer exists (there is no identity) and is ignored.
@@ -34,7 +34,7 @@ function normalizarOpciones(o = {}) {
   const { sesion, errorLogin, usuario, nombreUsuario, ...resto } = o; // eslint-disable-line no-unused-vars
   return {
     demo: false,
-    club: 'Club Natación Lugones',
+    club: 'Club Natación Ejemplo',
     sinClientId: false,
     fallos: {},
     ...resto,

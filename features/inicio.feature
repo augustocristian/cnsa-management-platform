@@ -23,7 +23,7 @@ Feature: Home panel
   @smoke
   Scenario: The banner summarises the day with the club name
     Given a club with demo data
-    Then the panel banner shows the club name "Club Natación Lugones"
+    Then the panel banner shows the club name "Club Natación Ejemplo"
     And the panel banner summarises the sessions of today
 
   Scenario Outline: The quick actions lead directly to the task

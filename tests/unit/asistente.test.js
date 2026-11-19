@@ -57,8 +57,8 @@ describe('wizard, Google errors and simulated Drive', () => {
   });
 
   test('wizard: datosDelClub fills in default values and trims whitespace', () => {
-    const c = datosDelClub({ nombre: '  Club Lugones ', lema: ' Pequeño ', colorPrimario: 'mal' });
-    assert.equal(c.nombre, 'Club Lugones');
+    const c = datosDelClub({ nombre: '  Club Ejemplo ', lema: ' Pequeño ', colorPrimario: 'mal' });
+    assert.equal(c.nombre, 'Club Ejemplo');
     assert.equal(c.lema, 'Pequeño');
     assert.equal(c.colorPrimario, COLOR_PRIMARIO);
     assert.match(c.colorSecundario, /^#[0-9a-f]{6}$/i);
