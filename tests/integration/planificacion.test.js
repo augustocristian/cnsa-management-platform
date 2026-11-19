@@ -67,7 +67,7 @@ test('the view draws the grid with lanes, Monday blocks, legend and panel', asyn
   await renderView('planificacion', c.container, ['piscina'], c);
   await lunes();
   assert.match(c.container.textContent, /Planificación de la piscina/);
-  assert.match(c.container.textContent, /Piscina Lugones/);
+  assert.match(c.container.textContent, /Piscina Municipal/);
   for (let i = 1; i <= 6; i++)
     assert.ok([...c.container.querySelectorAll('.pl-head')].some((x) => x.textContent === `Calle ${i}`));
   const bloques = c.container.querySelectorAll('.pl-gridwrap .pl-block');
@@ -223,7 +223,7 @@ test('invalid settings are not saved', async () => {
   assert.ok(modal(), 'a lane count out of range is not saved');
   assert.equal(fieldByLabel(modal(), 'Número de calles').getAttribute('aria-invalid'), 'true');
   assert.equal(c.store.get('Piscinas', 'p1').numCalles, 6);
-  assert.equal(c.store.get('Piscinas', 'p1').nombre, 'Piscina Lugones');
+  assert.equal(c.store.get('Piscinas', 'p1').nombre, 'Piscina Municipal');
 });
 
 test('create a new pool with the button (no previous pools)', async () => {

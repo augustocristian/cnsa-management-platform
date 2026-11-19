@@ -133,7 +133,7 @@ describe('data store (store) with simulated Drive', () => {
     const counts = store.seedDemo();
     for (const s of ENTITY_SHEETS.filter((x) => x !== 'Usuarios' && x !== 'ObjetivosCarga'))
       assert.ok(counts[s] > 0, `${s} empty`);
-    assert.equal(store.club.nombre, 'Club Natación Lugones');
+    assert.equal(store.club.nombre, 'Club Natación Ejemplo');
 
     const nad = new Set(store.list('Nadadores').map((n) => n.id));
     const gr = new Set(store.list('Grupos').map((g) => g.id));

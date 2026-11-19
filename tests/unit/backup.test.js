@@ -20,8 +20,8 @@ const hojasBase = () => ({
 async function backupBase(extra = {}) {
   return D.construirBackup(
     {
-      nombre: 'Club Natación Lugones',
-      club: { nombre: 'Club Natación Lugones', lema: 'Pequeño gran club' },
+      nombre: 'Club Natación Ejemplo',
+      club: { nombre: 'Club Natación Ejemplo', lema: 'Pequeño gran club' },
       hojas: hojasBase(),
       top: { campoFuturo: { a: 1 } },
       preferencias: { idioma: 'es' },
@@ -48,7 +48,7 @@ test('construirBackup: format, counts, unknown sheets and sha256 checksum', asyn
   const doc = await backupBase();
   assert.equal(doc.format, 'cnl-backup');
   assert.equal(doc.formatVersion, 1);
-  assert.equal(doc.club.name, 'Club Natación Lugones');
+  assert.equal(doc.club.name, 'Club Natación Ejemplo');
   assert.deepEqual(doc.counts, { Nadadores: 2, Grupos: 1, Hoja_futura: 1 });
   assert.deepEqual(doc.sheets.Hoja_futura, [{ id: 'x1', dato: 1 }]); // unknown sheet preserved
   assert.deepEqual(doc.extra.top, { campoFuturo: { a: 1 } });
@@ -162,7 +162,7 @@ test('prefsDeUsuario: only sanitised user preferences (never calSync nor last cl
 // ---------- summary and comparison ----------
 test('resumenBackup: club, date, counts and unknown sheets', async () => {
   const r = D.resumenBackup(await backupBase(), { esquema: SHEETS });
-  assert.equal(r.club, 'Club Natación Lugones');
+  assert.equal(r.club, 'Club Natación Ejemplo');
   assert.equal(r.total, 4);
   assert.equal(r.nadadores, 2);
   assert.deepEqual(r.hojasDesconocidas, ['Hoja_futura']);
@@ -273,12 +273,12 @@ test('excluirBorradosRgpd: permanently deleted rows and their children do not co
 // ---------- file names ----------
 test('nombreFichero: cnl-backup-<club>-YYYY-MM-DD-HHMM.json', () => {
   assert.equal(
-    D.nombreFichero('Club Natación Lugones', fecha),
-    'cnl-backup-club-natacion-lugones-2026-10-16-1530.json',
+    D.nombreFichero('Club Natación Ejemplo', fecha),
+    'cnl-backup-club-natacion-ejemplo-2026-10-16-1530.json',
   );
   assert.equal(
-    D.nombreFichero('Club Natación Lugones', fecha, { cifrada: true }),
-    'cnl-backup-club-natacion-lugones-2026-10-16-1530-encrypted.json',
+    D.nombreFichero('Club Natación Ejemplo', fecha, { cifrada: true }),
+    'cnl-backup-club-natacion-ejemplo-2026-10-16-1530-encrypted.json',
   );
   assert.equal(D.nombreFichero('', fecha), 'cnl-backup-club-2026-10-16-1530.json');
   assert.equal(D.slug('  ¡¡Ñandú / Club??  '), 'nandu-club');

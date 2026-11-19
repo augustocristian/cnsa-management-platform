@@ -34,7 +34,7 @@ const DATOS = {
     ses('e2', '2026-10-21', '18:30', 'g2'),
     ses('e3', '2026-10-22', '19:00', ''),
   ],
-  Piscinas: [{ id: 'p1', nombre: 'Piscina Lugones', longitudM: 25 }],
+  Piscinas: [{ id: 'p1', nombre: 'Piscina Municipal', longitudM: 25 }],
   AsignacionesCalle: [],
 };
 const RANGO = { desde: '2026-10-01', hasta: '2026-10-31' };
@@ -99,7 +99,7 @@ test('weekly assignments: expanded to concrete dates with lane number', () => {
   assert.equal(evs[0].duracionMin, 90);
   assert.equal(evs[0].piscina, '25');
   assert.match(evs[0].titulo, /Promoción · Calle 3-4/);
-  assert.equal(D.ubicacionEvento(evs[0]), 'Piscina Lugones (25 m), Calle 3-4');
+  assert.equal(D.ubicacionEvento(evs[0]), 'Piscina Municipal (25 m), Calle 3-4');
 });
 
 test('assignments: dates with a concrete session of the same group are skipped and the one-off exception wins', () => {
@@ -347,7 +347,7 @@ test('generarICS: an empty calendar is still valid (no VTIMEZONE)', () => {
 });
 
 test('nombreFicheroICS: no accents or odd characters', () => {
-  assert.equal(D.nombreFicheroICS('Club Natación Lugones', '2026-10'), 'club-natacion-lugones-2026-10.ics');
+  assert.equal(D.nombreFicheroICS('Club Natación Ejemplo', '2026-10'), 'club-natacion-ejemplo-2026-10.ics');
   assert.equal(D.nombreFicheroICS('', ''), 'calendario.ics');
 });
 

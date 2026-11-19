@@ -16,7 +16,7 @@ Feature: Detailed training plan and training PDF
     And the PDF contains "TOTALES"
     And the PDF contains "Calentamiento"
     And the PDF contains "Vuelta a la calma"
-    And the PDF contains "Club Natación Lugones"
+    And the PDF contains "Club Natación Ejemplo"
     And the PDF contains "Página 1 de 1"
 
   Scenario: The next session comes with a detailed plan grouped by sets with totals

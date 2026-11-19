@@ -244,7 +244,7 @@ const ESCENARIOS = [
     sinShell: true,
     dispositivos: ['escritorio'],
     paso: async (p) => {
-      await p.locator('#as-nombre').fill('Club Natación Lugones');
+      await p.locator('#as-nombre').fill('Club Natación Ejemplo');
       await p.locator('#as-lema').fill('Pequeño gran club');
       await boton(p, 'Next').click();
       await p.locator('#as-color1').fill('#0e7490');

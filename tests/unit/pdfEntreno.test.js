@@ -68,7 +68,7 @@ const lineas = D.renumerar([
   { set: 4, orden: 1, tiempoMin: 5, objetivo: 'vuelta a la calma', series: 1, distancia: 200, ejercicio: 'Suave' },
 ]);
 const ficha = (extra = {}, ls = lineas) => ({
-  club: { nombre: 'Club Natación Lugones', colorPrimario: '#4aa32a', colorSecundario: '#2f6f1a' },
+  club: { nombre: 'Club Natación Ejemplo', colorPrimario: '#4aa32a', colorSecundario: '#2f6f1a' },
   sesion: {
     fecha: '2026-10-15',
     hora: '19:50',
@@ -127,7 +127,7 @@ test('generates a valid one-page PDF with the key session data', async () => {
     '100suave+100Lig+100prog',
     'Tabla',
     'TOTALES',
-    'Club Natación Lugones',
+    'Club Natación Ejemplo',
     'Generado el 15/10/2026, 18:00',
     'Página 1 de 1',
     'Alevín - Aeróbico',
@@ -264,7 +264,7 @@ test('no sheets throws an error', async () => {
 
 test('document metadata: title, author and creator', async () => {
   const crudo = Buffer.from((await generar([ficha()])).bytes).toString('latin1');
-  assert.ok(crudo.includes('/Author (Club Natación Lugones)') || crudo.includes('/Author (Club Naci'));
+  assert.ok(crudo.includes('/Author (Club Natación Ejemplo)') || crudo.includes('/Author (Club Naci'));
   assert.ok(crudo.includes('/Creator (CNL Plataforma)'));
 });
 
